@@ -1,5 +1,6 @@
 import { choice, noul, score, type ChoiceCriteria, type EntryType, type Questions } from "@typesafe-ai/sdk";
 import type { JevCaller } from "./jev.js";
+import { scrubSecrets } from "./scrub.js";
 import { IMPORTANCE_LEVELS, NEW_KINDS, type Importance, type Kind, type Memory, type Thresholds } from "./types.js";
 import { DEFAULT_CONFIG } from "./types.js";
 
@@ -196,9 +197,11 @@ export function evaluatePolicy(
 export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOptions = {}): Promise<Decision> {
   const thresholds: Thresholds = { ...DEFAULT_CONFIG.thresholds, ...opts.thresholds };
   const maxIds = opts.maxIds ?? DEFAULT_CONFIG.jev.maxIdsPerCall;
-  const message = input.message.slice(0, opts.maxMessageChars ?? 6000);
-  const recent = (input.recentContext ?? "").slice(-(opts.maxContextChars ?? 2000));
-  const candidates = prefilterByOverlap(message, input.existingMemories, maxIds);
+  // Secrets are stripped here, before anything is batched into the state. (createJev scrubs again at the
+  // HTTP boundary; doing it here too means a mocked or custom JevCaller never sees a credential either.)
+  const message = scrubSecrets(input.message).slice(0, opts.maxMessageChars ?? 6000);
+  const recent = scrubSecrets(input.recentContext ?? "").slice(-(opts.maxContextChars ?? 2000));
+  const candidates = prefilterByOverlap(message, input.existingMemories, maxIds).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
 
   const questions = buildDecideQuestions(candidates);
   const state = {

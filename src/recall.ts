@@ -1,6 +1,7 @@
 import { choice, noul, type ChoiceCriteria, type Questions } from "@typesafe-ai/sdk";
 import type { JevCaller } from "./jev.js";
 import { prefilterByOverlap } from "./decide.js";
+import { scrubSecrets } from "./scrub.js";
 import type { Memory } from "./types.js";
 
 export interface RankedMemory {
@@ -28,7 +29,8 @@ export interface RankOptions {
 export async function rankMemories(jev: JevCaller, query: string, memories: Memory[], opts: RankOptions = {}): Promise<RankedMemory[]> {
   if (memories.length === 0) return [];
   const maxIds = opts.maxIds ?? 200;
-  const candidates = prefilterByOverlap(query, memories, maxIds);
+  query = scrubSecrets(query);
+  const candidates = prefilterByOverlap(query, memories, maxIds).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
   const noulCap = opts.noulCap ?? 50;
   const noulCandidates = opts.perCandidateNouls ? prefilterByOverlap(query, candidates, noulCap) : [];
 

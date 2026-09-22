@@ -29,6 +29,10 @@ export interface HookOutcome {
   detail: string;
   stdout?: string;
   decision?: unknown;
+  /** One-line Jev latency/cost summary for this run (printed by the CLI when JEVMEM_VERBOSE=1). */
+  summary?: string;
+  /** Where the work ran: in this process or in the warm daemon. */
+  via?: "inline" | "daemon";
 }
 
 export interface HookDeps {
@@ -56,7 +60,6 @@ function writeStateFile(dir: string, s: Record<string, unknown>): void {
 
 /** Handle one Claude Code hook event. Never throws; never blocks longer than the configured Jev timeout. */
 export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<HookOutcome> {
-  const env = deps.env ?? process.env;
   const root = input.cwd && fs.existsSync(input.cwd) ? input.cwd : process.cwd();
   const cfg = loadConfig(root);
   const store = new MemoryStore(root, cfg.memoryFile);
@@ -67,7 +70,16 @@ export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<Ho
       ? createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs })
       : null);
   if (!jev) return { event, action: "noop", detail: "TYPESAFE_API_KEY not set; jevmem skipped" };
+  const logStart = jev.log.length;
+  const outcome = await runHookInner(event, input, store, cfg, jev, deps);
+  const s = summarizeLog(jev.log.slice(logStart));
+  outcome.summary = `${s.calls} jev call(s), p50 ${s.p50LatencyMs} ms, ${s.totalTokens} tokens, $${s.totalCostUsd.toFixed(6)}`;
+  outcome.via = "inline";
+  return outcome;
+}
 
+async function runHookInner(event: string, input: HookInput, store: MemoryStore, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, deps: HookDeps): Promise<HookOutcome> {
+  const env = deps.env ?? process.env;
   try {
     if (event === "UserPromptSubmit") {
       const prompt = (input.prompt ?? input.message ?? "").trim();
@@ -121,11 +133,6 @@ export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<Ho
     return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}`, decision };
   } catch (err) {
     return { event, action: "error", detail: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
-  } finally {
-    if (env.JEVMEM_VERBOSE === "1") {
-      const s = summarizeLog(jev.log);
-      process.stderr.write(`jevmem: ${s.calls} jev call(s), p50 ${s.p50LatencyMs} ms, ${s.totalTokens} tokens, $${s.totalCostUsd.toFixed(6)}\n`);
-    }
   }
 }
 

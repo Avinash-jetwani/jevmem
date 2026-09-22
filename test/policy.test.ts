@@ -94,3 +94,22 @@ describe("decide() with a mocked Jev", () => {
     expect(d.reason).toMatch(/chit_chat/);
   });
 });
+
+describe("secrets never reach Jev", () => {
+  it("strips pasted keys from the message, context, and memory texts before the state is built", async () => {
+    const jev = mockJev(() => SAVE_DECISION);
+    const key = "sk-proj-abcdefghijklmnopqrstuvwxyz0123456789";
+    await decide(jev, {
+      message: `USER: deploy uses OPENAI_API_KEY=${key} and password=hunter2secret, keep Node 20`,
+      recentContext: `assistant: earlier I saw ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345 in the logs`,
+      existingMemories: [{ id: "m1", kind: "constraint", text: `DB url is postgres://app:s3cretpass@db.internal/app` }],
+    });
+    const sent = JSON.stringify(jev.calls[0]!.state) + JSON.stringify(jev.calls[0]!.questions);
+    expect(sent).not.toContain("sk-proj-abcdefghijklmnop");
+    expect(sent).not.toContain("hunter2secret");
+    expect(sent).not.toContain("ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    expect(sent).not.toContain("s3cretpass");
+    expect(sent).toContain("[REDACTED]");
+    expect(sent).toContain("keep Node 20");
+  });
+});

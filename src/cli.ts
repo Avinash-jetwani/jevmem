@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { applyAudit, auditMemories, formatAuditTable } from "./audit.js";
 import { loadConfig } from "./config.js";
+import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { readStdinJson, runHook } from "./hook.js";
 import { init } from "./init.js";
 import { createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
@@ -17,6 +18,7 @@ Usage: jevmem <command> [options]
 
   init [--no-hooks] [--command "<cmd>"]   Create JEVMEM.md, jevmem.config.json, .jevmem/ and register Claude Code hooks
   hook                                    Claude Code hook entrypoint (reads the hook JSON from stdin)
+  daemon [status|stop]                    Warm Jev client for the hook (auto-started by the hook; exits when idle)
   mcp                                     Start the stdio MCP server (search_memory, add_memory, list_memory, audit_memory)
   audit [--dry-run]                       Re-score every memory against the repo and flag [stale?] lines
   search <query> [--limit N]              Rank memories by relevance to a query (one Jev call)
@@ -25,7 +27,7 @@ Usage: jevmem <command> [options]
   log                                     Summarise .jevmem/log.jsonl (Jev latency and cost)
 
 Env: TYPESAFE_API_KEY (required for Jev), OPENAI_API_KEY / ANTHROPIC_API_KEY (optional writer),
-     JEVMEM_WRITER=openai|anthropic|none, JEVMEM_WRITER_MODEL, JEVMEM_VERBOSE=1
+     JEVMEM_WRITER=openai|anthropic|none, JEVMEM_WRITER_MODEL, JEVMEM_VERBOSE=1, JEVMEM_DAEMON=0|1
 `;
 
 function flag(args: string[], name: string): boolean {
@@ -74,10 +76,52 @@ async function main(argv: string[]): Promise<number> {
     }
     case "hook": {
       const input = await readStdinJson();
-      const out = await runHook(input);
+      const hookRoot = input.cwd && fs.existsSync(input.cwd) ? input.cwd : root;
+      const cfg = loadConfig(hookRoot);
+      const verbose = process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1";
+      let out = null as Awaited<ReturnType<typeof runHook>> | null;
+      const useDaemon = daemonEnabled(cfg) && hasJevKey();
+      if (useDaemon) {
+        const t0 = performance.now();
+        const res = await daemonRequest(hookRoot, { type: "hook", input }, { connectMs: 250, responseMs: cfg.jev.timeoutMs + cfg.writer.timeoutMs + 2000 });
+        if (res && res.ok && res.type === "hook") {
+          out = res.outcome;
+          if (out.summary) out.summary += ` (daemon round trip ${Math.round(performance.now() - t0)} ms)`;
+        }
+      }
+      if (!out) {
+        out = await runHook(input);
+        if (useDaemon && out.action !== "noop") spawnDaemon(hookRoot, process.argv[1] ?? new URL(import.meta.url).pathname);
+      }
       if (out.stdout) process.stdout.write(out.stdout + "\n");
-      if (process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1") process.stderr.write(`jevmem ${out.event}: ${out.action} — ${out.detail}\n`);
+      if (verbose) {
+        if (out.summary) process.stderr.write(`jevmem: ${out.summary} via ${out.via}\n`);
+        process.stderr.write(`jevmem ${out.event}: ${out.action} — ${out.detail}\n`);
+      }
       return 0; // never block Claude Code
+    }
+    case "daemon": {
+      const sub = args.shift() ?? "status";
+      if (sub === "--serve" || sub === "serve") {
+        await serveDaemon(root, { onListening: (s) => process.stderr.write(`jevmem daemon listening on ${s}\n`) });
+        return -1;
+      }
+      if (sub === "start") {
+        const alive = await daemonRequest(root, { type: "ping" });
+        if (alive) return fail("daemon already running");
+        spawnDaemon(root, process.argv[1] ?? "");
+        process.stdout.write("daemon starting\n");
+        return 0;
+      }
+      if (sub === "stop") {
+        const r = await daemonRequest(root, { type: "stop" });
+        process.stdout.write(r ? "daemon stopping\n" : "no daemon running\n");
+        return 0;
+      }
+      const r = await daemonRequest(root, { type: "ping" });
+      if (r && r.ok && r.type === "pong") process.stdout.write(`running: pid ${r.pid}, version ${r.version}${r.version !== DAEMON_VERSION ? " (outdated; run `jevmem daemon stop`)" : ""}, up ${Math.round(r.uptimeMs / 1000)} s, served ${r.served} request(s), socket ${JSON.parse(fs.readFileSync(pidFile(root), "utf8")).socket}\n`);
+      else process.stdout.write("not running\n");
+      return 0;
     }
     case "mcp":
       await serveMcp(root);

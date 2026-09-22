@@ -35,6 +35,13 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 - **The same turn is never evaluated twice.** A SHA-1 of the merged turn is stored in `.jevmem/state.json`; Stop can fire more than once per turn.
 - **Simulation fields.** The hook accepts `user_message`, `assistant_message`, and `recent_context` in the stdin JSON in addition to the real `transcript_path`. That is what the tests and `DEMO.md` use, and it makes the hook scriptable from other tools.
 
+## Warm daemon
+
+- **Why a daemon and not a faster process.** The CLI itself starts in ~70 ms; the missing ~400 ms per cold hook call was TLS and connection setup to `api.typesafe.ai` in a brand-new process. Only a long-lived process can amortise that. The daemon is one `net.Server` on a Unix socket in `.jevmem/` (named pipe on Windows), holding one `TypeSafeClient`, and it runs the exact same `runHook` code path.
+- **The hook never waits on the daemon.** It tries to connect for 250 ms; on failure it does the work inline and spawns the daemon detached for the next turn. A crashed or outdated daemon costs one cold turn, never a broken one.
+- **Idle exit, not a service.** No launchd/systemd, no global process: one daemon per project, it exits after 30 idle minutes, and `.jevmem/daemon.json` records the pid so `jevmem daemon status/stop` can find it. A pre-warm call of one tiny noul (~300 tokens, about a hundredth of a cent) opens the connection so even the first real turn after start is warm.
+- **Scrub at the source, not only at the boundary.** The reviewer could not find scrubbing in `decide.ts` because it lived only in the client wrapper. It now happens in both places; the test suite (which mocks the client) can therefore prove it.
+
 ## Repo / tooling
 
 - **Single package, not a workspace.** The brief said monorepo; one package with a CLI, hook, MCP server, and library entry is simpler to install (`npx jevmem`) and there is nothing yet that would justify a second package. The layout (`src/`, `test/`, tsup, vitest, eslint) is ready to become `packages/jevmem` if a second package appears.

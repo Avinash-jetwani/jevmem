@@ -63,6 +63,12 @@ export interface JevmemConfig {
     maxChars: number;
     timeoutMs: number;
   };
+  daemon: {
+    /** Keep a warm Jev client in a small local process so hook calls skip TLS/connection setup. */
+    enabled: boolean;
+    /** The daemon exits after this many minutes without a request. */
+    idleMinutes: number;
+  };
 }
 
 export const DEFAULT_CONFIG: JevmemConfig = {
@@ -86,5 +92,9 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     provider: "auto",
     maxChars: 140,
     timeoutMs: 8000,
+  },
+  daemon: {
+    enabled: true,
+    idleMinutes: 30,
   },
 };

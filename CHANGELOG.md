@@ -2,6 +2,17 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-09-22
+
+### Added
+- Warm daemon (`jevmem daemon`): the hook's first call in a project starts a small detached process that keeps the Jev client's connection open; later hook calls go through its local socket. Cuts the per-turn `decide` latency from ~630 ms (fresh process) to ~230 ms. Auto-started, exits after `daemon.idleMinutes` (30) of inactivity, disabled with `JEVMEM_DAEMON=0` or `daemon.enabled: false`.
+- `jevmem daemon status|start|stop`.
+- `HookOutcome.summary` and `HookOutcome.via` so callers can see cost, latency, and whether the daemon served the request.
+
+### Changed
+- Secrets are now scrubbed inside `decide`, `recall`, and `audit` when the state is built, in addition to the existing scrub in the Jev client. A test asserts a pasted key never reaches the Jev caller.
+- `publishConfig.access: public` for npm.
+
 ## [0.1.1] - 2026-09-22
 
 ### Fixed
@@ -21,5 +32,6 @@ All notable changes to Jevmem are documented here. The format follows [Keep a Ch
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.2.0]: https://github.com/Avinash-jetwani/jevmem/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Avinash-jetwani/jevmem/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Avinash-jetwani/jevmem/releases/tag/v0.1.0

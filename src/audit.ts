@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { noul, type JsonValue, type Questions } from "@typesafe-ai/sdk";
 import type { JevCaller } from "./jev.js";
+import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
 import type { Memory } from "./types.js";
 
@@ -64,7 +65,7 @@ export interface AuditRow {
 export async function auditMemories(jev: JevCaller, store: MemoryStore, opts: { staleBelow: number; batch?: number; snapshot?: ReturnType<typeof snapshotRepo>; timeoutMs?: number }): Promise<AuditRow[]> {
   const memories = store.active();
   if (memories.length === 0) return [];
-  const snapshot = opts.snapshot ?? snapshotRepo(store.root);
+  const snapshot = JSON.parse(scrubSecrets(JSON.stringify(opts.snapshot ?? snapshotRepo(store.root))));
   const batch = opts.batch ?? 60;
   const rows: AuditRow[] = [];
   for (let i = 0; i < memories.length; i += batch) {
@@ -78,7 +79,7 @@ export async function auditMemories(jev: JevCaller, store: MemoryStore, opts: { 
     }
     const state = {
       repository_snapshot: snapshot,
-      memories: chunk.map((m) => ({ id: m.id, kind: m.kind, text: m.text, recorded_at: m.ts })),
+      memories: chunk.map((m) => ({ id: m.id, kind: m.kind, text: scrubSecrets(m.text), recorded_at: m.ts })),
     };
     const res = await jev.call(state, questions, { label: "audit", timeoutMs: opts.timeoutMs });
     for (const m of chunk) {

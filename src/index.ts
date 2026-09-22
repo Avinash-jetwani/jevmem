@@ -14,6 +14,7 @@ export { runHook, readStdinJson } from "./hook.js";
 export type { HookInput, HookOutcome } from "./hook.js";
 export { init, registerClaudeHooks, resolveHookCommand } from "./init.js";
 export { buildMcpServer, serveMcp } from "./mcp.js";
+export { serveDaemon, daemonRequest, spawnDaemon, socketPath, daemonEnabled, DAEMON_VERSION } from "./daemon.js";
 export { loadConfig, writeDefaultConfig, CONFIG_FILE } from "./config.js";
 export { scrubSecrets, looksLikeSecret } from "./scrub.js";
 export { lastTurnFromTranscript, mergeTurn } from "./transcript.js";
