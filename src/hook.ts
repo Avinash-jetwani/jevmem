@@ -178,7 +178,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
     const existing = store.active();
     const decision = await decide(
       jev,
-      { message, recentContext: previous, existingMemories: existing },
+      { userMessage: user, assistantReply: assistant, recentContext: previous, existingMemories: existing },
       { thresholds: cfg.thresholds, weights: cfg.weights, tiers: cfg.tiers, maxIds: cfg.jev.maxIdsPerCall, timeoutMs: cfg.jev.timeoutMs },
     );
     if (!decision.save) {
@@ -186,7 +186,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       return { event, action: "skipped", detail: decision.reason, decision };
     }
 
-    const result = await writeMemory(store, message, decision, { writer: cfg.writer, env, fetchImpl: deps.fetchImpl });
+    const result = await writeMemory(store, decision.sourceText || message, decision, { writer: cfg.writer, env, fetchImpl: deps.fetchImpl });
     recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision });
     // Exact duplicate of a live memory: drop the new line again.
     const dup = existing.find((m) => m.text.toLowerCase() === result.line.toLowerCase());

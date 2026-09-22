@@ -65,7 +65,7 @@ Jevmem never asks Jev to write anything. It asks small, literal, typed questions
 
 ### The decider: two tiers (`src/decide.ts`, `src/questions.ts`, `src/combine.ts`)
 
-State sent: `{ message, previous_turns, existing_memories: [{id, kind, text}] }`. Only the current turn and the two before it; never the repo tree. Secrets and PII are scrubbed first. Memory ids are capped at 200 by a keyword-overlap pre-filter.
+State sent: `{ user_message, assistant_reply?, previous_turns, existing_memories: [{id, kind, text}] }`. **The user message is the memory.** The assistant reply is included only when the user asked a question (or when there is no user text), and then only a `bug` or `architecture` fact may come from it; a `meta` family skips replies that are menus of options, "Recorded…" self-summaries, or commentary on memory, hooks, or tooling. Only the current turn and the two before it are sent; never the repo tree. Secrets and PII are scrubbed first. Memory ids are capped at 200 by a keyword-overlap pre-filter.
 
 **Tier 1 runs on every turn**: nine broad nouls, each with one positive and one negative example, plus the `kind` choice, the `touches_memory_id` choice, and the `importance` score. About 2,300 tokens.
 
@@ -112,8 +112,9 @@ The save+kind gap in `fast`/`auto` is one turn that begins with "Decision:" but 
 | chit_chat | `is_greeting_thanks_or_acknowledgement`, `contains_no_project_specific_content`, `has_no_fact_decision_or_request` |
 | injection | `tells_an_ai_to_ignore_or_replace_instructions`, `claims_system_or_admin_authority_over_the_ai`, `asks_the_ai_to_store_or_alter_memory_or_rules`, `quotes_text_from_a_file_or_page_addressed_to_an_ai` |
 | contradiction | `reverses_or_replaces_a_listed_memory`, `uses_change_of_plan_instead_or_actually`, `is_about_the_same_topic_as_a_listed_memory` |
+| meta (only with the assistant reply) | `assistant_lists_options_or_next_steps`, `assistant_summarises_its_own_work`, `assistant_comments_on_memory_hooks_or_tooling` |
 
-The exact wording of every question is in [src/questions.ts](src/questions.ts).
+With the assistant reply in the state, a `content_source` choice (`user_message` | `assistant_reply` | `both` | `none`) is added, and tier 1 asks one broad `assistant_reply_is_meta` noul. The exact wording of every question is in [src/questions.ts](src/questions.ts).
 
 **Policy** (thresholds in `jevmem.config.json`; `thresholds` applies to tier 2, `tiers.tier1Thresholds` overrides for tier-1 finals; both refitted by `jevmem fit`):
 
@@ -121,6 +122,7 @@ The exact wording of every question is in [src/questions.ts](src/questions.ts).
 content       = max(decision, constraint, preference, bug, architecture, todo)   # tier 1: the broad noul; tier 2: the logistic family score
 save          = kind != none AND content >= contentMin (0.5) AND round(importance) >= useful
              AND chit_chat < chitChatMax (0.5) AND injection < injectionMax (0.5)
+             AND NOT (source == assistant_reply AND (meta >= metaMax (0.5) OR kind ∉ {bug, architecture}))
 contradiction = save AND contradiction >= contradictionMin (0.7) AND touches_memory_id != none
 ```
 
@@ -360,7 +362,8 @@ pnpm build        # tsup → dist/
 pnpm test         # vitest, Jev mocked
 pnpm lint         # tsc --noEmit + eslint
 JEVMEM_LIVE=1 pnpm test   # adds one real Jev test (needs TYPESAFE_API_KEY)
-node scripts/eval.mjs     # score `decide` in fast/auto/full on the 42-turn hand-labelled set (live Jev)
+node scripts/eval.mjs     # score `decide` in fast/auto/full on the 48-turn hand-labelled set (live Jev)
+scripts/e2e.sh --runs 3 --automemory both   # REAL multi-turn Claude Code session under the desktop app's stripped env (needs a logged-in `claude`)
 ```
 
 See [DEMO.md](DEMO.md) for a scripted 60-second demo and [DECISIONS.md](DECISIONS.md) for the design decisions.

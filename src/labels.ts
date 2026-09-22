@@ -37,6 +37,7 @@ export interface LabelRecord {
     importanceScore: number;
     touchesMemoryId: string;
     families: Record<string, number>;
+    source?: string;
     /** Tier 1 answers, present whenever tier 1 ran (auto and fast modes). */
     tier1?: { nouls: Record<string, number>; families: Record<string, number>; kindChoice: string; importanceScore: number; touchesMemoryId: string };
     /** Tier 2 answers, present whenever tier 2 ran (auto-escalated and full modes). */
@@ -99,7 +100,7 @@ export function addLabel(root: string, label: Omit<LabelRecord, "ts">): number {
 }
 
 function answersOf(d: Decision): LabelRecord["answers"] {
-  const a: LabelRecord["answers"] = { tier: d.tier, nouls: d.nouls, kindChoice: d.kind, importanceScore: d.importanceScore, touchesMemoryId: d.touchesMemoryId ?? "none", families: d.families };
+  const a: LabelRecord["answers"] = { tier: d.tier, nouls: d.nouls, kindChoice: d.kind, importanceScore: d.importanceScore, touchesMemoryId: d.touchesMemoryId ?? "none", families: d.families, source: d.source };
   if (d.tier1) a.tier1 = { nouls: d.tier1.nouls, families: d.tier1.families, kindChoice: d.tier1.kind, importanceScore: d.tier1.importanceScore, touchesMemoryId: d.tier1.touchesMemoryId };
   if (d.tier2) a.tier2 = { nouls: d.tier2.nouls, kindChoice: d.tier2.kind, importanceScore: d.tier2.importanceScore, touchesMemoryId: d.tier2.touchesMemoryId };
   return a;
@@ -155,10 +156,10 @@ export function examplesByTier(labels: LabelRecord[]): { tier1: LabelledExample[
   const tier2: LabelledExample[] = [];
   for (const l of labels) {
     const a = l.answers;
-    if (a.tier2) tier2.push({ nouls: a.tier2.nouls, kindChoice: a.tier2.kindChoice, importanceScore: a.tier2.importanceScore, touchesMemoryId: a.tier2.touchesMemoryId, label: l.label });
-    else if (!a.tier1 && (a.tier === undefined || a.tier === 2)) tier2.push({ nouls: a.nouls, kindChoice: a.kindChoice, importanceScore: a.importanceScore, touchesMemoryId: a.touchesMemoryId, label: l.label });
-    if (a.tier1) tier1.push({ nouls: a.tier1.nouls, families: a.tier1.families as any, kindChoice: a.tier1.kindChoice, importanceScore: a.tier1.importanceScore, touchesMemoryId: a.tier1.touchesMemoryId, label: l.label });
-    else if (a.tier === 1) tier1.push({ nouls: a.nouls, families: a.families as any, kindChoice: a.kindChoice, importanceScore: a.importanceScore, touchesMemoryId: a.touchesMemoryId, label: l.label });
+    if (a.tier2) tier2.push({ nouls: a.tier2.nouls, source: a.source, kindChoice: a.tier2.kindChoice, importanceScore: a.tier2.importanceScore, touchesMemoryId: a.tier2.touchesMemoryId, label: l.label });
+    else if (!a.tier1 && (a.tier === undefined || a.tier === 2)) tier2.push({ nouls: a.nouls, source: a.source, kindChoice: a.kindChoice, importanceScore: a.importanceScore, touchesMemoryId: a.touchesMemoryId, label: l.label });
+    if (a.tier1) tier1.push({ nouls: a.tier1.nouls, families: a.tier1.families as any, source: a.source, kindChoice: a.tier1.kindChoice, importanceScore: a.tier1.importanceScore, touchesMemoryId: a.tier1.touchesMemoryId, label: l.label });
+    else if (a.tier === 1) tier1.push({ nouls: a.nouls, families: a.families as any, source: a.source, kindChoice: a.kindChoice, importanceScore: a.importanceScore, touchesMemoryId: a.touchesMemoryId, label: l.label });
   }
   return { tier1, tier2 };
 }
@@ -235,10 +236,12 @@ export function formatWhy(rec: DecisionRecord): string {
   out.push("");
   out.push(`outcome: ${d.save ? "SAVED" : "SKIPPED"}  ${d.reason}`);
   if (d.mode) out.push(`tiers: mode=${d.mode}, final answer from tier ${d.tier ?? 2}${d.escalated ? ` (escalated: ${d.escalationReasons.join("; ")})` : d.tier === 1 ? " (tier 1 was sure)" : ""}`);
+  if (d.assistantIncluded !== undefined) out.push(`state: user message${d.assistantIncluded ? " + assistant reply (user asked a question)" : " only (user made a statement; assistant reply not sent)"}; content source: ${d.source ?? "user_message"}`);
   const gate = (f: string, v: number) => {
     if (f === "chit_chat") return `  max ${t.chitChatMax} ${v < t.chitChatMax ? "✓" : "✗"}`;
     if (f === "injection") return `  max ${t.injectionMax} ${v < t.injectionMax ? "✓" : "✗"}`;
     if (f === "contradiction") return `  min ${t.contradictionMin} ${v >= t.contradictionMin ? "✓" : "–"}`;
+    if (f === "meta") return d.assistantIncluded ? `  max ${t.metaMax} ${v < t.metaMax ? "✓" : "✗"}` : "  (not asked)";
     return "";
   };
   if (d.tier1) {

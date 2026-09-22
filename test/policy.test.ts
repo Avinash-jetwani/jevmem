@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { combine, defaultWeights, evaluatePolicy, fit, mergeWeights, sigmoid, type LabelledExample } from "../src/combine.js";
 import { decide, prefilterByOverlap } from "../src/decide.js";
-import { ATOMIC_NOULS, buildDecideQuestions, DECIDE_QUESTION_COUNT, FAMILIES, KIND_FAMILIES, NOUL_NAMES } from "../src/questions.js";
+import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, DECIDE_QUESTION_COUNT, FAMILIES, KIND_FAMILIES, NOUL_NAMES } from "../src/questions.js";
 import { DEFAULT_CONFIG } from "../src/types.js";
 import { CHIT_CHAT, INJECTION, mockJev, SAVE_DECISION } from "./helpers.js";
 
@@ -11,12 +11,16 @@ const quiet = () => Object.fromEntries(NOUL_NAMES.map((n) => [n, 0.05]));
 const fam = (over: Record<string, number>) => combine({ ...quiet(), ...over }, W);
 
 describe("question set", () => {
-  it("has 30 atomic nouls in nine families, two choices, one score, each choice with a none option", () => {
-    expect(ATOMIC_NOULS).toHaveLength(30);
+  it("has 30 atomic nouls in nine families (+3 meta nouls with the assistant reply), two choices, one score, each choice with a none option", () => {
+    expect(atomicNoulsFor(false)).toHaveLength(30);
+    expect(ATOMIC_NOULS).toHaveLength(33);
     expect(DECIDE_QUESTION_COUNT).toBe(33);
     for (const f of FAMILIES) expect(ATOMIC_NOULS.filter((n) => n.family === f).length).toBeGreaterThanOrEqual(3);
     const q = buildDecideQuestions([{ id: "m1", kind: "decision", text: "Use Postgres" }]);
     expect(Object.keys(q)).toHaveLength(33);
+    const qa = buildDecideQuestions([{ id: "m1", kind: "decision", text: "Use Postgres" }], { withAssistant: true });
+    expect(Object.keys(qa)).toHaveLength(37);
+    expect(Object.keys((qa.content_source as any).criteria)).toEqual(["user_message", "assistant_reply", "both", "none"]);
     expect(Object.keys((q.kind as any).criteria)).toEqual(["decision", "constraint", "preference", "bug", "architecture", "todo", "none"]);
     expect(Object.keys((q.touches_memory_id as any).criteria)).toEqual(["m1", "none"]);
     expect((q.importance as any).criteria).toHaveLength(5);
@@ -45,6 +49,7 @@ describe("combine", () => {
     expect(sigmoid(0)).toBe(0.5);
     const none = fam({});
     for (const f of FAMILIES) expect(none[f]).toBeLessThan(0.15);
+    expect(fam({ assistant_lists_options_or_next_steps: 0.95, assistant_comments_on_memory_hooks_or_tooling: 0.9 }).meta).toBeGreaterThan(0.8);
     const two = fam({ states_a_choice_between_alternatives: 0.95, uses_committal_language: 0.95 });
     expect(two.decision).toBeGreaterThan(0.55);
     const three = fam({ states_a_choice_between_alternatives: 0.95, uses_committal_language: 0.95, names_a_specific_technology_or_approach: 0.95 });
@@ -161,6 +166,8 @@ describe("decide() with a mocked Jev (tier 2, mode=full)", () => {
     expect(d.content).toBe(Math.max(...KIND_FAMILIES.map((k) => d.families[k])));
     expect(d.cacheHit).toBe(false);
     expect(Object.keys(d.nouls)).toHaveLength(30);
+    expect(d.assistantIncluded).toBe(false);
+    expect(d.source).toBe("user_message");
   });
   it("returns a skip decision with the reason for chit-chat", async () => {
     const jev = mockJev(() => CHIT_CHAT);
@@ -178,7 +185,7 @@ describe("decide() with a mocked Jev (tier 2, mode=full)", () => {
   it("sends only the message, the previous turns, and the candidate memories (no repo tree)", async () => {
     const jev = mockJev(() => SAVE_DECISION);
     await decide(jev, { message: "m", recentContext: "user: earlier", existingMemories: [{ id: "x", kind: "todo", text: "t" }] }, FULL);
-    expect(Object.keys(jev.calls[0]!.state as object).sort()).toEqual(["existing_memories", "message", "previous_turns"]);
+    expect(Object.keys(jev.calls[0]!.state as object).sort()).toEqual(["existing_memories", "previous_turns", "user_message"]);
   });
 });
 

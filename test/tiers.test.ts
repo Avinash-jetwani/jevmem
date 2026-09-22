@@ -20,9 +20,11 @@ const T1_SURE: AnswerOverrides = { contains_decision: 0.95, contains_constraint:
 const T1_UNSURE: AnswerOverrides = { ...T1_SURE, contains_decision: 0.55 };
 
 describe("tier 1 question set", () => {
-  it("has nine broad nouls with one positive and one negative example each, plus kind/touches/importance", () => {
-    expect(TIER1_NOULS).toHaveLength(9);
+  it("has nine broad nouls (+1 meta noul with the assistant reply) with one positive and one negative example each, plus kind/touches/importance", () => {
+    expect(TIER1_NOULS).toHaveLength(10);
+    expect(TIER1_NOULS.filter((n) => n.family !== "meta")).toHaveLength(9);
     expect(TIER1_QUESTION_COUNT).toBe(12);
+    expect(Object.keys(buildTier1Questions([], { withAssistant: true }))).toHaveLength(14);
     for (const n of TIER1_NOULS) {
       expect(n.yes.examples).toHaveLength(1);
       expect(n.no.examples).toHaveLength(1);
@@ -159,7 +161,7 @@ describe("why and fit with tiers", () => {
     const env = { JEVMEM_WRITER: "none" } as NodeJS.ProcessEnv;
     const jev = mockJev((q, state: any) => {
       const tier1 = "contains_decision" in q;
-      if (/unsure/.test(state.message)) return tier1 ? T1_UNSURE : SAVE_DECISION;
+      if (/unsure/.test(state.user_message)) return tier1 ? T1_UNSURE : SAVE_DECISION;
       return tier1 ? T1_SURE : SAVE_DECISION;
     });
     await runHook({ hook_event_name: "Stop", cwd: root, user_message: "Use Postgres, sure." }, { jev, env });

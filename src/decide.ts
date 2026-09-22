@@ -1,6 +1,6 @@
 import type { JevCaller } from "./jev.js";
 import { combine, defaultWeights, evaluatePolicy, mergeWeights, type Weights } from "./combine.js";
-import { ATOMIC_NOULS, buildDecideQuestions, buildTier1Questions, NOUL_NAMES, TIER1_KIND_NOULS, TIER1_NOUL_NAMES, tier1Families, type Family } from "./questions.js";
+import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildTier1Questions, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, type Family } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
 import { DEFAULT_CONFIG, type BorderlineRule, type Importance, type Kind, type Memory, type Thresholds, type TiersConfig } from "./types.js";
 
@@ -9,8 +9,13 @@ export { buildDecideQuestions, buildTier1Questions, NOUL_NAMES, ATOMIC_NOULS, TI
 export type { NoulName } from "./questions.js";
 
 export interface DecideInput {
-  /** The new turn to evaluate (user prompt and/or assistant reply, already merged into one string). */
-  message: string;
+  /**
+   * The new turn. Either give `userMessage` (+ optional `assistantReply`), or a merged `message` in the
+   * `USER: …\n\nASSISTANT: …` form produced by `mergeTurn`, which is split back into the two parts.
+   */
+  message?: string;
+  userMessage?: string;
+  assistantReply?: string;
   /** The previous two turns at most. Jev accuracy drops with irrelevant context, so keep it short. */
   recentContext?: string;
   /** Live memories; used for `touches_memory_id`. Pre-filtered to `maxIds` by keyword overlap when larger. */
@@ -68,6 +73,12 @@ export interface Decision {
   cacheHit: boolean;
   /** The thresholds that were applied, so `why` can show what was cleared. */
   thresholds: Thresholds;
+  /** Where the saved content comes from. `user_message` unless the assistant reply was in the state and Jev said otherwise. */
+  source: "user_message" | "assistant_reply" | "both" | "none";
+  /** True when the user asked a question and the assistant reply was sent to Jev. */
+  assistantIncluded: boolean;
+  /** The text the writer should condense: the assistant reply when `source` is `assistant_reply`, else the user message. */
+  sourceText: string;
   /** Which tier's answer is final. */
   tier: 1 | 2;
   mode: TiersConfig["mode"];
@@ -107,6 +118,33 @@ export function resolveWeights(patch?: DecideOptions["weights"]): Weights {
   return mergeWeights(defaultWeights(), patch);
 }
 
+/** Split a `mergeTurn` string back into its parts. Plain text with no markers is treated as the user message. */
+export function splitTurn(message: string): { user: string; assistant: string } {
+  const m = /^\s*USER:\s*([\s\S]*?)(?:\n\s*\n\s*ASSISTANT:\s*([\s\S]*))?$/.exec(message);
+  if (m) return { user: (m[1] ?? "").trim(), assistant: (m[2] ?? "").trim() };
+  const a = /^\s*ASSISTANT:\s*([\s\S]*)$/.exec(message);
+  if (a) return { user: "", assistant: (a[1] ?? "").trim() };
+  return { user: message.trim(), assistant: "" };
+}
+
+const QUESTION_START = /^(why|how|what|where|which|when|who|whose|whom|can|could|would|should|does|do|is|are|did|was|were|will|explain|tell me|help me|show me|any idea|anyone know|find out|investigate|debug|diagnose|look into|check why|figure out)\b/i;
+
+const BUG_REPORT = /\b(fails?|failing|failed|broken|breaks?|crash(es|ed|ing)?|error|exception|flaky|stale|wrong|incorrect|doesn'?t work|not working|isn'?t working|won'?t (start|build|load|compile)|hangs?|timeout|times out|returns? (a )?\d{3}|5\d\d|4\d\d|bug|regression|leak|slow)\b|\b[A-Z][a-zA-Z]*Error\b/i;
+
+/**
+ * Does the user's message invite an answer from the assistant? Only then is the assistant reply part of the state:
+ * a statement from the user is the memory, and the assistant's acknowledgement, options, or summary never is.
+ * Two shapes count: a question or investigation request, and a bug report (usually a statement whose diagnosis lives
+ * in the reply, e.g. "the cache returns stale prices after logout").
+ */
+export function looksLikeQuestion(user: string): boolean {
+  const t = user.trim();
+  if (!t) return false;
+  if (/\?\s*$/.test(t) || /\?/.test(t.split("\n")[0] ?? "")) return true;
+  if (QUESTION_START.test(t)) return true;
+  return BUG_REPORT.test(t.slice(0, 400));
+}
+
 /** The borderline rule: which conditions say tier 1 is unsure. Pure, so it is testable and shown by `why`. */
 export function borderlineReasons(t1: Pick<TierAnswers, "nouls" | "importanceConfidence"> & { kindConfidence?: number }, rule: BorderlineRule): string[] {
   const reasons: string[] = [];
@@ -135,17 +173,19 @@ export function borderlineReasons(t1: Pick<TierAnswers, "nouls" | "importanceCon
   return reasons;
 }
 
-function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families: Record<Family, number>, thresholds: Thresholds): TierAnswers {
+function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families: Record<Family, number>, thresholds: Thresholds): TierAnswers & { source: string } {
   const a = res.answers;
   const nouls: Record<string, number> = {};
   for (const n of names) nouls[n] = a[n]?.noul ?? 0;
   const kind = a.kind.choice as string;
   const touches = a.touches_memory_id.choice as string;
-  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: a.importance.score, families, touchesMemoryId: touches }, thresholds);
+  const source = (a.content_source?.choice as string | undefined) ?? "user_message";
+  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: a.importance.score, families, touchesMemoryId: touches, source }, thresholds);
   return {
     tier,
     nouls,
     families,
+    source,
     kind,
     kindProbabilities: { ...a.kind.probabilities },
     kindConfidence: a.kind.confidence,
@@ -169,38 +209,49 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
   const tier1Thresholds: Thresholds = { ...thresholds, ...tiers.tier1Thresholds };
   const weights = resolveWeights(opts.weights);
   const maxIds = opts.maxIds ?? DEFAULT_CONFIG.jev.maxIdsPerCall;
+  // The user message is the state. The assistant reply joins it only when the user asked a question, because
+  // otherwise the assistant's acknowledgement, options, or summary would be what gets remembered.
+  const parts = input.userMessage !== undefined ? { user: input.userMessage, assistant: input.assistantReply ?? "" } : splitTurn(input.message ?? "");
   // Secrets and PII are stripped here, before anything is batched into the state. (createJev scrubs again at the
   // HTTP boundary; doing it here too means a mocked or custom JevCaller never sees a credential either.)
-  const message = scrubSecrets(input.message).slice(0, opts.maxMessageChars ?? 6000);
+  const userMessage = scrubSecrets(parts.user).slice(0, opts.maxMessageChars ?? 6000);
+  // Also included when there is no user text at all (transcript unreadable, only `last_assistant_message`): the
+  // content_source choice then decides, and only bug/architecture may come from the assistant.
+  const assistantIncluded = parts.assistant.trim().length > 0 && (looksLikeQuestion(userMessage) || userMessage.trim().length === 0);
+  const assistantReply = assistantIncluded ? scrubSecrets(parts.assistant).slice(0, 2000) : "";
   const recent = scrubSecrets(input.recentContext ?? "").slice(-(opts.maxContextChars ?? 1500));
-  const candidates = prefilterByOverlap(message, input.existingMemories, maxIds).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
+  const candidates = prefilterByOverlap(userMessage + " " + assistantReply, input.existingMemories, maxIds).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
   const state = {
-    message,
+    user_message: userMessage,
+    ...(assistantIncluded ? { assistant_reply: assistantReply } : {}),
     previous_turns: recent || null,
     existing_memories: candidates.map((m) => ({ id: m.id, kind: m.kind, text: m.text })),
   };
+  const tier1Names = tier1NoulsFor(assistantIncluded).map((n) => n.name);
+  const tier2Names = atomicNoulsFor(assistantIncluded).map((n) => n.name);
 
-  let tier1: TierAnswers | undefined;
-  let tier2: TierAnswers | undefined;
+  let tier1: (TierAnswers & { source: string }) | undefined;
+  let tier2: (TierAnswers & { source: string }) | undefined;
   let escalationReasons: string[] = [];
 
   if (tiers.mode !== "full") {
-    const res = await jev.call(state, buildTier1Questions(candidates), { label: "decide", tier: 1, timeoutMs: opts.timeoutMs });
+    const res = await jev.call(state, buildTier1Questions(candidates, { withAssistant: assistantIncluded }), { label: "decide", tier: 1, timeoutMs: opts.timeoutMs });
     const nouls: Record<string, number> = {};
-    for (const n of TIER1_NOUL_NAMES) nouls[n] = (res.answers as any)[n]?.noul ?? 0;
-    tier1 = answersToTier(1, res, TIER1_NOUL_NAMES, tier1Families(nouls), tier1Thresholds);
+    for (const n of tier1Names) nouls[n] = (res.answers as any)[n]?.noul ?? 0;
+    tier1 = answersToTier(1, res, tier1Names, tier1Families(nouls), tier1Thresholds);
     if (tiers.mode === "auto") escalationReasons = borderlineReasons(tier1, tiers.borderline);
   }
   if (tiers.mode === "full" || escalationReasons.length > 0) {
-    const res = await jev.call(state, buildDecideQuestions(candidates, { examplesPerSide: tiers.tier2ExamplesPerSide }), { label: "decide", tier: 2, timeoutMs: opts.timeoutMs });
+    const res = await jev.call(state, buildDecideQuestions(candidates, { examplesPerSide: tiers.tier2ExamplesPerSide, withAssistant: assistantIncluded }), { label: "decide", tier: 2, timeoutMs: opts.timeoutMs });
     const nouls: Record<string, number> = {};
-    for (const n of NOUL_NAMES) nouls[n] = (res.answers as any)[n]?.noul ?? 0;
-    tier2 = answersToTier(2, res, NOUL_NAMES, combine(nouls, weights), thresholds);
+    for (const n of tier2Names) nouls[n] = (res.answers as any)[n]?.noul ?? 0;
+    tier2 = answersToTier(2, res, tier2Names, combine(nouls, weights), thresholds);
   }
 
   const final = tier2 ?? tier1!;
   const t = final.tier === 2 ? thresholds : tier1Thresholds;
-  const policy = evaluatePolicy({ kindChoice: final.kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId }, t);
+  const source = (assistantIncluded ? final.source : "user_message") as Decision["source"];
+  const policy = evaluatePolicy({ kindChoice: final.kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId, source }, t);
   const usage = { inputTokens: (tier1?.usage.inputTokens ?? 0) + (tier2?.usage.inputTokens ?? 0), outputTokens: (tier1?.usage.outputTokens ?? 0) + (tier2?.usage.outputTokens ?? 0) };
   return {
     save: policy.save,
@@ -218,6 +269,9 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
     usage,
     cacheHit: Boolean(tier1?.cacheHit || tier2?.cacheHit) && !(tier1 && !tier1.cacheHit) && !(tier2 && !tier2.cacheHit),
     thresholds: t,
+    source,
+    assistantIncluded,
+    sourceText: source === "assistant_reply" ? parts.assistant.trim() : parts.user.trim(),
     tier: final.tier,
     mode: tiers.mode,
     escalated: Boolean(tier1 && tier2),

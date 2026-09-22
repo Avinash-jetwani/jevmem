@@ -17,7 +17,7 @@ describe("Stop hook", () => {
     init({ root, hooks: false });
     const store = new MemoryStore(root);
     const jev = mockJev((_q, state: any) => {
-      const msg: string = state.message;
+      const msg: string = state.user_message;
       if (/Postgres/.test(msg) && state.existing_memories.length === 0) return SAVE_DECISION;
       if (/thanks/i.test(msg)) return CHIT_CHAT;
       if (/MySQL/.test(msg)) return CONTRADICTS(state.existing_memories[0].id);

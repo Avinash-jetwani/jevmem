@@ -14,7 +14,8 @@ const lib = await import(pathToFileURL(path.resolve(distArg)).href);
 const supportsTiers = Boolean(lib.buildTier1Questions);
 const modes = modesIdx >= 0 ? args[modesIdx + 1].split(",") : supportsTiers ? ["fast", "auto", "full"] : ["legacy"];
 const turns = fs.readFileSync(path.resolve("eval/transcript.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-const existing = [{ id: "sqlite1", kind: "decision", text: "Use SQLite as the single-file primary store; no server" }];
+// Default context for every turn; a turn may carry its own `existing` list (e.g. the real reversal follows the sideload decision).
+const DEFAULT_EXISTING = [{ id: "sqlite1", kind: "decision", text: "Use SQLite as the single-file primary store; no server" }];
 const USD_PER_M = 0.042;
 
 async function runMode(mode) {
@@ -25,6 +26,7 @@ async function runMode(mode) {
   for (const t of turns) {
     const message = lib.mergeTurn ? lib.mergeTurn(t.user, t.assistant) : `USER: ${t.user}\n\nASSISTANT: ${t.assistant}`;
     const t0 = performance.now();
+    const existing = t.existing ?? DEFAULT_EXISTING;
     const d = await lib.decide(jev, { message, existingMemories: existing }, mode === "legacy" ? {} : { tiers: { mode } });
     rows.push({ tag: t.tag, want: t.label, got: { save: d.save, kind: d.save ? d.kind : "none" }, ms: Math.round(performance.now() - t0), tokens: d.usage.inputTokens + d.usage.outputTokens, escalated: Boolean(d.escalated), reason: d.reason });
   }

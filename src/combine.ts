@@ -35,6 +35,8 @@ export function defaultWeights(): Weights {
     chit_chat: { bias: -2.5, w: { is_greeting_thanks_or_acknowledgement: 2.0, contains_no_project_specific_content: 1.5, has_no_fact_decision_or_request: 2.0 } },
     injection: { bias: -2.5, w: { tells_an_ai_to_ignore_or_replace_instructions: 3.5, claims_system_or_admin_authority_over_the_ai: 2.5, asks_the_ai_to_store_or_alter_memory_or_rules: 2.5, quotes_text_from_a_file_or_page_addressed_to_an_ai: 2.0 } },
     contradiction: { bias: -3, w: { reverses_or_replaces_a_listed_memory: 4, uses_change_of_plan_instead_or_actually: 1.5, is_about_the_same_topic_as_a_listed_memory: 1 } },
+    // A self-summary alone never crosses 0.5 (a fix description is a self-summary); menus and hook/memory commentary do.
+    meta: { bias: -2.5, w: { assistant_lists_options_or_next_steps: 3.0, assistant_summarises_its_own_work: 1.0, assistant_comments_on_memory_hooks_or_tooling: 3.0 } },
   };
   // Every atomic noul must be covered by its family so `fit` has a full feature set.
   for (const f of FAMILIES) for (const n of familyNouls(f)) W[f].w[n.name] ??= 2 * n.sign;
@@ -63,7 +65,12 @@ export interface PolicyInput {
   importanceScore: number;
   families: Record<Family, number>;
   touchesMemoryId: string;
+  /** Where the content comes from, when the assistant reply was in the state. Absent means the user message alone. */
+  source?: string;
 }
+
+/** Kinds an assistant reply may produce on its own (only when the user asked a question). */
+export const ASSISTANT_KINDS = new Set(["bug", "architecture"]);
 
 export function importanceIndex(level: Importance): number {
   return IMPORTANCE_LEVELS.indexOf(level);
@@ -80,6 +87,9 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
   if (levelIdx < importanceIndex(t.importanceMin)) reasons.push(`importance=${importance}<${t.importanceMin}`);
   if (a.families.chit_chat >= t.chitChatMax) reasons.push(`chit_chat=${a.families.chit_chat.toFixed(2)}`);
   if (a.families.injection >= t.injectionMax) reasons.push(`injection=${a.families.injection.toFixed(2)}`);
+  // The meta gate only matters when the assistant reply is what would be saved; a user statement stays the memory.
+  if (a.source === "assistant_reply" && (a.families.meta ?? 0) >= t.metaMax) reasons.push(`assistant_meta=${a.families.meta.toFixed(2)}`);
+  if (a.source === "assistant_reply" && !ASSISTANT_KINDS.has(a.kindChoice)) reasons.push(`source=assistant_reply kind=${a.kindChoice} (only bug/architecture may come from the assistant)`);
   const save = reasons.length === 0;
   const contradiction = save && a.families.contradiction >= t.contradictionMin && a.touchesMemoryId !== "none";
   return {
@@ -88,7 +98,7 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
     importance,
     content,
     reason: save
-      ? `save kind=${a.kindChoice} content=${content.toFixed(2)} importance=${importance}${contradiction ? ` supersedes=${a.touchesMemoryId}` : ""}`
+      ? `save kind=${a.kindChoice} content=${content.toFixed(2)} importance=${importance}${a.source && a.source !== "user_message" ? ` source=${a.source}` : ""}${contradiction ? ` supersedes=${a.touchesMemoryId}` : ""}`
       : `skip: ${reasons.join(", ")}`,
   };
 }
@@ -98,6 +108,7 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
 
 export interface LabelledExample {
   nouls: Record<string, number>;
+  source?: string;
   /** Precomputed family scores (tier 1). When absent, families are computed from `nouls` with the weights being fitted. */
   families?: Record<Family, number>;
   kindChoice: string;
@@ -158,7 +169,7 @@ function familiesOf(e: LabelledExample, weights: Weights): Record<Family, number
 }
 
 function predictAll(examples: LabelledExample[], weights: Weights, t: Thresholds): boolean[] {
-  return examples.map((e) => evaluatePolicy({ kindChoice: e.kindChoice, importanceScore: e.importanceScore, families: familiesOf(e, weights), touchesMemoryId: e.touchesMemoryId }, t).save);
+  return examples.map((e) => evaluatePolicy({ kindChoice: e.kindChoice, importanceScore: e.importanceScore, families: familiesOf(e, weights), touchesMemoryId: e.touchesMemoryId, source: e.source }, t).save);
 }
 
 function contentOf(e: LabelledExample, weights: Weights): number {

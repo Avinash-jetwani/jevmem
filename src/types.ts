@@ -37,6 +37,8 @@ export interface Thresholds {
   chitChatMax: number;
   /** Skip when the injection guard noul is at or above this. */
   injectionMax: number;
+  /** Skip when the assistant reply is in the state and the meta family (options / self-summary / memory commentary) is at or above this. */
+  metaMax: number;
   /** Mark a contradiction when `contradicts_existing_memory` is at or above this. */
   contradictionMin: number;
   /** `jevmem audit` marks memories below this as `[stale?]`. */
@@ -127,6 +129,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     contentMin: 0.5,
     chitChatMax: 0.5,
     injectionMax: 0.5,
+    metaMax: 0.5,
     contradictionMin: 0.7,
     staleBelow: 0.4,
     recallTopK: 5,

@@ -14,7 +14,7 @@ const env = { JEVMEM_WRITER: "none" } as NodeJS.ProcessEnv;
 describe("feedback loop", () => {
   it("records every decision, explains it with `why`, and labels right/wrong/missed", async () => {
     const root = tmp();
-    const jev = mockJev((_q, state: any) => (/thanks/.test(state.message) ? CHIT_CHAT : SAVE_DECISION));
+    const jev = mockJev((_q, state: any) => (/thanks/.test(state.user_message) ? CHIT_CHAT : SAVE_DECISION));
     const saved = await runHook({ hook_event_name: "Stop", cwd: root, user_message: "Let's use Postgres 16." }, { jev, env });
     const skipped = await runHook({ hook_event_name: "Stop", cwd: root, user_message: "thanks!" }, { jev, env });
     expect(saved.action).toBe("saved");
@@ -57,7 +57,7 @@ describe("feedback loop", () => {
 
   it("refuses to fit under 40 labels unless forced, then writes weights and thresholds to config", async () => {
     const root = tmp();
-    const jev = mockJev((_q, state: any) => (/thanks|ok/.test(state.message) ? CHIT_CHAT : SAVE_DECISION));
+    const jev = mockJev((_q, state: any) => (/thanks|ok/.test(state.user_message) ? CHIT_CHAT : SAVE_DECISION));
     for (let i = 0; i < 10; i++) {
       const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: i % 2 ? `thanks ${i}` : `Use lib${i} for parsing.` }, { jev, env });
       const rec = findDecision(root, r.action === "saved" ? new MemoryStore(root).active().at(-1)!.id : readDecisions(root).at(-1)!.hash)!;

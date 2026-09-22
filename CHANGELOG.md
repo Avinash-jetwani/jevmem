@@ -2,6 +2,24 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.3] - 2026-09-22
+
+### Fixed
+- **The Stop hook saved the assistant's prose as memories.** In a real desktop session, lines like "Options I can pick up right away…", "Recorded. The distribution decision is back to…", and "One note from the hook output: Jev has now captured my last reply…" were written to `JEVMEM.md`, because `decide` and the writer both saw one merged "USER … ASSISTANT …" blob. Now the **user message is the state**. The assistant reply is sent to Jev only when the user asked a question (or when there is no user text at all), under its own `assistant_reply` key, and:
+  - a new **meta** family (tier 1: `assistant_reply_is_meta`; tier 2: `assistant_lists_options_or_next_steps`, `assistant_summarises_its_own_work`, `assistant_comments_on_memory_hooks_or_tooling`) skips the turn when the reply is a menu, a self-summary, or commentary on memory/hooks/tooling (`thresholds.metaMax`, 0.5);
+  - a `content_source` choice (`user_message` | `assistant_reply` | `both` | `none`) tells the policy where the content came from, and **only `bug` and `architecture` may come from the assistant**;
+  - the writer condenses the source text (the user message, or the assistant reply only when `content_source` is `assistant_reply`), never the merged blob.
+  - Every question now says "the user message" (or "the user message or the assistant reply" for bug/architecture) instead of "the message".
+- Six real turns from that session are in the eval set with their exact assistant replies and the memory context they had (`existing` per turn): greeting, constraint, decision, reversal, "thanks, looks good" + hook commentary, and the injection attempt + memory commentary. 48 turns total.
+
+### Added
+- `scripts/e2e.sh`: a real multi-turn Claude Code session (`claude -p` / `--continue`) in a scratch project under the desktop app's stripped environment (`PATH=/usr/bin:/bin:/usr/sbin:/sbin`, no shell variables), sending the five demo prompts and asserting `JEVMEM.md` after each turn: +1 line, +1 decision, +1 decision with the previous one `[superseded]`, no change, no change. Fails loudly with the file and the relevant log entries. `--runs N`, `--automemory present|cleared|both` (seeds or clears Claude Code's own auto-memory for the scratch project under `~/.claude/projects/<slug>/memory/`), `CLAUDE_BIN` to pick the binary.
+- `why` shows whether the assistant reply was in the state and the content source.
+
+### Verified (real Claude Code 2.1.275 sessions, stripped environment, 2026-09-22)
+- `scripts/e2e.sh --runs 3`: 3/3 passes. `--automemory both`: pass with Claude Code auto-memory seeded and pass with it cleared, identical files. Each run: turn 1 saves the constraint, turn 2 the sideload decision, turn 3 saves the Web Store decision and marks the sideload line `[superseded] … → id:new`, turns 4 and 5 leave the file unchanged. No assistant prose in any saved line. Per run: 6 `decide` calls (one escalation), ~$0.0009 in Jev.
+- One harness finding: when a `claude -p` turn ends with `Error: Reached max turns`, Claude Code does not fire the Stop hook at all, so the harness allows up to 15 tool turns per prompt.
+
 ## [0.3.2] - 2026-09-22
 
 ### Fixed
@@ -98,6 +116,7 @@ The decomposed set **tied** the v0.2.0 set on this transcript at 3.3× the token
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.3.3]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Avinash-jetwani/jevmem/compare/v0.2.0...v0.3.0
