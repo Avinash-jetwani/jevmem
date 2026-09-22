@@ -1,0 +1,69 @@
+{
+  "name": "jevmem",
+  "version": "0.1.0",
+  "description": "Jev-powered memory layer for AI coding tools. Jev decides. The LLM writes one line. Your project never forgets.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "jevmem": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.21.0",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:live": "JEVMEM_LIVE=1 vitest run",
+    "lint": "tsc --noEmit && eslint src test",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "jev",
+    "typesafe",
+    "memory",
+    "claude-code",
+    "cursor",
+    "mcp",
+    "ai",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Avinash-jetwani/jevmem.git"
+  },
+  "homepage": "https://github.com/Avinash-jetwani/jevmem#readme",
+  "bugs": {
+    "url": "https://github.com/Avinash-jetwani/jevmem/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@typesafe-ai/sdk": "^0.6.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^22.19.0",
+    "eslint": "^9.39.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^4.0.0"
+  }
+}

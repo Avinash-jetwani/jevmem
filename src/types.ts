@@ -1,0 +1,90 @@
+/** The seven memory kinds Jevmem tracks. `superseded` is only ever assigned by contradiction handling. */
+export const KINDS = [
+  "decision",
+  "constraint",
+  "preference",
+  "bug",
+  "architecture",
+  "todo",
+  "superseded",
+] as const;
+export type Kind = (typeof KINDS)[number];
+
+/** Kinds Jev may pick for a *new* memory (everything except `superseded`). */
+export const NEW_KINDS = KINDS.filter((k) => k !== "superseded") as Exclude<Kind, "superseded">[];
+
+export const IMPORTANCE_LEVELS = ["trivial", "minor", "useful", "important", "critical"] as const;
+export type Importance = (typeof IMPORTANCE_LEVELS)[number];
+
+export interface Memory {
+  id: string;
+  kind: Kind;
+  text: string;
+  ts: string; // ISO-8601
+  conf: number; // 0..1, Jev confidence at save time
+  /** Set when this memory has been superseded by a newer one. */
+  supersededBy?: string;
+  /** Set by `jevmem audit` when the memory scored below the stale threshold. */
+  stale?: number;
+}
+
+export interface Thresholds {
+  /** Minimum importance level to save. */
+  importanceMin: Importance;
+  /** Skip when `is_only_chit_chat` is at or above this. */
+  chitChatMax: number;
+  /** Skip when the injection guard noul is at or above this. */
+  injectionMax: number;
+  /** Mark a contradiction when `contradicts_existing_memory` is at or above this. */
+  contradictionMin: number;
+  /** `jevmem audit` marks memories below this as `[stale?]`. */
+  staleBelow: number;
+  /** How many memories to inject on UserPromptSubmit. */
+  recallTopK: number;
+  /** Minimum relevance probability for a memory to be injected. */
+  recallMin: number;
+}
+
+export interface JevmemConfig {
+  memoryFile: string;
+  thresholds: Thresholds;
+  jev: {
+    model: string;
+    /** Per-call timeout in the hook path. Jev is skipped (never blocks) past this. */
+    timeoutMs: number;
+    /** Max memory ids to include in one `touches_memory_id` choice. Pre-filtered by keyword overlap beyond this. */
+    maxIdsPerCall: number;
+    /** USD per million tokens, used for the cost column in `.jevmem/log.jsonl`. */
+    usdPerMillionTokens: number;
+  };
+  writer: {
+    provider: "auto" | "openai" | "anthropic" | "none";
+    model?: string;
+    maxChars: number;
+    timeoutMs: number;
+  };
+}
+
+export const DEFAULT_CONFIG: JevmemConfig = {
+  memoryFile: "JEVMEM.md",
+  thresholds: {
+    importanceMin: "useful",
+    chitChatMax: 0.5,
+    injectionMax: 0.5,
+    contradictionMin: 0.7,
+    staleBelow: 0.4,
+    recallTopK: 5,
+    recallMin: 0.05,
+  },
+  jev: {
+    model: "jev-latest",
+    timeoutMs: 2000,
+    maxIdsPerCall: 200,
+    usdPerMillionTokens: 0.042,
+  },
+  writer: {
+    provider: "auto",
+    maxChars: 140,
+    timeoutMs: 8000,
+  },
+};
