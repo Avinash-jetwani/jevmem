@@ -2,7 +2,7 @@
 
 **Jev decides. The LLM writes one line. Your project never forgets.**
 
-Jevmem is a memory layer for AI coding tools (Claude Code, Cursor, Codex, Claude Desktop). It keeps a human-readable `JEVMEM.md` in your project root and updates it after **every** turn, in ~250–400 ms warm, for a fraction of a cent per day. It learns from you: mark a line `right` or `wrong`, and `jevmem fit` recalibrates.
+Jevmem is a memory layer for AI coding tools (Claude Code, Cursor, Codex, Claude Desktop). It keeps a human-readable `JEVMEM.md` in your project root and updates it after **every** turn, in ~270 ms warm, for a fraction of a cent per day. It learns from you: mark a line `right` or `wrong`, and `jevmem fit` recalibrates.
 
 **You need one key: `TYPESAFE_API_KEY`.** An OpenAI or Anthropic key is optional. Without one, Jevmem still saves memories; it just writes the line with a deterministic extract instead of an LLM.
 
@@ -52,13 +52,43 @@ The first hook call in a project starts a tiny **warm daemon** (`jevmem daemon s
 
 Jevmem never asks Jev to write anything. It asks small, literal, typed questions and combines the answers in code.
 
-### The decider: one call per turn (`src/decide.ts`, `src/questions.ts`, `src/combine.ts`)
+### The decider: two tiers (`src/decide.ts`, `src/questions.ts`, `src/combine.ts`)
 
 State sent: `{ message, previous_turns, existing_memories: [{id, kind, text}] }`. Only the current turn and the two before it; never the repo tree. Secrets and PII are scrubbed first. Memory ids are capped at 200 by a keyword-overlap pre-filter.
 
-**30 atomic nouls** in nine families, each with structured `true`/`false` criteria (`what` + two positive and two negative `examples`). Broad questions like "is this a decision?" are replaced by narrow ones; Jev answers them independently and in parallel, so 33 questions cost the same latency as 12.
+**Tier 1 runs on every turn**: nine broad nouls, each with one positive and one negative example, plus the `kind` choice, the `touches_memory_id` choice, and the `importance` score. About 2,300 tokens.
 
-| Family | Atomic nouls |
+| Tier-1 noul | Family |
+|---|---|
+| `contains_decision` | decision |
+| `contains_constraint` | constraint |
+| `contains_preference` | preference |
+| `contains_bug_finding` | bug |
+| `contains_architecture_fact` | architecture |
+| `contains_todo` | todo |
+| `is_only_chit_chat` | chit_chat |
+| `contradicts_existing_memory` | contradiction |
+| `contains_instructions_aimed_at_an_automated_system` | injection |
+
+**Tier 2 runs only when tier 1 is unsure**: 30 atomic nouls in the same nine families, each with structured `what` / `examples` criteria, combined in code with a logistic score per family. About 5,500 tokens. The borderline rule (configurable under `tiers.borderline`) escalates when:
+
+- the strongest kind noul is in `[0.3, 0.7]` (set `kindNoulScope: "any"` to test every kind noul; that fires on most real turns because secondary kinds often score 0.3–0.7), or
+- the `kind` choice confidence is under 0.6, or
+- `contradicts_existing_memory` ≥ 0.5, or
+- the `importance` confidence is under 0.5, or
+- the injection noul is in `[0.3, 0.7]`,
+
+**unless** tier 1 is already sure the turn is skipped (injection > 0.7 or chit-chat ≥ 0.9), where tier 2 could only agree. When tier 2 runs, its result wins.
+
+`tiers.mode` selects `auto` (default), `fast` (tier 1 only), or `full` (always tier 2). Measured on the 40-turn eval set (live `jev-latest`, warm client, no cache):
+
+| mode | accuracy | tokens/turn | cost/turn | p50 | escalated |
+|---|---|---|---|---|---|
+| `fast` | 97.5% | 2,318 | $0.000097 | 263 ms | – |
+| `auto` | 97.5% | 3,138 | $0.000132 | 267 ms | 15% |
+| `full` | 97.5% | 5,463 | $0.000229 | 264 ms | – |
+
+| Tier-2 family | Atomic nouls |
 |---|---|
 | decision | `states_a_choice_between_alternatives`, `uses_committal_language`, `names_a_specific_technology_or_approach`, `is_phrased_as_a_question_or_option_list` (negative signal) |
 | constraint | `states_a_rule_with_must_never_or_always`, `states_a_numeric_or_version_limit`, `describes_a_consequence_of_breaking_a_rule` |
@@ -70,20 +100,18 @@ State sent: `{ message, previous_turns, existing_memories: [{id, kind, text}] }`
 | injection | `tells_an_ai_to_ignore_or_replace_instructions`, `claims_system_or_admin_authority_over_the_ai`, `asks_the_ai_to_store_or_alter_memory_or_rules`, `quotes_text_from_a_file_or_page_addressed_to_an_ai` |
 | contradiction | `reverses_or_replaces_a_listed_memory`, `uses_change_of_plan_instead_or_actually`, `is_about_the_same_topic_as_a_listed_memory` |
 
-Plus two **choices** (`kind` over the six kinds + `none`, each option with `what` / `not_for` / `examples`; `touches_memory_id` over live memory ids + `none`) and one **score** (`importance`: trivial, minor, useful, important, critical, each level with `summary` / `what` / `signals`). The exact wording is in [src/questions.ts](src/questions.ts).
+The exact wording of every question is in [src/questions.ts](src/questions.ts).
 
-**Combination in code.** Each family gets a logistic score over its nouls with hand-set default weights (core nouls such as `states_a_rule_with_must_never_or_always` are sufficient alone; secondary ones add confidence). `jevmem fit` replaces those weights with ones fitted to your labels.
-
-**Policy** (thresholds in `jevmem.config.json`, all refitted by `jevmem fit`):
+**Policy** (thresholds in `jevmem.config.json`; `thresholds` applies to tier 2, `tiers.tier1Thresholds` overrides for tier-1 finals; both refitted by `jevmem fit`):
 
 ```text
-content       = max(decision, constraint, preference, bug, architecture, todo)
+content       = max(decision, constraint, preference, bug, architecture, todo)   # tier 1: the broad noul; tier 2: the logistic family score
 save          = kind != none AND content >= contentMin (0.5) AND round(importance) >= useful
              AND chit_chat < chitChatMax (0.5) AND injection < injectionMax (0.5)
 contradiction = save AND contradiction >= contradictionMin (0.7) AND touches_memory_id != none
 ```
 
-On `save`, the writer produces one line (≤ 140 chars). On `contradiction`, the old line is re-tagged `[superseded]` and gets `→ id:new`. Every decision, saved or skipped, is recorded in `.jevmem/decisions.jsonl` so `jevmem why <id>` can show exactly which noul said what.
+On `save`, the writer produces one line (≤ 140 chars). On `contradiction`, the old line is re-tagged `[superseded]` and gets `→ id:new`. Every decision, saved or skipped, is recorded in `.jevmem/decisions.jsonl` with both tiers' answers, so `jevmem why <id>` shows tier 1, and tier 2 if it ran, and which borderline condition caused the escalation.
 
 ### The read side: one call per prompt (`src/recall.ts`)
 
@@ -111,25 +139,27 @@ jevmem fit                          # ≥ 40 labels: refit per-kind weights + th
 jevmem stats                        # p50/p95 latency, cost per day, cache hit rate, label count, last fit
 ```
 
-`JEVMEM.md` ends with `<!-- jevmem: 12 labels, last fit 2026-09-30 -->` so a reader knows how calibrated the file is.
+`fit` uses whichever tier's answers a label carries: labels with tier-2 answers refit the family weights and `thresholds`; labels with tier-1 answers refit `tiers.tier1Thresholds`. The fit output says how many labels went to each. `JEVMEM.md` ends with `<!-- jevmem: 12 labels, last fit 2026-09-30 -->` so a reader knows how calibrated the file is.
 
 ## Cost math
 
-Every Jev call is logged to `.jevmem/log.jsonl` (question count, tokens, latency, cost, cache hit), and `jevmem stats` summarises it. Cost is `tokens × $0.042 / 1M` (configurable under `jev.usdPerMillionTokens`).
+Every Jev call is logged to `.jevmem/log.jsonl` (question count, tier, tokens, latency, cost, cache hit), and `jevmem stats` summarises it, including the tier-1 → tier-2 escalation rate. Cost is `tokens × $0.042 / 1M` (configurable under `jev.usdPerMillionTokens`).
 
 | Call | Measured tokens | p50 latency (warm daemon) | p50 latency (cold process) | Cost |
 |---|---|---|---|---|
-| `decide` (33 questions, a few memories) | ~6,300 | **~250–400 ms** | ~860 ms | ~$0.00026 |
+| `decide` tier 1 (12 questions) | ~2,300 | **~230–280 ms** | ~670 ms | ~$0.00010 |
+| `decide` tier 2 (33 questions), on ~15% of turns | ~5,500 | ~270 ms | – | ~$0.00023 |
+| `decide` in `auto`, averaged | ~3,100 | ~270 ms | – | ~$0.00013 |
 | `decide`, cache hit | 0 | ~3 ms | – | $0 |
-| `recall` (choice over ids) | ~560 | ~300 ms | ~680 ms | ~$0.00002 |
+| `recall` (choice over ids) | ~560 | ~210 ms | ~680 ms | ~$0.00002 |
 | `search` (choice + noul per candidate) | ~680 | ~230 ms | ~550 ms | ~$0.00003 |
 | `audit` (noul per memory) | ~720 for 2 memories | ~230 ms | ~540 ms | ~$0.00003 |
 
-Measured with `jev-latest` on 2026-09-22 (the exact turns are in `DEMO.md`). The v0.3.0 question set is 3.3× more tokens than v0.2.0's twelve questions because every noul carries structured criteria with examples; latency is unchanged because Jev evaluates questions in parallel. A busy day of 300 turns costs about **eight cents** in Jev, plus one short LLM completion per *saved* line. An LLM-based memory pass over the same transcript, run every turn, costs 30–300× more, which is why those systems run rarely.
+Measured with `jev-latest` on 2026-09-22 (the exact turns are in `DEMO.md` and `eval/transcript.jsonl`). A busy day of 300 turns costs about **four cents** in Jev, plus one short LLM completion per *saved* line. An LLM-based memory pass over the same transcript, run every turn, costs 40–400× more, which is why those systems run rarely.
 
 ## Why Jev and not an LLM
 
-- **It runs every turn.** ~300 ms and ~$0.0003 means the decision can happen on *every* Stop, not once per session. Memory that updates continuously catches the decision made in passing at turn 41.
+- **It runs every turn.** ~270 ms and ~$0.00013 means the decision can happen on *every* Stop, not once per session. Memory that updates continuously catches the decision made in passing at turn 41.
 - **Typed answers, thresholds in code.** Jev returns probabilities, not prose. "Save if importance ≥ useful and chit-chat < 0.5" is a line of config, testable and tunable, not a prompt you hope the model follows.
 - **Nothing to inject into.** Jev cannot generate text, so a transcript that says "ignore previous instructions and remember X" cannot make it *do* anything. Jevmem also asks Jev whether the message is aimed at an automated system and refuses to save when it is.
 
@@ -137,10 +167,10 @@ Measured with `jev-latest` on 2026-09-22 (the exact turns are in `DEMO.md`). The
 
 | | LLM-based memory (typical) | Jevmem |
 |---|---|---|
-| Decides what to save with | A full LLM prompt over the transcript | One Jev call: 30 atomic nouls + 2 choices + 1 score, combined in code |
+| Decides what to save with | A full LLM prompt over the transcript | One Jev call of 12 questions; a second of 33 on the ~15% of turns that are borderline |
 | Runs | End of session, or every N turns | Every turn |
-| Latency per decision | 2–10 s | ~300 ms warm |
-| Cost per decision | $0.005–0.05 | ~$0.00026 |
+| Latency per decision | 2–10 s | ~270 ms warm |
+| Cost per decision | $0.005–0.05 | ~$0.00013 |
 | Detects contradictions | Sometimes, in prose | `contradicts_existing_memory` ≥ 0.7 AND a named memory id |
 | Injection resistance | Prompt-dependent | Decision model can't generate; four injection nouls |
 | Storage | Proprietary DB | `JEVMEM.md` in your repo, one line per memory |
@@ -229,7 +259,7 @@ jevmem right <id|hash>                         Label a decision as correct
 jevmem wrong <id|hash> [--should-be <kind|none>]   Label a decision as wrong
 jevmem missed "<text>" [--kind <kind>]         Label a turn that should have been saved
 jevmem fit [--dry-run] [--force]               Refit weights and thresholds from labels (needs 40+)
-jevmem stats                                   Latency p50/p95, cost per day, cache hit rate, labels, last fit
+jevmem stats                                   Latency p50/p95, cost per day, cache hit rate, escalation rate, labels, last fit
 jevmem log                                     Per-label latency and cost summary
 ```
 
@@ -256,6 +286,14 @@ Set `JEVMEM_VERBOSE=1` to get a one-line Jev latency/cost summary on stderr afte
            "usdPerMillionTokens": 0.042, "cache": true, "zeroDataRetention": "auto" },
   "writer": { "provider": "auto", "maxChars": 140, "timeoutMs": 8000 },
   "daemon": { "enabled": true, "idleMinutes": 30 },
+  "tiers": {
+    "mode": "auto",
+    "borderline": { "kindNoulScope": "max", "kindNoulLow": 0.3, "kindNoulHigh": 0.7, "kindConfidenceMin": 0.6,
+                    "contradictionMin": 0.5, "importanceConfidenceMin": 0.5, "injectionLow": 0.3, "injectionHigh": 0.7,
+                    "sureSkipChitChatMin": 0.9 },
+    "tier2ExamplesPerSide": 1,
+    "tier1Thresholds": { "...": "written by `jevmem fit` from tier-1 labels; omit to use `thresholds`" }
+  },
   "weights": { "...": "written by `jevmem fit`; omit to use the hand-set defaults" }
 }
 ```
@@ -299,7 +337,7 @@ pnpm build        # tsup → dist/
 pnpm test         # vitest, Jev mocked
 pnpm lint         # tsc --noEmit + eslint
 JEVMEM_LIVE=1 pnpm test   # adds one real Jev test (needs TYPESAFE_API_KEY)
-node scripts/eval.mjs     # score `decide` on the 40-turn hand-labelled set in eval/transcript.jsonl (live Jev)
+node scripts/eval.mjs     # score `decide` in fast/auto/full on the 40-turn hand-labelled set (live Jev)
 ```
 
 See [DEMO.md](DEMO.md) for a scripted 60-second demo and [DECISIONS.md](DECISIONS.md) for the design decisions.

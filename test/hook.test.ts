@@ -39,7 +39,8 @@ describe("Stop hook", () => {
     const raw = fs.readFileSync(path.join(root, "JEVMEM.md"), "utf8");
     expect(raw).toMatch(/- \[superseded\] .*Postgres.* → id:[a-z0-9]+/);
     expect(store.active()).toHaveLength(1);
-    expect(jev.calls).toHaveLength(3);
+    // Three turns; the contradiction turn escalated to tier 2, so four Jev calls.
+    expect(jev.calls.map((c) => c.opts.tier)).toEqual([1, 1, 1, 2]);
     expect(jev.calls.every((c) => c.opts.label === "decide" && c.opts.timeoutMs === 2000)).toBe(true);
   });
 

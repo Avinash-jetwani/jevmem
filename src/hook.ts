@@ -119,7 +119,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
     const decision = await decide(
       jev,
       { message, recentContext: previous, existingMemories: existing },
-      { thresholds: cfg.thresholds, weights: cfg.weights, maxIds: cfg.jev.maxIdsPerCall, timeoutMs: cfg.jev.timeoutMs },
+      { thresholds: cfg.thresholds, weights: cfg.weights, tiers: cfg.tiers, maxIds: cfg.jev.maxIdsPerCall, timeoutMs: cfg.jev.timeoutMs },
     );
     if (!decision.save) {
       recordDecision(store.root, { hash, message, decision });

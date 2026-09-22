@@ -27,7 +27,7 @@ describe("feedback loop", () => {
     expect(rec.memoryId).toBe(memId);
     const why = formatWhy(rec);
     expect(why).toContain("SAVED");
-    expect(why).toContain("states_a_choice_between_alternatives");
+    expect(why).toContain("contains_decision"); // tier 1 was sure, so the broad nouls are shown
     expect(why).toContain("kind choice: decision");
     expect(why).toMatch(/content \(max kind family\) 0\.\d\d {2}min 0\.5 ✓/);
     const skippedRec = findDecision(root, decisions[1]!.hash.slice(0, 6))!;
@@ -44,7 +44,7 @@ describe("feedback loop", () => {
     expect(m.label.kind).toBe("constraint");
     const labels = readLabels(root);
     expect(labels.map((l) => l.source)).toEqual(["right", "wrong", "wrong", "missed"]);
-    expect(labels[0]!.answers.nouls.states_a_choice_between_alternatives).toBe(0.95);
+    expect(labels[0]!.answers.nouls.contains_decision).toBe(0.95); // tier 1 was final
     expect(labels[3]!.message).toContain("Node 20");
 
     // Footer reflects labels.
@@ -70,15 +70,17 @@ describe("feedback loop", () => {
     expect(forced.ok).toBe(true);
     if (forced.ok) {
       expect(forced.written).toBe(true);
-      expect(forced.result.after.f1).toBeGreaterThanOrEqual(forced.result.before.f1);
+      // These labels were all decided by tier 1 (sure), so only tier-1 thresholds are fitted.
+      expect(forced.result.tier2).toBeNull();
+      expect(forced.result.tier1!.after.f1).toBeGreaterThanOrEqual(forced.result.tier1!.before.f1);
     }
     const cfg = JSON.parse(fs.readFileSync(path.join(root, "jevmem.config.json"), "utf8"));
-    expect(cfg.weights.decision.w.uses_committal_language).toBeTypeOf("number");
-    expect(cfg.thresholds.contentMin).toBeTypeOf("number");
+    expect(cfg.tiers.tier1Thresholds.contentMin).toBeTypeOf("number");
+    expect(cfg.weights).toBeUndefined();
     expect(fs.existsSync(path.join(root, ".jevmem", "fit.json"))).toBe(true);
     new MemoryStore(root).touchFooter();
     expect(fs.readFileSync(path.join(root, "JEVMEM.md"), "utf8")).toMatch(/<!-- jevmem: 10 labels, last fit \d{4}-\d{2}-\d{2} -->/);
-    // Fitted weights are picked up by the hook through config.
-    expect(loadConfig(root).weights!.decision!.bias).toBeTypeOf("number");
+    // Fitted tier-1 thresholds are picked up by the hook through config.
+    expect(loadConfig(root).tiers.tier1Thresholds!.contentMin).toBeTypeOf("number");
   });
 });

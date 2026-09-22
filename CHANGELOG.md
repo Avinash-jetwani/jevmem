@@ -2,6 +2,26 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-09-22
+
+### Changed
+- **Two-tier decide.** Tier 1 (the nine broad nouls with one positive and one negative example each, plus `kind`, `touches_memory_id`, `importance`) runs on every turn. Tier 2 (the 30 atomic nouls) runs only when the borderline rule fires; its combined result then wins. `tiers.mode` = `auto` (default) | `fast` (tier 1 only) | `full` (always tier 2, v0.3.0 behaviour).
+- **Borderline rule** under `tiers.borderline`: strongest kind noul in [0.3, 0.7] (`kindNoulScope: "max"`; `"any"` is available but fires on 80% of real turns), `kind` confidence < 0.6, `contradicts_existing_memory` ≥ 0.5, `importance` confidence < 0.5, injection noul in [0.3, 0.7]; never when tier 1 is already sure the turn is injection (> 0.7) or chit-chat (≥ 0.9).
+- Tier 2 criteria trimmed from 2+2 to 1+1 examples per noul (`tiers.tier2ExamplesPerSide`); accuracy held at 97.5%, tokens fell from ~6,300 to ~5,500.
+- `why` shows tier 1 answers, tier 2 answers when it ran, and the escalation reasons. Labels record both tiers; `fit` refits weights + `thresholds` from tier-2 labels and `tiers.tier1Thresholds` from tier-1 labels, and says how many labels went to each.
+- Cache keys include the tier; log entries carry the tier; `jevmem stats` prints tier counts and the escalation rate.
+- `scripts/eval.mjs` runs all three modes and prints accuracy, tokens/turn, cost/turn, p50/p95 latency, and escalation.
+
+### Measured (live `jev-latest`, 2026-09-22, 40-turn eval set, warm client, no cache)
+| mode | accuracy | F1 | tokens/turn | cost/turn | p50 | p95 | escalated |
+|---|---|---|---|---|---|---|---|
+| `fast` | 97.5% | 98.4% | 2,318 | $0.000097 | 263 ms | 340 ms | – |
+| `auto` | 97.5% | 98.4% | 3,138 | $0.000132 | 267 ms | 560 ms | 15% |
+| `full` (= v0.3.0) | 97.5% | 98.4% | 5,463 | $0.000229 | 264 ms | 301 ms | – |
+| v0.2.0 | 97.5% | 98.4% | 1,897 | $0.000080 | ~272 ms | – | – |
+
+Targets: accuracy ≥ 97.5% met; escalation ≤ 25% met (15%); cost ≤ 1.3× v0.2.0 **not met** (`auto` is 1.65×, `fast` 1.22×); tier-1 ≤ 2,000 tokens **not met** (2,318, of which roughly 500 are state and JSON framing). See DECISIONS.md.
+
 ## [0.3.0] - 2026-09-22
 
 ### Added
@@ -61,6 +81,7 @@ The decomposed set **tied** the v0.2.0 set on this transcript at 3.3× the token
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.3.1]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Avinash-jetwani/jevmem/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Avinash-jetwani/jevmem/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Avinash-jetwani/jevmem/compare/v0.1.0...v0.1.1

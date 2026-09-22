@@ -7,6 +7,8 @@ import { scrubSecrets } from "./scrub.js";
 export interface JevCallOptions {
   /** Short label written to the log, e.g. `decide`, `recall`, `search`, `audit`. */
   label: string;
+  /** Decide tier (1 = broad set, 2 = atomic set). Part of the cache key and the log. */
+  tier?: 1 | 2;
   timeoutMs?: number;
   signal?: AbortSignal;
 }
@@ -26,6 +28,7 @@ export interface JevLogEntry {
   cacheHit?: boolean;
   /** Where the call ran, when known. */
   via?: "inline" | "daemon";
+  tier?: 1 | 2;
 }
 
 /** Anything that can answer a batch of Jev questions. The real client and test mocks both implement it. */
@@ -84,6 +87,10 @@ export interface LogSummary {
   totalCostUsd: number;
   /** USD per calendar day, keyed by YYYY-MM-DD. */
   costPerDay: Record<string, number>;
+  /** Decide calls by tier, and the share of tier-1 turns that escalated to tier 2 (null when tier 1 never ran). */
+  decideTier1: number;
+  decideTier2: number;
+  escalationRate: number | null;
 }
 
 function percentile(sorted: number[], p: number): number {
@@ -103,9 +110,14 @@ export function summarizeLog(entries: JevLogEntry[]): LogSummary {
     const d = e.ts.slice(0, 10);
     costPerDay[d] = (costPerDay[d] ?? 0) + e.costUsd;
   }
+  const decideTier1 = ok.filter((e) => e.label === "decide" && e.tier === 1).length;
+  const decideTier2 = ok.filter((e) => e.label === "decide" && e.tier === 2).length;
   return {
     calls: entries.length,
     ok: ok.length,
+    decideTier1,
+    decideTier2,
+    escalationRate: decideTier1 ? Math.min(1, decideTier2 / decideTier1) : null,
     cacheHits: hits.length,
     cacheHitRate: ok.length ? hits.length / ok.length : 0,
     avgLatencyMs: Math.round(avg),
@@ -124,8 +136,8 @@ export function cacheDir(root: string): string {
   return path.join(root, ".jevmem", "cache");
 }
 
-export function cacheKey(model: string, state: EntryType, questions: Questions): string {
-  return crypto.createHash("sha256").update(JSON.stringify({ model, state, questions })).digest("hex").slice(0, 40);
+export function cacheKey(model: string, state: EntryType, questions: Questions, tier?: number): string {
+  return crypto.createHash("sha256").update(JSON.stringify({ model, tier: tier ?? null, state, questions })).digest("hex").slice(0, 40);
 }
 
 function readCache(root: string, key: string): unknown | null {
@@ -203,9 +215,9 @@ export function createJev(opts: CreateJevOptions = {}): JevCaller {
     log,
     async call(state, questions, callOpts) {
       const t0 = performance.now();
-      const base = { ts: new Date().toISOString(), label: callOpts.label, questions: Object.keys(questions).length };
+      const base = { ts: new Date().toISOString(), label: callOpts.label, questions: Object.keys(questions).length, ...(callOpts.tier ? { tier: callOpts.tier } : {}) };
       const safeState = scrubState(state);
-      const key = useCache && callOpts.label !== "prewarm" ? cacheKey(client.defaultModel, safeState, questions) : null;
+      const key = useCache && callOpts.label !== "prewarm" ? cacheKey(client.defaultModel, safeState, questions, callOpts.tier) : null;
       if (key) {
         const hit = readCache(opts.root!, key) as SystemOneResult<any> | null;
         if (hit) {

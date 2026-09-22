@@ -222,6 +222,7 @@ async function main(argv: string[]): Promise<number> {
         process.stdout.write(`  ${label.padEnd(8)} ${String(ls.calls).padStart(4)} calls  p50 ${String(ls.p50LatencyMs).padStart(5)} ms  p95 ${String(ls.p95LatencyMs).padStart(5)} ms  ${String(ls.totalTokens).padStart(7)} tokens  $${ls.totalCostUsd.toFixed(6)}  cache ${(ls.cacheHitRate * 100).toFixed(0)}%\n`);
       }
       if (cmd === "stats") {
+        process.stdout.write(`decide tiers: ${s.decideTier1} tier-1, ${s.decideTier2} tier-2; escalation rate ${s.escalationRate === null ? "n/a (tier 1 never ran; mode=full?)" : (s.escalationRate * 100).toFixed(0) + "%"}\n`);
         const days = Object.entries(s.costPerDay).sort();
         if (days.length) {
           process.stdout.write("cost per day:\n");

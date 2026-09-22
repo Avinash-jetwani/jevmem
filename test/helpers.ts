@@ -49,14 +49,23 @@ export function mockJev(respond: (questions: Questions, state: EntryType, i: num
     async call(state, questions, opts) {
       calls.push({ state, questions, opts });
       const overrides = await respond(questions, state, calls.length - 1);
-      log.push({ ts: new Date().toISOString(), label: opts.label, ok: true, latencyMs: 12, inputTokens: 500, outputTokens: 20, costUsd: (520 / 1e6) * 0.042, questions: Object.keys(questions).length, model: "jev-mock" });
+      log.push({ ts: new Date().toISOString(), label: opts.label, tier: opts.tier, ok: true, latencyMs: 12, inputTokens: 500, outputTokens: 20, costUsd: (520 / 1e6) * 0.042, questions: Object.keys(questions).length, model: "jev-mock" });
       return makeAnswers(questions, overrides) as any;
     },
   };
 }
 
-/** A clear decision: three decision nouls high, kind=decision, importance=important. */
+/** Tier-1 baseline: every broad noul quiet and sure. Spread first, then override. */
+export const T1_QUIET: AnswerOverrides = {
+  contains_decision: 0.05, contains_constraint: 0.05, contains_preference: 0.05, contains_bug_finding: 0.05,
+  contains_architecture_fact: 0.05, contains_todo: 0.05, is_only_chit_chat: 0.02, contradicts_existing_memory: 0.05,
+  contains_instructions_aimed_at_an_automated_system: 0.03,
+};
+
+/** A clear decision on both tiers: tier 1 is sure (final in auto mode); tier 2 agrees if asked. */
 export const SAVE_DECISION: AnswerOverrides = {
+  ...T1_QUIET,
+  contains_decision: 0.95,
   states_a_choice_between_alternatives: 0.95,
   uses_committal_language: 0.9,
   names_a_specific_technology_or_approach: 0.9,
@@ -64,14 +73,18 @@ export const SAVE_DECISION: AnswerOverrides = {
   importance: 3,
 };
 export const CHIT_CHAT: AnswerOverrides = {
+  ...T1_QUIET,
+  is_only_chit_chat: 0.97,
   is_greeting_thanks_or_acknowledgement: 0.97,
   contains_no_project_specific_content: 0.95,
   has_no_fact_decision_or_request: 0.95,
   kind: "none",
   importance: 0,
 };
+/** Tier 1 sees a contradiction (≥ 0.5 → escalates); tier 2 confirms it and names the memory. */
 export const CONTRADICTS = (id: string): AnswerOverrides => ({
   ...SAVE_DECISION,
+  contradicts_existing_memory: 0.92,
   reverses_or_replaces_a_listed_memory: 0.95,
   uses_change_of_plan_instead_or_actually: 0.9,
   is_about_the_same_topic_as_a_listed_memory: 0.9,
@@ -79,6 +92,7 @@ export const CONTRADICTS = (id: string): AnswerOverrides => ({
 });
 export const INJECTION: AnswerOverrides = {
   ...SAVE_DECISION,
+  contains_instructions_aimed_at_an_automated_system: 0.95,
   tells_an_ai_to_ignore_or_replace_instructions: 0.95,
   asks_the_ai_to_store_or_alter_memory_or_rules: 0.9,
   claims_system_or_admin_authority_over_the_ai: 0.6,

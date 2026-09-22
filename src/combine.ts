@@ -98,6 +98,8 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
 
 export interface LabelledExample {
   nouls: Record<string, number>;
+  /** Precomputed family scores (tier 1). When absent, families are computed from `nouls` with the weights being fitted. */
+  families?: Record<Family, number>;
   kindChoice: string;
   importanceScore: number;
   touchesMemoryId: string;
@@ -151,11 +153,58 @@ function fitFamily(f: Family, examples: LabelledExample[], start: FamilyWeights,
   return { bias, w };
 }
 
-function predictAll(examples: LabelledExample[], weights: Weights, t: Thresholds): boolean[] {
-  return examples.map((e) => evaluatePolicy({ kindChoice: e.kindChoice, importanceScore: e.importanceScore, families: combine(e.nouls, weights), touchesMemoryId: e.touchesMemoryId }, t).save);
+function familiesOf(e: LabelledExample, weights: Weights): Record<Family, number> {
+  return e.families ?? combine(e.nouls, weights);
 }
 
-/** Refit the kind-family weights and the save thresholds to maximise F1 of `save` on the labels. */
+function predictAll(examples: LabelledExample[], weights: Weights, t: Thresholds): boolean[] {
+  return examples.map((e) => evaluatePolicy({ kindChoice: e.kindChoice, importanceScore: e.importanceScore, families: familiesOf(e, weights), touchesMemoryId: e.touchesMemoryId }, t).save);
+}
+
+function contentOf(e: LabelledExample, weights: Weights): number {
+  return Math.max(...KIND_FAMILIES.map((k) => familiesOf(e, weights)[k]));
+}
+
+function searchThresholds(examples: LabelledExample[], weights: Weights, start: Thresholds, truth: boolean[]) {
+  let best = { t: start, m: metrics(predictAll(examples, weights, start), truth) };
+  for (const contentMin of [0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
+    for (const importanceMin of IMPORTANCE_LEVELS.slice(0, 4))
+      for (const chitChatMax of [0.3, 0.5, 0.7, 0.9])
+        for (const injectionMax of [0.3, 0.5, 0.7]) {
+          const t: Thresholds = { ...start, contentMin, importanceMin, chitChatMax, injectionMax };
+          const m = metrics(predictAll(examples, weights, t), truth);
+          if (m.f1 > best.m.f1 + 1e-9 || (Math.abs(m.f1 - best.m.f1) < 1e-9 && m.accuracy > best.m.accuracy)) best = { t, m };
+        }
+  return best;
+}
+
+function reliabilityOf(examples: LabelledExample[], weights: Weights): FitResult["reliability"] {
+  const buckets = [0, 0.2, 0.4, 0.6, 0.8, 1.0001];
+  const out: FitResult["reliability"] = [];
+  for (let b = 0; b < buckets.length - 1; b++) {
+    const lo = buckets[b]!, hi = buckets[b + 1]!;
+    const rows = examples.filter((e) => {
+      const c = contentOf(e, weights);
+      return c >= lo && c < hi;
+    });
+    if (rows.length === 0) continue;
+    const predicted = rows.reduce((a, e) => a + contentOf(e, weights), 0) / rows.length;
+    const observed = rows.filter((e) => e.label.save).length / rows.length;
+    out.push({ bucket: `${lo.toFixed(1)}–${Math.min(1, hi).toFixed(1)}`, n: rows.length, predicted, observed });
+  }
+  return out;
+}
+
+/** Tier 1 has no weights to fit (one noul per family); only the thresholds are searched. */
+export function fitThresholds(examples: LabelledExample[], startThresholds: Thresholds): FitResult {
+  const truth = examples.map((e) => e.label.save);
+  const weights = defaultWeights(); // unused when every example carries `families`
+  const before = metrics(predictAll(examples, weights, startThresholds), truth);
+  const best = searchThresholds(examples, weights, startThresholds, truth);
+  return { weights, thresholds: best.t, before, after: best.m, reliability: reliabilityOf(examples, weights), n: examples.length };
+}
+
+/** Refit the kind-family weights and the save thresholds to maximise F1 of `save` on the labels (tier 2 answers). */
 export function fit(examples: LabelledExample[], startWeights: Weights, startThresholds: Thresholds): FitResult {
   const truth = examples.map((e) => e.label.save);
   const before = metrics(predictAll(examples, startWeights, startThresholds), truth);
@@ -164,29 +213,6 @@ export function fit(examples: LabelledExample[], startWeights: Weights, startThr
   for (const f of KIND_FAMILIES) weights[f] = fitFamily(f, examples, startWeights[f], (e) => (e.label.save && e.label.kind === f ? 1 : 0));
   weights.chit_chat = fitFamily("chit_chat", examples, startWeights.chit_chat, (e) => (!e.label.save && e.label.kind === "none" ? 1 : 0));
 
-  let best = { t: startThresholds, m: metrics(predictAll(examples, weights, startThresholds), truth) };
-  const grid = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
-  for (const contentMin of grid)
-    for (const importanceMin of IMPORTANCE_LEVELS.slice(0, 4))
-      for (const chitChatMax of [0.3, 0.5, 0.7, 0.9])
-        for (const injectionMax of [0.3, 0.5, 0.7]) {
-          const t: Thresholds = { ...startThresholds, contentMin, importanceMin, chitChatMax, injectionMax };
-          const m = metrics(predictAll(examples, weights, t), truth);
-          if (m.f1 > best.m.f1 + 1e-9 || (Math.abs(m.f1 - best.m.f1) < 1e-9 && m.accuracy > best.m.accuracy)) best = { t, m };
-        }
-
-  const buckets = [0, 0.2, 0.4, 0.6, 0.8, 1.0001];
-  const reliability = [] as FitResult["reliability"];
-  for (let b = 0; b < buckets.length - 1; b++) {
-    const lo = buckets[b]!, hi = buckets[b + 1]!;
-    const rows = examples.filter((e) => {
-      const c = Math.max(...KIND_FAMILIES.map((k) => combine(e.nouls, weights)[k]));
-      return c >= lo && c < hi;
-    });
-    if (rows.length === 0) continue;
-    const predicted = rows.reduce((a, e) => a + Math.max(...KIND_FAMILIES.map((k) => combine(e.nouls, weights)[k])), 0) / rows.length;
-    const observed = rows.filter((e) => e.label.save).length / rows.length;
-    reliability.push({ bucket: `${lo.toFixed(1)}–${Math.min(1, hi).toFixed(1)}`, n: rows.length, predicted, observed });
-  }
-  return { weights, thresholds: best.t, before, after: best.m, reliability, n: examples.length };
+  const best = searchThresholds(examples, weights, startThresholds, truth);
+  return { weights, thresholds: best.t, before, after: best.m, reliability: reliabilityOf(examples, weights), n: examples.length };
 }

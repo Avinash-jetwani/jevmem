@@ -81,6 +81,43 @@ export interface JevmemConfig {
   };
   /** Logistic weights over the atomic nouls, per family. Hand-set defaults; `jevmem fit` overwrites them from labels. */
   weights?: Record<string, { bias: number; w: Record<string, number> }>;
+  /** Two-tier decide: tier 1 (9 broad nouls) every turn, tier 2 (30 atomic nouls) only on borderline turns. */
+  tiers: TiersConfig;
+}
+
+export interface BorderlineRule {
+  /**
+   * Which kind nouls the band applies to. `max`: only the strongest kind noul (is there content at all?).
+   * `any`: every kind noul; fires on most real turns because secondary kinds often score 0.3–0.7.
+   */
+  kindNoulScope: "max" | "any";
+  /** Escalate when the kind noul(s) in scope are inside [low, high]. */
+  kindNoulLow: number;
+  kindNoulHigh: number;
+  /** Escalate when the `kind` choice confidence is below this (tier 1 could not pick a kind). */
+  kindConfidenceMin: number;
+  /** Escalate when `contradicts_existing_memory` is at or above this. */
+  contradictionMin: number;
+  /** Escalate when the importance score's confidence is below this. */
+  importanceConfidenceMin: number;
+  /** Escalate when the injection noul is inside [low, high]. */
+  injectionLow: number;
+  injectionHigh: number;
+  /**
+   * Do not escalate when tier 1 is already sure the turn must be skipped (injection above `injectionHigh`, or
+   * chit-chat at or above this value). Tier 2 could only confirm the skip. Set to 1.01 to disable.
+   */
+  sureSkipChitChatMin: number;
+}
+
+export interface TiersConfig {
+  /** `auto`: tier 1, then tier 2 on borderline turns. `fast`: tier 1 only. `full`: always tier 2. */
+  mode: "auto" | "fast" | "full";
+  borderline: BorderlineRule;
+  /** Threshold overrides applied when tier 1's answer is final (fitted from tier-1 labels by `jevmem fit`). */
+  tier1Thresholds?: Partial<Thresholds>;
+  /** Examples per criterion side in tier 2 (1 or 2). */
+  tier2ExamplesPerSide: 1 | 2;
 }
 
 export const DEFAULT_CONFIG: JevmemConfig = {
@@ -112,5 +149,20 @@ export const DEFAULT_CONFIG: JevmemConfig = {
   daemon: {
     enabled: true,
     idleMinutes: 30,
+  },
+  tiers: {
+    mode: "auto",
+    borderline: {
+      kindNoulScope: "max",
+      kindNoulLow: 0.3,
+      kindNoulHigh: 0.7,
+      kindConfidenceMin: 0.6,
+      contradictionMin: 0.5,
+      importanceConfidenceMin: 0.5,
+      injectionLow: 0.3,
+      injectionHigh: 0.7,
+      sureSkipChitChatMin: 0.9,
+    },
+    tier2ExamplesPerSide: 1,
   },
 };
