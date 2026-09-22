@@ -18,8 +18,12 @@ export interface InitResult {
   command: string;
 }
 
-/** Decide how the hook should be invoked so it works whether jevmem is local, global, or run from a checkout. */
-export function resolveHookCommand(root: string, cliPath?: string): string {
+/**
+ * The hook command. Claude Code runs hooks with `sh -c` and the app's own environment: no shell profile, and on a
+ * desktop launch often a bare PATH without nvm/volta/homebrew node. So the command always uses the absolute path of
+ * the node binary running `init` and the absolute path of this CLI; nothing on PATH is assumed.
+ */
+export function resolveHookCommand(root: string, cliPath?: string, nodePath: string = process.execPath): string {
   const real = (p: string) => {
     try {
       return fs.realpathSync(p);
@@ -27,14 +31,9 @@ export function resolveHookCommand(root: string, cliPath?: string): string {
       return p;
     }
   };
-  const localBin = path.join(root, "node_modules", ".bin", "jevmem");
-  if (fs.existsSync(localBin)) return "npx jevmem hook";
-  if (cliPath) {
-    const abs = real(path.resolve(cliPath));
-    if (/[\\/]node_modules[\\/]/.test(abs) && !abs.includes("_npx")) return "jevmem hook"; // global install on PATH
-    return `node "${abs}" hook`;
-  }
-  return "npx jevmem hook";
+  void root;
+  const cli = real(path.resolve(cliPath ?? new URL(import.meta.url).pathname));
+  return `"${real(nodePath)}" "${cli}" hook`;
 }
 
 function ensureGitignore(root: string, created: string[]): void {
@@ -47,7 +46,7 @@ function ensureGitignore(root: string, created: string[]): void {
   created.push(".gitignore (+ .jevmem/)");
 }
 
-export function registerClaudeHooks(root: string, command: string): "added" | "present" {
+export function registerClaudeHooks(root: string, command: string): "added" | "updated" | "present" {
   const dir = path.join(root, ".claude");
   const file = path.join(dir, "settings.json");
   fs.mkdirSync(dir, { recursive: true });
@@ -60,17 +59,31 @@ export function registerClaudeHooks(root: string, command: string): "added" | "p
     }
   }
   settings.hooks ??= {};
-  let changed = false;
+  let added = false;
+  let updated = false;
+  const isOurs = (h: any) => typeof h?.command === "string" && (h.command === command || /jevmem[^ ]*\s+hook\b/.test(h.command) || /jevmem\S*[\\/]dist[\\/]cli\.js"? hook\b/.test(h.command));
   const spec: Record<string, number> = { Stop: 20, UserPromptSubmit: 5 };
   for (const [event, timeout] of Object.entries(spec)) {
     const list: any[] = (settings.hooks[event] ??= []);
-    const present = list.some((g) => Array.isArray(g?.hooks) && g.hooks.some((h: any) => typeof h?.command === "string" && (h.command === command || /jevmem[^ ]*\s+hook\b/.test(h.command))));
+    let present = false;
+    for (const g of list) {
+      if (!Array.isArray(g?.hooks)) continue;
+      for (const h of g.hooks) {
+        if (!isOurs(h)) continue;
+        present = true;
+        if (h.command !== command) {
+          h.command = command; // re-running init repairs a stale or PATH-dependent command
+          h.timeout ??= timeout;
+          updated = true;
+        }
+      }
+    }
     if (present) continue;
     list.push({ hooks: [{ type: "command", command, timeout }] });
-    changed = true;
+    added = true;
   }
-  if (changed) fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n");
-  return changed ? "added" : "present";
+  if (added || updated) fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n");
+  return updated ? "updated" : added ? "added" : "present";
 }
 
 export function init(opts: InitOptions): InitResult {
@@ -90,7 +103,7 @@ export function init(opts: InitOptions): InitResult {
   const command = opts.command ?? resolveHookCommand(root, opts.cliPath);
   if (opts.hooks !== false) {
     const r = registerClaudeHooks(root, command);
-    (r === "added" ? created : skipped).push(".claude/settings.json (Stop + UserPromptSubmit hooks)");
+    (r === "present" ? skipped : created).push(`.claude/settings.json (Stop + UserPromptSubmit hooks${r === "updated" ? ", command updated" : ""})`);
   }
   return { created, skipped, command };
 }

@@ -4,7 +4,8 @@ import path from "node:path";
 import { applyAudit, auditMemories, formatAuditTable } from "./audit.js";
 import { loadConfig } from "./config.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
-import { readStdinJson, runHook } from "./hook.js";
+import { hookRoot, logHookProblem, readStdinJson, runHook } from "./hook.js";
+import { loadEnvFallbacks } from "./env.js";
 import { init } from "./init.js";
 import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong, MIN_LABELS, readFitInfo, readLabels, runFit } from "./labels.js";
 import { detectTools, setupClaudeDesktop, setupCodex, setupCursor, TOOLS, type Tool } from "./tools.js";
@@ -108,28 +109,37 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     case "hook": {
-      const input = await readStdinJson();
-      const hookRoot = input.cwd && fs.existsSync(input.cwd) ? input.cwd : root;
-      const cfg = loadConfig(hookRoot);
-      const verbose = process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1";
-      let out = null as Awaited<ReturnType<typeof runHook>> | null;
-      const useDaemon = daemonEnabled(cfg) && hasJevKey();
-      if (useDaemon) {
-        const t0 = performance.now();
-        const res = await daemonRequest(hookRoot, { type: "hook", input }, { connectMs: 250, responseMs: cfg.jev.timeoutMs + cfg.writer.timeoutMs + 2000 });
-        if (res && res.ok && res.type === "hook") {
-          out = res.outcome;
-          if (out.summary) out.summary += ` (daemon round trip ${Math.round(performance.now() - t0)} ms)`;
+      // Everything in here is wrapped so a hook can never exit non-zero or throw; problems go to .jevmem/log.jsonl.
+      let projectRoot = root;
+      let event = "hook";
+      try {
+        const input = await readStdinJson();
+        projectRoot = hookRoot(input);
+        event = input.hook_event_name ?? event;
+        loadEnvFallbacks(projectRoot); // desktop-app hooks get no shell profile
+        const cfg = loadConfig(projectRoot);
+        const verbose = process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1";
+        let out = null as Awaited<ReturnType<typeof runHook>> | null;
+        const useDaemon = daemonEnabled(cfg) && hasJevKey();
+        if (useDaemon) {
+          const t0 = performance.now();
+          const res = await daemonRequest(projectRoot, { type: "hook", input }, { connectMs: 250, responseMs: cfg.jev.timeoutMs + cfg.writer.timeoutMs + 2000 });
+          if (res && res.ok && res.type === "hook") {
+            out = res.outcome;
+            if (out.summary) out.summary += ` (daemon round trip ${Math.round(performance.now() - t0)} ms)`;
+          }
         }
-      }
-      if (!out) {
-        out = await runHook(input);
-        if (useDaemon && out.action !== "noop") spawnDaemon(hookRoot, process.argv[1] ?? new URL(import.meta.url).pathname);
-      }
-      if (out.stdout) process.stdout.write(out.stdout + "\n");
-      if (verbose) {
-        if (out.summary) process.stderr.write(`jevmem: ${out.summary} via ${out.via}\n`);
-        process.stderr.write(`jevmem ${out.event}: ${out.action} — ${out.detail}\n`);
+        if (!out) {
+          out = await runHook(input);
+          if (useDaemon && out.action !== "noop") spawnDaemon(projectRoot, fs.realpathSync(process.argv[1] ?? new URL(import.meta.url).pathname));
+        }
+        if (out.stdout) process.stdout.write(out.stdout + "\n");
+        if (verbose) {
+          if (out.summary) process.stderr.write(`jevmem: ${out.summary} via ${out.via}\n`);
+          process.stderr.write(`jevmem ${out.event}: ${out.action} — ${out.detail}\n`);
+        }
+      } catch (err) {
+        logHookProblem(projectRoot, event, err instanceof Error ? `${err.name}: ${err.message}` : String(err));
       }
       return 0; // never block Claude Code
     }
@@ -325,6 +335,7 @@ function fail(msg: string): number {
   return 1;
 }
 function requireKey(): void {
+  if (!hasJevKey()) loadEnvFallbacks(process.cwd());
   if (!hasJevKey()) {
     process.stderr.write("TYPESAFE_API_KEY is not set. Get one at https://typesafe.ai and export it.\n");
     process.exit(1);

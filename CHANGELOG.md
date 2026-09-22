@@ -2,6 +2,23 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.2] - 2026-09-22
+
+### Fixed
+- **Hooks never ran from the Claude Code desktop app.** Two causes, both confirmed against a real `claude` session with a stripped environment. (1) The registered command depended on PATH (`jevmem hook`, or `node "…/cli.js" hook`), and GUI apps on macOS inherit a bare `/usr/bin:/bin:/usr/sbin:/sbin` without nvm/volta/homebrew, so the hook process never started. `jevmem init` now registers `"<absolute node>" "<absolute cli.js>" hook`, and re-running `init` repairs an existing jevmem command in place. (2) Hooks get no shell profile, so `TYPESAFE_API_KEY` from `~/.zshenv` was invisible and the hook no-oped silently. The hook now falls back to `<project>/.jevmem/.env`, `~/.jevmem/env`, and `export VAR=…` lines in the user's shell profiles, reading only the jevmem-relevant variables.
+- `UserPromptSubmit` sends the prompt as `user_prompt` on current Claude Code (`prompt` on 2.0.x); both are accepted. `Stop` sends no message text, only `transcript_path` (and `last_assistant_message` on newer versions); the turn is read from the transcript, with `last_assistant_message` as a fallback.
+- No more silent failures: a missing key, an unreadable transcript, an empty turn, or any exception in the hook path is written to `.jevmem/log.jsonl` as a `hook` entry with the error. `JEVMEM_DEBUG=1` additionally appends every raw hook payload (plus PATH and whether the key was found) to `.jevmem/hook-debug.log`.
+- The project root is `CLAUDE_PROJECT_DIR` when set (stable across worktrees), then the payload `cwd`.
+- Writer lines are now up to 200 characters, cut only at word boundaries and never inside a URL; a URL that would straddle the limit is dropped whole, and a lone URL is kept intact.
+- **Response-format instructions no longer read as injection.** In the real session, "…never bump engines above that. Acknowledge in one sentence, no tools." was escalated and then skipped with the injection family at 0.54. Every injection noul (both tiers) now carries a negative example of that phrasing ("Reply in one sentence, no tools", "Just acknowledge"), and the eval set has two such turns (42 turns total). Re-run: save/skip 97.6% in all three modes; save+kind 95.2% fast/auto and 97.6% full, the difference being one turn that starts with the word "Decision:" and states a must/never rule, which tier 1 files as `decision` and the label calls `constraint`.
+
+### Real payloads observed (Claude Code CLI 2.0.30, 2026-09-22)
+```text
+UserPromptSubmit: session_id, transcript_path, cwd, permission_mode, hook_event_name, prompt
+Stop:             session_id, transcript_path, cwd, permission_mode, hook_event_name, stop_hook_active
+env:              PATH=/usr/bin:/bin:/usr/sbin:/sbin  CLAUDE_PROJECT_DIR=<project>  (no shell profile)
+```
+
 ## [0.3.1] - 2026-09-22
 
 ### Changed
@@ -81,6 +98,7 @@ The decomposed set **tied** the v0.2.0 set on this transcript at 3.3× the token
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.3.2]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Avinash-jetwani/jevmem/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Avinash-jetwani/jevmem/compare/v0.1.1...v0.2.0

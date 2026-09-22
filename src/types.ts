@@ -143,7 +143,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
   },
   writer: {
     provider: "auto",
-    maxChars: 140,
+    maxChars: 200,
     timeoutMs: 8000,
   },
   daemon: {

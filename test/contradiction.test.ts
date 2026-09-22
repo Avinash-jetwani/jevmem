@@ -55,7 +55,7 @@ describe("writer", () => {
     expect(writerUsed).toBe("fallback");
     expect(line).toBe("We'll go with Postgres 16 because SQLite locks under load.");
     const long = await composeLine("A".repeat(300) + " tail", "todo", { writer: { ...DEFAULT_CONFIG.writer, provider: "none" }, env: {} as any });
-    expect(long.line.length).toBeLessThanOrEqual(140);
+    expect(long.line.length).toBeLessThanOrEqual(200);
   });
 
   it("prefers the assistant's root-cause sentence over the user's question for bug findings", async () => {

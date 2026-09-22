@@ -33,7 +33,7 @@ cd your-project
 jevmem init
 ```
 
-`jevmem init` creates `JEVMEM.md`, `jevmem.config.json`, a gitignored `.jevmem/` cache, and registers two Claude Code hooks in `.claude/settings.json`:
+`jevmem init` creates `JEVMEM.md`, `jevmem.config.json`, a gitignored `.jevmem/` cache, and registers two Claude Code hooks in `.claude/settings.json`. The registered command uses the absolute paths of `node` and the CLI, because Claude Code runs hooks without your shell profile and, from the desktop app, with a bare PATH. If you upgrade or move Node, run `jevmem init` again and it repairs the command in place.
 
 | Hook | What it does | Budget |
 |---|---|---|
@@ -42,7 +42,9 @@ jevmem init
 
 That's it. Keep working. `JEVMEM.md` fills itself, and it's a normal file: edit it, commit it, review it in PRs.
 
-Without an LLM key Jevmem still works: the writer falls back to the most relevant sentence of the turn, trimmed to 140 characters. Without `TYPESAFE_API_KEY` the hooks no-op.
+Without an LLM key Jevmem still works: the writer falls back to the most relevant sentence of the turn, trimmed to 200 characters at a word boundary (never inside a URL). Without `TYPESAFE_API_KEY` the hooks no-op and say so in `.jevmem/log.jsonl`.
+
+**Where the hook finds your key.** Claude Code hooks (and MCP servers started by Cursor, Codex, or Claude Desktop) do not load your shell profile. Jevmem therefore looks for `TYPESAFE_API_KEY` (and the optional writer keys) in this order: the process environment, `<project>/.jevmem/.env`, `~/.jevmem/env`, then `export TYPESAFE_API_KEY=…` lines in `~/.zshenv`, `~/.zprofile`, `~/.zshrc`, `~/.bash_profile`, `~/.bashrc`, `~/.profile`. Only those named variables are read. If you'd rather it never touch your profiles, put the key in `~/.jevmem/env`.
 
 The first hook call in a project starts a tiny **warm daemon** (`jevmem daemon status` to see it) that keeps the Jev client's TLS connection open, so every later turn skips connection setup. It exits after 30 idle minutes and is off with `JEVMEM_DAEMON=0`.
 
@@ -89,13 +91,15 @@ State sent: `{ message, previous_turns, existing_memories: [{id, kind, text}] }`
 
 **unless** tier 1 is already sure the turn is skipped (injection > 0.7 or chit-chat ≥ 0.9), where tier 2 could only agree. When tier 2 runs, its result wins.
 
-`tiers.mode` selects `auto` (default), `fast` (tier 1 only), or `full` (always tier 2). Measured on the 40-turn eval set (live `jev-latest`, warm client, no cache):
+`tiers.mode` selects `auto` (default), `fast` (tier 1 only), or `full` (always tier 2). Measured on the 42-turn eval set (live `jev-latest`, warm client, no cache):
 
-| mode | accuracy | tokens/turn | cost/turn | p50 | escalated |
-|---|---|---|---|---|---|
-| `fast` | 97.5% | 2,318 | $0.000097 | 263 ms | – |
-| `auto` | 97.5% | 3,138 | $0.000132 | 267 ms | 15% |
-| `full` | 97.5% | 5,463 | $0.000229 | 264 ms | – |
+| mode | save/skip accuracy | save+kind accuracy | tokens/turn | cost/turn | p50 | escalated |
+|---|---|---|---|---|---|---|
+| `fast` | 97.6% | 95.2% | 2,342 | $0.000098 | 240 ms | – |
+| `auto` | 97.6% | 95.2% | 3,002 | $0.000126 | 268 ms | 12% |
+| `full` | 97.6% | 97.6% | 5,544 | $0.000233 | 257 ms | – |
+
+The save+kind gap in `fast`/`auto` is one turn that begins with "Decision:" but states a must/never rule; tier 1 calls it a decision, the label says constraint.
 
 | Tier-2 family | Atomic nouls |
 |---|---|
@@ -120,7 +124,7 @@ save          = kind != none AND content >= contentMin (0.5) AND round(importanc
 contradiction = save AND contradiction >= contradictionMin (0.7) AND touches_memory_id != none
 ```
 
-On `save`, the writer produces one line (≤ 140 chars). On `contradiction`, the old line is re-tagged `[superseded]` and gets `→ id:new`. Every decision, saved or skipped, is recorded in `.jevmem/decisions.jsonl` with both tiers' answers, so `jevmem why <id>` shows tier 1, and tier 2 if it ran, and which borderline condition caused the escalation.
+On `save`, the writer produces one line (≤ 200 chars, cut at a word boundary, never inside a URL). On `contradiction`, the old line is re-tagged `[superseded]` and gets `→ id:new`. Every decision, saved or skipped, is recorded in `.jevmem/decisions.jsonl` with both tiers' answers, so `jevmem why <id>` shows tier 1, and tier 2 if it ran, and which borderline condition caused the escalation.
 
 ### The read side: one call per prompt (`src/recall.ts`)
 
@@ -293,7 +297,7 @@ Set `JEVMEM_VERBOSE=1` to get a one-line Jev latency/cost summary on stderr afte
   },
   "jev": { "model": "jev-latest", "timeoutMs": 2000, "maxIdsPerCall": 200, "maxRecallCandidates": 60,
            "usdPerMillionTokens": 0.042, "cache": true, "zeroDataRetention": "auto" },
-  "writer": { "provider": "auto", "maxChars": 140, "timeoutMs": 8000 },
+  "writer": { "provider": "auto", "maxChars": 200, "timeoutMs": 8000 },
   "daemon": { "enabled": true, "idleMinutes": 30 },
   "tiers": {
     "mode": "auto",
@@ -317,6 +321,7 @@ Environment:
 | `JEVMEM_WRITER_MODEL` | Override the model (defaults: `gpt-5-mini`, `claude-haiku-4-5-20251001`). |
 | `OPENAI_BASE_URL` | Any OpenAI-compatible endpoint (Ollama, Groq, OpenRouter…). |
 | `JEVMEM_VERBOSE` | `1` prints the Jev latency/cost line after each hook run. |
+| `JEVMEM_DEBUG` | `1` appends every raw hook payload (and whether the key was found) to `.jevmem/hook-debug.log`. Set it under `"env"` in `.claude/settings.json` to debug the desktop app. |
 | `JEVMEM_DAEMON` | `0` disables the warm daemon (hook runs inline), `1` forces it on. |
 | `JEVMEM_CACHE` | `0` disables the answer cache. |
 | `TYPESAFE_BASE_URL` | Route Jev through a proxy or gateway. A Vercel AI Gateway URL turns on `zeroDataRetention: true` automatically. |
@@ -336,7 +341,16 @@ Environment:
 - Anything that looks like a credential or PII (API keys, tokens, `sk-`/`ghp_`/`AKIA` prefixes, bearer tokens, `password=…`, connection-string passwords, private key blocks, JWTs, email addresses, 16-digit numbers, long opaque blobs) is redacted **twice**: inside `decide`, `recall`, and `audit` when the state is built ([src/scrub.ts](src/scrub.ts)), and again in the Jev client right before the HTTP request. The writer LLM gets the scrubbed text too. A unit test pastes an OpenAI key, a GitHub token, a `password=`, a connection-string password, an email, and a card number into a turn and asserts none of them reach the Jev caller.
 - The warm daemon listens on a Unix socket inside `.jevmem/` with mode 0600 (a named pipe on Windows). It only ever runs the same hook code path, for the project it was started in.
 - The injection guard noul refuses to save turns that contain instructions aimed at an automated system.
-- Hooks always exit 0. A Jev timeout or error is logged to `.jevmem/log.jsonl` and the turn is skipped.
+- Hooks always exit 0 and never return a `block` decision, so they cannot loop Claude. A missing key, an unreadable transcript, a Jev timeout, or any exception is logged to `.jevmem/log.jsonl` as a `hook` entry; nothing fails silently.
+
+### What the hooks actually receive
+
+Observed on Claude Code CLI 2.0.30. `Stop` carries **no message text**; jevmem reads the last user and assistant turn from `transcript_path` (JSONL). Newer versions add `last_assistant_message` and rename `prompt` to `user_prompt`; both shapes are handled.
+
+```json
+{"session_id":"…","transcript_path":"~/.claude/projects/<slug>/<session>.jsonl","cwd":"/your/project","permission_mode":"default","hook_event_name":"Stop","stop_hook_active":false}
+{"session_id":"…","transcript_path":"…","cwd":"/your/project","permission_mode":"default","hook_event_name":"UserPromptSubmit","prompt":"your prompt text"}
+```
 
 ## Development
 
@@ -346,7 +360,7 @@ pnpm build        # tsup → dist/
 pnpm test         # vitest, Jev mocked
 pnpm lint         # tsc --noEmit + eslint
 JEVMEM_LIVE=1 pnpm test   # adds one real Jev test (needs TYPESAFE_API_KEY)
-node scripts/eval.mjs     # score `decide` in fast/auto/full on the 40-turn hand-labelled set (live Jev)
+node scripts/eval.mjs     # score `decide` in fast/auto/full on the 42-turn hand-labelled set (live Jev)
 ```
 
 See [DEMO.md](DEMO.md) for a scripted 60-second demo and [DECISIONS.md](DECISIONS.md) for the design decisions.

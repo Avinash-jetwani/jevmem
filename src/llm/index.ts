@@ -33,6 +33,7 @@ export function systemPrompt(maxChars: number): string {
   return [
     "You maintain a project memory file for an AI coding assistant.",
     `Rewrite the given message as ONE line of at most ${maxChars} characters that a future coding session would need.`,
+    "Keep URLs, paths, and identifiers whole; if a URL would not fit, leave it out rather than truncating it.",
     "Rules: state the fact, decision, rule, bug, or todo directly; present tense; no preamble, quotes, bullets, or trailing period explanations;",
     "keep concrete names (files, libraries, versions); drop pleasantries; never invent details; never include credentials.",
     "Reply with the line only.",
@@ -143,8 +144,27 @@ export function extractFirstSentence(message: string, maxChars: number, kind?: s
   return clampLine(pick, maxChars);
 }
 
+const URL_RE = /^[a-z][a-z0-9+.-]*:\/\/\S+|^www\.\S+/i;
+
+/**
+ * One line, at most `maxChars`. Cuts only at word boundaries and never inside a URL: a URL that would straddle the
+ * limit is dropped whole (with the trailing "…"), unless it is the only token, in which case it is kept intact.
+ */
 export function clampLine(text: string, maxChars: number): string {
-  let t = text.replace(/\s+/g, " ").trim().replace(/^["'`\-*•\s]+|["'`\s]+$/g, "");
-  if (t.length > maxChars) t = t.slice(0, maxChars - 1).replace(/\s+\S*$/, "") + "…";
-  return t;
+  const t = text.replace(/\s+/g, " ").trim().replace(/^["'`\-*•\s]+|["'`\s]+$/g, "");
+  if (t.length <= maxChars) return t;
+  const words = t.split(" ");
+  const out: string[] = [];
+  let len = 0;
+  for (const w of words) {
+    const add = (out.length ? 1 : 0) + w.length;
+    if (len + add + 1 > maxChars) break; // +1 leaves room for the ellipsis
+    out.push(w);
+    len += add;
+  }
+  if (out.length === 0) {
+    const first = words[0]!;
+    return URL_RE.test(first) ? first : first.slice(0, maxChars - 1) + "…";
+  }
+  return out.join(" ").replace(/[,;:]$/, "") + "…";
 }
