@@ -55,10 +55,31 @@ export function mockJev(respond: (questions: Questions, state: EntryType, i: num
   };
 }
 
+/** A clear decision: three decision nouls high, kind=decision, importance=important. */
 export const SAVE_DECISION: AnswerOverrides = {
-  contains_decision: 0.95,
+  states_a_choice_between_alternatives: 0.95,
+  uses_committal_language: 0.9,
+  names_a_specific_technology_or_approach: 0.9,
   kind: "decision",
   importance: 3,
-  is_only_chit_chat: 0.02,
-  contains_instructions_aimed_at_an_automated_system: 0.03,
+};
+export const CHIT_CHAT: AnswerOverrides = {
+  is_greeting_thanks_or_acknowledgement: 0.97,
+  contains_no_project_specific_content: 0.95,
+  has_no_fact_decision_or_request: 0.95,
+  kind: "none",
+  importance: 0,
+};
+export const CONTRADICTS = (id: string): AnswerOverrides => ({
+  ...SAVE_DECISION,
+  reverses_or_replaces_a_listed_memory: 0.95,
+  uses_change_of_plan_instead_or_actually: 0.9,
+  is_about_the_same_topic_as_a_listed_memory: 0.9,
+  touches_memory_id: id,
+});
+export const INJECTION: AnswerOverrides = {
+  ...SAVE_DECISION,
+  tells_an_ai_to_ignore_or_replace_instructions: 0.95,
+  asks_the_ai_to_store_or_alter_memory_or_rules: 0.9,
+  claims_system_or_admin_authority_over_the_ai: 0.6,
 };

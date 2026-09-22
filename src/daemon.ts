@@ -41,7 +41,7 @@ export function pidFile(root: string): string {
 export function daemonEnabled(cfg: ReturnType<typeof loadConfig>, env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.JEVMEM_DAEMON === "0") return false;
   if (env.JEVMEM_DAEMON === "1") return true;
-  return cfg.daemon.enabled;
+  return cfg.daemon.autostart ?? cfg.daemon.enabled;
 }
 
 /** Send one request to the daemon. Resolves null when no daemon is listening (never throws). */
@@ -105,7 +105,7 @@ export interface ServeOptions {
 export async function serveDaemon(root: string, opts: ServeOptions = {}): Promise<net.Server> {
   const cfg = loadConfig(root);
   if (!hasJevKey()) throw new Error("TYPESAFE_API_KEY is not set");
-  const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs });
+  const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
   const sockPath = socketPath(root);
   const idleMs = opts.idleMs ?? cfg.daemon.idleMinutes * 60_000;
   const startedAt = Date.now();

@@ -16,6 +16,8 @@ const PATTERNS: RegExp[] = [
   /\b(?:api[_-]?key|access[_-]?token|auth[_-]?token|secret[_-]?key|client[_-]?secret|password|passwd|pwd|token|secret)\b(\s*[:=]\s*|\s+is\s+)["']?[^\s"',;]{8,}["']?/gi,
   /\b[A-Za-z0-9+/=_-]{48,}\b/g, // long opaque blobs (base64-ish)
   /\b(?:postgres|postgresql|mysql|mongodb(?:\+srv)?|redis|amqp):\/\/[^:\s/]+:[^@\s]+@/gi, // creds in URLs
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, // email addresses (PII)
+  /\b(?:\d[ -]?){15}\d\b/g, // 16-digit numbers (card numbers), with or without separators
 ];
 
 export const REDACTED = "[REDACTED]";

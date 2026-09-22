@@ -29,7 +29,7 @@ When Claude finishes, the `Stop` hook fires. Within about a second `JEVMEM.md` g
 - [decision] Use SQLite as the single-file primary store; no database server  <!-- id:a8s2ww ts:… conf:0.9x -->
 ```
 
-Point at the stderr line: `jevmem: 1 jev call(s), p50 6xx ms, ~1900 tokens, $0.00008`.
+Point at the stderr line: `jevmem: 1 jev call(s), p50 8xx ms, ~6300 tokens, $0.00026 via inline` (the first turn also starts the warm daemon; from the next turn on it reads `p50 2xx–4xx ms … via daemon`).
 
 ### 2. Contradiction (0:20–0:40)
 
@@ -62,7 +62,7 @@ Relevant project memory from JEVMEM.md (selected by Jev):
 Finish on `jevmem log`:
 
 ```text
-3 call(s), 3 ok, p50 6xx ms, avg 6xx ms, ~4300 tokens, $0.0002 total
+3 call(s), 3 ok, 0 cache hit(s), p50 3xx ms, p95 8xx ms, ~13000 tokens, $0.0005 total
 ```
 
 ## Scripted version (no Claude Code)
@@ -87,19 +87,32 @@ echo '{"hook_event_name":"Stop","user_message":"thanks, great work!"}' | jevmem 
 # 4. relevance injection
 echo '{"hook_event_name":"UserPromptSubmit","prompt":"How should I connect to the database from the API layer?"}' | jevmem hook
 
-jevmem log
+# 5. why, label, stats
+jevmem why $(jevmem list | head -1 | cut -d' ' -f1)
+jevmem right $(jevmem list | head -1 | cut -d' ' -f1)
+jevmem stats
 ```
 
 Expected: after step 1 one `[decision]` line; after step 2 that line becomes `[superseded] … → id:new` and a new `[decision]` line appears; step 3 prints `skipped — … chit_chat=0.9x` and the file is unchanged; step 4 prints a JSON object whose `additionalContext` contains the Postgres line.
 
-## What this looked like for real
+## What this looked like for real (v0.3.0, warm daemon on)
 
-Run on 2026-09-22 against `jev-latest`, writer set to the deterministic fallback (`JEVMEM_WRITER=none`):
+Run on 2026-09-22 against `jev-latest`, writer set to the deterministic fallback (`JEVMEM_WRITER=none`), all six hook events plus a repeat of the chit-chat turn:
 
 ```text
-- [superseded] We are going with SQLite as the primary store for this app. → id:nu9max  <!-- id:spb54a ts:2026-09-22T11:53:15.192Z conf:0.93 by:nu9max -->
-- [decision] Switch the primary store to Postgres 16.  <!-- id:nu9max ts:2026-09-22T11:53:16.010Z conf:1.00 -->
-- [bug] Found it: the flaky login test was caused by two tests sharing the same temp directory for the session store.  <!-- id:8bz7ax ts:2026-09-22T11:53:18.110Z conf:0.99 -->
+1 save          p50 861 ms  6215 tokens  $0.000261  via inline   (starts the daemon)
+2 contradiction p50 447 ms  6306 tokens  $0.000265  via daemon   supersedes the SQLite line
+3 chit-chat     p50 237 ms  6267 tokens  $0.000263  via daemon   skipped: chit_chat=0.94
+3b same again   p50   0 ms     0 tokens  $0         via daemon   cache hit
+4 injection     p50 284 ms  6285 tokens  $0.000264  via daemon   skipped: injection=0.99
+5 bug finding   p50 377 ms  6298 tokens  $0.000265  via daemon   saved [bug] with the root cause sentence
+6 recall        p50 308 ms   564 tokens  $0.000024  via daemon   injected the Postgres line at p=0.88
 ```
 
-Chit-chat: `skipped — kind=none, importance=trivial<useful, chit_chat=0.95`. Injection attempt: `skipped — injection=0.99`. Recall for "How should I connect to the database from the API layer?" injected the Postgres line at p=0.86. Eight Jev calls, p50 632 ms, 11,388 tokens, $0.000478 total.
+```text
+- [superseded] We are going with SQLite as the primary store for this app. → id:nuyyjq  <!-- id:0d0gwa ts:2026-09-22T12:30:17.230Z conf:0.91 by:nuyyjq -->
+- [decision] Switch the primary store to Postgres 16.  <!-- id:nuyyjq ts:2026-09-22T12:30:20.808Z conf:0.99 -->
+- [bug] Found it: the flaky login test was caused by two tests sharing the same temp directory for the session store.  <!-- id:arb6ta ts:2026-09-22T12:30:22.143Z conf:0.99 -->
+```
+
+`jevmem stats` afterwards: 9 calls, 1 cache hit (11%), p50 447 ms, p95 861 ms, $0.0016 total.

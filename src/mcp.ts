@@ -14,9 +14,9 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
   const getJev = (): JevCaller => {
     if (deps.jev) return deps.jev;
     if (!hasJevKey()) throw new Error("TYPESAFE_API_KEY is not set; search and audit need Jev.");
-    return createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens });
+    return createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
   };
-  const server = new McpServer({ name: "jevmem", version: "0.2.0" });
+  const server = new McpServer({ name: "jevmem", version: "0.3.0" });
   const text = (s: unknown) => ({ content: [{ type: "text" as const, text: typeof s === "string" ? s : JSON.stringify(s, null, 2) }] });
 
   server.registerTool(
@@ -29,7 +29,7 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
     async ({ query, limit }) => {
       const memories = store.active();
       if (memories.length === 0) return text({ results: [], note: "No memories yet." });
-      const ranked = await rankMemories(getJev(), query, memories, { perCandidateNouls: true, noulCap: 50, maxIds: cfg.jev.maxIdsPerCall, label: "search" });
+      const ranked = await rankMemories(getJev(), query, memories, { perCandidateNouls: true, noulCap: 50, maxIds: cfg.jev.maxRecallCandidates, label: "search" });
       const results = ranked.slice(0, limit ?? 10).map((r) => ({
         id: r.memory.id,
         kind: r.memory.kind,

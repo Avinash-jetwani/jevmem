@@ -2,6 +2,35 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-09-22
+
+### Added
+- **Decomposed question set.** `decide` now asks 30 atomic, literal nouls in nine families (decision, constraint, preference, bug, architecture, todo, chit_chat, injection, contradiction), every one with structured `what` / `examples` criteria on both outcomes, plus `kind` and `touches_memory_id` choices with `what` / `not_for` / `examples` per option and an `importance` score with `summary` / `what` / `signals` per level. 33 questions per call.
+- **Combination in code** (`src/combine.ts`): a logistic score per family with hand-set default weights; `content = max` over the kind families gates saving. Weights live in `jevmem.config.json` under `weights`.
+- **Feedback loop:** `jevmem why <id|hash>` prints every noul, family score, choice distribution, importance, and which threshold was cleared; `jevmem right`, `jevmem wrong [--should-be …]`, and `jevmem missed "<text>"` append labels (with the original Jev answers) to `.jevmem/labels.jsonl`; `jevmem fit` refits per-kind weights and `contentMin` / `importanceMin` / `chitChatMax` / `injectionMax` to maximise F1 on ≥ 40 labels and prints a reliability table; `JEVMEM.md` ends with `<!-- jevmem: N labels, last fit DATE -->`.
+- **Answer cache** in `.jevmem/cache/` keyed by (model, state, questions); hits are logged with `cacheHit: true` and cost 0. `jevmem stats` shows p50/p95 latency, cost per day, cache hit rate, label count, and last fit.
+- **Zero data retention:** `zeroDataRetention: true` is sent automatically when `TYPESAFE_BASE_URL` is a Vercel AI Gateway, or always with `jev.zeroDataRetention: true`.
+- **Reach:** `jevmem init --tool claude|cursor|codex|claude-desktop|all` (default: detect). Cursor gets `.cursor/mcp.json` + `.cursor/rules/jevmem.mdc`; Codex gets an `AGENTS.md` section and a `[mcp_servers.jevmem]` entry in `~/.codex/config.toml` when present; Claude Desktop gets the exact config snippet printed. `jevmem watch` tails Codex's JSONL session rollouts for the current project and runs the same decide → write path per completed turn.
+- `eval/transcript.jsonl` (40 hand-labelled turns) and `scripts/eval.mjs` to score any build's `decide` against it.
+- PII scrubbing: email addresses and 16-digit numbers join the credential patterns.
+
+### Changed
+- `decide` sends only the current turn and the two before it; `recall` / `search` cap candidates at 60 (`jev.maxRecallCandidates`).
+- Every decision (saved or skipped) is recorded in `.jevmem/decisions.jsonl` (bounded to the last 500).
+- Recall's per-candidate noul and `none` option now use structured criteria.
+
+### Measured (live `jev-latest`, 2026-09-22)
+| | v0.2.0 | v0.3.0 |
+|---|---|---|
+| `decide` p50, warm daemon | ~230 ms | ~250–400 ms |
+| `decide` p50, cold process | ~630 ms | ~860 ms |
+| Tokens per `decide` | ~1,900 | ~6,300 |
+| Cost per `decide` | $0.00008 | $0.00026 |
+| Accuracy on the 40-turn set (save/skip + kind) | 97.5% | 97.5% (92.5% before weight tuning) |
+| Cache hit rate | – | depends on repeats; 11% in the demo run |
+
+The decomposed set **tied** the v0.2.0 set on this transcript at 3.3× the tokens. It is kept because it makes `why` and `fit` possible; see DECISIONS.md.
+
 ## [0.2.0] - 2026-09-22
 
 ### Added
@@ -32,6 +61,7 @@ All notable changes to Jevmem are documented here. The format follows [Keep a Ch
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.3.0]: https://github.com/Avinash-jetwani/jevmem/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Avinash-jetwani/jevmem/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Avinash-jetwani/jevmem/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Avinash-jetwani/jevmem/releases/tag/v0.1.0

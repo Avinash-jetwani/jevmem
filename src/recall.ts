@@ -28,7 +28,7 @@ export interface RankOptions {
  */
 export async function rankMemories(jev: JevCaller, query: string, memories: Memory[], opts: RankOptions = {}): Promise<RankedMemory[]> {
   if (memories.length === 0) return [];
-  const maxIds = opts.maxIds ?? 200;
+  const maxIds = opts.maxIds ?? 60;
   query = scrubSecrets(query);
   const candidates = prefilterByOverlap(query, memories, maxIds).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
   const noulCap = opts.noulCap ?? 50;
@@ -36,15 +36,15 @@ export async function rankMemories(jev: JevCaller, query: string, memories: Memo
 
   const criteria: ChoiceCriteria = {};
   for (const m of candidates) criteria[m.id] = `[${m.kind}] ${m.text}`;
-  criteria.none = "No listed memory is relevant to the query.";
+  criteria.none = { what: "No listed memory is relevant to the query.", examples: ["The query is about a topic none of the memories mention."] };
 
   const questions: Questions = {
     most_relevant: choice("Which memory is most relevant to the query?", criteria),
   };
   for (const m of noulCandidates) {
-    questions[`rel_${m.id}`] = noul(`Is memory ${m.id} relevant to the query?`, {
-      true: "The memory would help answer or act on the query.",
-      false: "The memory is about something else.",
+    questions[`rel_${m.id}`] = noul(`Would memory ${m.id} help answer or act on the query?`, {
+      true: { what: "The memory states something the query needs: the same component, tool, rule, or decision.", examples: ["Query asks about the database; memory names the database in use.", "Query asks how to deploy; memory says deploys go through CI only."] },
+      false: { what: "The memory is about a different part of the project.", examples: ["Query asks about CSS; memory is about the database.", "Query asks about tests; memory is a naming preference."] },
     });
   }
 

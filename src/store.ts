@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { footerMeta, formatFooter } from "./labels.js";
 import { KINDS, type Kind, type Memory } from "./types.js";
+
+const FOOTER_RE = /^<!--\s*jevmem:.*-->\s*$/;
 
 export const MEMORY_HEADER = `# JEVMEM.md
 
@@ -82,18 +85,20 @@ export function parseMemoryFile(content: string): MemoryFile {
       seen = true;
     } else if (!seen) {
       header.push(line);
-    } else if (line.trim() !== "") {
+    } else if (line.trim() !== "" && !FOOTER_RE.test(line)) {
       trailer.push(line);
     }
   }
   return { header, memories, trailer };
 }
 
-export function serializeMemoryFile(file: MemoryFile): string {
+export function serializeMemoryFile(file: MemoryFile, footer?: string | null): string {
   const header = file.header.length ? file.header.join("\n").replace(/\s+$/, "") + "\n\n" : MEMORY_HEADER;
   const body = file.memories.map(formatLine).join("\n");
-  const trailer = file.trailer.length ? "\n\n" + file.trailer.join("\n") : "";
-  return header + body + (body ? "\n" : "") + trailer;
+  const trailer = file.trailer.filter((l) => !FOOTER_RE.test(l));
+  const tail = trailer.length ? "\n\n" + trailer.join("\n") : "";
+  const foot = footer ? "\n" + footer + "\n" : "";
+  return header + body + (body ? "\n" : "") + tail + foot;
 }
 
 export class MemoryStore {
@@ -124,8 +129,14 @@ export class MemoryStore {
 
   write(file: MemoryFile): void {
     fs.mkdirSync(path.dirname(this.file), { recursive: true });
-    fs.writeFileSync(this.file, serializeMemoryFile(file));
+    const meta = footerMeta(this.root);
+    fs.writeFileSync(this.file, serializeMemoryFile(file, meta ? formatFooter(meta) : null));
     this.writeIndex(file.memories);
+  }
+
+  /** Rewrite the file unchanged except for the footer (used after labelling/fitting). */
+  touchFooter(): void {
+    this.write(this.read());
   }
 
   add(input: { kind: Kind; text: string; conf?: number; ts?: string; id?: string }): Memory {

@@ -31,6 +31,8 @@ export interface Memory {
 export interface Thresholds {
   /** Minimum importance level to save. */
   importanceMin: Importance;
+  /** Minimum combined kind-family score (from the atomic nouls) for the turn to count as having memorable content. */
+  contentMin: number;
   /** Skip when `is_only_chit_chat` is at or above this. */
   chitChatMax: number;
   /** Skip when the injection guard noul is at or above this. */
@@ -54,8 +56,14 @@ export interface JevmemConfig {
     timeoutMs: number;
     /** Max memory ids to include in one `touches_memory_id` choice. Pre-filtered by keyword overlap beyond this. */
     maxIdsPerCall: number;
+    /** Max candidates sent to recall/search (pre-filtered by keyword overlap beyond this). */
+    maxRecallCandidates: number;
     /** USD per million tokens, used for the cost column in `.jevmem/log.jsonl`. */
     usdPerMillionTokens: number;
+    /** Cache identical (state, questions) → answers in `.jevmem/cache/`. */
+    cache: boolean;
+    /** Send `zeroDataRetention: true` with every request. `"auto"` turns it on when the base URL is a Vercel AI Gateway. */
+    zeroDataRetention: boolean | "auto";
   };
   writer: {
     provider: "auto" | "openai" | "anthropic" | "none";
@@ -66,15 +74,20 @@ export interface JevmemConfig {
   daemon: {
     /** Keep a warm Jev client in a small local process so hook calls skip TLS/connection setup. */
     enabled: boolean;
+    /** Start the daemon automatically from the first hook call (alias kept for `enabled`). */
+    autostart?: boolean;
     /** The daemon exits after this many minutes without a request. */
     idleMinutes: number;
   };
+  /** Logistic weights over the atomic nouls, per family. Hand-set defaults; `jevmem fit` overwrites them from labels. */
+  weights?: Record<string, { bias: number; w: Record<string, number> }>;
 }
 
 export const DEFAULT_CONFIG: JevmemConfig = {
   memoryFile: "JEVMEM.md",
   thresholds: {
     importanceMin: "useful",
+    contentMin: 0.5,
     chitChatMax: 0.5,
     injectionMax: 0.5,
     contradictionMin: 0.7,
@@ -86,7 +99,10 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     model: "jev-latest",
     timeoutMs: 2000,
     maxIdsPerCall: 200,
+    maxRecallCandidates: 60,
     usdPerMillionTokens: 0.042,
+    cache: true,
+    zeroDataRetention: "auto",
   },
   writer: {
     provider: "auto",

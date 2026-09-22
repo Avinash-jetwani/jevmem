@@ -40,9 +40,10 @@ export function lastTurnFromTranscript(transcriptPath: string): { user: string; 
     .filter((t) => t.role === "assistant")
     .map((t) => t.text)
     .join("\n");
+  // Only the two turns before this one: Jev accuracy falls as unrelated context grows.
   const previous = turns
-    .slice(Math.max(0, ui - 4), ui)
-    .map((t) => `${t.role}: ${t.text.slice(0, 500)}`)
+    .slice(Math.max(0, ui - 2), ui)
+    .map((t) => `${t.role}: ${t.text.slice(0, 400)}`)
     .join("\n");
   return { user, assistant, previous };
 }

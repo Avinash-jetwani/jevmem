@@ -24,3 +24,11 @@ describe("scrubSecrets", () => {
     expect(scrubSecrets(text)).toBe(text);
   });
 });
+
+describe("PII", () => {
+  it("redacts email addresses and 16-digit numbers but not shorter ids or versions", () => {
+    expect(scrubSecrets("ping bob.smith+dev@corp.example.org about it")).toBe("ping [REDACTED] about it");
+    expect(scrubSecrets("card 4111111111111111 and 4111-1111-1111-1111")).toBe("card [REDACTED] and [REDACTED]");
+    expect(scrubSecrets("ticket 123456 on v20.11.1 port 5432")).toBe("ticket 123456 on v20.11.1 port 5432");
+  });
+});

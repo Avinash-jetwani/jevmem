@@ -6,7 +6,7 @@ import { decide } from "../src/decide.js";
 import { MemoryStore } from "../src/store.js";
 import { DEFAULT_CONFIG } from "../src/types.js";
 import { composeLine, writeMemory } from "../src/write.js";
-import { mockJev, SAVE_DECISION } from "./helpers.js";
+import { CONTRADICTS, mockJev } from "./helpers.js";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-contra-"));
 const writerNone = { writer: { ...DEFAULT_CONFIG.writer, provider: "none" as const }, env: {} as NodeJS.ProcessEnv };
@@ -16,7 +16,7 @@ describe("contradiction handling", () => {
     const root = tmp();
     const store = new MemoryStore(root);
     const old = store.add({ kind: "decision", text: "Use SQLite for the primary store", conf: 0.8 });
-    const jev = mockJev(() => ({ ...SAVE_DECISION, contradicts_existing_memory: 0.92, touches_memory_id: old.id }));
+    const jev = mockJev(() => CONTRADICTS(old.id));
     const message = "USER: Actually, switch the primary store to Postgres. SQLite can't handle the concurrency.";
     const d = await decide(jev, { message, existingMemories: store.active() });
     expect(d.contradiction).toBe(true);
@@ -33,7 +33,7 @@ describe("contradiction handling", () => {
   it("does not supersede when the noul is high but no memory id was chosen", async () => {
     const store = new MemoryStore(tmp());
     const old = store.add({ kind: "decision", text: "Use SQLite", conf: 0.8 });
-    const jev = mockJev(() => ({ ...SAVE_DECISION, contradicts_existing_memory: 0.95, touches_memory_id: "none" }));
+    const jev = mockJev(() => ({ ...CONTRADICTS("x"), touches_memory_id: "none" }));
     const d = await decide(jev, { message: "USER: Use Postgres now.", existingMemories: store.active() });
     const r = await writeMemory(store, "USER: Use Postgres now.", d, writerNone);
     expect(r.superseded).toBeNull();

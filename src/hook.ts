@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { loadConfig } from "./config.js";
 import { decide } from "./decide.js";
 import { createJev, hasJevKey, summarizeLog, type JevCaller } from "./jev.js";
+import { recordDecision } from "./labels.js";
 import { formatInjection, recallForPrompt } from "./recall.js";
 import { MemoryStore } from "./store.js";
 import { lastTurnFromTranscript, mergeTurn } from "./transcript.js";
@@ -67,7 +68,7 @@ export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<Ho
   const jev =
     deps.jev ??
     (hasJevKey()
-      ? createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs })
+      ? createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention })
       : null);
   if (!jev) return { event, action: "noop", detail: "TYPESAFE_API_KEY not set; jevmem skipped" };
   const logStart = jev.log.length;
@@ -89,7 +90,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
         topK: cfg.thresholds.recallTopK,
         min: cfg.thresholds.recallMin,
         timeoutMs: cfg.jev.timeoutMs,
-        maxIds: cfg.jev.maxIdsPerCall,
+        maxIds: cfg.jev.maxRecallCandidates,
       });
       if (ranked.length === 0) return { event, action: "noop", detail: "no relevant memories" };
       const additionalContext = formatInjection(ranked);
@@ -118,11 +119,15 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
     const decision = await decide(
       jev,
       { message, recentContext: previous, existingMemories: existing },
-      { thresholds: cfg.thresholds, maxIds: cfg.jev.maxIdsPerCall, timeoutMs: cfg.jev.timeoutMs },
+      { thresholds: cfg.thresholds, weights: cfg.weights, maxIds: cfg.jev.maxIdsPerCall, timeoutMs: cfg.jev.timeoutMs },
     );
-    if (!decision.save) return { event, action: "skipped", detail: decision.reason, decision };
+    if (!decision.save) {
+      recordDecision(store.root, { hash, message, decision });
+      return { event, action: "skipped", detail: decision.reason, decision };
+    }
 
     const result = await writeMemory(store, message, decision, { writer: cfg.writer, env, fetchImpl: deps.fetchImpl });
+    recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision });
     // Exact duplicate of a live memory: drop the new line again.
     const dup = existing.find((m) => m.text.toLowerCase() === result.line.toLowerCase());
     if (dup && !result.superseded) {
