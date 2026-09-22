@@ -1,6 +1,15 @@
 # Jevmem
 
+[![npm version](https://img.shields.io/npm/v/jevmem.svg)](https://www.npmjs.com/package/jevmem)
+[![npm downloads](https://img.shields.io/npm/dm/jevmem.svg)](https://www.npmjs.com/package/jevmem)
+[![license](https://img.shields.io/npm/l/jevmem.svg)](LICENSE)
+[![node](https://img.shields.io/node/v/jevmem.svg)](package.json)
+
 **Jev decides. The LLM writes one line. Your project never forgets.**
+
+```bash
+npm install -g jevmem
+```
 
 Jevmem is a memory layer for AI coding tools (Claude Code, Cursor, Codex, Claude Desktop). It keeps a human-readable `JEVMEM.md` in your project root and updates it after **every** turn, in ~270 ms warm, for a fraction of a cent per day. It learns from you: mark a line `right` or `wrong`, and `jevmem fit` recalibrates.
 
