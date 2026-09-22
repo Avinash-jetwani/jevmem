@@ -58,6 +58,12 @@ describe("writer", () => {
     expect(long.line.length).toBeLessThanOrEqual(140);
   });
 
+  it("prefers the assistant's root-cause sentence over the user's question for bug findings", async () => {
+    const msg = "USER: why is the login test flaky?\n\nASSISTANT: Found it: the flaky login test was caused by two tests sharing a temp dir. I gave each its own tmpdir.";
+    const { line } = await composeLine(msg, "bug", { writer: { ...DEFAULT_CONFIG.writer, provider: "none" }, env: {} as any });
+    expect(line).toBe("Found it: the flaky login test was caused by two tests sharing a temp dir.");
+  });
+
   it("uses an OpenAI-compatible endpoint when configured and clamps to one line", async () => {
     const seen: any[] = [];
     const fetchImpl: typeof fetch = async (url, init) => {

@@ -42,6 +42,11 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 - **`pnpm-workspace.yaml` exists only to allow esbuild's postinstall** (pnpm 11 `allowBuilds`). It declares no packages.
 - **zod v4** is used for MCP tool schemas (supported by `@modelcontextprotocol/sdk` ≥ 1.23).
 
+## Lessons from the first live run
+
+- **Jev reads literally, so the injection guard must name the attack, not the audience.** "Instructions aimed at an AI assistant" is true of every prompt in a coding session. The question now describes overriding rules or planting memory, and the criteria carry both true and false examples ("Switch the primary store to Postgres 16" is listed as false). Structured criteria with `what` + `examples` fixed it in one iteration.
+- **Fallback extraction is kind-aware.** Questions are skipped, cue words per kind are rewarded, and for `bug`/`architecture` the assistant's sentence wins. The LLM writer makes this moot, but the no-key path should still produce a usable line.
+
 ## Verification without a key
 
-- `TYPESAFE_API_KEY` was not available in the build environment. The end-to-end hook run in `DEMO.md` was executed against a local mock of `POST /v1/systemone` (selected with `TYPESAFE_BASE_URL`), which exercises the real SDK, real HTTP, the real CLI, and the real file writes. The opt-in live test (`JEVMEM_LIVE=1 pnpm test`) covers the real model.
+- The first end-to-end run used a local mock of `POST /v1/systemone` (selected with `TYPESAFE_BASE_URL`) to exercise the SDK, HTTP, CLI, and file writes before a key was available. The mock is deliberately not shipped: the live run (`DEMO.md`, bottom) and `JEVMEM_LIVE=1 pnpm test` are the source of truth, and the mock would have hidden the injection-wording bug above.

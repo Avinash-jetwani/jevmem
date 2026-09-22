@@ -16,7 +16,7 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
     if (!hasJevKey()) throw new Error("TYPESAFE_API_KEY is not set; search and audit need Jev.");
     return createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens });
   };
-  const server = new McpServer({ name: "jevmem", version: "0.1.0" });
+  const server = new McpServer({ name: "jevmem", version: "0.1.1" });
   const text = (s: unknown) => ({ content: [{ type: "text" as const, text: typeof s === "string" ? s : JSON.stringify(s, null, 2) }] });
 
   server.registerTool(

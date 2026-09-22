@@ -36,7 +36,7 @@ export async function composeLine(message: string, kind: Kind, opts: WriteOption
       /* fall through to the deterministic extract */
     }
   }
-  return { line: extractFirstSentence(message, opts.writer.maxChars), writerUsed: "fallback" };
+  return { line: extractFirstSentence(message, opts.writer.maxChars, kind), writerUsed: "fallback" };
 }
 
 /**

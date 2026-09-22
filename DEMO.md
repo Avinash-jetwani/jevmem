@@ -29,7 +29,7 @@ When Claude finishes, the `Stop` hook fires. Within about a second `JEVMEM.md` g
 - [decision] Use SQLite as the single-file primary store; no database server  <!-- id:a8s2ww ts:… conf:0.9x -->
 ```
 
-Point at the stderr line: `jevmem: 1 jev call(s), p50 3xx ms, ~1200 tokens, $0.00005`.
+Point at the stderr line: `jevmem: 1 jev call(s), p50 6xx ms, ~1900 tokens, $0.00008`.
 
 ### 2. Contradiction (0:20–0:40)
 
@@ -62,7 +62,7 @@ Relevant project memory from JEVMEM.md (selected by Jev):
 Finish on `jevmem log`:
 
 ```text
-3 call(s), 3 ok, p50 3xx ms, avg 3xx ms, ~2700 tokens, $0.0001 total
+3 call(s), 3 ok, p50 6xx ms, avg 6xx ms, ~4300 tokens, $0.0002 total
 ```
 
 ## Scripted version (no Claude Code)
@@ -91,3 +91,15 @@ jevmem log
 ```
 
 Expected: after step 1 one `[decision]` line; after step 2 that line becomes `[superseded] … → id:new` and a new `[decision]` line appears; step 3 prints `skipped — … chit_chat=0.9x` and the file is unchanged; step 4 prints a JSON object whose `additionalContext` contains the Postgres line.
+
+## What this looked like for real
+
+Run on 2026-09-22 against `jev-latest`, writer set to the deterministic fallback (`JEVMEM_WRITER=none`):
+
+```text
+- [superseded] We are going with SQLite as the primary store for this app. → id:nu9max  <!-- id:spb54a ts:2026-09-22T11:53:15.192Z conf:0.93 by:nu9max -->
+- [decision] Switch the primary store to Postgres 16.  <!-- id:nu9max ts:2026-09-22T11:53:16.010Z conf:1.00 -->
+- [bug] Found it: the flaky login test was caused by two tests sharing the same temp directory for the session store.  <!-- id:8bz7ax ts:2026-09-22T11:53:18.110Z conf:0.99 -->
+```
+
+Chit-chat: `skipped — kind=none, importance=trivial<useful, chit_chat=0.95`. Injection attempt: `skipped — injection=0.99`. Recall for "How should I connect to the database from the API layer?" injected the Postgres line at p=0.86. Eight Jev calls, p50 632 ms, 11,388 tokens, $0.000478 total.

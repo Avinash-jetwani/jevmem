@@ -99,17 +99,48 @@ export async function callAnthropic(input: { model: string; system: string; user
   }, input.timeoutMs);
 }
 
-/** Deterministic fallback when no LLM key is present: first sentence, trimmed to `maxChars`. */
-export function extractFirstSentence(message: string, maxChars: number): string {
-  const clean = scrubSecrets(message)
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/(^|\n)\s*(?:USER|ASSISTANT):\s*/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim();
-  // Prefer the first sentence that has some substance.
-  const sentences = clean.split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/);
-  const first = sentences.find((s) => s.trim().length >= 12) ?? sentences[0] ?? clean;
-  return clampLine(first, maxChars);
+const KIND_CUES: Record<string, RegExp> = {
+  bug: /\b(caused by|root cause|because|fix(ed|es)?|bug|race|flaky|leak|crash|fails?|broken)\b/i,
+  decision: /\b(use|switch|go with|going with|decided|decision|instead of|chose|pick)\b/i,
+  constraint: /\b(must|never|always|only|require[sd]?|cannot|can't|floor|limit|max|min)\b/i,
+  preference: /\b(prefer|like|rather|style|convention|please)\b/i,
+  architecture: /\b(lives in|located|module|package|service|layer|boundary|flows? through|calls|exposes)\b/i,
+  todo: /\b(todo|later|before launch|follow[- ]up|next|remind|deferred|eventually)\b/i,
+};
+
+/**
+ * Deterministic fallback when no LLM key is present: the most relevant declarative sentence, trimmed to `maxChars`.
+ * Skips questions, prefers sentences that carry cue words for the memory kind, and for findings (bug, architecture)
+ * prefers the assistant's text over the user's.
+ */
+export function extractFirstSentence(message: string, maxChars: number, kind?: string): string {
+  const clean = scrubSecrets(message).replace(/```[\s\S]*?```/g, " ");
+  const roles: { role: "user" | "assistant"; text: string }[] = [];
+  for (const chunk of clean.split(/(?=^|\n)\s*(?=(?:USER|ASSISTANT):)/)) {
+    const m = /^\s*(USER|ASSISTANT):\s*([\s\S]*)$/.exec(chunk);
+    if (m) roles.push({ role: m[1] === "USER" ? "user" : "assistant", text: m[2]! });
+    else if (chunk.trim()) roles.push({ role: "user", text: chunk });
+  }
+  const cue = kind ? KIND_CUES[kind] : undefined;
+  const assistantFirst = kind === "bug" || kind === "architecture";
+  let best: { text: string; score: number; order: number } | null = null;
+  let order = 0;
+  for (const r of roles) {
+    const sentences = r.text.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/);
+    for (const raw of sentences) {
+      const s = raw.trim();
+      order++;
+      if (s.length < 12) continue;
+      let score = 0;
+      if (/\?$/.test(s)) score -= 3;
+      if (cue?.test(s)) score += 2;
+      if (assistantFirst && r.role === "assistant") score += 1;
+      if (/^(ok|okay|done|sure|great|thanks|yes|no)\b/i.test(s)) score -= 2;
+      if (!best || score > best.score) best = { text: s, score, order };
+    }
+  }
+  const pick = best?.text ?? clean.replace(/(^|\n)\s*(?:USER|ASSISTANT):\s*/g, "$1").replace(/\s+/g, " ").trim();
+  return clampLine(pick, maxChars);
 }
 
 export function clampLine(text: string, maxChars: number): string {
