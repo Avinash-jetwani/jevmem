@@ -20,18 +20,19 @@ const T1_SURE: AnswerOverrides = { contains_decision: 0.95, contains_constraint:
 const T1_UNSURE: AnswerOverrides = { ...T1_SURE, contains_decision: 0.55 };
 
 describe("tier 1 question set", () => {
-  it("has nine broad nouls (+1 meta noul with the assistant reply) with one positive and one negative example each, plus kind/touches/importance", () => {
-    expect(TIER1_NOULS).toHaveLength(10);
-    expect(TIER1_NOULS.filter((n) => n.family !== "meta")).toHaveLength(9);
-    expect(TIER1_QUESTION_COUNT).toBe(12);
-    expect(Object.keys(buildTier1Questions([], { withAssistant: true }))).toHaveLength(14);
+  it("has nine broad nouls + four atomic injection nouls (+1 meta noul with the assistant reply), one example per side, plus kind/touches/importance", () => {
+    expect(TIER1_NOULS).toHaveLength(14);
+    expect(TIER1_NOULS.filter((n) => n.family !== "meta")).toHaveLength(13);
+    expect(TIER1_NOULS.filter((n) => n.family === "injection")).toHaveLength(5);
+    expect(TIER1_QUESTION_COUNT).toBe(16);
+    expect(Object.keys(buildTier1Questions([], { withAssistant: true }))).toHaveLength(18);
     for (const n of TIER1_NOULS) {
       expect(n.yes.examples).toHaveLength(1);
       expect(n.no.examples).toHaveLength(1);
       expect(n.question).toMatch(/^(Does|Is)\b/);
     }
     const q = buildTier1Questions([{ id: "m1", kind: "decision", text: "x" }]) as any;
-    expect(Object.keys(q)).toHaveLength(12);
+    expect(Object.keys(q)).toHaveLength(16);
     for (const c of Object.values(q.kind.criteria) as any[]) expect(c.examples).toHaveLength(1);
     expect(Object.keys(q.touches_memory_id.criteria)).toEqual(["m1", "none"]);
     // Tier 1 is small: well under half of tier 2 (2 examples per side) serialized.
@@ -45,6 +46,17 @@ describe("tier 1 question set", () => {
     expect(f.chit_chat).toBe(0.1);
     expect(f.contradiction).toBe(0.7);
     expect(f.bug).toBe(0);
+  });
+  it("borderline and sure-skip rules see the atomic injection nouls too", () => {
+    const base = { nouls: { contains_decision: 0.95, contains_instructions_aimed_at_an_automated_system: 0.05 }, importanceConfidence: 0.9, kindConfidence: 0.9 };
+    expect(borderlineReasons(base, RULE)).toEqual([]);
+    expect(borderlineReasons({ ...base, nouls: { ...base.nouls, tells_an_ai_to_ignore_or_replace_instructions: 0.5 } }, RULE).join()).toMatch(/injection=0.50/);
+    // Sure injection from an atomic noul: tier 1 is final (no escalation).
+    expect(borderlineReasons({ ...base, nouls: { ...base.nouls, contains_decision: 0.5, asks_the_ai_to_store_or_alter_memory_or_rules: 0.95 } }, RULE)).toEqual([]);
+  });
+  it("scores the injection family as the max of all five tier-1 injection nouls", () => {
+    expect(tier1Families({ contains_instructions_aimed_at_an_automated_system: 0.1, asks_the_ai_to_store_or_alter_memory_or_rules: 0.8 }).injection).toBe(0.8);
+    expect(tier1Families({ contains_instructions_aimed_at_an_automated_system: 0.6, claims_system_or_admin_authority_over_the_ai: 0.2 }).injection).toBe(0.6);
   });
 });
 
@@ -87,7 +99,7 @@ describe("two-tier decide", () => {
     expect(d.escalated).toBe(false);
     expect(d.save).toBe(true);
     expect(d.reason).toContain("[tier 1]");
-    expect(Object.keys(d.nouls)).toHaveLength(9);
+    expect(Object.keys(d.nouls)).toHaveLength(13);
     expect(d.tier1?.save).toBe(true);
     expect(d.tier2).toBeUndefined();
 
@@ -178,7 +190,7 @@ describe("why and fit with tiers", () => {
     expect(whyA).not.toContain("tier 2 (30 atomic nouls");
     const whyB = formatWhy(recB);
     expect(whyB).toContain("escalated: max kind noul contains_decision=0.55");
-    expect(whyB).toContain("tier 1 (9 broad nouls");
+    expect(whyB).toContain("tier 1 (13 nouls");
     expect(whyB).toContain("tier 2 (30 atomic nouls");
     expect(whyB).toContain("states_a_choice_between_alternatives");
 

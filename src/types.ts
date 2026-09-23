@@ -83,7 +83,7 @@ export interface JevmemConfig {
   };
   /** Logistic weights over the atomic nouls, per family. Hand-set defaults; `jevmem fit` overwrites them from labels. */
   weights?: Record<string, { bias: number; w: Record<string, number> }>;
-  /** Two-tier decide: tier 1 (9 broad nouls) every turn, tier 2 (30 atomic nouls) only on borderline turns. */
+  /** Two-tier decide: tier 1 (9 broad nouls + 4 injection nouls) every turn, tier 2 (30 atomic nouls) only on borderline turns. */
   tiers: TiersConfig;
 }
 

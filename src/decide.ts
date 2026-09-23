@@ -1,6 +1,6 @@
 import type { JevCaller } from "./jev.js";
 import { combine, defaultWeights, evaluatePolicy, mergeWeights, type Weights } from "./combine.js";
-import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildTier1Questions, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, type Family } from "./questions.js";
+import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildTier1Questions, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, type Family } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
 import { DEFAULT_CONFIG, type BorderlineRule, type Importance, type Kind, type Memory, type Thresholds, type TiersConfig } from "./types.js";
 
@@ -155,7 +155,8 @@ export function looksLikeQuestion(user: string): boolean {
 /** The borderline rule: which conditions say tier 1 is unsure. Pure, so it is testable and shown by `why`. */
 export function borderlineReasons(t1: Pick<TierAnswers, "nouls" | "importanceConfidence"> & { kindConfidence?: number }, rule: BorderlineRule): string[] {
   const reasons: string[] = [];
-  const inj0 = t1.nouls.contains_instructions_aimed_at_an_automated_system ?? 0;
+  // Injection is the max over the five tier-1 injection nouls (the broad one and the four atomic ones).
+  const inj0 = Math.max(0, ...TIER1_INJECTION_NOULS.map((n) => t1.nouls[n] ?? 0));
   const chat0 = t1.nouls.is_only_chit_chat ?? 0;
   // Tier 1 is sure this turn is skipped; tier 2 could only agree, so don't pay for it.
   if (inj0 > rule.injectionHigh || chat0 >= rule.sureSkipChitChatMin) return [];
@@ -175,7 +176,7 @@ export function borderlineReasons(t1: Pick<TierAnswers, "nouls" | "importanceCon
   const c = t1.nouls.contradicts_existing_memory ?? 0;
   if (c >= rule.contradictionMin) reasons.push(`contradicts_existing_memory=${c.toFixed(2)} ≥ ${rule.contradictionMin}`);
   if (t1.importanceConfidence < rule.importanceConfidenceMin) reasons.push(`importance confidence=${t1.importanceConfidence.toFixed(2)} < ${rule.importanceConfidenceMin}`);
-  const inj = t1.nouls.contains_instructions_aimed_at_an_automated_system ?? 0;
+  const inj = inj0;
   if (inj >= rule.injectionLow && inj <= rule.injectionHigh) reasons.push(`injection=${inj.toFixed(2)} in [${rule.injectionLow}, ${rule.injectionHigh}]`);
   return reasons;
 }
@@ -239,7 +240,7 @@ export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "
 }
 
 /**
- * Two-tier decide. Tier 1 (9 broad nouls, ~1.5k tokens) runs every turn; tier 2 (30 atomic nouls) runs only when the
+ * Two-tier decide. Tier 1 (9 broad nouls + 4 injection nouls) runs every turn; tier 2 (30 atomic nouls) runs only when the
  * borderline rule says tier 1 is unsure. `tiers.mode` forces `fast` (tier 1 only) or `full` (always tier 2).
  */
 export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOptions = {}): Promise<Decision> {
