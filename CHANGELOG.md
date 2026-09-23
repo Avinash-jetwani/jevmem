@@ -2,6 +2,12 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.8] - 2026-09-23
+
+### Changed
+- Benchmark re-run on the current frontier set: GPT-6 Astra, GPT-6 Luna, Claude Fable 5.1, Claude Opus 5.5, Gemini 3.8 Flash and Grok 4.7 (all via OpenRouter) plus jevmem, same machine, same hour, same 50 turns. `google/gemini-3.8-pro` is not listed on OpenRouter and was not added. The README Benchmark table is replaced by this run; results in `results/bench-2026-09-23-r2.json` (the v0.3.7 file is kept for reference). GPT-6 Luna ties jevmem on accuracy (100% save/skip, 98% save+kind) and is cheaper per decision ($0.000081 vs $0.000115); every other model is one to three turns behind; jevmem is 288 ms p50 against 2.3–4.0 s. The README says so.
+- `scripts/bench-llm.mjs`: model table updated to the seven rows above with each provider's list price read on 2026-09-23 (Grok 4.7 uses xAI's `docs.x.ai` list price of $2 / $6, which is higher than the $1.60 / $4.80 OpenRouter listed that day); a direct `XAI_API_KEY` path was added alongside the OpenRouter route.
+
 ## [0.3.7] - 2026-09-23
 
 ### Changed
@@ -158,6 +164,7 @@ The decomposed set **tied** the v0.2.0 set on this transcript at 3.3× the token
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.3.8]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.7...v0.3.8
 [0.3.7]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.4...v0.3.5

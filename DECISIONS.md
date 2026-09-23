@@ -35,6 +35,13 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 - **The same turn is not evaluated twice.** A SHA-1 of the merged turn is stored in `.jevmem/state.json`; Stop can fire more than once per turn.
 - **Simulation fields.** The hook accepts `user_message`, `assistant_message`, and `recent_context` in the stdin JSON in addition to the real `transcript_path`. That is what the tests and `DEMO.md` use, and it makes the hook scriptable from other tools.
 
+## v0.3.8: a cheaper model tied jevmem, and the README says so
+
+- **GPT-6 Luna matched jevmem on accuracy at a lower price per decision.** The re-run against the current frontier set (GPT-6 Astra and Luna, Claude Fable 5.1 and Opus 5.5, Gemini 3.8 Flash, Grok 4.7) put Luna at 100% save/skip and 98% save+kind for $0.000081 a decision, against jevmem's $0.000115. The README leads its Benchmark paragraph with that sentence rather than burying it, because a launch reader who finds it in the JSON first would be right to distrust the rest. What remains in jevmem's favour is latency (288 ms p50 versus 2.3 s), and that is the claim the README now makes.
+- **The requested `google/gemini-3.8-pro` row is absent, not estimated.** It is not listed on OpenRouter on the run date; the table says so.
+- **Grok 4.7 is priced at xAI's list price, not OpenRouter's.** OpenRouter listed $1.60 / $4.80 on the day; xAI's docs list $2 / $6. The higher official price is used and the discrepancy is recorded in the results file and the README, so the row cannot be accused of a favourable rate.
+- **The earlier same-day results file is kept.** `results/bench-2026-09-23.json` (GPT-5.6 Luna, Gemini 3.8 Flash, Claude Sonnet 5, Claude Fable 5.1) stays in the repo so the two runs can be compared; the README table is the newer set.
+
 ## v0.3.7: the first benchmark run was wrong, and why it stays unpublished
 
 - **A 200-token output cap and a fresh OpenRouter account produced numbers that flattered jevmem.** The first full run showed Claude Sonnet 5 at 42% and GPT-5.6 Luna at 56%. Reading the raw rows: 52 of the failures were HTTP 429 from OpenRouter's new-account rate limit, and the rest were empty replies with exactly 200 output tokens, i.e. reasoning models spending the whole cap before writing JSON. Both are harness defects. Publishing that table would have been the easy-opponent move the benchmark exists to avoid, so the harness was fixed (backoff retries, 1 request/s pacing, 4,000-token cap, first-JSON-object extraction) and every row re-run in the same hour. The corrected table shows two LLMs tied with jevmem on accuracy, which is the true picture and is written into the README as such.

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Benchmark: current LLMs as the memory decider vs jevmem (auto mode), on the same 50-turn eval set with the same state.
 //
-//   node scripts/bench-llm.mjs [--models luna,gemini,sonnet,fable,jevmem] [--out results/bench-YYYY-MM-DD.json]
+//   node scripts/bench-llm.mjs [--models astra,luna,fable,opus,gemini,grok,jevmem] [--out results/bench-YYYY-MM-DD.json]
 //
 // Keys (a model is SKIPPED, never estimated, when its key is missing):
-//   OPENAI_API_KEY (gpt-5.6-luna), GEMINI_API_KEY or GOOGLE_API_KEY (gemini-3.8-flash),
-//   ANTHROPIC_API_KEY (claude-sonnet-5, claude-fable-5-1), TYPESAFE_API_KEY (jevmem).
-//   Alternatively OPENROUTER_API_KEY routes all four LLMs through OpenRouter's OpenAI-compatible endpoint.
+//   OPENAI_API_KEY (gpt-6-astra, gpt-6-luna), ANTHROPIC_API_KEY (claude-fable-5-1, claude-opus-5-5),
+//   GEMINI_API_KEY or GOOGLE_API_KEY (gemini-3.8-flash), XAI_API_KEY (grok-4.7), TYPESAFE_API_KEY (jevmem).
+//   Alternatively OPENROUTER_API_KEY routes all six LLMs through OpenRouter's OpenAI-compatible endpoint.
 // Same system prompt for every model: bench/system-prompt.md. Structured output / JSON mode is used where the provider has one.
 import fs from "node:fs";
 import path from "node:path";
@@ -19,7 +19,7 @@ const opt = (n, d) => {
 };
 const today = new Date().toISOString().slice(0, 10);
 const OUT = opt("--out", `results/bench-${today}.json`);
-const ONLY = opt("--models", "luna,gemini,sonnet,fable,jevmem").split(",");
+const ONLY = opt("--models", "astra,luna,fable,opus,gemini,grok,jevmem").split(",");
 const lib = await import(pathToFileURL(path.resolve("dist/index.js")).href);
 const SYSTEM = fs.readFileSync(path.resolve("bench/system-prompt.md"), "utf8");
 const turns = fs
@@ -44,10 +44,12 @@ const SCHEMA = {
 // Pricing: USD per million tokens, read from the providers' pricing pages on PRICING_DATE.
 const PRICING_DATE = "2026-09-23";
 const MODELS = {
-  luna: { label: "GPT-5.6 Luna", id: "gpt-5.6-luna", provider: "openai", input: 0.2, output: 1.2, source: "https://developers.openai.com/api/docs/pricing", openrouter: "openai/gpt-5.6-luna" },
+  astra: { label: "GPT-6 Astra", id: "gpt-6-astra", provider: "openai", input: 10, output: 50, source: "https://developers.openai.com/api/docs/pricing (standard tier)", openrouter: "openai/gpt-6-astra" },
+  luna: { label: "GPT-6 Luna", id: "gpt-6-luna", provider: "openai", input: 0.1, output: 0.5, source: "https://developers.openai.com/api/docs/pricing (standard tier)", openrouter: "openai/gpt-6-luna" },
+  fable: { label: "Claude Fable 5.1", id: "claude-fable-5-1", provider: "anthropic", input: 10, output: 50, source: "https://platform.claude.com/docs/en/about-claude/pricing", openrouter: "anthropic/claude-fable-5.1" },
+  opus: { label: "Claude Opus 5.5", id: "claude-opus-5-5", provider: "anthropic", input: 4, output: 20, source: "https://platform.claude.com/docs/en/about-claude/pricing", openrouter: "anthropic/claude-opus-5.5" },
   gemini: { label: "Gemini 3.8 Flash", id: "gemini-3.8-flash", provider: "gemini", input: 0.75, output: 3.75, source: "https://ai.google.dev/gemini-api/docs/pricing (rate valid through 2026-12-31)", openrouter: "google/gemini-3.8-flash" },
-  sonnet: { label: "Claude Sonnet 5", id: "claude-sonnet-5", provider: "anthropic", input: 2, output: 10, source: "https://platform.claude.com/docs/en/about-claude/pricing", openrouter: "anthropic/claude-sonnet-5" },
-  fable: { label: "Claude Fable 5.1 (frontier)", id: "claude-fable-5-1", provider: "anthropic", input: 10, output: 50, source: "https://platform.claude.com/docs/en/about-claude/pricing", openrouter: "anthropic/claude-fable-5.1" },
+  grok: { label: "Grok 4.7", id: "grok-4.7", provider: "xai", input: 2, output: 6, source: "https://docs.x.ai/docs/models (xAI list price; OpenRouter listed $1.60 / $4.80 on the pricing date, the higher list price is used)", openrouter: "x-ai/grok-4.7" },
   jevmem: { label: "jevmem (auto, jev-latest)", id: "jev-latest", provider: "jevmem", input: 0.042, source: "https://typesafe.ai/blog/introducing-system-one-models-and-jev (read 2026-09-23): $0.042 per million input tokens, output tokens free)", output: 0 },
 };
 
@@ -56,10 +58,11 @@ function keyFor(provider) {
   if (provider === "openai" && process.env.OPENAI_API_KEY) return { kind: "openai", key: process.env.OPENAI_API_KEY };
   if (provider === "gemini" && (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)) return { kind: "gemini", key: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY };
   if (provider === "anthropic" && process.env.ANTHROPIC_API_KEY) return { kind: "anthropic", key: process.env.ANTHROPIC_API_KEY };
+  if (provider === "xai" && process.env.XAI_API_KEY) return { kind: "xai", key: process.env.XAI_API_KEY };
   if (provider === "jevmem" && process.env.TYPESAFE_API_KEY) return { kind: "jevmem", key: "set" };
   return null;
 }
-const KEY_HINT = { openai: "OPENAI_API_KEY or OPENROUTER_API_KEY", gemini: "GEMINI_API_KEY (or GOOGLE_API_KEY) or OPENROUTER_API_KEY", anthropic: "ANTHROPIC_API_KEY or OPENROUTER_API_KEY", jevmem: "TYPESAFE_API_KEY" };
+const KEY_HINT = { openai: "OPENAI_API_KEY or OPENROUTER_API_KEY", gemini: "GEMINI_API_KEY (or GOOGLE_API_KEY) or OPENROUTER_API_KEY", anthropic: "ANTHROPIC_API_KEY or OPENROUTER_API_KEY", xai: "XAI_API_KEY or OPENROUTER_API_KEY", jevmem: "TYPESAFE_API_KEY" };
 
 /** The exact state jevmem sends Jev for this turn. */
 function stateFor(t) {
@@ -225,6 +228,8 @@ async function runModel(name) {
             ? await callOpenAICompatible("https://openrouter.ai/api/v1", auth.key, m.openrouter, state)
             : auth.kind === "openai"
               ? await callOpenAICompatible("https://api.openai.com/v1", auth.key, m.id, state)
+              : auth.kind === "xai"
+                ? await callOpenAICompatible("https://api.x.ai/v1", auth.key, m.id, state)
               : auth.kind === "gemini"
                 ? await callGemini(auth.key, m.id, state)
                 : await callAnthropic(auth.key, m.id, state);
@@ -261,7 +266,7 @@ const out = {
   system_prompt: "bench/system-prompt.md",
   pricing_date: PRICING_DATE,
   pricing_sources: Object.fromEntries(Object.values(MODELS).map((m) => [m.id, m.source])),
-  note: "Every model gets the identical state jevmem sends Jev. LLMs answer strict JSON via the provider's structured-output mode with a 4,000-token output cap (reasoning included) and the provider's default reasoning setting; the first {...} object in the reply is validated against the schema, so prose around it is tolerated but a wrong shape is not. 429/5xx are retried up to 6 times with backoff; latency includes retries. A malformed answer counts as wrong. Models without a key are skipped, not estimated. When routed through OpenRouter, token counts come from OpenRouter's usage report and prices are the providers' list prices (identical to OpenRouter's for these models on the pricing date).",
+  note: "Every model gets the identical state jevmem sends Jev. LLMs answer strict JSON via the provider's structured-output mode with a 4,000-token output cap (reasoning included) and the provider's default reasoning setting; the first {...} object in the reply is validated against the schema, so prose around it is tolerated but a wrong shape is not. 429/5xx are retried up to 6 times with backoff; latency includes retries. A malformed answer counts as wrong. Models without a key are skipped, not estimated. When routed through OpenRouter, token counts come from OpenRouter's usage report and prices are the providers' list prices (identical to OpenRouter's on the pricing date for every model except Grok 4.7, where OpenRouter listed $1.60 / $4.80 against xAI's $2 / $6; the higher xAI list price is used).",
   models: results,
 };
 fs.mkdirSync(path.dirname(OUT), { recursive: true });

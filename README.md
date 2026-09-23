@@ -188,7 +188,7 @@ Every Jev call is logged to `.jevmem/log.jsonl` (question count, tier, tokens, l
 | `search` (choice + noul per candidate) | ~680 | ~230 ms | ~550 ms | ~$0.00003 |
 | `audit` (noul per memory) | ~720 for 2 memories | ~230 ms | ~540 ms | ~$0.00003 |
 
-`decide` figures are the 50-turn eval above; the rest are from the `DEMO.md` runs. 300 turns a day in `auto` mode is about $0.03–0.04 in Jev (measured: `results/bench-2026-09-23.json` and the eval run), plus one short LLM completion per *saved* line if you configure a writer. For how this compares with an LLM doing the same job, see [Benchmark](#benchmark); there are no estimated numbers in this README.
+`decide` figures are the 50-turn eval above; the rest are from the `DEMO.md` runs. 300 turns a day in `auto` mode is about $0.03–0.04 in Jev (measured: `results/bench-2026-09-23-r2.json` and the eval run), plus one short LLM completion per *saved* line if you configure a writer. For how this compares with an LLM doing the same job, see [Benchmark](#benchmark); there are no estimated numbers in this README.
 
 ## Why Jev and not an LLM
 
@@ -214,21 +214,23 @@ Every Jev call is logged to `.jevmem/log.jsonl` (question count, tier, tokens, l
 
 `scripts/bench-llm.mjs` runs the same 50-turn eval set through current LLMs acting as the memory decider and through jevmem, on the same machine in the same hour. Every model receives the identical state jevmem sends Jev (user message, the assistant reply when the user asked a question, the two previous turns, the existing memories with ids), the same committed system prompt (`bench/system-prompt.md`), and must answer strict JSON `{save, kind, contradicts_id, injection}` through the provider's structured-output mode. A malformed answer counts as wrong. Cost is real token usage × the list price on the provider's pricing page, with the URL and date recorded in the results file. A model whose key is missing is skipped and reported as skipped; nothing is estimated.
 
-Reproduce: `node scripts/bench-llm.mjs` (needs `TYPESAFE_API_KEY`, plus `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, or a single `OPENROUTER_API_KEY` for the LLM rows). Results: [`results/bench-2026-09-23.json`](results/bench-2026-09-23.json).
-
-**Run of 2026-09-23** (macOS arm64, Node 22; the four LLMs routed through OpenRouter with one key, jevmem direct to TypeSafe; all five in the same hour):
+Reproduce: `node scripts/bench-llm.mjs` (needs `TYPESAFE_API_KEY`, plus `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, or a single `OPENROUTER_API_KEY` for the LLM rows). Results: [`results/bench-2026-09-23-r2.json`](results/bench-2**Run of 2026-09-23** (macOS arm64, Node 22; the six LLMs routed through OpenRouter with one key, jevmem direct to TypeSafe; all seven in the same hour). `google/gemini-3.8-pro` was requested for this set but is not listed on OpenRouter, so it is absent rather than estimated.
 
 | Model (API id) | Status | save/skip | save+kind | contradiction id found | injection turns not saved | malformed JSON | p50 | p95 | $/decision | $/300 turns |
 |---|---|---|---|---|---|---|---|---|---|---|
-| GPT-5.6 Luna (`gpt-5.6-luna`) | ran | 98% | 96% | 2/2 | 4/4 | 0% | 1,589 ms | 3,432 ms | $0.000166 | $0.050 |
-| Gemini 3.8 Flash (`gemini-3.8-flash`) | ran | 100% | 98% | 2/2 | 4/4 | 0% | 2,569 ms | 10,426 ms | $0.001036 | $0.311 |
-| Claude Sonnet 5 (`claude-sonnet-5`) | ran | 100% | 98% | 2/2 | 4/4 | 0% | 3,093 ms | 7,503 ms | $0.002513 | $0.754 |
-| Claude Fable 5.1 (`claude-fable-5-1`) | ran | 96% | 94% | 2/2 | 3/4 | 2% | 4,027 ms | 6,834 ms | $0.011790 | $3.537 |
-| jevmem `auto` (`jev-latest`) | ran | 100% | 98% | 2/2 | 4/4 | 0% | 282 ms | 628 ms | $0.000115 | $0.034 |
+| GPT-6 Astra (`gpt-6-astra`) | ran | 98% | 96% | 2/2 | 4/4 | 0% | 2,554 ms | 6,601 ms | $0.007475 | $2.243 |
+| GPT-6 Luna (`gpt-6-luna`) | ran | 100% | 98% | 2/2 | 4/4 | 0% | 2,265 ms | 3,490 ms | $0.000081 | $0.024 |
+| Claude Fable 5.1 (`claude-fable-5-1`) | ran | 96% | 94% | 2/2 | 3/4 | 2% | 3,950 ms | 7,783 ms | $0.011939 | $3.582 |
+| Claude Opus 5.5 (`claude-opus-5-5`) | ran | 98% | 96% | 2/2 | 4/4 | 0% | 2,800 ms | 6,875 ms | $0.004869 | $1.461 |
+| Gemini 3.8 Flash (`gemini-3.8-flash`) | ran | 96% | 94% | 2/2 | 4/4 | 2% | 3,703 ms | 15,570 ms | $0.001031 | $0.309 |
+| Grok 4.7 (`grok-4.7`) | ran | 98% | 96% | 2/2 | 4/4 | 0% | 2,771 ms | 14,110 ms | $0.004884 | $1.465 |
+| jevmem `auto` (`jev-latest`) | ran | 100% | 98% | 2/2 | 4/4 | 0% | 288 ms | 567 ms | $0.000115 | $0.034 |
 
-Read it plainly: **Gemini 3.8 Flash and Claude Sonnet 5 match jevmem on accuracy** on this set (100% save/skip, 98% save+kind, both contradictions found, all injection turns blocked), GPT-5.6 Luna and Claude Fable 5.1 are two to three turns behind, and no model is clearly better than another at deciding. What separates jevmem is the rest of the row: 282 ms p50 against 1.6–4.0 s, and $0.000115 per decision against $0.000166 (Luna) to $0.0118 (Fable 5.1), which is the difference between deciding on every turn and deciding occasionally. Latency for the LLMs includes their reasoning and any rate-limit retries (429s are retried with backoff and counted in the timing); the output cap is 4,000 tokens so no model is truncated, and the first JSON object in a reply is what gets validated. Fable 5.1's one malformed answer is a reply with no JSON in it. The one turn jevmem gets wrong is a `Decision:`-prefixed must/never rule filed as a decision; the LLMs' misses are mostly the same two turns (a question answered with an architecture fact, and the real-session constraint filed as architecture).
+Read it plainly: **GPT-6 Luna matches jevmem on accuracy** on this set (100% save/skip, 98% save+kind, both contradictions found, all injection turns blocked) **and is cheaper per decision** ($0.000081 against $0.000115). Every other model is one to three turns behind, and no LLM is clearly better than another at deciding. What jevmem keeps is latency: 288 ms p50 and 567 ms p95 against 2.3–4.0 s p50 and 3.5–15.6 s p95, which is the difference between a hook that runs on every turn without being felt and one that is. Latency for the LLMs includes their reasoning and any rate-limit retries (none were needed on this run); the output cap is 4,000 tokens, and the first JSON object in a reply is what gets validated. The two malformed answers are Fable 5.1 replying with a lone `{` on an injection turn and Gemini 3.8 Flash returning zero output tokens on one constraint turn. The misses are concentrated on the same two turns for every LLM: a question the assistant answered with an architecture fact (saved as architecture by five of six models), and the real-session constraint filed as architecture or decision. The one turn jevmem gets wrong is a `Decision:`-prefixed must/never rule filed as a decision.
 
-Pricing sources recorded in the results file (all read 2026-09-23): OpenAI `https://developers.openai.com/api/docs/pricing` (Luna $0.20 in / $1.20 out per million), Google `https://ai.google.dev/gemini-api/docs/pricing` (Gemini 3.8 Flash $0.75 / $3.75 through 2026-12-31), Anthropic `https://platform.claude.com/docs/en/about-claude/pricing` (Sonnet 5 $2 / $10, Fable 5.1 $10 / $50), Jev $0.042 per million input tokens, output free, from TypeSafe's launch post `https://typesafe.ai/blog/introducing-system-one-models-and-jev`.
+Pricing sources recorded in the results file (all read 2026-09-23): OpenAI `https://developers.openai.com/api/docs/pricing` (Astra $10 in / $50 out per million, Luna $0.10 / $0.50, standard tier), Anthropic `https://platform.claude.com/docs/en/about-claude/pricing` (Fable 5.1 $10 / $50, Opus 5.5 $4 / $20), Google `https://ai.google.dev/gemini-api/docs/pricing` (Gemini 3.8 Flash $0.75 / $3.75 through 2026-12-31), xAI `https://docs.x.ai/docs/models` (Grok 4.7 $2 / $6; OpenRouter listed $1.60 / $4.80 that day and the higher list price is used), Jev $0.042 per million input tokens, output free, from TypeSafe's launch post `https://typesafe.ai/blog/introducing-system-one-models-and-jev`.
+
+claude/pricing` (Sonnet 5 $2 / $10, Fable 5.1 $10 / $50), Jev $0.042 per million input tokens, output free, from TypeSafe's launch post `https://typesafe.ai/blog/introducing-system-one-models-and-jev`.
 
 ## MCP server
 
