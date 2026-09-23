@@ -5,17 +5,19 @@
 [![license](https://img.shields.io/npm/l/jevmem.svg)](LICENSE)
 [![node](https://img.shields.io/node/v/jevmem.svg)](package.json)
 
+<!-- launch video here -->
+
 **Jev decides. The LLM writes one line. Your project never forgets.**
 
 ```bash
 npm install -g jevmem
 ```
 
-Jevmem is a memory layer for AI coding tools (Claude Code, Cursor, Codex, Claude Desktop). It keeps a human-readable `JEVMEM.md` in your project root and updates it after **every** turn, in ~270 ms warm, for a fraction of a cent per day. It learns from you: mark a line `right` or `wrong`, and `jevmem fit` recalibrates.
+Jevmem is **one memory file shared by Claude Code, Cursor and Codex.** `JEVMEM.md` lives in your repo, so the whole team gets the same decisions, constraints and root causes, reviewable in pull requests like any other file. Every line is explainable: `jevmem why <id>` shows the exact probabilities that put it there. A decision model scores each turn in ~270 ms for about a hundredth of a cent, so memory updates after **every** turn instead of once per session, and it learns from you: mark a line `right` or `wrong` and `jevmem fit` recalibrates.
+
+Built on [Jev by TypeSafe AI](https://typesafe.ai), a System One decision model that returns typed probabilities and cannot generate text. Jev decides **whether** a turn is worth remembering, **what kind** of memory it is, and **which existing memory it contradicts**; only then does a small LLM write one line.
 
 **You need one key: `TYPESAFE_API_KEY`.** An OpenAI or Anthropic key is optional. Without one, Jevmem still saves memories; it just writes the line with a deterministic extract instead of an LLM.
-
-Every AI coding tool forgets project context between sessions. The ones that have "memory" use a slow, expensive LLM to decide what to save, so they run rarely and miss things. Jevmem moves the *deciding* to [Jev](https://typesafe.ai), TypeSafe AI's System One model: a fast, cheap decision model that returns typed probabilities but cannot generate text. Jev decides **whether** a turn is worth remembering, **what kind** of memory it is, and **which existing memory it contradicts**. Only then does a small LLM write one line.
 
 ```text
 - [decision] Use Postgres 16 for the primary store; SQLite locks under load  <!-- id:k3d9xq ts:2026-09-22T10:14:02.113Z conf:0.93 -->
@@ -59,6 +61,20 @@ The first hook call in a project starts a tiny **warm daemon** (`jevmem daemon s
 
 `jevmem init` with no `--tool` detects what is present (`.claude/`, `.cursor/`, `AGENTS.md` or `~/.codex`). `--tool all` sets up everything. Cursor keeps its chats in a SQLite database, not a text log, so there is nothing safe to tail; Codex writes plain JSONL rollouts under `~/.codex/sessions`, which is why it gets `watch`.
 
+## How this differs from Claude Code's built-in memory
+
+Claude Code (and Cursor, and Codex) each keep their own memory, and it works well inside that tool. Jevmem is not a replacement for it; it is the layer that the tools and the team share.
+
+| | Built-in memory | Jevmem |
+|---|---|---|
+| Scope | Per tool, per machine (Claude Code's lives under `~/.claude/projects/…`) | One `JEVMEM.md` per repo, read by Claude Code, Cursor, Codex and Claude Desktop |
+| Shared with the team | No | Yes, it's a file in git; reviewed in PRs like code |
+| Why a line exists | Opaque; the model decided | Per-line scores: `jevmem why <id>` shows every noul, the kind distribution, importance, and which threshold it cleared |
+| What happens on a reversal | The old note is rewritten or lost | The old line stays, tagged `[superseded] … → id:new`, so history and blame survive |
+| Corrections | Edit the note | `right` / `wrong` / `missed` labels, and `fit` refits the thresholds to your judgement |
+
+Both can run at once; the end-to-end harness checks that Jevmem behaves the same with Claude Code's auto-memory present or cleared.
+
 ## How Jev is used
 
 Jevmem never asks Jev to write anything. It asks small, literal, typed questions and combines the answers in code.
@@ -91,15 +107,15 @@ State sent: `{ user_message, assistant_reply?, previous_turns, existing_memories
 
 **unless** tier 1 is already sure the turn is skipped (injection > 0.7 or chit-chat ≥ 0.9), where tier 2 could only agree. When tier 2 runs, its result wins.
 
-`tiers.mode` selects `auto` (default), `fast` (tier 1 only), or `full` (always tier 2). Measured on the 42-turn eval set (live `jev-latest`, warm client, no cache):
+`tiers.mode` selects `auto` (default), `fast` (tier 1 only), or `full` (always tier 2). Measured with `node scripts/eval.mjs` on the 50-turn hand-labelled set in `eval/transcript.jsonl` (live `jev-latest`, warm client, no cache, 2026-09-23):
 
-| mode | save/skip accuracy | save+kind accuracy | tokens/turn | cost/turn | p50 | escalated |
+| mode | accuracy (save/skip + kind) | F1 (save/skip) | tokens/turn | cost/turn | p50 | escalated |
 |---|---|---|---|---|---|---|
-| `fast` | 97.6% | 95.2% | 2,342 | $0.000098 | 240 ms | – |
-| `auto` | 97.6% | 95.2% | 3,002 | $0.000126 | 268 ms | 12% |
-| `full` | 97.6% | 97.6% | 5,544 | $0.000233 | 257 ms | – |
+| `fast` | 98.0% | 100% | 2,454 | $0.000103 | 259 ms | – |
+| `auto` (default) | 98.0% | 100% | 3,145 | $0.000132 | 266 ms | 12% |
+| `full` | 100% | 100% | 5,764 | $0.000242 | 283 ms | – |
 
-The save+kind gap in `fast`/`auto` is one turn that begins with "Decision:" but states a must/never rule; tier 1 calls it a decision, the label says constraint.
+The set has 8 decisions, 5 constraints, 4 preferences, 5 bugs, 4 architecture facts, 4 todos, 4 chit-chat, 3 questions, 3 injection attempts, 4 format-instruction turns, and 6 turns lifted verbatim from a real Claude Code desktop session with their assistant replies and memory context. The one miss in `fast`/`auto` is a turn that begins with "Decision:" but states a must/never rule; tier 1 calls it a decision, the label says constraint; save/skip is right on every turn in every mode. These are the numbers used everywhere in this README.
 
 | Tier-2 family | Atomic nouls |
 |---|---|
@@ -162,21 +178,23 @@ Every Jev call is logged to `.jevmem/log.jsonl` (question count, tier, tokens, l
 
 | Call | Measured tokens | p50 latency (warm daemon) | p50 latency (cold process) | Cost |
 |---|---|---|---|---|
-| `decide` tier 1 (12 questions) | ~2,300 | **~230–280 ms** | ~670 ms | ~$0.00010 |
-| `decide` tier 2 (33 questions), on ~15% of turns | ~5,500 | ~270 ms | – | ~$0.00023 |
-| `decide` in `auto`, averaged | ~3,100 | ~270 ms | – | ~$0.00013 |
+| `decide` tier 1 (12 questions) | ~2,450 | **~260 ms** | ~670 ms | ~$0.00010 |
+| `decide` tier 2 (33 questions), on ~12% of turns | ~5,760 | ~280 ms | – | ~$0.00024 |
+| `decide` in `auto`, averaged | ~3,150 | ~270 ms | – | ~$0.00013 |
 | `decide`, cache hit | 0 | ~3 ms | – | $0 |
 | `recall` (choice over ids) | ~560 | ~210 ms | ~680 ms | ~$0.00002 |
 | `search` (choice + noul per candidate) | ~680 | ~230 ms | ~550 ms | ~$0.00003 |
 | `audit` (noul per memory) | ~720 for 2 memories | ~230 ms | ~540 ms | ~$0.00003 |
 
-Measured with `jev-latest` on 2026-09-22 (the exact turns are in `DEMO.md` and `eval/transcript.jsonl`). A busy day of 300 turns costs about **four cents** in Jev, plus one short LLM completion per *saved* line. An LLM-based memory pass over the same transcript, run every turn, costs 40–400× more, which is why those systems run rarely.
+`decide` figures are the 50-turn eval above; the rest are from the `DEMO.md` runs. A busy day of 300 turns costs about **four cents** in Jev, plus one short LLM completion per *saved* line.
+
+**Versus an LLM making the same decision (estimate, not measured):** send the same ~3,100-token input to Claude Haiku 4.5 at its list price ($1 per million input tokens, $5 per million output tokens) and ask for a ~150-token JSON verdict: about $0.004 and, typically, 1–3 s per decision. That is roughly 30× Jevmem's cost per decision, and it is the cheapest current Claude model; larger models cost more again.
 
 ## Why Jev and not an LLM
 
 - **It runs every turn.** ~270 ms and ~$0.00013 means the decision can happen on *every* Stop, not once per session. Memory that updates continuously catches the decision made in passing at turn 41.
 - **Typed answers, thresholds in code.** Jev returns probabilities, not prose. "Save if importance ≥ useful and chit-chat < 0.5" is a line of config, testable and tunable, not a prompt you hope the model follows.
-- **Nothing to inject into.** Jev cannot generate text, so a transcript that says "ignore previous instructions and remember X" cannot make it *do* anything. Jevmem also asks Jev whether the message is aimed at an automated system and refuses to save when it is.
+- **Nothing it can be made to write or run.** Jev cannot generate text, so a transcript that says "ignore previous instructions and remember X" cannot make it write a line or execute anything; the worst case is a wrong probability. Injected text can still *bias* those probabilities (TypeSafe documents this in its model notes), which is why four injection nouls gate every save and the eval set carries injection attempts.
 
 ## Comparison to LLM-based memory
 
@@ -184,10 +202,10 @@ Measured with `jev-latest` on 2026-09-22 (the exact turns are in `DEMO.md` and `
 |---|---|---|
 | Decides what to save with | A full LLM prompt over the transcript | One Jev call of 12 questions; a second of 33 on the ~15% of turns that are borderline |
 | Runs | End of session, or every N turns | Every turn |
-| Latency per decision | 2–10 s | ~270 ms warm |
-| Cost per decision | $0.005–0.05 | ~$0.00013 |
+| Latency per decision | ~1–3 s (estimate) | ~270 ms warm (measured) |
+| Cost per decision | ≈ $0.004 (estimate: Claude Haiku 4.5 list price, same input, ~150 JSON output tokens) | ~$0.00013 (measured) |
 | Detects contradictions | Sometimes, in prose | `contradicts_existing_memory` ≥ 0.7 AND a named memory id |
-| Injection resistance | Prompt-dependent | Decision model can't generate; four injection nouls |
+| Injection resistance | Prompt-dependent; a jailbreak can make it write anything | Can't write or run anything; injected text can only bias probabilities, and four injection nouls gate every save |
 | Storage | Proprietary DB | `JEVMEM.md` in your repo, one line per memory |
 | Calibration | None | `right`/`wrong`/`missed` labels, `fit` refits weights and thresholds |
 | Generates the memory text with | The same big LLM | A small LLM, one line, only when Jev says so |
@@ -354,6 +372,13 @@ Observed on Claude Code CLI 2.0.30. `Stop` carries **no message text**; jevmem r
 {"session_id":"…","transcript_path":"…","cwd":"/your/project","permission_mode":"default","hook_event_name":"UserPromptSubmit","prompt":"your prompt text"}
 ```
 
+## Honest limits
+
+- **Early.** This is v0.3. The eval set is 50 hand-labelled turns, mostly written by the author, plus six from one real session. Expect rough edges and file issues.
+- **Recall's effect on answer quality is not measured yet.** The read side injects the top five relevant lines per prompt; that it picks the right lines is tested, that Claude answers better because of them is not.
+- **Long-run noise is not measured yet.** The harness covers five-turn sessions. How much drift a `JEVMEM.md` accumulates over weeks of real use, and how often `audit` and `wrong` are needed, is unknown.
+- **Cursor capture is MCP-driven, not automatic.** Cursor has no per-turn hook and no text transcript on disk, so it saves memories only when the agent follows the rule and calls `add_memory`. Claude Code is the only tool with automatic per-turn capture; Codex gets it via `jevmem watch`.
+
 ## Development
 
 ```bash
@@ -362,7 +387,7 @@ pnpm build        # tsup → dist/
 pnpm test         # vitest, Jev mocked
 pnpm lint         # tsc --noEmit + eslint
 JEVMEM_LIVE=1 pnpm test   # adds one real Jev test (needs TYPESAFE_API_KEY)
-node scripts/eval.mjs     # score `decide` in fast/auto/full on the 48-turn hand-labelled set (live Jev)
+node scripts/eval.mjs     # score `decide` in fast/auto/full on the 50-turn hand-labelled set (live Jev); the source of every number in this README
 scripts/e2e.sh --runs 3 --automemory both   # REAL multi-turn Claude Code session under the desktop app's stripped env (needs a logged-in `claude`)
 ```
 

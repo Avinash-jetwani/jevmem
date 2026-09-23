@@ -2,6 +2,12 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.5] - 2026-09-23
+
+### Changed (docs only)
+- README: new opening (one memory file shared by Claude Code, Cursor and Codex; in git; every line explainable), "Built on Jev by TypeSafe AI", a launch-video placeholder, a "How this differs from Claude Code's built-in memory" section, an "Honest limits" section, one set of eval numbers everywhere (50-turn set: fast 98.0%, auto 98.0% at 12% escalation, full 100%, F1 100%), the LLM comparison restated as a labelled estimate (Claude Haiku 4.5 list price, same input, ~150 output tokens ≈ $0.004 and 1–3 s, ~30× Jevmem), and the injection claim reworded (Jev can't be made to write or run anything, but injected text can bias its probabilities, which the four injection nouls gate).
+- DEMO: the "for real" section now shows the v0.3.4 harness run of the five demo prompts.
+
 ## [0.3.4] - 2026-09-23
 
 ### Fixed
@@ -127,6 +133,7 @@ The decomposed set **tied** the v0.2.0 set on this transcript at 3.3× the token
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.3.5]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.1...v0.3.2
