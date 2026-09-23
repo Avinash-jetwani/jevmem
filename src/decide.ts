@@ -129,13 +129,20 @@ export function splitTurn(message: string): { user: string; assistant: string } 
 
 const QUESTION_START = /^(why|how|what|where|which|when|who|whose|whom|can|could|would|should|does|do|is|are|did|was|were|will|explain|tell me|help me|show me|any idea|anyone know|find out|investigate|debug|diagnose|look into|check why|figure out)\b/i;
 
-const BUG_REPORT = /\b(fails?|failing|failed|broken|breaks?|crash(es|ed|ing)?|error|exception|flaky|stale|wrong|incorrect|doesn'?t work|not working|isn'?t working|won'?t (start|build|load|compile)|hangs?|timeout|times out|returns? (a )?\d{3}|5\d\d|4\d\d|bug|regression|leak|slow)\b|\b[A-Z][a-zA-Z]*Error\b/i;
+// Bug-report vocabulary. A bare 3-digit number is not enough ("under 500 KB", "port 443"); a 4xx/5xx counts only in an
+// HTTP context: "returns 500", "HTTP 404", "status 503", "502 error".
+const BUG_REPORT = /\b(fails?|failing|failed|broken|breaks?|crash(es|ed|ing)?|error|exception|flaky|stale|wrong|incorrect|doesn'?t work|not working|isn'?t working|won'?t (start|build|load|compile)|hangs?|timeout|times out|returns? (a |an )?[45]\d\d|(http|status|code|with an?) [45]\d\d|[45]\d\d (error|response|status)|bug|regression|leak|slow)\b|\b[A-Z][a-zA-Z]*Error\b/i;
 
 /**
  * Does the user's message invite an answer from the assistant? Only then is the assistant reply part of the state:
  * a statement from the user is the memory, and the assistant's acknowledgement, options, or summary never is.
- * Two shapes count: a question or investigation request, and a bug report (usually a statement whose diagnosis lives
- * in the reply, e.g. "the cache returns stale prices after logout").
+ * It is a keyword heuristic, and deliberately broad. True when any of:
+ * - the message ends with `?`, or its first line contains one;
+ * - it starts with a question or investigation word (why, how, what, do, is, will, can, explain, debug, look into, …);
+ * - its first 400 characters contain bug-report vocabulary (error, fails, broken, crash, flaky, stale, wrong, slow,
+ *   timeout, bug, regression, leak, a `…Error` name, or an HTTP-context 4xx/5xx such as "returns 500").
+ * So "Use Sentry for error reporting." also sends the reply; the content_source question then decides which side
+ * the memory comes from, and only bug/architecture may come from the assistant.
  */
 export function looksLikeQuestion(user: string): boolean {
   const t = user.trim();
@@ -199,6 +206,38 @@ function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families
   };
 }
 
+export type DecideState = {
+  user_message: string;
+  assistant_reply?: string;
+  previous_turns: string | null;
+  existing_memories: { id: string; kind: string; text: string }[];
+};
+
+/**
+ * The exact state `decide` sends Jev for a turn. Exported so the benchmark gives other deciders the identical input.
+ * The user message is the state; the assistant reply joins it only when `looksLikeQuestion` is true (or there is no
+ * user text at all), because otherwise the assistant's acknowledgement, options, or summary would be remembered.
+ */
+export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "maxIds" | "maxMessageChars" | "maxContextChars"> = {}) {
+  const parts = input.userMessage !== undefined ? { user: input.userMessage, assistant: input.assistantReply ?? "" } : splitTurn(input.message ?? "");
+  // Secrets and PII are stripped here, before anything is batched into the state. (createJev scrubs again at the
+  // HTTP boundary; doing it here too means a mocked or custom JevCaller never sees a credential either.)
+  const userMessage = scrubSecrets(parts.user).slice(0, opts.maxMessageChars ?? 6000);
+  // Also included when there is no user text at all (transcript unreadable, only `last_assistant_message`): the
+  // content_source choice then decides, and only bug/architecture may come from the assistant.
+  const assistantIncluded = parts.assistant.trim().length > 0 && (looksLikeQuestion(userMessage) || userMessage.trim().length === 0);
+  const assistantReply = assistantIncluded ? scrubSecrets(parts.assistant).slice(0, 2000) : "";
+  const recent = scrubSecrets(input.recentContext ?? "").slice(-(opts.maxContextChars ?? 1500));
+  const candidates = prefilterByOverlap(userMessage + " " + assistantReply, input.existingMemories, opts.maxIds ?? DEFAULT_CONFIG.jev.maxIdsPerCall).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
+  const state: DecideState = {
+    user_message: userMessage,
+    ...(assistantIncluded ? { assistant_reply: assistantReply } : {}),
+    previous_turns: recent || null,
+    existing_memories: candidates.map((m) => ({ id: m.id, kind: m.kind, text: m.text })),
+  };
+  return { state, parts, assistantIncluded, candidates };
+}
+
 /**
  * Two-tier decide. Tier 1 (9 broad nouls, ~1.5k tokens) runs every turn; tier 2 (30 atomic nouls) runs only when the
  * borderline rule says tier 1 is unsure. `tiers.mode` forces `fast` (tier 1 only) or `full` (always tier 2).
@@ -209,24 +248,7 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
   const tier1Thresholds: Thresholds = { ...thresholds, ...tiers.tier1Thresholds };
   const weights = resolveWeights(opts.weights);
   const maxIds = opts.maxIds ?? DEFAULT_CONFIG.jev.maxIdsPerCall;
-  // The user message is the state. The assistant reply joins it only when the user asked a question, because
-  // otherwise the assistant's acknowledgement, options, or summary would be what gets remembered.
-  const parts = input.userMessage !== undefined ? { user: input.userMessage, assistant: input.assistantReply ?? "" } : splitTurn(input.message ?? "");
-  // Secrets and PII are stripped here, before anything is batched into the state. (createJev scrubs again at the
-  // HTTP boundary; doing it here too means a mocked or custom JevCaller never sees a credential either.)
-  const userMessage = scrubSecrets(parts.user).slice(0, opts.maxMessageChars ?? 6000);
-  // Also included when there is no user text at all (transcript unreadable, only `last_assistant_message`): the
-  // content_source choice then decides, and only bug/architecture may come from the assistant.
-  const assistantIncluded = parts.assistant.trim().length > 0 && (looksLikeQuestion(userMessage) || userMessage.trim().length === 0);
-  const assistantReply = assistantIncluded ? scrubSecrets(parts.assistant).slice(0, 2000) : "";
-  const recent = scrubSecrets(input.recentContext ?? "").slice(-(opts.maxContextChars ?? 1500));
-  const candidates = prefilterByOverlap(userMessage + " " + assistantReply, input.existingMemories, maxIds).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
-  const state = {
-    user_message: userMessage,
-    ...(assistantIncluded ? { assistant_reply: assistantReply } : {}),
-    previous_turns: recent || null,
-    existing_memories: candidates.map((m) => ({ id: m.id, kind: m.kind, text: m.text })),
-  };
+  const { state, parts, assistantIncluded, candidates } = buildDecideState(input, { ...opts, maxIds });
   const tier1Names = tier1NoulsFor(assistantIncluded).map((n) => n.name);
   const tier2Names = atomicNoulsFor(assistantIncluded).map((n) => n.name);
 

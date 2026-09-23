@@ -47,7 +47,7 @@ export interface CreateJevOptions {
   timeoutMs?: number;
   /** Set to disable writing `.jevmem/log.jsonl`. */
   noLogFile?: boolean;
-  /** Cache identical (model, state, questions) → answers under `.jevmem/cache/`. Needs `root`. Default true. */
+  /** Cache identical (model, tier, state, questions) → answers under `.jevmem/cache/`. Needs `root`. Default true. */
   cache?: boolean;
   /** Send `zeroDataRetention: true` in every request body. `"auto"`: only when the base URL is a Vercel AI Gateway. */
   zeroDataRetention?: boolean | "auto";
@@ -234,14 +234,14 @@ export function createJev(opts: CreateJevOptions = {}): JevCaller {
           { timeout: callOpts.timeoutMs ?? opts.timeoutMs, signal: callOpts.signal, retry: callOpts.timeoutMs ? { maxRetries: 0 } : undefined },
         );
         if (key) writeCache(opts.root!, key, { model: res.model, answers: res.answers, usage: res.usage });
-        const tokens = res.usage.input_tokens + res.usage.output_tokens;
+        // Jev is billed on input tokens only ($0.042/M by default; output tokens are free per TypeSafe's launch post).
         const entry: JevLogEntry = {
           ...base,
           ok: true,
           latencyMs: Math.round(performance.now() - t0),
           inputTokens: res.usage.input_tokens,
           outputTokens: res.usage.output_tokens,
-          costUsd: (tokens / 1_000_000) * usdPerM,
+          costUsd: (res.usage.input_tokens / 1_000_000) * usdPerM,
           model: res.model,
           cacheHit: false,
         };

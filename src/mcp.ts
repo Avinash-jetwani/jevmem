@@ -3,20 +3,21 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { applyAudit, auditMemories, formatAuditTable } from "./audit.js";
 import { loadConfig } from "./config.js";
+import { gatedAdd } from "./gate.js";
 import { createJev, hasJevKey, type JevCaller } from "./jev.js";
 import { rankMemories } from "./recall.js";
 import { MemoryStore } from "./store.js";
-import { NEW_KINDS } from "./types.js";
+import { NEW_KINDS, type Kind } from "./types.js";
 
 export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): McpServer {
   const cfg = loadConfig(root);
   const store = new MemoryStore(root, cfg.memoryFile);
   const getJev = (): JevCaller => {
     if (deps.jev) return deps.jev;
-    if (!hasJevKey()) throw new Error("TYPESAFE_API_KEY is not set; search and audit need Jev.");
+    if (!hasJevKey()) throw new Error("TYPESAFE_API_KEY is not set; search, add and audit need Jev.");
     return createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
   };
-  const server = new McpServer({ name: "jevmem", version: "0.3.8" });
+  const server = new McpServer({ name: "jevmem", version: "0.4.0" });
   const text = (s: unknown) => ({ content: [{ type: "text" as const, text: typeof s === "string" ? s : JSON.stringify(s, null, 2) }] });
 
   server.registerTool(
@@ -46,12 +47,25 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
     "add_memory",
     {
       title: "Add a memory",
-      description: "Append one memory line to JEVMEM.md.",
+      description:
+        "Append one memory line to JEVMEM.md. The line is scrubbed of secrets and checked by Jev first (the same gate as the Claude Code hook): lines that read as instructions aimed at an AI, small talk, or duplicates are refused with a reason. Jev may correct the kind.",
       inputSchema: { text: z.string().min(3).max(500), kind: z.enum(NEW_KINDS as unknown as [string, ...string[]]) },
     },
     async ({ text: t, kind }) => {
-      const mem = store.add({ kind: kind as any, text: t.slice(0, cfg.writer.maxChars), conf: 1 });
-      return text({ added: mem });
+      let jev: JevCaller;
+      try {
+        jev = getJev();
+      } catch (e) {
+        return { ...text({ added: null, refused: (e as Error).message }), isError: true };
+      }
+      const r = await gatedAdd(jev, store, cfg, t, kind as Kind);
+      if (!r.ok) return { ...text({ added: null, refused: r.reason }), isError: true };
+      return text({
+        added: r.saved,
+        ...(r.kindFrom === "jev" && r.kind !== kind ? { kind_corrected: `${kind} → ${r.kind}` } : {}),
+        ...(r.superseded ? { superseded: r.superseded.id } : {}),
+        ...(r.redacted ? { note: "credential-shaped text was redacted before saving" } : {}),
+      });
     },
   );
 

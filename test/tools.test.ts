@@ -8,14 +8,42 @@ import { findCodexRollouts, parseRolloutLines, watchCodex } from "../src/watch.j
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-tools-"));
 
 describe("tool setup", () => {
-  it("detects tools from files present", () => {
+  it("detects tools from files present in the project", () => {
     const root = tmp();
-    const home = tmp();
-    expect(detectTools(root, home)).toEqual([]);
+    expect(detectTools(root)).toEqual([]);
     fs.mkdirSync(path.join(root, ".cursor"));
     fs.writeFileSync(path.join(root, "AGENTS.md"), "# hi\n");
     fs.mkdirSync(path.join(root, ".claude"));
-    expect(detectTools(root, home)).toEqual(["claude", "cursor", "codex"]);
+    expect(detectTools(root)).toEqual(["claude", "cursor", "codex"]);
+  });
+
+  it("never looks at the home directory: ~/.codex alone does not select Codex", () => {
+    const root = tmp();
+    const home = tmp();
+    fs.mkdirSync(path.join(home, ".codex"));
+    const prev = process.env.HOME;
+    process.env.HOME = home;
+    try {
+      expect(detectTools(root)).toEqual([]);
+    } finally {
+      process.env.HOME = prev;
+    }
+  });
+
+  it("detected Codex (AGENTS.md) writes the project section but leaves ~/.codex/config.toml alone", () => {
+    const root = tmp();
+    const home = tmp();
+    fs.writeFileSync(path.join(root, "AGENTS.md"), "# Project\n");
+    fs.mkdirSync(path.join(home, ".codex"));
+    const toml = 'model = "x"\n';
+    fs.writeFileSync(path.join(home, ".codex", "config.toml"), toml);
+    let announced = false;
+    const r = setupCodex(root, home, () => (announced = true), false);
+    expect(r.created).toEqual(["AGENTS.md (+ jevmem section)"]);
+    expect(announced).toBe(false);
+    expect(fs.readFileSync(path.join(home, ".codex", "config.toml"), "utf8")).toBe(toml);
+    expect(fs.readdirSync(path.join(home, ".codex"))).toEqual(["config.toml"]);
+    expect(r.notes.join(" ")).toContain("--tool codex");
   });
 
   it("writes the Cursor MCP entry and rule without clobbering existing servers, idempotently", () => {

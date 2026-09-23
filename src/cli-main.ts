@@ -12,6 +12,7 @@ import { mergeTurn } from "./transcript.js";
 import { createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
 import { serveMcp } from "./mcp.js";
 import { rankMemories } from "./recall.js";
+import { scrubSecrets } from "./scrub.js";
 import { MemoryStore } from "./store.js";
 import { NEW_KINDS, type Kind } from "./types.js";
 
@@ -201,7 +202,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
           t === "cursor"
             ? setupCursor(root)
             : t === "codex"
-              ? setupCodex(root, undefined, ({ file, backup, lines }) => io.out(`\nAbout to append to ${file} (outside this project)\n  backup: ${backup}\n  lines:\n${lines.split("\n").filter(Boolean).map((l) => "    " + l).join("\n")}\n`))
+              ? setupCodex(root, undefined, ({ file, backup, lines }) => io.out(`\nAbout to append to ${file} (outside this project)\n  backup: ${backup}\n  lines:\n${lines.split("\n").filter(Boolean).map((l) => "    " + l).join("\n")}\n`), Boolean(toolArg))
               : t === "claude-desktop"
                 ? setupClaudeDesktop(root)
                 : null;
@@ -325,7 +326,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       if (!kind || !(NEW_KINDS as readonly string[]).includes(kind) || !text) return fail(`usage: jevmem add <${NEW_KINDS.join("|")}> <text>`);
       const cfg = loadConfig(root);
       const store = new MemoryStore(root, cfg.memoryFile);
-      const m = store.add({ kind, text: text.slice(0, cfg.writer.maxChars), conf: 1 });
+      // Typed by a person, so no Jev check; secrets are still scrubbed because JEVMEM.md is committed.
+      const m = store.add({ kind, text: scrubSecrets(text).slice(0, cfg.writer.maxChars), conf: 1 });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}\n`);
       return 0;
     }
@@ -396,7 +398,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
       const { count, decision, label } = await labelMissed(jev, root, cfg, text.includes("USER:") ? text : mergeTurn(text, ""), kind, store.active());
       io.out(`labelled as missed (${label.kind}); Jev had said: ${decision.reason}. ${count} label(s) total.\n`);
-      const m = store.add({ kind: label.kind as Kind, text: text.slice(0, cfg.writer.maxChars), conf: decision.confidence });
+      const m = store.add({ kind: label.kind as Kind, text: scrubSecrets(text).slice(0, cfg.writer.maxChars), conf: decision.confidence });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}\n`);
       printJevSummary(jev.log);
       return 0;

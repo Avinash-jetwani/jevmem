@@ -20,12 +20,15 @@ command = "npx"
 args = ["-y", "jevmem", "mcp"]
 `;
 
-/** Which tools look present in this project (or on this machine, for Codex). */
-export function detectTools(root: string, home = os.homedir()): Tool[] {
+/**
+ * Which tools look present in this project. Only the project is inspected, never the home directory: a machine
+ * with Codex installed must not turn a plain `jevmem init` into a Codex-only setup. Empty means "use claude".
+ */
+export function detectTools(root: string): Tool[] {
   const out: Tool[] = [];
   if (fs.existsSync(path.join(root, ".claude"))) out.push("claude");
   if (fs.existsSync(path.join(root, ".cursor"))) out.push("cursor");
-  if (fs.existsSync(path.join(root, "AGENTS.md")) || fs.existsSync(path.join(home, ".codex"))) out.push("codex");
+  if (fs.existsSync(path.join(root, "AGENTS.md"))) out.push("codex");
   return out;
 }
 
@@ -86,7 +89,11 @@ export function setupCursor(root: string): ToolSetupResult {
   return r;
 }
 
-export function setupCodex(root: string, home = os.homedir(), announce?: Announce): ToolSetupResult {
+/**
+ * Codex setup. The AGENTS.md section is always written; `~/.codex/config.toml` (the only file outside the project
+ * jevmem ever edits) is touched only when `editGlobalConfig` is true, i.e. the user passed `--tool codex` or `--tool all`.
+ */
+export function setupCodex(root: string, home = os.homedir(), announce?: Announce, editGlobalConfig = true): ToolSetupResult {
   const r: ToolSetupResult = { created: [], skipped: [], notes: [] };
   const agents = path.join(root, "AGENTS.md");
   const cur = fs.existsSync(agents) ? fs.readFileSync(agents, "utf8") : "";
@@ -96,7 +103,9 @@ export function setupCodex(root: string, home = os.homedir(), announce?: Announc
     r.created.push(cur ? "AGENTS.md (+ jevmem section)" : "AGENTS.md");
   }
   const cfg = path.join(home, ".codex", "config.toml");
-  if (fs.existsSync(cfg)) {
+  if (!editGlobalConfig) {
+    r.notes.push("Codex was detected from AGENTS.md, so ~/.codex/config.toml was not edited. To register the MCP server there, run `jevmem init --tool codex` or: codex mcp add jevmem -- npx -y jevmem mcp");
+  } else if (fs.existsSync(cfg)) {
     const toml = fs.readFileSync(cfg, "utf8");
     if (/^\[mcp_servers\.jevmem\]/m.test(toml)) r.skipped.push("~/.codex/config.toml (jevmem server)");
     else {

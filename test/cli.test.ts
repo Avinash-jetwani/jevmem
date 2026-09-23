@@ -56,3 +56,59 @@ describe("per-command --help", () => {
     expect(bad.err).toContain("unknown command: nope");
   });
 });
+
+describe("init with no --tool", () => {
+  it("sets up Claude Code hooks and leaves ~/.codex alone on a machine that has Codex installed", async () => {
+    const cwd = tmp();
+    fs.mkdirSync(path.join(cwd, ".git"));
+    const home = tmp();
+    fs.mkdirSync(path.join(home, ".codex"));
+    const toml = 'model = "x"\n';
+    fs.writeFileSync(path.join(home, ".codex", "config.toml"), toml);
+    const prev = process.env.HOME;
+    process.env.HOME = home;
+    try {
+      const r = await run(["init", "--command", "node /x/cli.js hook"], cwd);
+      expect(r.code).toBe(0);
+      expect(r.out).toContain("Tools: claude (detected");
+      const local = JSON.parse(fs.readFileSync(path.join(cwd, ".claude", "settings.local.json"), "utf8"));
+      expect(local.hooks.Stop[0].hooks[0].command).toBe("node /x/cli.js hook");
+      expect(fs.existsSync(path.join(cwd, "AGENTS.md"))).toBe(false);
+      expect(fs.readFileSync(path.join(home, ".codex", "config.toml"), "utf8")).toBe(toml);
+      expect(fs.readdirSync(path.join(home, ".codex"))).toEqual(["config.toml"]);
+      expect(fs.readFileSync(path.join(cwd, ".gitignore"), "utf8")).toBe(".jevmem/\n.claude/settings.local.json\n");
+    } finally {
+      process.env.HOME = prev;
+    }
+  });
+
+  it("edits ~/.codex/config.toml only when --tool codex is passed explicitly", async () => {
+    const cwd = tmp();
+    const home = tmp();
+    fs.mkdirSync(path.join(home, ".codex"));
+    fs.writeFileSync(path.join(home, ".codex", "config.toml"), 'model = "x"\n');
+    const prev = process.env.HOME;
+    process.env.HOME = home;
+    try {
+      const r = await run(["init", "--tool", "codex"], cwd);
+      expect(r.code).toBe(0);
+      expect(r.out).toContain("About to append to");
+      expect(fs.readFileSync(path.join(home, ".codex", "config.toml"), "utf8")).toContain("[mcp_servers.jevmem]");
+      expect(fs.existsSync(path.join(cwd, ".claude"))).toBe(false);
+    } finally {
+      process.env.HOME = prev;
+    }
+  });
+});
+
+describe("jevmem add", () => {
+  it("scrubs secrets from a hand-typed line before writing the committed file", async () => {
+    const cwd = tmp();
+    await run(["init", "--no-hooks", "--tool", "claude"], cwd);
+    const r = await run(["add", "constraint", "Staging uses DB_PASSWORD=hunter2; never reuse it in prod"], cwd);
+    expect(r.code).toBe(0);
+    const file = fs.readFileSync(path.join(cwd, "JEVMEM.md"), "utf8");
+    expect(file).not.toContain("hunter2");
+    expect(file).toContain("DB_PASSWORD=[REDACTED]");
+  });
+});

@@ -204,3 +204,18 @@ describe("secrets and PII never reach Jev", () => {
     expect(sent).toContain("keep Node 20");
   });
 });
+
+describe("buildDecideState", () => {
+  it("is exactly the state decide sends Jev (the benchmark gives LLMs this object)", async () => {
+    const { buildDecideState, decide } = await import("../src/decide.js");
+    const { mockJev, SAVE_DECISION } = await import("./helpers.js");
+    const input = { userMessage: "why does login fail with DB_PASSWORD=abc?", assistantReply: "The pool reads a stale env.", recentContext: "USER: earlier turn", existingMemories: [{ id: "m1", kind: "decision" as const, text: "Use Postgres" }] };
+    const jev = mockJev(() => SAVE_DECISION);
+    await decide(jev, input, { tiers: { mode: "fast" } });
+    const { state } = buildDecideState(input);
+    expect(jev.calls[0]!.state).toEqual(state);
+    expect(state.previous_turns).toBe("USER: earlier turn");
+    expect(state.assistant_reply).toBe("The pool reads a stale env.");
+    expect(JSON.stringify(state)).not.toContain("abc?");
+  });
+});

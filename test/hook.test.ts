@@ -153,4 +153,31 @@ describe("init", () => {
     const again = init({ root, command: "node /x/cli.js hook" });
     expect(again.created).not.toContain("JEVMEM.md");
   });
+
+  it("gitignores .claude/settings.local.json (absolute machine paths) next to .jevmem/, once", () => {
+    const root = tmp();
+    fs.writeFileSync(path.join(root, ".gitignore"), "node_modules");
+    const r = init({ root, command: "node /x/cli.js hook" });
+    expect(r.created).toContain(".gitignore (+ .jevmem/, .claude/settings.local.json)");
+    expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toBe("node_modules\n.jevmem/\n.claude/settings.local.json\n");
+    init({ root, command: "node /x/cli.js hook" });
+    expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toBe("node_modules\n.jevmem/\n.claude/settings.local.json\n");
+  });
+
+  it("creates .gitignore in a git repo that has none, but not in a plain folder", () => {
+    const repo = tmp();
+    fs.mkdirSync(path.join(repo, ".git"));
+    init({ root: repo, command: "node /x/cli.js hook" });
+    expect(fs.readFileSync(path.join(repo, ".gitignore"), "utf8")).toBe(".jevmem/\n.claude/settings.local.json\n");
+    const plain = tmp();
+    init({ root: plain, command: "node /x/cli.js hook" });
+    expect(fs.existsSync(path.join(plain, ".gitignore"))).toBe(false);
+  });
+
+  it("does not add settings.local.json to .gitignore with --no-hooks", () => {
+    const root = tmp();
+    fs.mkdirSync(path.join(root, ".git"));
+    init({ root, hooks: false });
+    expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toBe(".jevmem/\n");
+  });
 });

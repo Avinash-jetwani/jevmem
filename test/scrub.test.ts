@@ -32,3 +32,37 @@ describe("PII", () => {
     expect(scrubSecrets("ticket 123456 on v20.11.1 port 5432")).toBe("ticket 123456 on v20.11.1 port 5432");
   });
 });
+
+describe("env-style and short credentials", () => {
+  it.each([
+    ["DB_PASSWORD=supersecret123", "DB_PASSWORD=[REDACTED]"],
+    ["export AWS_SECRET_ACCESS_KEY=abc", "export AWS_SECRET_ACCESS_KEY=[REDACTED]"],
+    ["APP_SECRET=x1", "APP_SECRET=[REDACTED]"],
+    ["GITHUB_TOKEN=gh1", "GITHUB_TOKEN=[REDACTED]"],
+    ["STRIPE_KEY: 'k9'", "STRIPE_KEY=[REDACTED]"],
+    ["set db_password = hunter", "set db_password=[REDACTED]"],
+  ])("redacts %s", (input, want) => {
+    expect(scrubSecrets(input)).toBe(want);
+  });
+
+  it.each([
+    ["password=hunter2", "password=[REDACTED]"],
+    ["pwd=abc", "pwd=[REDACTED]"],
+    ["pass: 1234", "pass=[REDACTED]"],
+    ['passwd="pw"', "passwd=[REDACTED]"],
+  ])("redacts short password %s", (input, want) => {
+    expect(scrubSecrets(input)).toBe(want);
+  });
+
+  it("redacts npm, Hugging Face, GitLab and short Stripe tokens", () => {
+    for (const t of ["npm_abcdefghijklmnopqrstuvwx12", "hf_abcdefghijklmnopqrstuvwxyz", "glpat-abcdefghijklmnopqrstu", "sk_live_abcdef123456", "rk_test_ABCDEF123456"]) {
+      expect(scrubSecrets(`token ${t} here`)).toBe("token [REDACTED] here");
+    }
+  });
+
+  it("keeps non-secret env assignments and prose", () => {
+    for (const t of ["NODE_ENV=production", "MAX_TOKENS=4000", "PORT=8080", "Keep the bundle under 500 KB.", "the bypass flag is off"]) {
+      expect(scrubSecrets(t)).toBe(t);
+    }
+  });
+});

@@ -36,14 +36,20 @@ export function resolveHookCommand(root: string, cliPath?: string, nodePath: str
   return `"${real(nodePath)}" "${cli}" hook`;
 }
 
-function ensureGitignore(root: string, created: string[]): void {
+/**
+ * Add jevmem's per-machine paths to the project `.gitignore`: `.jevmem/` (local state) and, when hooks are
+ * registered, `.claude/settings.local.json` (it holds absolute paths to this machine's node and CLI). A missing
+ * `.gitignore` is created only when the folder is a git repository.
+ */
+export function ensureGitignore(root: string, entries: string[], created: string[]): void {
   const gi = path.join(root, ".gitignore");
-  const line = ".jevmem/";
-  if (!fs.existsSync(gi)) return; // don't create a .gitignore in non-git folders; `.jevmem/.gitignore` covers it anyway
-  const cur = fs.readFileSync(gi, "utf8");
-  if (cur.split(/\r?\n/).some((l) => l.trim() === line || l.trim() === ".jevmem")) return;
-  fs.appendFileSync(gi, (cur.endsWith("\n") || cur === "" ? "" : "\n") + line + "\n");
-  created.push(".gitignore (+ .jevmem/)");
+  if (!fs.existsSync(gi) && !fs.existsSync(path.join(root, ".git"))) return; // not a git repo; `.jevmem/.gitignore` covers .jevmem/
+  const cur = fs.existsSync(gi) ? fs.readFileSync(gi, "utf8") : "";
+  const have = new Set(cur.split(/\r?\n/).map((l) => l.trim().replace(/^\//, "").replace(/\/$/, "")));
+  const missing = entries.filter((e) => !have.has(e.replace(/\/$/, "")));
+  if (missing.length === 0) return;
+  fs.writeFileSync(gi, cur + (cur.endsWith("\n") || cur === "" ? "" : "\n") + missing.join("\n") + "\n");
+  created.push(`.gitignore (+ ${missing.join(", ")})`);
 }
 
 export const HOOK_SETTINGS_FILE = "settings.local.json";
@@ -141,8 +147,8 @@ export function init(opts: InitOptions): InitResult {
   else skipped.push(CONFIG_FILE);
   store.ensureDir();
   created.push(".jevmem/");
-  ensureGitignore(root, created);
   const command = opts.command ?? resolveHookCommand(root, opts.cliPath);
+  ensureGitignore(root, opts.hooks !== false ? [".jevmem/", `.claude/${HOOK_SETTINGS_FILE}`] : [".jevmem/"], created);
   if (opts.hooks !== false) {
     const r = registerClaudeHooks(root, command);
     (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop + UserPromptSubmit hooks${r === "updated" ? ", command updated" : ""})`);

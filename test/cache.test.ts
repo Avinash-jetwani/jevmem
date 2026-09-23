@@ -33,7 +33,9 @@ describe("answer cache", () => {
     const s = summarizeLog(log);
     expect(s.cacheHits).toBe(1);
     expect(s.cacheHitRate).toBe(0.5);
-    expect(s.totalCostUsd).toBeCloseTo((103 / 1e6) * 0.042);
+    // Billed on input tokens only (100), not input + output (103).
+    expect(log[0]!.costUsd).toBe((100 / 1e6) * 0.042);
+    expect(s.totalCostUsd).toBe((100 / 1e6) * 0.042);
     // A different state misses.
     await jev.call("hello again", q, { label: "decide" });
     expect(seen).toHaveLength(2);

@@ -49,7 +49,7 @@ export function mockJev(respond: (questions: Questions, state: EntryType, i: num
     async call(state, questions, opts) {
       calls.push({ state, questions, opts });
       const overrides = await respond(questions, state, calls.length - 1);
-      log.push({ ts: new Date().toISOString(), label: opts.label, tier: opts.tier, ok: true, latencyMs: 12, inputTokens: 500, outputTokens: 20, costUsd: (520 / 1e6) * 0.042, questions: Object.keys(questions).length, model: "jev-mock" });
+      log.push({ ts: new Date().toISOString(), label: opts.label, tier: opts.tier, ok: true, latencyMs: 12, inputTokens: 500, outputTokens: 20, costUsd: (500 / 1e6) * 0.042, questions: Object.keys(questions).length, model: "jev-mock" });
       return makeAnswers(questions, overrides) as any;
     },
   };
