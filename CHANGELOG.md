@@ -2,6 +2,22 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.6] - 2026-09-23
+
+### Added
+- `scripts/bench-llm.mjs` + `bench/system-prompt.md`: the 50-turn eval set run through GPT-5.6 Luna, Gemini 3.8 Flash, Claude Sonnet 5 and Claude Fable 5.1 as the memory decider (identical state, same system prompt, strict JSON via structured output) and through jevmem `auto`, measuring save/skip and save+kind accuracy, contradiction id found, injection turns not saved, malformed-JSON rate, p50/p95 latency, and cost from real token usage × list price with the pricing URL and date recorded. Models without a key are skipped and reported, not estimated. Results in `results/bench-2026-09-23.json`; on that run only jevmem could be measured (100% save/skip, 98.0% save+kind, 2/2 contradictions, 4/4 injections blocked, 0% malformed, p50 266 ms, $0.000132 per decision) because no LLM key was present.
+- `SECURITY.md`: what is sent to which API, what is stored locally, what is scrubbed, zero-retention routing, files written outside the project, and private vulnerability reporting. Shipped in the npm package.
+- The eval set carries `contradicts` labels for its two contradiction turns.
+
+### Changed
+- README: data-flow disclosure under the tagline; a Benchmark section that replaces the Claude Haiku 4.5 estimate; every estimated number and the "40–400×" / "$0.005–0.05" / "2–10 s" style figures are gone; the injection claim says Jev has no text or tool output to hijack and that injected text can still bias probabilities; absolute wording ("never", "can't", "always") rewritten except where literally true and tested; "v0.3, built in launch week. Issues and feedback welcome." in Honest limits.
+- Tagline is "Jev decides. The LLM writes one line." everywhere (README, package description, CLI help, DEMO).
+- `init --tool codex` prints the file path, a backup path and the exact lines before appending to `~/.codex/config.toml`, and keeps the backup (tested).
+- `package.json` ships `dist`, `README.md`, `LICENSE`, `CHANGELOG.md`, `SECURITY.md`; it has no install or postinstall scripts.
+
+### Verified (2026-09-23)
+- `scripts/e2e.sh --runs 3`: 3/3. `node scripts/eval.mjs`: fast 98.0%, auto 98.0% (10% escalation), full 100%, F1 100%; README and DEMO cite this run.
+
 ## [0.3.5] - 2026-09-23
 
 ### Changed (docs only)
@@ -133,6 +149,7 @@ The decomposed set **tied** the v0.2.0 set on this transcript at 3.3× the token
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.3.6]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.2...v0.3.3

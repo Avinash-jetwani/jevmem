@@ -41,7 +41,8 @@ describe("tool setup", () => {
     fs.mkdirSync(path.join(home, ".codex"));
     fs.writeFileSync(path.join(home, ".codex", "config.toml"), 'model = "x"\n\n[mcp_servers.other]\ncommand = "y"\n');
     const r = setupCodex(root, home);
-    expect(r.created).toEqual(["AGENTS.md (+ jevmem section)", "~/.codex/config.toml (+ [mcp_servers.jevmem])"]);
+    expect(r.created[0]).toBe("AGENTS.md (+ jevmem section)");
+    expect(r.created[1]).toMatch(/^~\/\.codex\/config\.toml \(\+ \[mcp_servers\.jevmem\]; backup at ~\/\.codex\/config\.toml\.bak-/);
     const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
     expect(agents.startsWith("# Project\n\nBe nice.\n")).toBe(true);
     expect(agents).toContain("## Jevmem project memory");
@@ -50,6 +51,32 @@ describe("tool setup", () => {
     expect(toml).toContain('[mcp_servers.jevmem]\ncommand = "npx"\nargs = ["-y", "jevmem", "mcp"]');
     expect(setupCodex(root, home).created).toEqual([]);
     expect(setupCodex(tmp(), tmp()).notes.join(" ")).toContain("codex mcp add");
+  });
+
+  it("announces the file, backup path and exact lines before writing outside the project, and keeps the backup", () => {
+    const root = tmp();
+    const home = tmp();
+    fs.mkdirSync(path.join(home, ".codex"));
+    const original = 'model = "x"\n';
+    fs.writeFileSync(path.join(home, ".codex", "config.toml"), original);
+    const seen: any[] = [];
+    let writtenAtAnnounce: string | null = null;
+    const r = setupCodex(root, home, (info) => {
+      seen.push(info);
+      writtenAtAnnounce = fs.readFileSync(path.join(home, ".codex", "config.toml"), "utf8"); // nothing written yet
+    });
+    expect(seen).toHaveLength(1);
+    expect(seen[0].file).toBe(path.join(home, ".codex", "config.toml"));
+    expect(seen[0].backup).toMatch(/config\.toml\.bak-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$/);
+    expect(seen[0].lines).toBe('[mcp_servers.jevmem]\ncommand = "npx"\nargs = ["-y", "jevmem", "mcp"]\n');
+    expect(writtenAtAnnounce).toBe(original);
+    expect(fs.readFileSync(seen[0].backup, "utf8")).toBe(original);
+    expect(fs.readFileSync(path.join(home, ".codex", "config.toml"), "utf8")).toBe(original + "\n" + seen[0].lines);
+    expect(r.created.join(" ")).toContain("backup at");
+    // No announce and no write when the section is already there.
+    const again: any[] = [];
+    setupCodex(root, home, (i) => again.push(i));
+    expect(again).toHaveLength(0);
   });
 
   it("produces a Claude Desktop snippet with the project cwd", () => {

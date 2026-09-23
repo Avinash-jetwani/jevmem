@@ -12,6 +12,14 @@ export interface ToolSetupResult {
   notes: string[];
 }
 
+/** Called before any write outside the project, with the path, the backup path, and the exact text to be appended. */
+export type Announce = (info: { file: string; backup: string; lines: string }) => void;
+
+export const CODEX_MCP_SECTION = `[mcp_servers.jevmem]
+command = "npx"
+args = ["-y", "jevmem", "mcp"]
+`;
+
 /** Which tools look present in this project (or on this machine, for Codex). */
 export function detectTools(root: string, home = os.homedir()): Tool[] {
   const out: Tool[] = [];
@@ -78,7 +86,7 @@ export function setupCursor(root: string): ToolSetupResult {
   return r;
 }
 
-export function setupCodex(root: string, home = os.homedir()): ToolSetupResult {
+export function setupCodex(root: string, home = os.homedir(), announce?: Announce): ToolSetupResult {
   const r: ToolSetupResult = { created: [], skipped: [], notes: [] };
   const agents = path.join(root, "AGENTS.md");
   const cur = fs.existsSync(agents) ? fs.readFileSync(agents, "utf8") : "";
@@ -92,8 +100,14 @@ export function setupCodex(root: string, home = os.homedir()): ToolSetupResult {
     const toml = fs.readFileSync(cfg, "utf8");
     if (/^\[mcp_servers\.jevmem\]/m.test(toml)) r.skipped.push("~/.codex/config.toml (jevmem server)");
     else {
-      fs.appendFileSync(cfg, `${toml.endsWith("\n") ? "" : "\n"}\n[mcp_servers.jevmem]\ncommand = "npx"\nargs = ["-y", "jevmem", "mcp"]\n`);
-      r.created.push("~/.codex/config.toml (+ [mcp_servers.jevmem])");
+      // This is the one write outside the project: say exactly what will change, and keep a backup.
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const backup = `${cfg}.bak-${stamp}`;
+      const addition = `${toml.endsWith("\n") ? "" : "\n"}\n${CODEX_MCP_SECTION}`;
+      announce?.({ file: cfg, backup, lines: CODEX_MCP_SECTION });
+      fs.copyFileSync(cfg, backup);
+      fs.appendFileSync(cfg, addition);
+      r.created.push(`~/.codex/config.toml (+ [mcp_servers.jevmem]; backup at ${backup.replace(home, "~")})`);
     }
   } else r.notes.push("~/.codex/config.toml not found; when Codex is installed, add the server with: codex mcp add jevmem -- npx -y jevmem mcp");
   r.notes.push("Codex has no per-turn hook: run `jevmem watch` in the project to capture turns from Codex's session log, or rely on add_memory.");

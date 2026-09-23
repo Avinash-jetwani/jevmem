@@ -15,7 +15,7 @@ import { rankMemories } from "./recall.js";
 import { MemoryStore } from "./store.js";
 import { NEW_KINDS, type Kind } from "./types.js";
 
-const HELP = `jevmem — Jev decides. The LLM writes one line. Your project never forgets.
+const HELP = `jevmem — Jev decides. The LLM writes one line.
 
 Usage: jevmem <command> [options]
 
@@ -80,7 +80,7 @@ Re-running init repairs an existing jevmem hook command and moves one found in .
 `,
   hook: `jevmem hook
 
-Claude Code hook entrypoint. Reads the hook event JSON (Stop or UserPromptSubmit) from stdin, never exits non-zero.
+Claude Code hook entrypoint. Reads the hook event JSON (Stop or UserPromptSubmit) from stdin and exits 0 on any failure.
 Registered by \`jevmem init\`; not meant to be run by hand. JEVMEM_VERBOSE=1 prints a summary, JEVMEM_DEBUG=1 logs payloads.
 `,
   daemon: `jevmem daemon [status|start|stop]
@@ -197,7 +197,14 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       for (const k of r.skipped) io.out(`  kept     ${k}\n`);
       const notes: string[] = [];
       for (const t of tools) {
-        const res = t === "cursor" ? setupCursor(root) : t === "codex" ? setupCodex(root) : t === "claude-desktop" ? setupClaudeDesktop(root) : null;
+        const res =
+          t === "cursor"
+            ? setupCursor(root)
+            : t === "codex"
+              ? setupCodex(root, undefined, ({ file, backup, lines }) => io.out(`\nAbout to append to ${file} (outside this project)\n  backup: ${backup}\n  lines:\n${lines.split("\n").filter(Boolean).map((l) => "    " + l).join("\n")}\n`))
+              : t === "claude-desktop"
+                ? setupClaudeDesktop(root)
+                : null;
         if (!res) continue;
         for (const c of res.created) io.out(`  created  ${c}\n`);
         for (const k of res.skipped) io.out(`  kept     ${k}\n`);
@@ -211,7 +218,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       return 0;
     }
     case "hook": {
-      // Everything in here is wrapped so a hook can never exit non-zero or throw; problems go to .jevmem/log.jsonl.
+      // Everything in here is wrapped so the hook exits 0 on any failure; problems go to .jevmem/log.jsonl.
       let projectRoot = root;
       let event = "hook";
       try {
@@ -243,7 +250,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       } catch (err) {
         logHookProblem(projectRoot, event, err instanceof Error ? `${err.name}: ${err.message}` : String(err));
       }
-      return 0; // never block Claude Code
+      return 0; // exit 0 on every path so Claude Code is not blocked
     }
     case "daemon": {
       const sub = args.shift() ?? "status";
@@ -334,7 +341,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
         io.out(`  ${label.padEnd(8)} ${String(ls.calls).padStart(4)} calls  p50 ${String(ls.p50LatencyMs).padStart(5)} ms  p95 ${String(ls.p95LatencyMs).padStart(5)} ms  ${String(ls.totalTokens).padStart(7)} tokens  $${ls.totalCostUsd.toFixed(6)}  cache ${(ls.cacheHitRate * 100).toFixed(0)}%\n`);
       }
       if (cmd === "stats") {
-        io.out(`decide tiers: ${s.decideTier1} tier-1, ${s.decideTier2} tier-2; escalation rate ${s.escalationRate === null ? "n/a (tier 1 never ran; mode=full?)" : (s.escalationRate * 100).toFixed(0) + "%"}\n`);
+        io.out(`decide tiers: ${s.decideTier1} tier-1, ${s.decideTier2} tier-2; escalation rate ${s.escalationRate === null ? "n/a (no tier-1 calls; mode=full?)" : (s.escalationRate * 100).toFixed(0) + "%"}\n`);
         const days = Object.entries(s.costPerDay).sort();
         if (days.length) {
           io.out("cost per day:\n");
