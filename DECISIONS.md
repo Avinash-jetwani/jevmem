@@ -35,6 +35,11 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 - **The same turn is not evaluated twice.** A SHA-1 of the merged turn is stored in `.jevmem/state.json`; Stop can fire more than once per turn.
 - **Simulation fields.** The hook accepts `user_message`, `assistant_message`, and `recent_context` in the stdin JSON in addition to the real `transcript_path`. That is what the tests and `DEMO.md` use, and it makes the hook scriptable from other tools.
 
+## v0.3.7: the first benchmark run was wrong, and why it stays unpublished
+
+- **A 200-token output cap and a fresh OpenRouter account produced numbers that flattered jevmem.** The first full run showed Claude Sonnet 5 at 42% and GPT-5.6 Luna at 56%. Reading the raw rows: 52 of the failures were HTTP 429 from OpenRouter's new-account rate limit, and the rest were empty replies with exactly 200 output tokens, i.e. reasoning models spending the whole cap before writing JSON. Both are harness defects. Publishing that table would have been the easy-opponent move the benchmark exists to avoid, so the harness was fixed (backoff retries, 1 request/s pacing, 4,000-token cap, first-JSON-object extraction) and every row re-run in the same hour. The corrected table shows two LLMs tied with jevmem on accuracy, which is the true picture and is written into the README as such.
+- **Latency includes retries and reasoning on purpose.** That is what a hook would experience if it called these models per turn.
+
 ## v0.3.6: measured or removed
 
 - **The Haiku estimate is gone because it was an estimate.** A year-old opponent and a back-of-envelope cost are exactly what a launch reader distrusts. `scripts/bench-llm.mjs` puts current models (GPT-5.6 Luna, Gemini 3.8 Flash, Claude Sonnet 5, Claude Fable 5.1) through the same 50-turn set with the same state and a strict JSON schema, and records real token usage against the provider's pricing page with the URL and date. On the release machine no LLM key existed, so the first results file has four skipped rows and one measured row. That is published as-is rather than filled in from memory; the README says why and how to fill it.

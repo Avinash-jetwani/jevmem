@@ -7,7 +7,7 @@
 
 <!-- launch video here -->
 
-**Jev decides. The LLM writes one line.**
+**Shared project memory for Claude Code, Cursor and Codex.**
 
 Data flow, in one sentence: each prompt (and, when you asked a question, the assistant's reply) is sent to TypeSafe AI's API to be scored, secrets and PII are scrubbed before it leaves your machine, and zero-retention routing is available; details in [Security and privacy](#security-and-privacy) and [SECURITY.md](SECURITY.md).
 
@@ -79,7 +79,7 @@ Both can run at once; the end-to-end harness checks that Jevmem behaves the same
 
 ## How Jev is used
 
-Jevmem does not ask Jev to write anything. It asks small, literal, typed questions and combines the answers in code.
+Jev decides, a model writes one line. Jevmem does not ask Jev to write anything; it asks small, literal, typed questions and combines the answers in code, and only when the answer is "save" does a small LLM (or a deterministic extract) write the line.
 
 ### The decider: two tiers (`src/decide.ts`, `src/questions.ts`, `src/combine.ts`)
 
@@ -117,7 +117,7 @@ State sent: `{ user_message, assistant_reply?, previous_turns, existing_memories
 | `auto` (default) | 98.0% | 100% | 3,032 | $0.000127 | 270 ms | 10% |
 | `full` | 100% | 100% | 5,764 | $0.000242 | 276 ms | – |
 
-The set has 8 decisions, 5 constraints, 4 preferences, 5 bugs, 4 architecture facts, 4 todos, 4 chit-chat, 3 questions, 3 injection attempts, 4 format-instruction turns, and 6 turns lifted verbatim from a real Claude Code desktop session with their assistant replies and memory context. The one miss in `fast`/`auto` is a turn that begins with "Decision:" but states a must/never rule; tier 1 calls it a decision, the label says constraint; save/skip is right on every turn in every mode. These are the numbers used everywhere in this README.
+This 50-turn set was written alongside jevmem and includes turns from bugs we fixed. Treat it as a regression test, not an independent benchmark; the LLM comparison uses the same set for every model. It has 8 decisions, 5 constraints, 4 preferences, 5 bugs, 4 architecture facts, 4 todos, 4 chit-chat, 3 questions, 3 injection attempts, 4 format-instruction turns, and 6 turns lifted verbatim from a real Claude Code desktop session with their assistant replies and memory context. The one miss in `fast`/`auto` is a turn that begins with "Decision:" but states a must/never rule; tier 1 calls it a decision, the label says constraint; save/skip is right on every turn in every mode. These are the numbers used everywhere in this README.
 
 | Tier-2 family | Atomic nouls |
 |---|---|
@@ -188,7 +188,7 @@ Every Jev call is logged to `.jevmem/log.jsonl` (question count, tier, tokens, l
 | `search` (choice + noul per candidate) | ~680 | ~230 ms | ~550 ms | ~$0.00003 |
 | `audit` (noul per memory) | ~720 for 2 memories | ~230 ms | ~540 ms | ~$0.00003 |
 
-`decide` figures are the 50-turn eval above; the rest are from the `DEMO.md` runs. 300 turns a day in `auto` mode is $0.04 in Jev (measured: `results/bench-2026-09-23.json`), plus one short LLM completion per *saved* line if you configure a writer. For how this compares with an LLM doing the same job, see [Benchmark](#benchmark); there are no estimated numbers in this README.
+`decide` figures are the 50-turn eval above; the rest are from the `DEMO.md` runs. 300 turns a day in `auto` mode is about $0.03–0.04 in Jev (measured: `results/bench-2026-09-23.json` and the eval run), plus one short LLM completion per *saved* line if you configure a writer. For how this compares with an LLM doing the same job, see [Benchmark](#benchmark); there are no estimated numbers in this README.
 
 ## Why Jev and not an LLM
 
@@ -216,19 +216,19 @@ Every Jev call is logged to `.jevmem/log.jsonl` (question count, tier, tokens, l
 
 Reproduce: `node scripts/bench-llm.mjs` (needs `TYPESAFE_API_KEY`, plus `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, or a single `OPENROUTER_API_KEY` for the LLM rows). Results: [`results/bench-2026-09-23.json`](results/bench-2026-09-23.json).
 
-**Run of 2026-09-23** (macOS arm64, Node 22):
+**Run of 2026-09-23** (macOS arm64, Node 22; the four LLMs routed through OpenRouter with one key, jevmem direct to TypeSafe; all five in the same hour):
 
 | Model (API id) | Status | save/skip | save+kind | contradiction id found | injection turns not saved | malformed JSON | p50 | p95 | $/decision | $/300 turns |
 |---|---|---|---|---|---|---|---|---|---|---|
-| GPT-5.6 Luna (`gpt-5.6-luna`) | skipped: no `OPENAI_API_KEY` in the benchmark environment | | | | | | | | | |
-| Gemini 3.8 Flash (`gemini-3.8-flash`) | skipped: no `GEMINI_API_KEY` | | | | | | | | | |
-| Claude Sonnet 5 (`claude-sonnet-5`) | skipped: no `ANTHROPIC_API_KEY` | | | | | | | | | |
-| Claude Fable 5.1 (`claude-fable-5-1`) | skipped: no `ANTHROPIC_API_KEY` | | | | | | | | | |
-| jevmem `auto` (`jev-latest`) | ran | 100% | 98.0% | 2/2 | 4/4 | 0% | 266 ms | 521 ms | $0.000132 | $0.040 |
+| GPT-5.6 Luna (`gpt-5.6-luna`) | ran | 98% | 96% | 2/2 | 4/4 | 0% | 1,589 ms | 3,432 ms | $0.000166 | $0.050 |
+| Gemini 3.8 Flash (`gemini-3.8-flash`) | ran | 100% | 98% | 2/2 | 4/4 | 0% | 2,569 ms | 10,426 ms | $0.001036 | $0.311 |
+| Claude Sonnet 5 (`claude-sonnet-5`) | ran | 100% | 98% | 2/2 | 4/4 | 0% | 3,093 ms | 7,503 ms | $0.002513 | $0.754 |
+| Claude Fable 5.1 (`claude-fable-5-1`) | ran | 96% | 94% | 2/2 | 3/4 | 2% | 4,027 ms | 6,834 ms | $0.011790 | $3.537 |
+| jevmem `auto` (`jev-latest`) | ran | 100% | 98% | 2/2 | 4/4 | 0% | 282 ms | 628 ms | $0.000115 | $0.034 |
 
-The LLM rows are empty because the machine that produced this release had no LLM provider key, and this project does not publish numbers it did not measure. The script, the prompt, the schema and the pricing sources are all in the repo; run it with a key and the table fills in. If any LLM beats jevmem on accuracy when it does, that will be shown here as it comes out. The claim this project makes is speed, cost and explainability at comparable accuracy, not "better than every model".
+Read it plainly: **Gemini 3.8 Flash and Claude Sonnet 5 match jevmem on accuracy** on this set (100% save/skip, 98% save+kind, both contradictions found, all injection turns blocked), GPT-5.6 Luna and Claude Fable 5.1 are two to three turns behind, and no model is clearly better than another at deciding. What separates jevmem is the rest of the row: 282 ms p50 against 1.6–4.0 s, and $0.000115 per decision against $0.000166 (Luna) to $0.0118 (Fable 5.1), which is the difference between deciding on every turn and deciding occasionally. Latency for the LLMs includes their reasoning and any rate-limit retries (429s are retried with backoff and counted in the timing); the output cap is 4,000 tokens so no model is truncated, and the first JSON object in a reply is what gets validated. Fable 5.1's one malformed answer is a reply with no JSON in it. The one turn jevmem gets wrong is a `Decision:`-prefixed must/never rule filed as a decision; the LLMs' misses are mostly the same two turns (a question answered with an architecture fact, and the real-session constraint filed as architecture).
 
-Pricing sources recorded in the results file (all read 2026-09-23): OpenAI `https://developers.openai.com/api/docs/pricing` (Luna $0.20 in / $1.20 out per million), Google `https://ai.google.dev/gemini-api/docs/pricing` (Gemini 3.8 Flash $0.75 / $3.75 through 2026-12-31), Anthropic `https://platform.claude.com/docs/en/about-claude/pricing` (Sonnet 5 $2 / $10, Fable 5.1 $10 / $50), Jev $0.042 per million as configured in `jevmem.config.json` (TypeSafe AI publishes no public pricing page as of this date).
+Pricing sources recorded in the results file (all read 2026-09-23): OpenAI `https://developers.openai.com/api/docs/pricing` (Luna $0.20 in / $1.20 out per million), Google `https://ai.google.dev/gemini-api/docs/pricing` (Gemini 3.8 Flash $0.75 / $3.75 through 2026-12-31), Anthropic `https://platform.claude.com/docs/en/about-claude/pricing` (Sonnet 5 $2 / $10, Fable 5.1 $10 / $50), Jev $0.042 per million input tokens, output free, from TypeSafe's launch post `https://typesafe.ai/blog/introducing-system-one-models-and-jev`.
 
 ## MCP server
 

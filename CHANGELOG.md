@@ -2,6 +2,15 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.7] - 2026-09-23
+
+### Changed
+- Benchmark run for real: all four LLMs (GPT-5.6 Luna, Gemini 3.8 Flash, Claude Sonnet 5, Claude Fable 5.1, via OpenRouter) plus jevmem, same hour, same machine. Gemini 3.8 Flash and Claude Sonnet 5 tie jevmem on accuracy (100% save/skip, 98% save+kind); jevmem is 282 ms p50 vs 1.6–4.0 s and $0.000115 per decision vs $0.000166–$0.0118. README Benchmark table filled from `results/bench-2026-09-23.json`.
+- Benchmark harness fixes found by the first run: 429/5xx retried with backoff (a new OpenRouter account's RPM limit had produced 52 failures), requests paced at 1/s, output cap raised from 200 to 4,000 tokens (reasoning models were being truncated to empty replies), and the first JSON object in a reply is extracted before schema validation. The first, contaminated run was not published.
+- Jev's price is cited from TypeSafe's launch post (https://typesafe.ai/blog/introducing-system-one-models-and-jev, read 2026-09-23: $0.042 per million input tokens, output free) in the script, the results file and the README.
+- Tagline is "Shared project memory for Claude Code, Cursor and Codex." everywhere (README, package description, CLI help, DEMO, GitHub About); "Jev decides, a model writes one line" lives in How Jev is used only.
+- Under the eval table: the 50-turn set was written alongside jevmem and includes turns from bugs we fixed; treat it as a regression test, not an independent benchmark; the LLM comparison uses the same set for every model.
+
 ## [0.3.6] - 2026-09-23
 
 ### Added
@@ -149,6 +158,7 @@ The decomposed set **tied** the v0.2.0 set on this transcript at 3.3× the token
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.3.7]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.3...v0.3.4

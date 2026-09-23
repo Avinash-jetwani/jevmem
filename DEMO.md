@@ -1,5 +1,7 @@
 # Jevmem in 60 seconds
 
+Shared project memory for Claude Code, Cursor and Codex.
+
 The same five prompts are what `scripts/e2e.sh` sends through a real Claude Code session, and the decider behind them scores 98.0% (`auto`) / 100% (`full`) on the 50-turn eval set (`node scripts/eval.mjs`, run of 2026-09-23); those are the only eval numbers used in this repo.
 
 Three prompts that show **save**, **contradiction**, and **relevance injection**. Two ways to run it: live in Claude Code (what you'd screen-record), or scripted through the hook's stdin (same code path, no Claude Code needed).

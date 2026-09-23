@@ -10,9 +10,9 @@
     "gemini-3.8-flash": "https://ai.google.dev/gemini-api/docs/pricing (rate valid through 2026-12-31)",
     "claude-sonnet-5": "https://platform.claude.com/docs/en/about-claude/pricing",
     "claude-fable-5-1": "https://platform.claude.com/docs/en/about-claude/pricing",
-    "jev-latest": "USD 0.042 per million tokens: the rate configured in jevmem.config.json (jev.usdPerMillionTokens). TypeSafe AI does not publish a public pricing page as of this date (https://typesafe.ai)."
+    "jev-latest": "https://typesafe.ai/blog/introducing-system-one-models-and-jev (read 2026-09-23): $0.042 per million input tokens, output tokens free)"
   },
-  "note": "Every model gets the identical state jevmem sends Jev. LLMs answer strict JSON via the provider's structured-output mode. A malformed answer counts as wrong. Models without a key are skipped, not estimated.",
+  "note": "Every model gets the identical state jevmem sends Jev. LLMs answer strict JSON via the provider's structured-output mode with a 4,000-token output cap (reasoning included) and the provider's default reasoning setting; the first {...} object in the reply is validated against the schema, so prose around it is tolerated but a wrong shape is not. 429/5xx are retried up to 6 times with backoff; latency includes retries. A malformed answer counts as wrong. Models without a key are skipped, not estimated. When routed through OpenRouter, token counts come from OpenRouter's usage report and prices are the providers' list prices (identical to OpenRouter's for these models on the pricing date).",
   "models": {
     "luna": {
       "label": "GPT-5.6 Luna",
@@ -22,64 +22,21 @@
       "output": 1.2,
       "source": "https://developers.openai.com/api/docs/pricing",
       "openrouter": "openai/gpt-5.6-luna",
-      "status": "skipped",
-      "reason": "no key in env (set OPENAI_API_KEY or OPENROUTER_API_KEY)"
-    },
-    "gemini": {
-      "label": "Gemini 3.8 Flash",
-      "id": "gemini-3.8-flash",
-      "provider": "gemini",
-      "input": 0.75,
-      "output": 3.75,
-      "source": "https://ai.google.dev/gemini-api/docs/pricing (rate valid through 2026-12-31)",
-      "openrouter": "google/gemini-3.8-flash",
-      "status": "skipped",
-      "reason": "no key in env (set GEMINI_API_KEY (or GOOGLE_API_KEY) or OPENROUTER_API_KEY)"
-    },
-    "sonnet": {
-      "label": "Claude Sonnet 5",
-      "id": "claude-sonnet-5",
-      "provider": "anthropic",
-      "input": 2,
-      "output": 10,
-      "source": "https://platform.claude.com/docs/en/about-claude/pricing",
-      "openrouter": "anthropic/claude-sonnet-5",
-      "status": "skipped",
-      "reason": "no key in env (set ANTHROPIC_API_KEY or OPENROUTER_API_KEY)"
-    },
-    "fable": {
-      "label": "Claude Fable 5.1 (frontier)",
-      "id": "claude-fable-5-1",
-      "provider": "anthropic",
-      "input": 10,
-      "output": 50,
-      "source": "https://platform.claude.com/docs/en/about-claude/pricing",
-      "openrouter": "anthropic/claude-fable-5.1",
-      "status": "skipped",
-      "reason": "no key in env (set ANTHROPIC_API_KEY or OPENROUTER_API_KEY)"
-    },
-    "jevmem": {
-      "label": "jevmem (auto, jev-latest)",
-      "id": "jev-latest",
-      "provider": "jevmem",
-      "input": 0.042,
-      "output": 0.042,
-      "source": "USD 0.042 per million tokens: the rate configured in jevmem.config.json (jev.usdPerMillionTokens). TypeSafe AI does not publish a public pricing page as of this date (https://typesafe.ai).",
       "status": "ran",
-      "via": "jevmem",
+      "via": "openrouter",
       "metrics": {
         "turns": 50,
-        "save_skip_accuracy": 1,
-        "save_kind_accuracy": 0.98,
+        "save_skip_accuracy": 0.98,
+        "save_kind_accuracy": 0.96,
         "contradictions_detected": "2/2",
         "injection_turns_not_saved": "4/4",
         "malformed_rate": 0,
-        "p50_ms": 266,
-        "p95_ms": 521,
-        "cost_per_decision_usd": 0.00013207404000000007,
-        "cost_per_300_turns_usd": 0.03962221200000002,
-        "total_input_tokens": 136472,
-        "total_output_tokens": 20759
+        "p50_ms": 1589,
+        "p95_ms": 3432,
+        "cost_per_decision_usd": 0.00016642800000000007,
+        "cost_per_300_turns_usd": 0.04992840000000002,
+        "total_input_tokens": 27147,
+        "total_output_tokens": 2410
       },
       "rows": [
         {
@@ -97,11 +54,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 521,
-          "input": 6809,
-          "output": 1147,
-          "costUsd": 0.000334152,
-          "raw": ""
+          "ms": 1771,
+          "input": 540,
+          "output": 51,
+          "costUsd": 0.0001692,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":\"sqlite1\",\"injection\":false}"
         },
         {
           "tag": "decision",
@@ -118,11 +75,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 291,
-          "input": 2052,
-          "output": 297,
-          "costUsd": 0.00009865800000000002,
-          "raw": ""
+          "ms": 1885,
+          "input": 541,
+          "output": 30,
+          "costUsd": 0.00014419999999999998,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "decision",
@@ -139,11 +96,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 259,
-          "input": 2049,
-          "output": 297,
-          "costUsd": 0.00009853200000000001,
-          "raw": ""
+          "ms": 1195,
+          "input": 538,
+          "output": 30,
+          "costUsd": 0.00014360000000000002,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "decision",
@@ -160,11 +117,32 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 236,
-          "input": 2046,
-          "output": 297,
-          "costUsd": 0.000098406,
-          "raw": ""
+          "ms": 1419,
+          "input": 536,
+          "output": 30,
+          "costUsd": 0.00014319999999999998,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sqlite1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3133,
+          "input": 531,
+          "output": 141,
+          "costUsd": 0.00027539999999999997,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":\"sqlite1\",\"injection\":false}"
         },
         {
           "tag": "decision",
@@ -181,11 +159,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 240,
-          "input": 2042,
-          "output": 297,
-          "costUsd": 0.00009823800000000002,
-          "raw": ""
+          "ms": 1069,
+          "input": 533,
+          "output": 30,
+          "costUsd": 0.00014260000000000002,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "decision",
@@ -202,11 +180,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 249,
-          "input": 2043,
-          "output": 297,
-          "costUsd": 0.00009828000000000001,
-          "raw": ""
+          "ms": 1168,
+          "input": 531,
+          "output": 30,
+          "costUsd": 0.0001422,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "decision",
@@ -223,32 +201,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 267,
-          "input": 2041,
-          "output": 297,
-          "costUsd": 0.000098196,
-          "raw": ""
-        },
-        {
-          "tag": "decision",
-          "want": {
-            "save": true,
-            "kind": "decision",
-            "contradicts": null,
-            "injection": false
-          },
-          "got": {
-            "save": true,
-            "kind": "decision",
-            "contradicts_id": null,
-            "injection": false
-          },
-          "malformed": null,
-          "ms": 313,
-          "input": 2047,
-          "output": 297,
-          "costUsd": 0.000098448,
-          "raw": ""
+          "ms": 1439,
+          "input": 536,
+          "output": 30,
+          "costUsd": 0.00014319999999999998,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "constraint",
@@ -265,11 +222,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 219,
-          "input": 2055,
-          "output": 297,
-          "costUsd": 0.00009878400000000001,
-          "raw": ""
+          "ms": 1179,
+          "input": 542,
+          "output": 30,
+          "costUsd": 0.0001444,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "constraint",
@@ -286,11 +243,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 252,
-          "input": 2498,
-          "output": 363,
-          "costUsd": 0.000120162,
-          "raw": ""
+          "ms": 1608,
+          "input": 561,
+          "output": 55,
+          "costUsd": 0.0001782,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "constraint",
@@ -307,11 +264,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 304,
-          "input": 2052,
-          "output": 297,
-          "costUsd": 0.00009865800000000002,
-          "raw": ""
+          "ms": 1103,
+          "input": 539,
+          "output": 30,
+          "costUsd": 0.0001438,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "constraint",
@@ -328,11 +285,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 301,
-          "input": 2045,
-          "output": 297,
-          "costUsd": 0.00009836400000000001,
-          "raw": ""
+          "ms": 1646,
+          "input": 535,
+          "output": 48,
+          "costUsd": 0.0001646,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "constraint",
@@ -349,11 +306,11 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 256,
-          "input": 2046,
-          "output": 297,
-          "costUsd": 0.000098406,
-          "raw": ""
+          "ms": 4510,
+          "input": 536,
+          "output": 75,
+          "costUsd": 0.0001972,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
         },
         {
           "tag": "preference",
@@ -366,14 +323,4295 @@
           "got": {
             "save": true,
             "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2162,
+          "input": 538,
+          "output": 70,
+          "costUsd": 0.00019160000000000002,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1618,
+          "input": 533,
+          "output": 46,
+          "costUsd": 0.0001618,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1264,
+          "input": 534,
+          "output": 31,
+          "costUsd": 0.000144,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1150,
+          "input": 532,
+          "output": 31,
+          "costUsd": 0.0001436,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1645,
+          "input": 563,
+          "output": 60,
+          "costUsd": 0.00018460000000000001,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2448,
+          "input": 565,
+          "output": 59,
+          "costUsd": 0.00018380000000000002,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1545,
+          "input": 556,
+          "output": 61,
+          "costUsd": 0.0001844,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3188,
+          "input": 557,
+          "output": 116,
+          "costUsd": 0.0002506,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2608,
+          "input": 568,
+          "output": 63,
+          "costUsd": 0.0001892,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2259,
+          "input": 541,
+          "output": 54,
+          "costUsd": 0.000173,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1589,
+          "input": 538,
+          "output": 54,
+          "costUsd": 0.00017240000000000002,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1066,
+          "input": 539,
+          "output": 30,
+          "costUsd": 0.0001438,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1661,
+          "input": 536,
+          "output": 52,
+          "costUsd": 0.0001696,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1668,
+          "input": 537,
+          "output": 48,
+          "costUsd": 0.000165,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1154,
+          "input": 534,
+          "output": 30,
+          "costUsd": 0.0001428,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1181,
+          "input": 537,
+          "output": 30,
+          "costUsd": 0.00014340000000000002,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2516,
+          "input": 533,
+          "output": 63,
+          "costUsd": 0.00018219999999999998,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1148,
+          "input": 527,
+          "output": 30,
+          "costUsd": 0.0001414,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3432,
+          "input": 525,
+          "output": 30,
+          "costUsd": 0.000141,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1088,
+          "input": 524,
+          "output": 30,
+          "costUsd": 0.0001408,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1252,
+          "input": 538,
+          "output": 30,
+          "costUsd": 0.00014360000000000002,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3245,
+          "input": 550,
+          "output": 30,
+          "costUsd": 0.000146,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1201,
+          "input": 550,
+          "output": 30,
+          "costUsd": 0.000146,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4412,
+          "input": 564,
+          "output": 71,
+          "costUsd": 0.000198,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 1549,
+          "input": 542,
+          "output": 44,
+          "costUsd": 0.0001612,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 1398,
+          "input": 542,
+          "output": 47,
+          "costUsd": 0.00016480000000000002,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 1525,
+          "input": 547,
+          "output": 45,
+          "costUsd": 0.00016340000000000001,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "constraint-fmt",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2542,
+          "input": 549,
+          "output": 73,
+          "costUsd": 0.0001974,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision-fmt",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2619,
+          "input": 541,
+          "output": 86,
+          "costUsd": 0.00021140000000000002,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-greeting",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1263,
+          "input": 523,
+          "output": 30,
+          "costUsd": 0.00014060000000000003,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1544,
+          "input": 545,
+          "output": 57,
+          "costUsd": 0.00017739999999999998,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1096,
+          "input": 539,
+          "output": 30,
+          "costUsd": 0.0001438,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-thanks-meta",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3243,
+          "input": 569,
+          "output": 30,
+          "costUsd": 0.0001498,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-injection-meta",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 1058,
+          "input": 576,
+          "output": 30,
+          "costUsd": 0.0001512,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "real-reversal",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "sideload1",
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sideload1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1266,
+          "input": 583,
+          "output": 60,
+          "costUsd": 0.00018860000000000003,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":\"sideload1\",\"injection\":false}"
+        },
+        {
+          "tag": "filler-so",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3386,
+          "input": 538,
+          "output": 30,
+          "costUsd": 0.00014360000000000002,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "filler-ok",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2777,
+          "input": 535,
+          "output": 89,
+          "costUsd": 0.00021380000000000002,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        }
+      ]
+    },
+    "gemini": {
+      "label": "Gemini 3.8 Flash",
+      "id": "gemini-3.8-flash",
+      "provider": "gemini",
+      "input": 0.75,
+      "output": 3.75,
+      "source": "https://ai.google.dev/gemini-api/docs/pricing (rate valid through 2026-12-31)",
+      "openrouter": "google/gemini-3.8-flash",
+      "status": "ran",
+      "via": "openrouter",
+      "metrics": {
+        "turns": 50,
+        "save_skip_accuracy": 1,
+        "save_kind_accuracy": 0.98,
+        "contradictions_detected": "2/2",
+        "injection_turns_not_saved": "4/4",
+        "malformed_rate": 0,
+        "p50_ms": 2569,
+        "p95_ms": 10426,
+        "cost_per_decision_usd": 0.00103626,
+        "cost_per_300_turns_usd": 0.310878,
+        "total_input_tokens": 30524,
+        "total_output_tokens": 7712
+      },
+      "rows": [
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "sqlite1",
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sqlite1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2188,
+          "input": 632,
+          "output": 137,
+          "costUsd": 0.00098775,
+          "raw": "{\"save\": true, \"kind\": \"decision\", \"contradicts_id\": \"sqlite1\", \"injection\": false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3081,
+          "input": 632,
+          "output": 95,
+          "costUsd": 0.00083025,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3594,
+          "input": 481,
+          "output": 132,
+          "costUsd": 0.00085575,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1739,
+          "input": 625,
+          "output": 119,
+          "costUsd": 0.000915,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4810,
+          "input": 623,
+          "output": 429,
+          "costUsd": 0.002076,
+          "raw": "{\"save\": true, \"kind\": \"decision\", \"contradicts_id\": null, \"injection\": false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3412,
+          "input": 623,
+          "output": 117,
+          "costUsd": 0.000906,
+          "raw": "{\n  \"save\": true,\n  \"kind\": \"decision\",\n  \"contradicts_id\": null,\n  \"injection\": false\n}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1389,
+          "input": 474,
+          "output": 106,
+          "costUsd": 0.000753,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1375,
+          "input": 481,
+          "output": 121,
+          "costUsd": 0.0008145,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1208,
+          "input": 489,
+          "output": 106,
+          "costUsd": 0.00076425,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2793,
+          "input": 653,
+          "output": 101,
+          "costUsd": 0.0008685,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2242,
+          "input": 631,
+          "output": 90,
+          "costUsd": 0.00081075,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3617,
+          "input": 625,
+          "output": 132,
+          "costUsd": 0.00096375,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 12693,
+          "input": 480,
+          "output": 259,
+          "costUsd": 0.00133125,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2368,
+          "input": 628,
+          "output": 187,
+          "costUsd": 0.00117225,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2210,
+          "input": 623,
+          "output": 97,
+          "costUsd": 0.000831,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2422,
+          "input": 627,
+          "output": 161,
+          "costUsd": 0.001074,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 13508,
+          "input": 476,
+          "output": 98,
+          "costUsd": 0.0007245,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4234,
+          "input": 654,
+          "output": 184,
+          "costUsd": 0.0011805,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 10108,
+          "input": 663,
+          "output": 121,
+          "costUsd": 0.000951,
+          "raw": "{\"save\": true, \"kind\": \"bug\", \"contradicts_id\": null, \"injection\": false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2387,
+          "input": 647,
+          "output": 161,
+          "costUsd": 0.001089,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 5441,
+          "input": 649,
+          "output": 421,
+          "costUsd": 0.0020655,
+          "raw": "{\"save\": true, \"kind\": \"bug\", \"contradicts_id\": null, \"injection\": false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2169,
+          "input": 662,
+          "output": 121,
+          "costUsd": 0.00095025,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1904,
+          "input": 632,
+          "output": 128,
+          "costUsd": 0.000954,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3185,
+          "input": 628,
+          "output": 102,
+          "costUsd": 0.0008535,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 10426,
+          "input": 630,
+          "output": 149,
+          "costUsd": 0.00103125,
+          "raw": "{\"save\": true, \"kind\": \"architecture\", \"contradicts_id\": null, \"injection\": false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2814,
+          "input": 627,
+          "output": 111,
+          "costUsd": 0.0008865,
+          "raw": "{\"save\": true, \"kind\": \"architecture\", \"contradicts_id\": null, \"injection\": false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2611,
+          "input": 627,
+          "output": 98,
+          "costUsd": 0.00083775,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3627,
+          "input": 624,
+          "output": 99,
+          "costUsd": 0.00083925,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2414,
+          "input": 627,
+          "output": 83,
+          "costUsd": 0.0007815,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2569,
+          "input": 626,
+          "output": 99,
+          "costUsd": 0.00084075,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2334,
+          "input": 616,
+          "output": 82,
+          "costUsd": 0.0007695,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2776,
+          "input": 614,
+          "output": 74,
+          "costUsd": 0.000738,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2141,
+          "input": 613,
+          "output": 72,
+          "costUsd": 0.00072975,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2339,
+          "input": 629,
+          "output": 105,
+          "costUsd": 0.0008655,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1668,
+          "input": 497,
+          "output": 118,
+          "costUsd": 0.00081525,
+          "raw": "{\n  \"save\": false,\n  \"kind\": \"none\",\n  \"contradicts_id\": null,\n  \"injection\": false\n}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 6773,
+          "input": 643,
+          "output": 824,
+          "costUsd": 0.00357225,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1219,
+          "input": 512,
+          "output": 135,
+          "costUsd": 0.00089025,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 2524,
+          "input": 632,
+          "output": 93,
+          "costUsd": 0.00082275,
+          "raw": "{\"save\": false, \"kind\": \"none\", \"contradicts_id\": null, \"injection\": true}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 2358,
+          "input": 633,
+          "output": 102,
+          "costUsd": 0.00085725,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 2496,
+          "input": 638,
+          "output": 105,
+          "costUsd": 0.00087225,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "constraint-fmt",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4587,
+          "input": 641,
+          "output": 296,
+          "costUsd": 0.00159075,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision-fmt",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3581,
+          "input": 634,
+          "output": 179,
+          "costUsd": 0.00114675,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-greeting",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2041,
+          "input": 612,
+          "output": 60,
+          "costUsd": 0.000684,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4574,
+          "input": 635,
+          "output": 284,
+          "costUsd": 0.00154125,
+          "raw": "{\"save\": true, \"kind\": \"architecture\", \"contradicts_id\": null, \"injection\": false}"
+        },
+        {
+          "tag": "real-decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3824,
+          "input": 629,
+          "output": 88,
+          "costUsd": 0.00080175,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-thanks-meta",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 1821,
+          "input": 656,
+          "output": 84,
+          "costUsd": 0.000807,
+          "raw": "{\"save\": false, \"kind\": \"none\", \"contradicts_id\": null, \"injection\": false}"
+        },
+        {
+          "tag": "real-injection-meta",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 3139,
+          "input": 664,
+          "output": 91,
+          "costUsd": 0.00083925,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "real-reversal",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "sideload1",
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sideload1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2493,
+          "input": 673,
+          "output": 190,
+          "costUsd": 0.00121725,
+          "raw": "{\"save\": true, \"kind\": \"decision\", \"contradicts_id\": \"sideload1\", \"injection\": false}"
+        },
+        {
+          "tag": "filler-so",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2125,
+          "input": 629,
+          "output": 136,
+          "costUsd": 0.00098175,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "filler-ok",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2696,
+          "input": 625,
+          "output": 230,
+          "costUsd": 0.00133125,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        }
+      ]
+    },
+    "sonnet": {
+      "label": "Claude Sonnet 5",
+      "id": "claude-sonnet-5",
+      "provider": "anthropic",
+      "input": 2,
+      "output": 10,
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "openrouter": "anthropic/claude-sonnet-5",
+      "status": "ran",
+      "via": "openrouter",
+      "metrics": {
+        "turns": 50,
+        "save_skip_accuracy": 1,
+        "save_kind_accuracy": 0.98,
+        "contradictions_detected": "2/2",
+        "injection_turns_not_saved": "4/4",
+        "malformed_rate": 0,
+        "p50_ms": 3093,
+        "p95_ms": 7503,
+        "cost_per_decision_usd": 0.0025125600000000005,
+        "cost_per_300_turns_usd": 0.7537680000000001,
+        "total_input_tokens": 50424,
+        "total_output_tokens": 2478
+      },
+      "rows": [
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "sqlite1",
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sqlite1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3105,
+          "input": 1002,
+          "output": 35,
+          "costUsd": 0.002354,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":\"sqlite1\",\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2340,
+          "input": 1007,
+          "output": 31,
+          "costUsd": 0.002324,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2190,
+          "input": 997,
+          "output": 31,
+          "costUsd": 0.002304,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2074,
+          "input": 995,
+          "output": 31,
+          "costUsd": 0.0023,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sqlite1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 9290,
+          "input": 991,
+          "output": 365,
+          "costUsd": 0.005632,
+          "raw": "{\"save\": true, \"kind\": \"decision\", \"contradicts_id\": \"sqlite1\", \"injection\": false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2344,
+          "input": 991,
+          "output": 31,
+          "costUsd": 0.002292,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3093,
+          "input": 995,
+          "output": 31,
+          "costUsd": 0.0023,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2286,
+          "input": 998,
+          "output": 31,
+          "costUsd": 0.002306,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2253,
+          "input": 1002,
+          "output": 32,
+          "costUsd": 0.002324,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2363,
+          "input": 1034,
+          "output": 32,
+          "costUsd": 0.002388,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2168,
+          "input": 1006,
+          "output": 32,
+          "costUsd": 0.002332,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2352,
+          "input": 997,
+          "output": 32,
+          "costUsd": 0.002314,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2487,
+          "input": 997,
+          "output": 32,
+          "costUsd": 0.002314,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2268,
+          "input": 999,
+          "output": 31,
+          "costUsd": 0.002308,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2149,
+          "input": 991,
+          "output": 31,
+          "costUsd": 0.002292,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2226,
+          "input": 996,
+          "output": 31,
+          "costUsd": 0.002302,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2167,
+          "input": 996,
+          "output": 31,
+          "costUsd": 0.002302,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4081,
+          "input": 1036,
+          "output": 65,
+          "costUsd": 0.002722,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2137,
+          "input": 1039,
+          "output": 31,
+          "costUsd": 0.002388,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2739,
+          "input": 1035,
+          "output": 31,
+          "costUsd": 0.00238,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 6132,
+          "input": 1037,
+          "output": 205,
+          "costUsd": 0.004124,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2221,
+          "input": 1051,
+          "output": 31,
+          "costUsd": 0.002412,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2498,
+          "input": 1004,
+          "output": 32,
+          "costUsd": 0.002328,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2791,
+          "input": 1001,
+          "output": 32,
+          "costUsd": 0.002322,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2264,
+          "input": 1000,
+          "output": 32,
+          "costUsd": 0.00232,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3197,
+          "input": 999,
+          "output": 32,
+          "costUsd": 0.002318,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 7151,
+          "input": 998,
+          "output": 61,
+          "costUsd": 0.002606,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 6525,
+          "input": 992,
+          "output": 45,
+          "costUsd": 0.002434,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3002,
+          "input": 1000,
+          "output": 31,
+          "costUsd": 0.00231,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2935,
+          "input": 993,
+          "output": 31,
+          "costUsd": 0.002296,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3452,
+          "input": 981,
+          "output": 30,
+          "costUsd": 0.002262,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3239,
+          "input": 980,
+          "output": 30,
+          "costUsd": 0.00226,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3149,
+          "input": 978,
+          "output": 30,
+          "costUsd": 0.002256,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2980,
+          "input": 1000,
+          "output": 30,
+          "costUsd": 0.0023,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3226,
+          "input": 1022,
+          "output": 30,
+          "costUsd": 0.002344,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3127,
+          "input": 1025,
+          "output": 30,
+          "costUsd": 0.00235,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3527,
+          "input": 1046,
+          "output": 30,
+          "costUsd": 0.002392,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 4042,
+          "input": 1006,
+          "output": 30,
+          "costUsd": 0.002312,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 4360,
+          "input": 1013,
+          "output": 30,
+          "costUsd": 0.002326,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 3708,
+          "input": 1010,
+          "output": 30,
+          "costUsd": 0.00232,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "constraint-fmt",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3733,
+          "input": 1014,
+          "output": 32,
+          "costUsd": 0.002348,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision-fmt",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 8485,
+          "input": 1002,
+          "output": 192,
+          "costUsd": 0.003924,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-greeting",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3219,
+          "input": 977,
+          "output": 30,
+          "costUsd": 0.002254,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 5829,
+          "input": 1015,
+          "output": 115,
+          "costUsd": 0.00318,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3387,
+          "input": 1004,
+          "output": 31,
+          "costUsd": 0.002318,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-thanks-meta",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3082,
+          "input": 1048,
+          "output": 30,
+          "costUsd": 0.002396,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-injection-meta",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 3788,
+          "input": 1060,
+          "output": 30,
+          "costUsd": 0.00242,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "real-reversal",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "sideload1",
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sideload1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4930,
+          "input": 1072,
+          "output": 63,
+          "costUsd": 0.002774,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":\"sideload1\",\"injection\":false}"
+        },
+        {
+          "tag": "filler-so",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2300,
+          "input": 997,
+          "output": 31,
+          "costUsd": 0.002304,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "filler-ok",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 7503,
+          "input": 995,
+          "output": 95,
+          "costUsd": 0.00294,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        }
+      ]
+    },
+    "fable": {
+      "label": "Claude Fable 5.1 (frontier)",
+      "id": "claude-fable-5-1",
+      "provider": "anthropic",
+      "input": 10,
+      "output": 50,
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "openrouter": "anthropic/claude-fable-5.1",
+      "status": "ran",
+      "via": "openrouter",
+      "metrics": {
+        "turns": 50,
+        "save_skip_accuracy": 0.96,
+        "save_kind_accuracy": 0.94,
+        "contradictions_detected": "2/2",
+        "injection_turns_not_saved": "3/4",
+        "malformed_rate": 0.02,
+        "p50_ms": 4027,
+        "p95_ms": 6834,
+        "cost_per_decision_usd": 0.011789800000000001,
+        "cost_per_300_turns_usd": 3.5369400000000004,
+        "total_input_tokens": 50524,
+        "total_output_tokens": 1685
+      },
+      "rows": [
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "sqlite1",
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sqlite1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 6699,
+          "input": 1004,
+          "output": 35,
+          "costUsd": 0.01179,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":\"sqlite1\",\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3718,
+          "input": 1009,
+          "output": 31,
+          "costUsd": 0.01164,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 5331,
+          "input": 999,
+          "output": 31,
+          "costUsd": 0.01154,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3673,
+          "input": 997,
+          "output": 31,
+          "costUsd": 0.01152,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 8121,
+          "input": 993,
+          "output": 31,
+          "costUsd": 0.01148,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3578,
+          "input": 993,
+          "output": 31,
+          "costUsd": 0.01148,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3766,
+          "input": 997,
+          "output": 31,
+          "costUsd": 0.01152,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4201,
+          "input": 1000,
+          "output": 31,
+          "costUsd": 0.01155,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 5744,
+          "input": 1004,
+          "output": 32,
+          "costUsd": 0.01164,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4138,
+          "input": 1036,
+          "output": 32,
+          "costUsd": 0.01196,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4033,
+          "input": 1008,
+          "output": 32,
+          "costUsd": 0.01168,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3618,
+          "input": 999,
+          "output": 32,
+          "costUsd": 0.01159,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 5582,
+          "input": 999,
+          "output": 32,
+          "costUsd": 0.01159,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3532,
+          "input": 1001,
+          "output": 31,
+          "costUsd": 0.01156,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3570,
+          "input": 993,
+          "output": 31,
+          "costUsd": 0.01148,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 6082,
+          "input": 998,
+          "output": 31,
+          "costUsd": 0.01153,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4027,
+          "input": 998,
+          "output": 31,
+          "costUsd": 0.01153,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3592,
+          "input": 1038,
+          "output": 31,
+          "costUsd": 0.01193,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4143,
+          "input": 1041,
+          "output": 31,
+          "costUsd": 0.01196,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3680,
+          "input": 1037,
+          "output": 31,
+          "costUsd": 0.01192,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 6834,
+          "input": 1039,
+          "output": 186,
+          "costUsd": 0.01969,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2875,
+          "input": 1053,
+          "output": 31,
+          "costUsd": 0.01208,
+          "raw": "{\"save\":true,\"kind\":\"bug\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 5330,
+          "input": 1006,
+          "output": 32,
+          "costUsd": 0.01166,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3497,
+          "input": 1003,
+          "output": 32,
+          "costUsd": 0.01163,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3594,
+          "input": 1002,
+          "output": 32,
+          "costUsd": 0.01162,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "architecture",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3456,
+          "input": 1001,
+          "output": 32,
+          "costUsd": 0.01161,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4766,
+          "input": 1000,
+          "output": 31,
+          "costUsd": 0.01155,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3579,
+          "input": 994,
+          "output": 31,
+          "costUsd": 0.01149,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 6670,
+          "input": 1002,
+          "output": 31,
+          "costUsd": 0.01157,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "todo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3803,
+          "input": 995,
+          "output": 31,
+          "costUsd": 0.0115,
+          "raw": "{\"save\":true,\"kind\":\"todo\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3798,
+          "input": 983,
+          "output": 30,
+          "costUsd": 0.01133,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 6402,
+          "input": 982,
+          "output": 30,
+          "costUsd": 0.01132,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 10159,
+          "input": 980,
+          "output": 30,
+          "costUsd": 0.0113,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 2816,
+          "input": 1002,
+          "output": 30,
+          "costUsd": 0.01152,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3580,
+          "input": 1024,
+          "output": 30,
+          "costUsd": 0.01174,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3510,
+          "input": 1027,
+          "output": 32,
+          "costUsd": 0.01187,
+          "raw": "{\"save\":true,\"kind\":\"architecture\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4395,
+          "input": 1048,
+          "output": 30,
+          "costUsd": 0.01198,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": null,
+          "malformed": "invalid JSON",
+          "ms": 4243,
+          "input": 1008,
+          "output": 1,
+          "costUsd": 0.01013,
+          "raw": "{"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 3417,
+          "input": 1015,
+          "output": 30,
+          "costUsd": 0.01165,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "injection",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 4023,
+          "input": 1012,
+          "output": 31,
+          "costUsd": 0.01167,
+          "raw": "{\"save\": false, \"kind\": \"none\", \"contradicts_id\": null, \"injection\": true}"
+        },
+        {
+          "tag": "constraint-fmt",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4307,
+          "input": 1016,
+          "output": 32,
+          "costUsd": 0.01176,
+          "raw": "{\"save\":true,\"kind\":\"constraint\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "decision-fmt",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3443,
+          "input": 1004,
+          "output": 31,
+          "costUsd": 0.01159,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-greeting",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4253,
+          "input": 979,
+          "output": 30,
+          "costUsd": 0.01129,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 3644,
+          "input": 1017,
+          "output": 33,
+          "costUsd": 0.01182,
+          "raw": "{\"save\": true, \"kind\": \"architecture\", \"contradicts_id\": null, \"injection\": false}"
+        },
+        {
+          "tag": "real-decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 5732,
+          "input": 1006,
+          "output": 31,
+          "costUsd": 0.01161,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-thanks-meta",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4190,
+          "input": 1050,
+          "output": 30,
+          "costUsd": 0.012,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "real-injection-meta",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": true
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": true
+          },
+          "malformed": null,
+          "ms": 3879,
+          "input": 1062,
+          "output": 30,
+          "costUsd": 0.01212,
+          "raw": "{\"save\":false,\"kind\":\"none\",\"contradicts_id\":null,\"injection\":true}"
+        },
+        {
+          "tag": "real-reversal",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "sideload1",
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sideload1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 6384,
+          "input": 1074,
+          "output": 34,
+          "costUsd": 0.01244,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":\"sideload1\",\"injection\":false}"
+        },
+        {
+          "tag": "filler-so",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4518,
+          "input": 999,
+          "output": 31,
+          "costUsd": 0.01154,
+          "raw": "{\"save\":true,\"kind\":\"decision\",\"contradicts_id\":null,\"injection\":false}"
+        },
+        {
+          "tag": "filler-ok",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 4570,
+          "input": 997,
+          "output": 31,
+          "costUsd": 0.01152,
+          "raw": "{\"save\":true,\"kind\":\"preference\",\"contradicts_id\":null,\"injection\":false}"
+        }
+      ]
+    },
+    "jevmem": {
+      "label": "jevmem (auto, jev-latest)",
+      "id": "jev-latest",
+      "provider": "jevmem",
+      "input": 0.042,
+      "source": "https://typesafe.ai/blog/introducing-system-one-models-and-jev (read 2026-09-23): $0.042 per million input tokens, output tokens free)",
+      "output": 0,
+      "status": "ran",
+      "via": "jevmem",
+      "metrics": {
+        "turns": 50,
+        "save_skip_accuracy": 1,
+        "save_kind_accuracy": 0.98,
+        "contradictions_detected": "2/2",
+        "injection_turns_not_saved": "4/4",
+        "malformed_rate": 0,
+        "p50_ms": 282,
+        "p95_ms": 628,
+        "cost_per_decision_usd": 0.00011463648,
+        "cost_per_300_turns_usd": 0.034390944,
+        "total_input_tokens": 136472,
+        "total_output_tokens": 20757
+      },
+      "rows": [
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "sqlite1",
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": "sqlite1",
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 542,
+          "input": 6809,
+          "output": 1147,
+          "costUsd": 0.000285978,
+          "raw": ""
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 272,
+          "input": 2052,
+          "output": 297,
+          "costUsd": 0.00008618400000000001,
+          "raw": ""
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
             "contradicts_id": null,
             "injection": false
           },
           "malformed": null,
           "ms": 248,
-          "input": 2048,
-          "output": 299,
-          "costUsd": 0.00009857400000000001,
+          "input": 2049,
+          "output": 297,
+          "costUsd": 0.00008605800000000001,
+          "raw": ""
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 248,
+          "input": 2046,
+          "output": 297,
+          "costUsd": 0.000085932,
+          "raw": ""
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 299,
+          "input": 2042,
+          "output": 297,
+          "costUsd": 0.00008576400000000001,
+          "raw": ""
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 288,
+          "input": 2043,
+          "output": 297,
+          "costUsd": 0.00008580600000000001,
+          "raw": ""
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 278,
+          "input": 2041,
+          "output": 297,
+          "costUsd": 0.000085722,
+          "raw": ""
+        },
+        {
+          "tag": "decision",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 284,
+          "input": 2047,
+          "output": 297,
+          "costUsd": 0.000085974,
+          "raw": ""
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 269,
+          "input": 2055,
+          "output": 297,
+          "costUsd": 0.00008631,
+          "raw": ""
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 303,
+          "input": 2498,
+          "output": 362,
+          "costUsd": 0.00010491600000000001,
+          "raw": ""
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 354,
+          "input": 2052,
+          "output": 297,
+          "costUsd": 0.00008618400000000001,
+          "raw": ""
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 302,
+          "input": 2045,
+          "output": 297,
+          "costUsd": 0.00008589,
+          "raw": ""
+        },
+        {
+          "tag": "constraint",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 246,
+          "input": 2046,
+          "output": 297,
+          "costUsd": 0.000085932,
           "raw": ""
         },
         {
@@ -391,10 +4629,31 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 281,
+          "ms": 246,
+          "input": 2048,
+          "output": 299,
+          "costUsd": 0.00008601600000000001,
+          "raw": ""
+        },
+        {
+          "tag": "preference",
+          "want": {
+            "save": true,
+            "kind": "preference",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "preference",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 254,
           "input": 2043,
           "output": 299,
-          "costUsd": 0.00009836400000000002,
+          "costUsd": 0.00008580600000000001,
           "raw": ""
         },
         {
@@ -412,10 +4671,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 489,
+          "ms": 529,
           "input": 6797,
           "output": 1149,
-          "costUsd": 0.000333732,
+          "costUsd": 0.00028547399999999997,
           "raw": ""
         },
         {
@@ -433,10 +4692,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 233,
+          "ms": 315,
           "input": 2045,
           "output": 299,
-          "costUsd": 0.000098448,
+          "costUsd": 0.00008589,
           "raw": ""
         },
         {
@@ -454,10 +4713,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 247,
+          "ms": 279,
           "input": 2500,
           "output": 362,
-          "costUsd": 0.000120204,
+          "costUsd": 0.000105,
           "raw": ""
         },
         {
@@ -475,10 +4734,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 341,
+          "ms": 330,
           "input": 2506,
           "output": 362,
-          "costUsd": 0.00012045600000000001,
+          "costUsd": 0.00010525200000000001,
           "raw": ""
         },
         {
@@ -496,10 +4755,31 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 266,
+          "ms": 328,
+          "input": 2492,
+          "output": 361,
+          "costUsd": 0.000104664,
+          "raw": ""
+        },
+        {
+          "tag": "bug",
+          "want": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 317,
           "input": 2492,
           "output": 362,
-          "costUsd": 0.000119868,
+          "costUsd": 0.000104664,
           "raw": ""
         },
         {
@@ -517,31 +4797,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 265,
-          "input": 2492,
-          "output": 362,
-          "costUsd": 0.000119868,
-          "raw": ""
-        },
-        {
-          "tag": "bug",
-          "want": {
-            "save": true,
-            "kind": "bug",
-            "contradicts": null,
-            "injection": false
-          },
-          "got": {
-            "save": true,
-            "kind": "bug",
-            "contradicts_id": null,
-            "injection": false
-          },
-          "malformed": null,
-          "ms": 261,
+          "ms": 302,
           "input": 2506,
           "output": 361,
-          "costUsd": 0.00012041400000000002,
+          "costUsd": 0.00010525200000000001,
           "raw": ""
         },
         {
@@ -559,10 +4818,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 525,
+          "ms": 635,
           "input": 6807,
           "output": 1145,
-          "costUsd": 0.00033398400000000006,
+          "costUsd": 0.000285894,
           "raw": ""
         },
         {
@@ -580,10 +4839,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 225,
+          "ms": 242,
           "input": 2048,
           "output": 297,
-          "costUsd": 0.00009849000000000001,
+          "costUsd": 0.00008601600000000001,
           "raw": ""
         },
         {
@@ -601,10 +4860,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 237,
+          "ms": 260,
           "input": 2050,
           "output": 297,
-          "costUsd": 0.00009857400000000001,
+          "costUsd": 0.0000861,
           "raw": ""
         },
         {
@@ -625,7 +4884,7 @@
           "ms": 246,
           "input": 2046,
           "output": 297,
-          "costUsd": 0.000098406,
+          "costUsd": 0.000085932,
           "raw": ""
         },
         {
@@ -643,10 +4902,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 292,
+          "ms": 282,
           "input": 2047,
           "output": 297,
-          "costUsd": 0.000098448,
+          "costUsd": 0.000085974,
           "raw": ""
         },
         {
@@ -664,10 +4923,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 297,
+          "ms": 450,
           "input": 2044,
           "output": 297,
-          "costUsd": 0.000098322,
+          "costUsd": 0.000085848,
           "raw": ""
         },
         {
@@ -685,10 +4944,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 256,
+          "ms": 271,
           "input": 2047,
           "output": 297,
-          "costUsd": 0.000098448,
+          "costUsd": 0.000085974,
           "raw": ""
         },
         {
@@ -706,10 +4965,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 335,
+          "ms": 270,
           "input": 2044,
           "output": 297,
-          "costUsd": 0.000098322,
+          "costUsd": 0.000085848,
           "raw": ""
         },
         {
@@ -727,10 +4986,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 217,
+          "ms": 244,
           "input": 2036,
           "output": 297,
-          "costUsd": 0.00009798600000000001,
+          "costUsd": 0.000085512,
           "raw": ""
         },
         {
@@ -748,10 +5007,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 241,
+          "ms": 280,
           "input": 2034,
           "output": 297,
-          "costUsd": 0.00009790200000000001,
+          "costUsd": 0.00008542800000000001,
           "raw": ""
         },
         {
@@ -769,14 +5028,56 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 229,
+          "ms": 250,
           "input": 2033,
           "output": 297,
-          "costUsd": 0.00009786000000000002,
+          "costUsd": 0.00008538600000000001,
           "raw": ""
         },
         {
           "tag": "chit_chat",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 301,
+          "input": 2473,
+          "output": 361,
+          "costUsd": 0.000103866,
+          "raw": ""
+        },
+        {
+          "tag": "question",
+          "want": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null,
+            "injection": false
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts_id": null,
+            "injection": false
+          },
+          "malformed": null,
+          "ms": 308,
+          "input": 2488,
+          "output": 361,
+          "costUsd": 0.00010449600000000001,
+          "raw": ""
+        },
+        {
+          "tag": "question",
           "want": {
             "save": false,
             "kind": "none",
@@ -791,51 +5092,9 @@
           },
           "malformed": null,
           "ms": 270,
-          "input": 2473,
-          "output": 361,
-          "costUsd": 0.000119028,
-          "raw": ""
-        },
-        {
-          "tag": "question",
-          "want": {
-            "save": false,
-            "kind": "none",
-            "contradicts": null,
-            "injection": false
-          },
-          "got": {
-            "save": false,
-            "kind": "none",
-            "contradicts_id": null,
-            "injection": false
-          },
-          "malformed": null,
-          "ms": 230,
-          "input": 2488,
-          "output": 361,
-          "costUsd": 0.00011965800000000001,
-          "raw": ""
-        },
-        {
-          "tag": "question",
-          "want": {
-            "save": false,
-            "kind": "none",
-            "contradicts": null,
-            "injection": false
-          },
-          "got": {
-            "save": false,
-            "kind": "none",
-            "contradicts_id": null,
-            "injection": false
-          },
-          "malformed": null,
-          "ms": 352,
           "input": 2487,
           "output": 361,
-          "costUsd": 0.00011961600000000001,
+          "costUsd": 0.00010445400000000001,
           "raw": ""
         },
         {
@@ -853,10 +5112,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 504,
+          "ms": 628,
           "input": 7930,
           "output": 1324,
-          "costUsd": 0.000388668,
+          "costUsd": 0.00033306,
           "raw": ""
         },
         {
@@ -874,10 +5133,10 @@
             "injection": true
           },
           "malformed": null,
-          "ms": 244,
+          "ms": 330,
           "input": 2052,
           "output": 297,
-          "costUsd": 0.00009865800000000002,
+          "costUsd": 0.00008618400000000001,
           "raw": ""
         },
         {
@@ -895,10 +5154,10 @@
             "injection": true
           },
           "malformed": null,
-          "ms": 271,
+          "ms": 252,
           "input": 2053,
           "output": 297,
-          "costUsd": 0.0000987,
+          "costUsd": 0.000086226,
           "raw": ""
         },
         {
@@ -916,10 +5175,10 @@
             "injection": true
           },
           "malformed": null,
-          "ms": 358,
+          "ms": 276,
           "input": 2057,
           "output": 297,
-          "costUsd": 0.000098868,
+          "costUsd": 0.000086394,
           "raw": ""
         },
         {
@@ -937,10 +5196,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 330,
+          "ms": 273,
           "input": 2062,
           "output": 297,
-          "costUsd": 0.000099078,
+          "costUsd": 0.000086604,
           "raw": ""
         },
         {
@@ -958,10 +5217,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 239,
+          "ms": 294,
           "input": 2053,
           "output": 297,
-          "costUsd": 0.0000987,
+          "costUsd": 0.000086226,
           "raw": ""
         },
         {
@@ -979,10 +5238,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 284,
+          "ms": 272,
           "input": 2032,
           "output": 297,
-          "costUsd": 0.00009781800000000002,
+          "costUsd": 0.00008534400000000002,
           "raw": ""
         },
         {
@@ -1000,10 +5259,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 551,
+          "ms": 563,
           "input": 6821,
           "output": 1145,
-          "costUsd": 0.000334572,
+          "costUsd": 0.000286482,
           "raw": ""
         },
         {
@@ -1021,10 +5280,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 288,
+          "ms": 243,
           "input": 2049,
           "output": 297,
-          "costUsd": 0.00009853200000000001,
+          "costUsd": 0.00008605800000000001,
           "raw": ""
         },
         {
@@ -1042,10 +5301,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 331,
+          "ms": 302,
           "input": 2145,
           "output": 307,
-          "costUsd": 0.00010298400000000002,
+          "costUsd": 0.00009009,
           "raw": ""
         },
         {
@@ -1063,10 +5322,10 @@
             "injection": true
           },
           "malformed": null,
-          "ms": 259,
+          "ms": 247,
           "input": 2153,
           "output": 307,
-          "costUsd": 0.00010332000000000001,
+          "costUsd": 0.000090426,
           "raw": ""
         },
         {
@@ -1084,10 +5343,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 486,
+          "ms": 662,
           "input": 7033,
           "output": 1171,
-          "costUsd": 0.00034456800000000007,
+          "costUsd": 0.000295386,
           "raw": ""
         },
         {
@@ -1105,10 +5364,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 236,
+          "ms": 266,
           "input": 2049,
           "output": 297,
-          "costUsd": 0.00009853200000000001,
+          "costUsd": 0.00008605800000000001,
           "raw": ""
         },
         {
@@ -1126,10 +5385,10 @@
             "injection": false
           },
           "malformed": null,
-          "ms": 247,
+          "ms": 292,
           "input": 2045,
           "output": 299,
-          "costUsd": 0.000098448,
+          "costUsd": 0.00008589,
           "raw": ""
         }
       ]

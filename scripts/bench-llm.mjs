@@ -48,7 +48,7 @@ const MODELS = {
   gemini: { label: "Gemini 3.8 Flash", id: "gemini-3.8-flash", provider: "gemini", input: 0.75, output: 3.75, source: "https://ai.google.dev/gemini-api/docs/pricing (rate valid through 2026-12-31)", openrouter: "google/gemini-3.8-flash" },
   sonnet: { label: "Claude Sonnet 5", id: "claude-sonnet-5", provider: "anthropic", input: 2, output: 10, source: "https://platform.claude.com/docs/en/about-claude/pricing", openrouter: "anthropic/claude-sonnet-5" },
   fable: { label: "Claude Fable 5.1 (frontier)", id: "claude-fable-5-1", provider: "anthropic", input: 10, output: 50, source: "https://platform.claude.com/docs/en/about-claude/pricing", openrouter: "anthropic/claude-fable-5.1" },
-  jevmem: { label: "jevmem (auto, jev-latest)", id: "jev-latest", provider: "jevmem", input: 0.042, output: 0.042, source: "USD 0.042 per million tokens: the rate configured in jevmem.config.json (jev.usdPerMillionTokens). TypeSafe AI does not publish a public pricing page as of this date (https://typesafe.ai)." },
+  jevmem: { label: "jevmem (auto, jev-latest)", id: "jev-latest", provider: "jevmem", input: 0.042, source: "https://typesafe.ai/blog/introducing-system-one-models-and-jev (read 2026-09-23): $0.042 per million input tokens, output tokens free)", output: 0 },
 };
 
 function keyFor(provider) {
@@ -84,8 +84,32 @@ function validate(obj) {
   return null;
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Retry 429/5xx with exponential backoff (honouring Retry-After); a request that still fails after 6 tries counts as malformed. */
+async function fetchWithRetry(url, init) {
+  let delay = 2000;
+  for (let attempt = 1; ; attempt++) {
+    const r = await fetch(url, init);
+    if (r.ok || attempt >= 6 || (r.status !== 429 && r.status < 500)) return r;
+    const ra = Number(r.headers.get("retry-after"));
+    await sleep(ra > 0 ? ra * 1000 : delay);
+    delay = Math.min(delay * 2, 60_000);
+  }
+}
+
+/** Models sometimes wrap JSON in prose or fences; take the first {...} object. Schema validation still applies. */
+function extractJson(text) {
+  const a = text.indexOf("{");
+  const b = text.lastIndexOf("}");
+  return a >= 0 && b > a ? text.slice(a, b + 1) : text;
+}
+
+// Output cap high enough that reasoning models are not truncated (their reasoning tokens count against it).
+const MAX_OUTPUT = 4000;
+
 async function callOpenAICompatible(base, key, model, state) {
-  const r = await fetch(`${base}/chat/completions`, {
+  const r = await fetchWithRetry(`${base}/chat/completions`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
     body: JSON.stringify({
@@ -95,7 +119,7 @@ async function callOpenAICompatible(base, key, model, state) {
         { role: "user", content: JSON.stringify(state) },
       ],
       response_format: { type: "json_schema", json_schema: { name: "memory_decision", strict: true, schema: SCHEMA } },
-      max_completion_tokens: 200,
+      max_completion_tokens: MAX_OUTPUT,
     }),
   });
   if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
@@ -104,13 +128,13 @@ async function callOpenAICompatible(base, key, model, state) {
 }
 
 async function callGemini(key, model, state) {
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+  const r = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
       contents: [{ role: "user", parts: [{ text: JSON.stringify(state) }] }],
-      generationConfig: { responseMimeType: "application/json", responseJsonSchema: SCHEMA, maxOutputTokens: 200 },
+      generationConfig: { responseMimeType: "application/json", responseJsonSchema: SCHEMA, maxOutputTokens: MAX_OUTPUT },
     }),
   });
   if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
@@ -130,7 +154,7 @@ async function callAnthropic(key, model, state) {
   }
   const res = await anthropicClient.messages.create({
     model,
-    max_tokens: 200,
+    max_tokens: MAX_OUTPUT,
     system: SYSTEM,
     messages: [{ role: "user", content: JSON.stringify(state) }],
     output_config: { format: { type: "json_schema", schema: SCHEMA } },
@@ -208,9 +232,9 @@ async function runModel(name) {
         input = res.input;
         output = res.output;
         try {
-          got = JSON.parse(raw);
+          got = JSON.parse(extractJson(raw));
         } catch {
-          malformed = "invalid JSON";
+          malformed = raw.trim() ? "invalid JSON" : `empty output (${output} output tokens)`;
         }
         if (got && !malformed) malformed = validate(got);
       }
@@ -221,6 +245,7 @@ async function runModel(name) {
     const costUsd = (input * m.input + output * m.output) / 1e6;
     rows.push({ tag: t.tag, want, got, malformed, ms, input, output, costUsd, raw: raw.slice(0, 300) });
     process.stderr.write(`  ${m.label}: ${rows.length}/${turns.length}\r`);
+    if (m.provider !== "jevmem") await sleep(1000); // pace: OpenRouter new-account RPM limits`
   }
   process.stderr.write("\n");
   return { ...m, status: "ran", via: auth.kind, metrics: score(rows), rows };
@@ -236,7 +261,7 @@ const out = {
   system_prompt: "bench/system-prompt.md",
   pricing_date: PRICING_DATE,
   pricing_sources: Object.fromEntries(Object.values(MODELS).map((m) => [m.id, m.source])),
-  note: "Every model gets the identical state jevmem sends Jev. LLMs answer strict JSON via the provider's structured-output mode. A malformed answer counts as wrong. Models without a key are skipped, not estimated.",
+  note: "Every model gets the identical state jevmem sends Jev. LLMs answer strict JSON via the provider's structured-output mode with a 4,000-token output cap (reasoning included) and the provider's default reasoning setting; the first {...} object in the reply is validated against the schema, so prose around it is tolerated but a wrong shape is not. 429/5xx are retried up to 6 times with backoff; latency includes retries. A malformed answer counts as wrong. Models without a key are skipped, not estimated. When routed through OpenRouter, token counts come from OpenRouter's usage report and prices are the providers' list prices (identical to OpenRouter's for these models on the pricing date).",
   models: results,
 };
 fs.mkdirSync(path.dirname(OUT), { recursive: true });

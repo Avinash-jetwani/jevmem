@@ -15,7 +15,7 @@ import { rankMemories } from "./recall.js";
 import { MemoryStore } from "./store.js";
 import { NEW_KINDS, type Kind } from "./types.js";
 
-const HELP = `jevmem — Jev decides. The LLM writes one line.
+const HELP = `jevmem — Shared project memory for Claude Code, Cursor and Codex.
 
 Usage: jevmem <command> [options]
 
