@@ -107,10 +107,10 @@ describe("tool setup", () => {
     expect(again).toHaveLength(0);
   });
 
-  it("produces a Claude Desktop snippet with the project cwd", () => {
+  it("produces a Claude Desktop snippet that names the project with --root (no reliance on a cwd key)", () => {
     const snip = JSON.parse(claudeDesktopSnippet("/p/x"));
-    expect(snip.mcpServers.jevmem.cwd).toBe("/p/x");
-    expect(snip.mcpServers.jevmem.args).toEqual(["-y", "jevmem", "mcp"]);
+    expect(snip.mcpServers.jevmem.args).toEqual(["-y", "jevmem", "mcp", "--root", "/p/x"]);
+    expect(snip.mcpServers.jevmem.cwd).toBeUndefined();
   });
 });
 

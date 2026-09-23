@@ -5,7 +5,7 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 ## Product
 
 - **Name is Jevmem.** Package `jevmem`, memory file `JEVMEM.md`, cache dir `.jevmem/`, config `jevmem.config.json`, env prefix `JEVMEM_`.
-- **The Stop hook evaluates the whole turn, not just the user prompt.** The state Jev sees is `USER: … / ASSISTANT: …`. Decisions usually come from the user, but bug root causes and architecture facts usually come from the assistant. Evaluating both in one call costs nothing extra.
+- **The Stop hook evaluates the whole turn, not just the user prompt.** *(Superseded in v0.3.3: the user message is the state; the assistant reply is a separate key, sent only when `looksLikeQuestion` is true. See below.)* The state Jev sees is `USER: … / ASSISTANT: …`. Decisions usually come from the user, but bug root causes and architecture facts usually come from the assistant. Evaluating both in one call costs nothing extra.
 - **One Jev call per turn.** Every question (nine nouls, two choices, one score) goes in a single `systemOne` request. Jev evaluates them independently and in parallel, so batching is free and keeps the hook at one round trip.
 - **The read side uses `choice` probabilities, not nouls.** `UserPromptSubmit` must be fast and cheap. A single `choice` over memory ids returns a full distribution, which is enough to rank and take the top five. `search_memory` (MCP) and `jevmem search` add one noul per candidate (capped at 50) because there a per-item relevance score is worth the extra tokens.
 - **Importance uses the rounded expected score.** Jev returns a probability-weighted mean over the five levels. `round(score) >= index("useful")` is more stable than argmax when the distribution is split between two adjacent levels.
@@ -18,17 +18,18 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 - **Memory ids are capped at 200 per `touches_memory_id` choice.** Jev supports 255 options, but accuracy drops with irrelevant context, so above the cap the code pre-filters by keyword overlap with the message. The same filter feeds recall.
 - **Secrets are scrubbed at the client boundary** (`createJev`) and again before the writer LLM. The scrubber is deliberately over-eager (long opaque blobs, `key=value` pairs, connection-string credentials, private key blocks). A redacted token never harms a memory decision.
 - **The hook hard-times-out Jev at 2 s** with no SDK retries (`maxRetries: 0` on the timed call). A missed memory is cheaper than a slow prompt. The CLI commands (`audit`, `search`) use the SDK defaults (10 s, one retry) because nobody is waiting on a keystroke.
-- **Cost is computed as tokens × $0.042 / M** (the figure given in the brief) and is configurable in `jevmem.config.json` under `jev.usdPerMillionTokens`, since the public docs do not state a price.
+- **Cost is computed as tokens × $0.042 / M** (the figure given in the brief) and is configurable in `jevmem.config.json` under `jev.usdPerMillionTokens`, since the public docs do not state a price. *(Superseded in v0.3.7/v0.4.0: the price is TypeSafe's launch post, $0.042 per million input tokens with output free, and from v0.4.0 every cost in the code, `jevmem stats` and the scripts charges input tokens only.)*
 
 ## Writer
 
 - **No OpenAI or Anthropic SDK dependency.** Both providers are called with `fetch` directly (chat completions and Messages API). It keeps the install small and the hook start-up fast.
 - **Defaults: `gpt-5-mini` for OpenAI, `claude-haiku-4-5-20251001` for Anthropic.** Provider is auto-detected from whichever key is present; `JEVMEM_WRITER` forces one and `JEVMEM_WRITER_MODEL` overrides the model.
-- **The fallback is the first substantive sentence**, with role prefixes and code fences removed, clamped to 140 characters. It is deterministic so tests and the no-key path are reproducible.
+- **The fallback is the first substantive sentence**, with role prefixes and code fences removed, clamped to 140 characters. *(Superseded: the limit is `writer.maxChars`, 200 by default.)* It is deterministic so tests and the no-key path are reproducible.
 - **Duplicate lines are dropped after writing.** If the writer produces a line identical (case-insensitive) to a live memory and nothing was superseded, the new line is removed again. This costs one extra file write and avoids a second Jev call.
 
 ## Claude Code hook
 
+- *(Superseded in v0.3.2/v0.3.4: the hook command is `"<absolute node>" "<absolute cli.js>" hook` in `.claude/settings.local.json`; the two bullets below describe v0.1.)*
 - **The hook command is resolved at `init` time.** If `node_modules/.bin/jevmem` exists in the project the command is `npx jevmem hook`; if the CLI runs from a global install it is `jevmem hook`; otherwise (a checkout, or an `npx` cache) it is `node "<absolute path to cli.js>" hook`. `--command` overrides it. A bare `npx jevmem` would hit the network on every turn when the package is not installed locally.
 - **Hooks are merged into `.claude/settings.json`, not overwritten.** Existing hook groups and permissions are kept. Detection is by an existing command matching `jevmem … hook`, so re-running `init` is idempotent.
 - **Timeouts:** Stop hook 20 s (Jev 2 s + writer 8 s + slack), UserPromptSubmit 5 s. Both always exit 0.
@@ -50,8 +51,8 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 ## v0.3.6: measured or removed
 
 - **The Haiku estimate is gone because it was an estimate.** A year-old opponent and a back-of-envelope cost are exactly what a launch reader distrusts. `scripts/bench-llm.mjs` puts current models (GPT-5.6 Luna, Gemini 3.8 Flash, Claude Sonnet 5, Claude Fable 5.1) through the same 50-turn set with the same state and a strict JSON schema, and records real token usage against the provider's pricing page with the URL and date. On the release machine no LLM key existed, so the first results file has four skipped rows and one measured row. That is published as-is rather than filled in from memory; the README says why and how to fill it.
-- **jevmem's own price is not from a pricing page.** TypeSafe AI publishes no public price list as of 2026-09-23; the $0.042 per million tokens comes from the project's configuration and is labelled as such in the results file and the README.
-- **Absolutes were audited, not banned.** "Hooks always exit 0" survives because a test asserts it; "never inside a URL" became "not inside a URL (tested)"; "cannot generate text" became "does not generate text"; "never forgets" was removed from the tagline everywhere. Quoted turn text ("never bump engines…") is left verbatim.
+- **jevmem's own price is not from a pricing page.** TypeSafe AI publishes no public price list as of 2026-09-23; the $0.042 per million tokens comes from the project's configuration and is labelled as such in the results file and the README. *(Superseded in v0.3.7: the price is cited from TypeSafe's launch post.)*
+- **Absolutes were audited, not banned.** "Hooks always exit 0" survives because a test asserts it (until v0.4.0 that test only checked that `runHook` never throws; v0.4.0 adds `test/exitcode.test.ts`, which spawns the built CLI with bad input, no key, a broken transcript and an unreachable Jev and asserts exit code 0); "never inside a URL" became "not inside a URL (tested)"; "cannot generate text" became "does not generate text"; "never forgets" was removed from the tagline everywhere. Quoted turn text ("never bump engines…") is left verbatim.
 - **Writes outside the project announce themselves.** `init --tool codex` now prints the path, a timestamped backup path and the exact TOML lines before appending, and the test checks the file is untouched at the moment of the announcement.
 
 ## v0.3.3: the user message is the state
@@ -99,7 +100,7 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 
 - **Why a daemon and not a faster process.** The CLI itself starts in ~70 ms; the missing ~400 ms per cold hook call was TLS and connection setup to `api.typesafe.ai` in a brand-new process. Only a long-lived process can amortise that. The daemon is one `net.Server` on a Unix socket in `.jevmem/` (named pipe on Windows), holding one `TypeSafeClient`, and it runs the exact same `runHook` code path.
 - **The hook does not wait on the daemon.** It tries to connect for 250 ms; on failure it does the work inline and spawns the daemon detached for the next turn. A crashed or outdated daemon costs one cold turn, never a broken one.
-- **Idle exit, not a service.** No launchd/systemd, no global process: one daemon per project, it exits after 30 idle minutes, and `.jevmem/daemon.json` records the pid so `jevmem daemon status/stop` can find it. A pre-warm call of one tiny noul (~300 tokens, about a hundredth of a cent) opens the connection so even the first real turn after start is warm.
+- **Idle exit, not a service.** No launchd/systemd, no global process: one daemon per project, it exits after 30 idle minutes, and `.jevmem/daemon.json` records the pid so `jevmem daemon status/stop` can find it. A pre-warm call of one tiny noul (~300 tokens, about a thousandth of a cent) opens the connection so even the first real turn after start is warm.
 - **Scrub at the source, not only at the boundary.** The reviewer could not find scrubbing in `decide.ts` because it lived only in the client wrapper. It now happens in both places; the test suite (which mocks the client) can therefore prove it.
 
 ## Repo / tooling

@@ -50,6 +50,11 @@ async function withTimeout<T>(p: (signal: AbortSignal) => Promise<T>, ms: number
   }
 }
 
+/** gpt-5* and o-series models on api.openai.com accept `reasoning_effort`; other OpenAI-compatible endpoints may not. */
+export function isOpenAIReasoningModel(model: string, base: string): boolean {
+  return /^https:\/\/api\.openai\.com\//.test(base + "/") && /^(gpt-5|o\d)/.test(model);
+}
+
 export async function callOpenAI(input: { model: string; system: string; user: string; timeoutMs: number; env?: NodeJS.ProcessEnv; fetchImpl?: typeof fetch }): Promise<string> {
   const env = input.env ?? process.env;
   const base = (env.OPENAI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/+$/, "");
@@ -65,7 +70,10 @@ export async function callOpenAI(input: { model: string; system: string; user: s
           { role: "system", content: input.system },
           { role: "user", content: input.user },
         ],
-        max_completion_tokens: 120,
+        // Reasoning models (gpt-5*, o*) spend completion tokens on reasoning before the line; a 120 cap could leave
+        // nothing for the answer. Ask api.openai.com reasoning models for minimal effort, and cap high enough either way.
+        max_completion_tokens: 1000,
+        ...(isOpenAIReasoningModel(input.model, base) ? { reasoning_effort: "minimal" } : {}),
       }),
     });
     if (!r.ok) throw new Error(`openai ${r.status}: ${(await r.text()).slice(0, 200)}`);

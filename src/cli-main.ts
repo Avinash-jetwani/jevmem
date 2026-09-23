@@ -24,8 +24,8 @@ Usage: jevmem <command> [options]
                                           Create JEVMEM.md, jevmem.config.json, .jevmem/ and set up the tool(s) (default: detect)
   <command> --help                        Help for one command
   hook                                    Claude Code hook entrypoint (reads the hook JSON from stdin)
-  daemon [status|stop]                    Warm Jev client for the hook (auto-started by the hook; exits when idle)
-  mcp                                     Start the stdio MCP server (search_memory, add_memory, list_memory, audit_memory)
+  daemon [status|start|stop]              Warm Jev client for the hook (auto-started by the hook; exits when idle)
+  mcp [--root <dir>]                      Start the stdio MCP server (search_memory, add_memory, list_memory, audit_memory)
   audit [--dry-run]                       Re-score every memory against the repo and flag [stale?] lines
   search <query> [--limit N]              Rank memories by relevance to a query (one Jev call)
   list [--all]                            Print memories (live by default)
@@ -36,11 +36,12 @@ Usage: jevmem <command> [options]
   wrong <id|hash> [--should-be <kind|none>] Label the decision as wrong
   missed "<text>"  [--kind <kind>]        Label a turn that should have been saved
   fit [--dry-run] [--force]               Refit weights and thresholds from labels (needs ${MIN_LABELS}+ labels)
-  stats                                   Latency p50/p95, cost per day, cache hit rate, labels, last fit
+  stats                                   Latency p50/p95, cost per day, cache hit rate, escalation rate, labels, last fit
   log                                     Summarise .jevmem/log.jsonl (Jev latency and cost)
 
 Env: TYPESAFE_API_KEY (required for Jev), OPENAI_API_KEY / ANTHROPIC_API_KEY (optional writer),
-     JEVMEM_WRITER=openai|anthropic|none, JEVMEM_WRITER_MODEL, JEVMEM_VERBOSE=1, JEVMEM_DAEMON=0|1
+     JEVMEM_WRITER=openai|anthropic|none, JEVMEM_WRITER_MODEL, JEVMEM_VERBOSE=1, JEVMEM_DAEMON=0|1,
+     JEVMEM_CACHE=0, JEVMEM_DEBUG=1, TYPESAFE_BASE_URL, JEVMEM_ROOT (MCP project root)
 `;
 
 function flag(args: string[], name: string): boolean {
@@ -73,10 +74,11 @@ export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
   init: `jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
 
 Create JEVMEM.md, jevmem.config.json and .jevmem/ in the current directory and set up the chosen tool(s).
-  --tool <list>     Comma-separated; default: detect from .claude/, .cursor/, AGENTS.md, ~/.codex (falls back to claude)
+  --tool <list>     Comma-separated; default: detect from .claude/, .cursor/, AGENTS.md in this project (else claude).
+                    ~/.codex/config.toml is edited only with an explicit --tool codex or --tool all.
   --no-hooks        Skip the Claude Code hook registration
   --command "<cmd>" Register this hook command instead of the resolved absolute node + cli.js path
-Claude Code hooks go to .claude/settings.local.json (machine-specific paths; Claude Code keeps it out of git).
+Claude Code hooks go to .claude/settings.local.json (machine-specific paths); init adds it to .gitignore.
 Re-running init repairs an existing jevmem hook command and moves one found in .claude/settings.json.
 `,
   hook: `jevmem hook
@@ -86,14 +88,16 @@ Registered by \`jevmem init\`; not meant to be run by hand. JEVMEM_VERBOSE=1 pri
 `,
   daemon: `jevmem daemon [status|start|stop]
 
-Warm Jev client used by the hook. Auto-started by the first hook call; exits after tiers of inactivity (daemon.idleMinutes).
+Warm Jev client used by the hook. Auto-started by the first hook call; exits after 30 minutes of inactivity (daemon.idleMinutes).
   status   Show pid, uptime and requests served (default)
   start    Start it detached
   stop     Ask it to exit
 `,
-  mcp: `jevmem mcp
+  mcp: `jevmem mcp [--root <dir>]
 
-Start the stdio MCP server exposing search_memory, add_memory, list_memory and audit_memory for the current directory.
+Start the stdio MCP server exposing search_memory, add_memory, list_memory and audit_memory for the current directory,
+or for --root <dir> (or JEVMEM_ROOT) when the client has no project working directory (Claude Desktop).
+add_memory scrubs secrets and asks Jev first; it refuses injection, small talk and duplicates with a reason.
 `,
   audit: `jevmem audit [--dry-run]
 
@@ -111,6 +115,7 @@ Print live memories (id, kind, text). --all includes superseded lines.
   add: `jevmem add <kind> <text>
 
 Append one memory line by hand. kind: decision | constraint | preference | bug | architecture | todo.
+Secrets are scrubbed; there is no Jev check (you typed it).
 `,
   why: `jevmem why <memory id | turn hash>
 
@@ -276,9 +281,13 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       else io.out("not running\n");
       return 0;
     }
-    case "mcp":
-      await serveMcp(root);
+    case "mcp": {
+      // Clients without a project working directory (Claude Desktop) name the project with --root or JEVMEM_ROOT.
+      const mcpRoot = opt(args, "--root") ?? process.env.JEVMEM_ROOT ?? root;
+      if (!fs.existsSync(mcpRoot)) return fail(`--root ${mcpRoot} does not exist`);
+      await serveMcp(mcpRoot);
       return -1; // keep running
+    }
     case "audit": {
       const dry = flag(args, "--dry-run");
       requireKey();

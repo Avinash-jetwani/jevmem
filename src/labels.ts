@@ -20,6 +20,8 @@ export interface DecisionRecord {
   message: string;
   decision: Decision;
   via?: string;
+  /** Which writer produced the saved line: openai, anthropic, or fallback (the deterministic extract). */
+  writer?: string;
 }
 
 export interface LabelRecord {

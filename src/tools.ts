@@ -44,7 +44,7 @@ alwaysApply: true
 This project keeps durable memory in \`JEVMEM.md\` (one line per decision, constraint, preference, bug, architecture fact, or todo), managed by the \`jevmem\` MCP server.
 
 - Before any non-trivial task, call \`search_memory\` with a one-line description of the task and read the results. They are decisions and constraints from earlier sessions; follow them unless the user overrides.
-- When the user states a decision, a hard rule, a preference, a root cause, or defers work, call \`add_memory\` with one line (≤ 140 chars) and the right kind: decision | constraint | preference | bug | architecture | todo.
+- When the user states a decision, a hard rule, a preference, a root cause, or defers work, call \`add_memory\` with one line (≤ 200 chars) and the right kind: decision | constraint | preference | bug | architecture | todo. jevmem scrubs secrets and asks Jev first; it may refuse the line (injection, small talk, duplicate) or correct the kind, and says why.
 - If something you learned contradicts a memory, add the new memory and tell the user which line it replaces.
 - Do not add greetings, questions, or anything already obvious from the code.
 `;
@@ -55,7 +55,7 @@ export const AGENTS_SECTION = `
 Durable project memory lives in \`JEVMEM.md\` (one line per decision, constraint, preference, bug, architecture fact, or todo) and is served by the \`jevmem\` MCP server.
 
 - Before any non-trivial task, call the \`search_memory\` tool with a one-line description of the task and follow what comes back unless the user overrides it.
-- When the user states a decision, a hard rule, a preference, a root cause, or defers work, call \`add_memory\` with one line (≤ 140 chars) and the right kind: decision | constraint | preference | bug | architecture | todo.
+- When the user states a decision, a hard rule, a preference, a root cause, or defers work, call \`add_memory\` with one line (≤ 200 chars) and the right kind: decision | constraint | preference | bug | architecture | todo. jevmem scrubs secrets and asks Jev first; it may refuse the line or correct the kind, and says why.
 - If something contradicts an existing memory, add the new line and say which memory it replaces.
 - Never add greetings, questions, or things already obvious from the code.
 `;
@@ -123,11 +123,19 @@ export function setupCodex(root: string, home = os.homedir(), announce?: Announc
   return r;
 }
 
+/** Claude Desktop has one global config and no project working directory, so the project is passed with `--root`. */
 export function claudeDesktopSnippet(root: string): string {
-  return JSON.stringify({ mcpServers: { jevmem: { ...MCP_ENTRY, cwd: root, env: { TYPESAFE_API_KEY: "your-key" } } } }, null, 2);
+  return JSON.stringify({ mcpServers: { jevmem: { command: "npx", args: ["-y", "jevmem", "mcp", "--root", root], env: { TYPESAFE_API_KEY: "your-key" } } } }, null, 2);
 }
 
 export function setupClaudeDesktop(root: string): ToolSetupResult {
   const file = process.platform === "darwin" ? "~/Library/Application Support/Claude/claude_desktop_config.json" : process.platform === "win32" ? "%APPDATA%\\Claude\\claude_desktop_config.json" : "~/.config/Claude/claude_desktop_config.json";
-  return { created: [], skipped: [], notes: [`Claude Desktop: add this to ${file} (not edited automatically), then restart Claude Desktop:\n${claudeDesktopSnippet(root)}`] };
+  return {
+    created: [],
+    skipped: [],
+    notes: [
+      `Claude Desktop: add this to ${file} (not edited automatically), then restart Claude Desktop:\n${claudeDesktopSnippet(root)}\n` +
+        "One config serves one project (the --root path). Claude Desktop has no per-turn hook and no rule file: it calls add_memory / search_memory only when you ask it to.",
+    ],
+  };
 }

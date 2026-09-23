@@ -187,7 +187,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
     }
 
     const result = await writeMemory(store, decision.sourceText || message, decision, { writer: cfg.writer, env, fetchImpl: deps.fetchImpl });
-    recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision });
+    recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision, writer: result.writerUsed });
     // Exact duplicate of a live memory: drop the new line again.
     const dup = existing.find((m) => m.text.toLowerCase() === result.line.toLowerCase());
     if (dup && !result.superseded) {

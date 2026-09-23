@@ -66,3 +66,13 @@ describe("env-style and short credentials", () => {
     }
   });
 });
+
+describe("documented limits (SECURITY.md 'Not caught')", () => {
+  it("does not claim to catch phone numbers, 15-digit Amex numbers, names or apikey: <short>", () => {
+    for (const t of ["call 555-123-4567", "amex 378282246310005", "John Smith, 12 Main St", "apikey: abc"]) expect(scrubSecrets(t)).toBe(t);
+  });
+  it("is over-eager on *_key pairs, as documented", () => {
+    expect(scrubSecrets("primary_key: id")).toBe("primary_key=[REDACTED]");
+    expect(scrubSecrets("api_key: 'abc'")).toBe("api_key=[REDACTED]");
+  });
+});
