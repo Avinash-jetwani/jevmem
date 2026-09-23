@@ -2,6 +2,24 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.3] - 2026-09-23
+
+Docs and packaging for launch; no behaviour change.
+
+### Changed
+- Tagline everywhere (README, package description, GitHub About, CLI `--help`, DEMO): "Automatic project memory for Claude Code. Also works with Cursor and Codex." Automatic capture is Claude Code (and Codex under `jevmem watch`); Cursor and Claude Desktop capture when the agent calls `add_memory`.
+- README rewritten as a short front page (what it does, install, works-with table, how it decides in five steps, the held-out benchmark, privacy, limits, commands). The detail moved unchanged into `docs/`: `how-it-works.md`, `benchmark.md`, `cost.md`, `mcp.md`, `configuration.md`, `hooks.md`.
+- "How this differs from the tools' own memory" (now in `docs/how-it-works.md`) no longer states how Claude Code's auto-memory handles reversals or why it keeps a note; those were not verified.
+- `package.json`: keywords, homepage, `files` limited to `dist`, README, LICENSE, CHANGELOG, SECURITY and `docs`.
+
+### Added
+- `CONTRIBUTING.md`, issue templates (bug report asks for version, tool, OS, Node, `jevmem stats` and scrubbed log lines), a pull request template, and CI on Node 20 and 22, ubuntu and macOS.
+- `test/links.test.ts`: every relative link and heading anchor in README, `docs/` and the other public docs must resolve.
+- `scripts/check-claims.mjs` also scans `docs/**/*.md`.
+
+### Verified
+- Fresh install from the packed tarball into an empty npm prefix: `--help` and `init --help` print help without side effects; `init --tool claude` in a new git repo creates only `JEVMEM.md`, `jevmem.config.json`, `.jevmem/`, `.claude/settings.local.json` and a `.gitignore` listing the last two; hooks with no key exit 0 and log it; `init --tool cursor` and `--tool codex` write the files `docs/mcp.md` shows; `scripts/e2e.sh --runs 1` passes against the installed package.
+
 ## [0.4.2] - 2026-09-23
 
 ### Fixed

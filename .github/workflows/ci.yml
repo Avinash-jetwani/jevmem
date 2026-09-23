@@ -7,10 +7,17 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: node ${{ matrix.node }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: [20, 22]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+      # pnpm 11 itself needs Node >= 22.13, so install, build and lint run on Node 22.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -18,7 +25,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm lint
-      - run: pnpm test
-      # Every measured number in README, DEMO, SECURITY, the newest CHANGELOG entry, package.json and the CLI help
-      # must trace to a results file listed in results/CURRENT.json.
+      # Tests, the built CLI and check-claims then run on the matrix Node version (what users run jevmem on).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node --version
+      - run: node node_modules/vitest/vitest.mjs run
+      - run: node dist/cli.js --version && node dist/cli.js --help > /dev/null
+      # Every measured number in README, docs/, DEMO, SECURITY, the newest CHANGELOG entry, package.json and the CLI
+      # help must trace to a results file listed in results/CURRENT.json.
       - run: node scripts/check-claims.mjs

@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in jevmem does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Do not paste API keys** (TYPESAFE_API_KEY, OpenAI, Anthropic, OpenRouter) or private project text. Remove them from any log lines below. Security problems go through SECURITY.md, not a public issue.
+  - type: input
+    id: version
+    attributes:
+      label: jevmem version
+      description: Output of `jevmem --version`
+      placeholder: 0.4.3
+    validations:
+      required: true
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool
+      options:
+        - Claude Code (CLI)
+        - Claude Code (desktop app)
+        - Cursor
+        - Codex
+        - Claude Desktop
+        - Other / CLI only
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: macOS 15.1 (arm64)
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: Output of `node --version`
+      placeholder: v22.12.0
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+  - type: textarea
+    id: stats
+    attributes:
+      label: "`jevmem stats` output"
+      render: text
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant `.jevmem/log.jsonl` lines (keys and private text removed)
+      render: text

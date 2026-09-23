@@ -1,6 +1,6 @@
 # Jevmem in 60 seconds
 
-Shared project memory for Claude Code, Cursor and Codex.
+Automatic project memory for Claude Code. Also works with Cursor and Codex.
 
 This file has two prompt sets. The **SQLite → Postgres demo** below (three live prompts in Claude Code, or five scripted steps through the hook's stdin) is for a screen recording. The **LinkGuard session** at the bottom is a different set of five prompts: the ones `scripts/e2e.sh` sends through a real Claude Code session, with its real output. The decider behind both scores 95.5% (`auto` and `fast`) save+kind on the 66-turn held-out eval set and 98.0% (`auto`) on the 50-turn regression set (`node scripts/eval.mjs`, v0.4.2, 2026-09-23, [`results/`](results/)); older figures remain in CHANGELOG.md.
 
