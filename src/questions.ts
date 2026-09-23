@@ -251,8 +251,9 @@ export function buildDecideQuestions(memoryIds: { id: string; kind: string; text
 export const DECIDE_QUESTION_COUNT = atomicNoulsFor(false).length + 3;
 
 // ---------------------------------------------------------------------------------------------
-// Tier 1: nine broad nouls plus the four atomic injection nouls, one positive and one negative example each.
-// Runs on every turn.
+// Tier 1: nine broad nouls, one positive and one negative example each. Runs on every turn.
+// (v0.4.0 also asked the four atomic injection nouls here; v0.4.1 reverted that: more cost, no measured benefit,
+// one false refusal. They still run in tier 2.)
 
 export interface BroadNoul {
   name: string;
@@ -295,9 +296,6 @@ export const TIER1_NOULS: readonly BroadNoul[] = [
   B("assistant_reply_is_meta", "meta", "Is the assistant reply mainly a menu of options or next steps for the user, or commentary about memory files, hooks, jevmem, or its own tooling?",
     { what: "Menus of things to do next, or talk about the memory system, hook output, or the assistant's tools.", examples: ["Options I can pick up right away: submission prep, tests. One note from the hook output: Jev captured my last reply."] },
     { what: "A direct answer, finding, or a description of a fix or change made to the project.", examples: ["The invalidation ran before the write finished. Fixed by awaiting flush() before invalidate()."] }),
-  // The four atomic injection nouls from tier 2 also run in tier 1 (one example per side), so every hook save is
-  // gated by all five injection nouls, not only by the broad one above. The injection family is their max.
-  ...ATOMIC_NOULS.filter((a) => a.family === "injection").map((a) => B(a.name, a.family, a.question, trim(a.yes, 1), trim(a.no, 1))),
 ];
 
 export const TIER1_NOUL_NAMES = TIER1_NOULS.map((n) => n.name);
@@ -312,13 +310,13 @@ export function buildTier1Questions(memoryIds: { id: string; kind: string; text:
   return { ...q, ...sharedQuestions(memoryIds, 1, true, opts.withAssistant ?? false) };
 }
 
-/** Question count without the assistant reply (13 nouls + kind + touches + importance). */
+/** Question count without the assistant reply (9 nouls + kind + touches + importance). */
 export const TIER1_QUESTION_COUNT = tier1NoulsFor(false).length + 3;
 
-/** The tier-1 injection nouls: the broad one plus the four atomic ones. */
+/** The tier-1 injection nouls (one: the broad noul). */
 export const TIER1_INJECTION_NOULS = TIER1_NOULS.filter((n) => n.family === "injection").map((n) => n.name);
 
-/** Tier-1 family score: the max over that family's nouls (one per family, except injection with five). */
+/** Tier-1 family score: the max over that family's nouls (tier 1 has one noul per family). */
 export function tier1Families(nouls: Record<string, number>): Record<Family, number> {
   const out = {} as Record<Family, number>;
   for (const f of FAMILIES) out[f] = 0;

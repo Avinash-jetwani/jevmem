@@ -155,7 +155,7 @@ export function looksLikeQuestion(user: string): boolean {
 /** The borderline rule: which conditions say tier 1 is unsure. Pure, so it is testable and shown by `why`. */
 export function borderlineReasons(t1: Pick<TierAnswers, "nouls" | "importanceConfidence"> & { kindConfidence?: number }, rule: BorderlineRule): string[] {
   const reasons: string[] = [];
-  // Injection is the max over the five tier-1 injection nouls (the broad one and the four atomic ones).
+  // Injection is the max over the tier-1 injection nouls (currently one: the broad noul).
   const inj0 = Math.max(0, ...TIER1_INJECTION_NOULS.map((n) => t1.nouls[n] ?? 0));
   const chat0 = t1.nouls.is_only_chit_chat ?? 0;
   // Tier 1 is sure this turn is skipped; tier 2 could only agree, so don't pay for it.
@@ -240,7 +240,7 @@ export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "
 }
 
 /**
- * Two-tier decide. Tier 1 (9 broad nouls + 4 injection nouls) runs every turn; tier 2 (30 atomic nouls) runs only when the
+ * Two-tier decide. Tier 1 (9 broad nouls) runs every turn; tier 2 (30 atomic nouls) runs only when the
  * borderline rule says tier 1 is unsure. `tiers.mode` forces `fast` (tier 1 only) or `full` (always tier 2).
  */
 export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOptions = {}): Promise<Decision> {

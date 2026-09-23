@@ -248,7 +248,7 @@ export function formatWhy(rec: DecisionRecord): string {
   };
   if (d.tier1) {
     out.push("");
-    out.push(`tier 1 (13 nouls, ${d.tier1.usage.inputTokens + d.tier1.usage.outputTokens} tokens${d.tier1.cacheHit ? ", cache hit" : ""}): ${d.tier1.reason}`);
+    out.push(`tier 1 (9 broad nouls, ${d.tier1.usage.inputTokens + d.tier1.usage.outputTokens} tokens${d.tier1.cacheHit ? ", cache hit" : ""}): ${d.tier1.reason}`);
     for (const n of TIER1_NOULS) {
       const v = d.tier1.nouls[n.name] ?? 0;
       out.push(`  ${bar(v)} ${v.toFixed(2)}  ${n.name}${d.tier === 1 ? gate(n.family, v) : ""}`);
