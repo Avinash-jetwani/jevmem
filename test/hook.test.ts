@@ -140,11 +140,14 @@ describe("init", () => {
     const r = init({ root, command: "node /x/cli.js hook" });
     expect(r.created).toContain("JEVMEM.md");
     expect(r.created).toContain("jevmem.config.json");
+    // Shared settings.json is left alone (no jevmem hook there); hooks go to settings.local.json.
     const settings = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.json"), "utf8"));
     expect(settings.permissions.allow).toEqual(["Bash(ls)"]);
-    expect(settings.hooks.Stop).toHaveLength(2);
-    expect(settings.hooks.Stop[1].hooks[0].command).toBe("node /x/cli.js hook");
-    expect(settings.hooks.UserPromptSubmit[0].hooks[0].command).toBe("node /x/cli.js hook");
+    expect(settings.hooks.Stop).toHaveLength(1);
+    expect(settings.hooks.Stop[0].hooks[0].command).toBe("echo other");
+    const local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
+    expect(local.hooks.Stop[0].hooks[0].command).toBe("node /x/cli.js hook");
+    expect(local.hooks.UserPromptSubmit[0].hooks[0].command).toBe("node /x/cli.js hook");
     expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toContain(".jevmem/");
     expect(registerClaudeHooks(root, "node /x/cli.js hook")).toBe("present");
     const again = init({ root, command: "node /x/cli.js hook" });

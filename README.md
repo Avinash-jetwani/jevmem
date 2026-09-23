@@ -33,7 +33,7 @@ cd your-project
 jevmem init
 ```
 
-`jevmem init` creates `JEVMEM.md`, `jevmem.config.json`, a gitignored `.jevmem/` cache, and registers two Claude Code hooks in `.claude/settings.json`. The registered command uses the absolute paths of `node` and the CLI, because Claude Code runs hooks without your shell profile and, from the desktop app, with a bare PATH. If you upgrade or move Node, run `jevmem init` again and it repairs the command in place.
+`jevmem init` creates `JEVMEM.md`, `jevmem.config.json`, a gitignored `.jevmem/` cache, and registers two Claude Code hooks in `.claude/settings.local.json`. That file is per-machine and Claude Code keeps it out of git, which matters because the registered command uses the absolute paths of `node` and the CLI (Claude Code runs hooks without your shell profile and, from the desktop app, with a bare PATH). If you upgrade or move Node, run `jevmem init` again and it repairs the command in place; a jevmem hook found in the shared `.claude/settings.json` is moved to the local file. Every command accepts `--help`.
 
 | Hook | What it does | Budget |
 |---|---|---|
@@ -126,7 +126,7 @@ save          = kind != none AND content >= contentMin (0.5) AND round(importanc
 contradiction = save AND contradiction >= contradictionMin (0.7) AND touches_memory_id != none
 ```
 
-On `save`, the writer produces one line (≤ 200 chars, cut at a word boundary, never inside a URL). On `contradiction`, the old line is re-tagged `[superseded]` and gets `→ id:new`. Every decision, saved or skipped, is recorded in `.jevmem/decisions.jsonl` with both tiers' answers, so `jevmem why <id>` shows tier 1, and tier 2 if it ran, and which borderline condition caused the escalation.
+On `save`, the writer produces one line (≤ 200 chars, cut at a word boundary, never inside a URL, with leading filler such as "Decision:", "Actually,", "So," or "OK," stripped). On `contradiction`, the old line is re-tagged `[superseded]` and gets `→ id:new`. Every decision, saved or skipped, is recorded in `.jevmem/decisions.jsonl` with both tiers' answers, so `jevmem why <id>` shows tier 1, and tier 2 if it ran, and which borderline condition caused the escalation.
 
 ### The read side: one call per prompt (`src/recall.ts`)
 
@@ -323,7 +323,7 @@ Environment:
 | `JEVMEM_WRITER_MODEL` | Override the model (defaults: `gpt-5-mini`, `claude-haiku-4-5-20251001`). |
 | `OPENAI_BASE_URL` | Any OpenAI-compatible endpoint (Ollama, Groq, OpenRouter…). |
 | `JEVMEM_VERBOSE` | `1` prints the Jev latency/cost line after each hook run. |
-| `JEVMEM_DEBUG` | `1` appends every raw hook payload (and whether the key was found) to `.jevmem/hook-debug.log`. Set it under `"env"` in `.claude/settings.json` to debug the desktop app. |
+| `JEVMEM_DEBUG` | `1` appends every raw hook payload (and whether the key was found) to `.jevmem/hook-debug.log`. Set it under `"env"` in `.claude/settings.local.json` to debug the desktop app. |
 | `JEVMEM_DAEMON` | `0` disables the warm daemon (hook runs inline), `1` forces it on. |
 | `JEVMEM_CACHE` | `0` disables the answer cache. |
 | `TYPESAFE_BASE_URL` | Route Jev through a proxy or gateway. A Vercel AI Gateway URL turns on `zeroDataRetention: true` automatically. |

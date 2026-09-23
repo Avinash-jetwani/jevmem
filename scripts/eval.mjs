@@ -23,7 +23,12 @@ async function runMode(mode) {
   // Warm the connection once so the p50 reflects the daemon path, not the first TLS handshake.
   try { await lib.decide(jev, { message: "USER: warm-up", existingMemories: [] }, mode === "legacy" ? {} : { tiers: { mode } }); } catch {}
   const rows = [];
+  const lineErrors = [];
   for (const t of turns) {
+    if (t.expectLine && mode === modes[0]) {
+      const { line } = await lib.composeLine(t.user, t.label.kind, { writer: { provider: "none", maxChars: 200, timeoutMs: 1000 }, env: {} });
+      if (line !== t.expectLine) lineErrors.push({ tag: t.tag, got: line, want: t.expectLine });
+    }
     const message = lib.mergeTurn ? lib.mergeTurn(t.user, t.assistant) : `USER: ${t.user}\n\nASSISTANT: ${t.assistant}`;
     const t0 = performance.now();
     const existing = t.existing ?? DEFAULT_EXISTING;
@@ -43,6 +48,7 @@ async function runMode(mode) {
     p50ms: lat[Math.floor(lat.length / 2)], p95ms: lat[Math.floor(lat.length * 0.95)],
     avgTokens: Math.round(avgTokens), costPerTurn: (avgTokens / 1e6) * USD_PER_M,
     escalationRate: rows.filter((r) => r.escalated).length / rows.length,
+    lineErrors,
     errors: rows.filter((r) => r.got.save !== r.want.save || (r.want.save && r.got.kind !== r.want.kind)).map((r) => ({ tag: r.tag, want: r.want, got: r.got, reason: r.reason })),
   };
 }
@@ -55,3 +61,6 @@ console.log(`${distArg}  (n=${turns.length}, warm in-process client, no cache)`)
 console.log("mode    accuracy   F1      tokens/turn  cost/turn    p50     p95    escalated");
 for (const r of results) console.log(`${r.mode.padEnd(7)} ${pct(r.accuracy)}   ${pct(r.f1)}  ${String(r.avgTokens).padStart(8)}     $${r.costPerTurn.toFixed(6)}  ${String(r.p50ms).padStart(4)} ms ${String(r.p95ms).padStart(5)} ms  ${r.mode === "auto" ? pct(r.escalationRate) : "   –  "}`);
 for (const r of results) for (const e of r.errors) console.log(`  ✗ [${r.mode}] ${e.tag.padEnd(12)} want ${e.want.save ? e.want.kind : "skip"} got ${e.got.save ? e.got.kind : "skip"}  (${e.reason})`);
+const le = results[0].lineErrors ?? [];
+console.log(`writer (fallback) expectLine checks: ${turns.filter((t) => t.expectLine).length - le.length}/${turns.filter((t) => t.expectLine).length} ok`);
+for (const e of le) console.log(`  ✗ line [${e.tag}] got "${e.got}" want "${e.want}"`);

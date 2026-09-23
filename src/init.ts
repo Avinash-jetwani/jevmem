@@ -5,7 +5,7 @@ import { MEMORY_HEADER, MemoryStore } from "./store.js";
 
 export interface InitOptions {
   root: string;
-  /** Command to register in `.claude/settings.json`. Resolved automatically when omitted. */
+  /** Command to register in `.claude/settings.local.json`. Resolved automatically when omitted. */
   command?: string;
   hooks?: boolean;
   /** Path of the running CLI (`process.argv[1]`), used to resolve the hook command. */
@@ -46,30 +46,72 @@ function ensureGitignore(root: string, created: string[]): void {
   created.push(".gitignore (+ .jevmem/)");
 }
 
+export const HOOK_SETTINGS_FILE = "settings.local.json";
+
+function readSettings(file: string): any {
+  if (!fs.existsSync(file)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+const HOOK_EVENTS: Record<string, number> = { Stop: 20, UserPromptSubmit: 5 };
+
+function isJevmemHook(h: any, command?: string): boolean {
+  return typeof h?.command === "string" && ((command !== undefined && h.command === command) || /jevmem[^ ]*\s+hook\b/.test(h.command) || /jevmem\S*[\\/]dist[\\/]cli\.js"? hook\b/.test(h.command));
+}
+
+/** Remove every jevmem hook from a settings object; returns true when something was removed. Empty groups and events are pruned. */
+function removeJevmemHooks(settings: any): boolean {
+  if (!settings?.hooks) return false;
+  let removed = false;
+  for (const event of Object.keys(settings.hooks)) {
+    const list = settings.hooks[event];
+    if (!Array.isArray(list)) continue;
+    for (const g of list) {
+      if (!Array.isArray(g?.hooks)) continue;
+      const before = g.hooks.length;
+      g.hooks = g.hooks.filter((h: any) => !isJevmemHook(h));
+      if (g.hooks.length !== before) removed = true;
+    }
+    settings.hooks[event] = list.filter((g: any) => !Array.isArray(g?.hooks) || g.hooks.length > 0);
+    if (settings.hooks[event].length === 0) delete settings.hooks[event];
+  }
+  if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+  return removed;
+}
+
+/**
+ * Register the Stop and UserPromptSubmit hooks in `.claude/settings.local.json`. The command holds absolute
+ * machine paths (node binary, CLI), so it does not belong in the shared, committed `.claude/settings.json`;
+ * a jevmem hook found there is moved out.
+ */
 export function registerClaudeHooks(root: string, command: string): "added" | "updated" | "present" {
   const dir = path.join(root, ".claude");
-  const file = path.join(dir, "settings.json");
   fs.mkdirSync(dir, { recursive: true });
-  let settings: any = {};
-  if (fs.existsSync(file)) {
-    try {
-      settings = JSON.parse(fs.readFileSync(file, "utf8"));
-    } catch {
-      settings = {};
-    }
-  }
-  settings.hooks ??= {};
+  const localFile = path.join(dir, HOOK_SETTINGS_FILE);
+  const sharedFile = path.join(dir, "settings.json");
+  const local: any = readSettings(localFile) ?? {};
   let added = false;
   let updated = false;
-  const isOurs = (h: any) => typeof h?.command === "string" && (h.command === command || /jevmem[^ ]*\s+hook\b/.test(h.command) || /jevmem\S*[\\/]dist[\\/]cli\.js"? hook\b/.test(h.command));
-  const spec: Record<string, number> = { Stop: 20, UserPromptSubmit: 5 };
-  for (const [event, timeout] of Object.entries(spec)) {
-    const list: any[] = (settings.hooks[event] ??= []);
+
+  // Migrate: drop any jevmem hook from the shared settings.json.
+  const shared = readSettings(sharedFile);
+  if (shared && removeJevmemHooks(shared)) {
+    fs.writeFileSync(sharedFile, JSON.stringify(shared, null, 2) + "\n");
+    updated = true;
+  }
+
+  local.hooks ??= {};
+  for (const [event, timeout] of Object.entries(HOOK_EVENTS)) {
+    const list: any[] = (local.hooks[event] ??= []);
     let present = false;
     for (const g of list) {
       if (!Array.isArray(g?.hooks)) continue;
       for (const h of g.hooks) {
-        if (!isOurs(h)) continue;
+        if (!isJevmemHook(h, command)) continue;
         present = true;
         if (h.command !== command) {
           h.command = command; // re-running init repairs a stale or PATH-dependent command
@@ -82,7 +124,7 @@ export function registerClaudeHooks(root: string, command: string): "added" | "u
     list.push({ hooks: [{ type: "command", command, timeout }] });
     added = true;
   }
-  if (added || updated) fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n");
+  if (added || updated) fs.writeFileSync(localFile, JSON.stringify(local, null, 2) + "\n");
   return updated ? "updated" : added ? "added" : "present";
 }
 
@@ -103,7 +145,7 @@ export function init(opts: InitOptions): InitResult {
   const command = opts.command ?? resolveHookCommand(root, opts.cliPath);
   if (opts.hooks !== false) {
     const r = registerClaudeHooks(root, command);
-    (r === "present" ? skipped : created).push(`.claude/settings.json (Stop + UserPromptSubmit hooks${r === "updated" ? ", command updated" : ""})`);
+    (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop + UserPromptSubmit hooks${r === "updated" ? ", command updated" : ""})`);
   }
   return { created, skipped, command };
 }

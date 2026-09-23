@@ -40,3 +40,6 @@ export { watchCodex, findCodexRollouts, parseRolloutLines, codexSessionsDir } fr
 export type { WatchedTurn, WatchOptions } from "./watch.js";
 export { cacheKey, cacheDir, pruneCache, isVercelGateway } from "./jev.js";
 export type { LogSummary } from "./jev.js";
+export { stripFiller, clampLine, extractFirstSentence } from "./llm/index.js";
+export { main as cliMain, COMMANDS, COMMAND_HELP } from "./cli-main.js";
+export { HOOK_SETTINGS_FILE } from "./init.js";

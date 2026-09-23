@@ -154,17 +154,30 @@ describe("hook command registration", () => {
     expect(cmd).toBe('"/opt/node/bin/node" "/opt/jevmem/dist/cli.js" hook');
     expect(resolveHookCommand("/proj", "/opt/jevmem/dist/cli.js")).toContain(process.execPath);
   });
-  it("re-running init repairs a stale PATH-dependent jevmem command in place", () => {
+  it("moves a jevmem hook out of the shared settings.json into settings.local.json, keeping other hooks", () => {
     const root = tmp();
     fs.mkdirSync(path.join(root, ".claude"));
-    fs.writeFileSync(path.join(root, ".claude", "settings.json"), JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "echo other" }, { type: "command", command: "jevmem hook", timeout: 20 }] }] } }));
+    fs.writeFileSync(path.join(root, ".claude", "settings.json"), JSON.stringify({ permissions: { allow: ["Bash(ls)"] }, hooks: { Stop: [{ hooks: [{ type: "command", command: "echo other" }, { type: "command", command: "jevmem hook", timeout: 20 }] }], UserPromptSubmit: [{ hooks: [{ type: "command", command: "jevmem hook", timeout: 5 }] }] } }));
     const r = init({ root, command: '"/n/node" "/j/cli.js" hook' });
-    expect(r.created.some((c) => c.includes("command updated"))).toBe(true);
-    const s = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.json"), "utf8"));
-    expect(s.hooks.Stop[0].hooks.map((h: any) => h.command)).toEqual(["echo other", '"/n/node" "/j/cli.js" hook']);
-    expect(s.hooks.Stop).toHaveLength(1);
-    expect(s.hooks.UserPromptSubmit[0].hooks[0].command).toBe('"/n/node" "/j/cli.js" hook');
+    expect(r.created.some((c) => c.includes("settings.local.json") && c.includes("command updated"))).toBe(true);
+    const shared = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.json"), "utf8"));
+    expect(shared.permissions.allow).toEqual(["Bash(ls)"]);
+    expect(shared.hooks.Stop[0].hooks.map((h: any) => h.command)).toEqual(["echo other"]);
+    expect(shared.hooks.UserPromptSubmit).toBeUndefined();
+    const local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
+    expect(local.hooks.Stop[0].hooks[0].command).toBe('"/n/node" "/j/cli.js" hook');
+    expect(local.hooks.UserPromptSubmit[0].hooks[0].command).toBe('"/n/node" "/j/cli.js" hook');
     expect(registerClaudeHooks(root, '"/n/node" "/j/cli.js" hook')).toBe("present");
+  });
+  it("re-running init repairs a stale PATH-dependent command in settings.local.json in place", () => {
+    const root = tmp();
+    fs.mkdirSync(path.join(root, ".claude"));
+    fs.writeFileSync(path.join(root, ".claude", "settings.local.json"), JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "jevmem hook", timeout: 20 }] }] } }));
+    expect(registerClaudeHooks(root, '"/n/node" "/j/cli.js" hook')).toBe("updated");
+    const local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
+    expect(local.hooks.Stop[0].hooks[0].command).toBe('"/n/node" "/j/cli.js" hook');
+    expect(local.hooks.Stop).toHaveLength(1);
+    expect(fs.existsSync(path.join(root, ".claude", "settings.json"))).toBe(false);
   });
 });
 

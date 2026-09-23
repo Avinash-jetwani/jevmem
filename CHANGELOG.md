@@ -2,6 +2,17 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.4] - 2026-09-23
+
+### Fixed
+- `jevmem <command> --help` / `-h` prints that command's help and exits 0 with no side effects; previously `jevmem init --help` ran init. Every subcommand has a help text and a test.
+- `jevmem init --tool claude` registers the hooks in `.claude/settings.local.json` (per-machine, kept out of git by Claude Code) instead of `.claude/settings.json`, because the command carries absolute machine paths. A jevmem hook found in `settings.json` is moved to the local file and removed from the shared one; other hooks and settings there are untouched.
+- The writer strips leading conversational filler ("Decision:", "Decided:", "Actually,", "So,", "OK,", "Also,", "Note:", …) from saved lines and keeps the rest verbatim, for both the LLM and the fallback path. Eval turns now carry `expectLine` checks for the fallback writer.
+
+### Verified (2026-09-23)
+- `scripts/e2e.sh --runs 3`: 3/3 passes with the hooks registered in `.claude/settings.local.json`; saved lines read "The extension ships as a sideload zip only…" and "We're submitting to the Chrome Web Store this week…" (filler gone), the sideload line is `[superseded] → id:new`, turns 4 and 5 leave the file unchanged.
+- Eval (50 turns): full 100%, fast 96% (one run-to-run preference/constraint flip plus the known `Decision:`-prefixed constraint), fallback writer `expectLine` 5/5.
+
 ## [0.3.3] - 2026-09-22
 
 ### Fixed
@@ -116,6 +127,7 @@ The decomposed set **tied** the v0.2.0 set on this transcript at 3.3× the token
 - Per-call latency and cost logging to `.jevmem/log.jsonl`, summarised by `jevmem log` and by `JEVMEM_VERBOSE=1`.
 - Vitest suite with a mocked Jev and an opt-in live test behind `JEVMEM_LIVE=1`.
 
+[0.3.4]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Avinash-jetwani/jevmem/compare/v0.3.0...v0.3.1

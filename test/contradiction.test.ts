@@ -48,6 +48,28 @@ describe("contradiction handling", () => {
   });
 });
 
+describe("filler stripping", () => {
+  it("drops leading conversational filler and keeps the rest verbatim", async () => {
+    const { stripFiller } = await import("../src/llm/index.js");
+    expect(stripFiller("Decision: the extension ships as a sideload zip only, no Chrome Web Store yet.")).toBe("The extension ships as a sideload zip only, no Chrome Web Store yet.");
+    expect(stripFiller("Actually, we're submitting to the Chrome Web Store this week — the privacy page is live now.")).toBe("We're submitting to the Chrome Web Store this week — the privacy page is live now.");
+    expect(stripFiller("So, use pnpm.")).toBe("Use pnpm.");
+    expect(stripFiller("OK, keep functions under 40 lines")).toBe("Keep functions under 40 lines");
+    expect(stripFiller("Okay so, actually: Postgres it is.")).toBe("Postgres it is.");
+    expect(stripFiller("Decided: monorepo with pnpm workspaces.")).toBe("Monorepo with pnpm workspaces.");
+    expect(stripFiller("The decision is final.")).toBe("The decision is final."); // 'decision' mid-sentence is not filler
+    expect(stripFiller("Sometimes the cache is stale.")).toBe("Sometimes the cache is stale."); // 'So' must be a whole word
+    expect(stripFiller("Decision:")).toBe("Decision:"); // never empty
+  });
+  it("applies to both the fallback and the LLM writer output", async () => {
+    const none = { writer: { ...DEFAULT_CONFIG.writer, provider: "none" as const }, env: {} as any };
+    expect((await composeLine("Decision: the extension ships as a sideload zip only, no Chrome Web Store yet.", "decision", none)).line).toBe("The extension ships as a sideload zip only, no Chrome Web Store yet.");
+    const fetchImpl: typeof fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: "Actually, use Postgres 16 as the primary store." } }] }), { status: 200 });
+    const r = await composeLine("whatever", "decision", { writer: DEFAULT_CONFIG.writer, env: { OPENAI_API_KEY: "t", JEVMEM_WRITER: "openai" } as any, fetchImpl });
+    expect(r.line).toBe("Use Postgres 16 as the primary store.");
+  });
+});
+
 describe("writer", () => {
   it("falls back to the first sentence, trimmed to maxChars, when no LLM key is present", async () => {
     const msg = "USER: We'll go with Postgres 16 because SQLite locks under load. Also, unrelated: lunch was great.";

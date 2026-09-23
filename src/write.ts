@@ -1,5 +1,5 @@
 import type { Decision } from "./decide.js";
-import { callAnthropic, callOpenAI, clampLine, extractFirstSentence, resolveWriter, systemPrompt, type WriterConfig } from "./llm/index.js";
+import { callAnthropic, callOpenAI, clampLine, extractFirstSentence, resolveWriter, stripFiller, systemPrompt, type WriterConfig } from "./llm/index.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
 import type { Kind, Memory } from "./types.js";
@@ -30,13 +30,13 @@ export async function composeLine(message: string, kind: Kind, opts: WriteOption
         w.provider === "openai"
           ? await callOpenAI({ model: w.model, system, user, timeoutMs: opts.writer.timeoutMs, env, fetchImpl: opts.fetchImpl })
           : await callAnthropic({ model: w.model, system, user, timeoutMs: opts.writer.timeoutMs, env, fetchImpl: opts.fetchImpl });
-      const line = clampLine(raw.split("\n").map((l) => l.trim()).find(Boolean) ?? "", opts.writer.maxChars);
+      const line = clampLine(stripFiller(raw.split("\n").map((l) => l.trim()).find(Boolean) ?? ""), opts.writer.maxChars);
       if (line.length >= 3) return { line: scrubSecrets(line), writerUsed: w.provider };
     } catch {
       /* fall through to the deterministic extract */
     }
   }
-  return { line: extractFirstSentence(message, opts.writer.maxChars, kind), writerUsed: "fallback" };
+  return { line: clampLine(stripFiller(extractFirstSentence(message, opts.writer.maxChars, kind)), opts.writer.maxChars), writerUsed: "fallback" };
 }
 
 /**
