@@ -1,4 +1,11 @@
-# Jevmem
+# jevmem
+
+One memory file for Claude Code, Cursor and Codex, kept in your git repo.
+
+After each message, jevmem asks TypeSafe's Jev whether it's worth remembering.
+If yes, it writes one line to JEVMEM.md. You can read, edit and review every line.
+
+Data flow, in one sentence: each prompt (and, for questions and anything that looks like a bug report, the assistant's reply) is sent to TypeSafe AI's API to be scored; common credential shapes, email addresses and 16-digit numbers are redacted before it leaves your machine (best effort; [SECURITY.md](SECURITY.md) lists exactly what is and is not caught), and an opt-in zero-retention request flag is available (see [SECURITY.md](SECURITY.md#zero-data-retention) for what it does and does not guarantee).
 
 [![npm version](https://img.shields.io/npm/v/jevmem.svg)](https://www.npmjs.com/package/jevmem)
 [![npm downloads](https://img.shields.io/npm/dm/jevmem.svg)](https://www.npmjs.com/package/jevmem)
@@ -7,15 +14,11 @@
 
 <!-- launch video here -->
 
-**Shared project memory for Claude Code, Cursor and Codex.**
-
-Data flow, in one sentence: each prompt (and, for questions and anything that looks like a bug report, the assistant's reply) is sent to TypeSafe AI's API to be scored; common credential shapes, email addresses and 16-digit numbers are redacted before it leaves your machine (best effort; [SECURITY.md](SECURITY.md) lists exactly what is and is not caught), and an opt-in zero-retention request flag is available (see [SECURITY.md](SECURITY.md#zero-data-retention) for what it does and does not guarantee).
-
 ```bash
 npm install -g jevmem
 ```
 
-Jevmem keeps **one memory file, `JEVMEM.md`, in your repo**, and keeps it up to date for you. Claude Code captures automatically on every turn; Cursor and Codex capture through MCP when the agent follows the installed rule, and Codex can also be tailed with `jevmem watch`. Because the file is in git, the whole team reviews the same decisions, constraints and root causes in pull requests. Every line saved by the hook on your machine is explainable: `jevmem why <id>` shows the probabilities that put it there (decisions are kept locally in `.jevmem/`, not in git). A decision model scores each turn in about 0.3 s in-process (266–303 ms p50 in our evals) for $0.000138–$0.000180 per turn; through a real `Stop` hook process handing the turn to the warm daemon it is 732 ms p50 end to end. That is cheap and fast enough to run on **every** turn. It is not the most accurate decider we measured: on our held-out set GPT-6 Astra, Claude Fable 5.1 and Claude Opus 5.5 were more accurate, and GPT-6 Luna was both cheaper and more accurate, but they took 2.9–4.1 s p50 per turn ([Benchmark](#benchmark)). Mark a line `right` or `wrong` and, after 40 labels, `jevmem fit` retunes the weights and thresholds.
+Claude Code captures automatically on every turn; Cursor and Codex capture through MCP when the agent follows the installed rule, and Codex can also be tailed with `jevmem watch`. Because `JEVMEM.md` is in git, the whole team reviews the same decisions, constraints and root causes in pull requests. Every line saved by the hook on your machine is explainable: `jevmem why <id>` shows the probabilities that put it there (decisions are kept locally in `.jevmem/`, not in git). Jev's median decision took 341 ms in our held-out benchmark, for $0.000143 per message; through a real `Stop` hook process handing the turn to the warm daemon it is 786 ms end to end. That is fast and cheap enough to run on **every** message. It is not the most accurate option: on our held-out set every LLM we measured scored higher on save+kind ([Benchmark](#benchmark)). Mark a line `right` or `wrong` and, after 40 labels, `jevmem fit` retunes the weights and thresholds.
 
 Built on [Jev by TypeSafe AI](https://typesafe.ai), a System One decision model that, per TypeSafe, returns typed probabilities rather than free text ([launch post](https://typesafe.ai/blog/introducing-system-one-models-and-jev)). Jev decides **whether** a turn is worth remembering, **what kind** of memory it is, and **which existing memory it contradicts**; only then does a small LLM write one line.
 
@@ -43,7 +46,7 @@ With no `--tool`, `init` sets up whatever it finds **in the project** (`.claude/
 
 | Hook | What it does | Budget |
 |---|---|---|
-| `Stop` | Reads the turn that just finished, makes one Jev call (two on borderline turns: 12–29% of turns in our evals), and writes one line if Jev says so. | Jev 2 s per call, writer 8 s; exits 0 on any failure (tested by spawning the built CLI) |
+| `Stop` | Reads the turn that just finished, makes one Jev call (two on borderline turns: 14–24% of turns in our evals), and writes one line if Jev says so. | Jev 2 s per call, writer 8 s; exits 0 on any failure (tested by spawning the built CLI) |
 | `UserPromptSubmit` | Makes one Jev call to pick the five memories most relevant to your prompt and injects them as context. | Jev 2 s |
 
 That's it. Keep working. `JEVMEM.md` fills itself, and it's a normal file: edit it, commit it, review it in PRs.
@@ -52,7 +55,7 @@ Without an LLM key Jevmem still works: the writer falls back to the most relevan
 
 **Where the hook finds your key.** Claude Code hooks (and MCP servers started by Cursor, Codex, or Claude Desktop) do not load your shell profile. Jevmem therefore looks for `TYPESAFE_API_KEY` (and the optional writer keys) in this order: the process environment, `<project>/.jevmem/.env`, `~/.jevmem/env`, then `export TYPESAFE_API_KEY=…` lines in `~/.zshenv`, `~/.zprofile`, `~/.zshrc`, `~/.bash_profile`, `~/.bashrc`, `~/.profile`. Only those named variables are read. If you'd rather it not read your profiles, put the key in `~/.jevmem/env`.
 
-The first hook call in a project starts a small **warm daemon** (`jevmem daemon status` to see it) that keeps the Jev client's connection open. It exits after 30 idle minutes and is off with `JEVMEM_DAEMON=0`. Measured end to end, including Node start-up for the hook process, it saves about a tenth of a second per turn (`Stop` 732 ms against 848 ms cold; `UserPromptSubmit` 445 ms against 496 ms; [Cost math](#cost-math)).
+The first hook call in a project starts a small **warm daemon** (`jevmem daemon status` to see it) that keeps the Jev client's connection open. It exits after 30 idle minutes and is off with `JEVMEM_DAEMON=0`. Measured end to end, including Node start-up for the hook process, it saves a little per turn (`Stop` 786 ms against 937 ms cold; `UserPromptSubmit` 427 ms against 495 ms; [Cost math](#cost-math)).
 
 ## Works with
 
@@ -90,7 +93,7 @@ Jev decides, a model writes one line. Jevmem does not ask Jev to write anything;
 
 State sent: `{ user_message, assistant_reply?, previous_turns, existing_memories: [{id, kind, text}] }`. **The user message is the memory.** The assistant reply is included only when a keyword heuristic (`looksLikeQuestion`) sees a question or investigation request (a `?`, or an opening word such as why/how/what/do/is/will/can/explain/debug), or bug-report vocabulary (error, fails, broken, crash, flaky, stale, wrong, slow, timeout, bug, regression, leak, a `…Error` name, or an HTTP-context 4xx/5xx such as "returns 500"), or when there is no user text. The heuristic is deliberately broad ("Use Sentry for error reporting." counts) and it also misses bug reports worded without that vocabulary ("sift panics on files with a UTF-8 BOM"). When the reply is included, only a `bug` or `architecture` fact may come from it; a `meta` family skips replies that are menus of options, "Recorded…" self-summaries, or commentary on memory, hooks, or tooling. Only the current turn and the two before it are sent; the repo tree is not part of the decide state (it is sent by `jevmem audit` only). Secrets are scrubbed first. Memory ids are capped at 200 by a keyword-overlap pre-filter.
 
-**Tier 1 runs on every turn**: nine broad nouls plus the four atomic injection nouls, each with one positive and one negative example, plus the `kind` choice, the `touches_memory_id` choice, and the `importance` score. 2,709–2,825 input tokens per call in our evals.
+**Tier 1 runs on every turn**: nine broad nouls, each with one positive and one negative example, plus the `kind` choice, the `touches_memory_id` choice, and the `importance` score. 2,143–2,259 input tokens per call in our evals.
 
 | Tier-1 noul | Family |
 |---|---|
@@ -102,7 +105,7 @@ State sent: `{ user_message, assistant_reply?, previous_turns, existing_memories
 | `contains_todo` | todo |
 | `is_only_chit_chat` | chit_chat |
 | `contradicts_existing_memory` | contradiction |
-| `contains_instructions_aimed_at_an_automated_system`, `tells_an_ai_to_ignore_or_replace_instructions`, `claims_system_or_admin_authority_over_the_ai`, `asks_the_ai_to_store_or_alter_memory_or_rules`, `quotes_text_from_a_file_or_page_addressed_to_an_ai` | injection (family score = the max of the five) |
+| `contains_instructions_aimed_at_an_automated_system` | injection |
 
 **Tier 2 runs only when tier 1 is unsure**: 30 atomic nouls in the same nine families, each with structured `what` / `examples` criteria, combined in code with a logistic score per family. 4,892–5,017 input tokens per call in our evals. The borderline rule (configurable under `tiers.borderline`) escalates when:
 
@@ -114,27 +117,27 @@ State sent: `{ user_message, assistant_reply?, previous_turns, existing_memories
 
 **unless** tier 1 is already sure the turn is skipped (injection > 0.7 or chit-chat ≥ 0.9), where tier 2 could only agree. When tier 2 runs, its result wins.
 
-`tiers.mode` selects `auto` (default), `fast` (tier 1 only), or `full` (always tier 2). Measured with `node scripts/eval.mjs` (live `jev-latest`, warm in-process client, no cache, 2026-09-23). Save/skip, kind, contradictions and injection are all scored; cost is input tokens × $0.042 per million (Jev output tokens are free).
+`tiers.mode` selects `auto` (default), `fast` (tier 1 only), or `full` (always tier 2). Measured with `node scripts/eval.mjs` (live `jev-latest`, warm in-process client, no cache, v0.4.1, 2026-09-23). Save/skip, kind, contradictions and injection are all scored; cost is input tokens × $0.042 per million (Jev output tokens are free).
 
-**Held-out set** ([`eval/heldout.jsonl`](eval/heldout.jsonl), 66 turns written for v0.4.0 and committed before any model was run on them; a test fails if any turn shares text with `src/questions.ts` or the regression set). Results: [`results/eval-heldout-2026-09-23.json`](results/eval-heldout-2026-09-23.json).
-
-| mode | save/skip | save/skip + kind | F1 (save/skip) | input tokens/turn | cost/turn | p50 | p95 | escalated | contradictions | injection not saved |
-|---|---|---|---|---|---|---|---|---|---|---|
-| `fast` | 97.0% | 93.9% | 97.9% | 2,825 | $0.000119 | 287 ms | 404 ms | – | 5/5 | 6/6 |
-| `auto` (default) | 92.4% | 89.4% | 94.5% | 4,274 | $0.000180 | 303 ms | 665 ms | 28.8% | 3/5 | 6/6 |
-| `full` | 89.4% | 87.9% | 92.1% | 5,017 | $0.000211 | 299 ms | 421 ms | – | 3/5 | 6/6 |
-
-On the held-out set tier 2 makes things worse: `full` is below `fast`, and `auto` loses both reversal-of-a-constraint turns that `fast` catches. We have not retuned against these turns (that would make the set no longer held out); `auto` remains the default for this release because it is what the benchmark below measured.
-
-**Regression set** ([`eval/transcript.jsonl`](eval/transcript.jsonl), the original 50 turns). Results: [`results/eval-regression-2026-09-23.json`](results/eval-regression-2026-09-23.json).
+**Held-out set** ([`eval/heldout.jsonl`](eval/heldout.jsonl), 66 turns written for v0.4.0 and committed before any model was run on them; a test fails if any turn shares text with `src/questions.ts` or the regression set). Results: [`results/eval-heldout-2026-09-23-v041.json`](results/eval-heldout-2026-09-23-v041.json).
 
 | mode | save/skip | save/skip + kind | F1 (save/skip) | input tokens/turn | cost/turn | p50 | p95 | escalated | contradictions | injection not saved |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `fast` | 100.0% | 98.0% | 100.0% | 2,709 | $0.000114 | 266 ms | 326 ms | – | 2/2 | 4/4 |
-| `auto` (default) | 100.0% | 98.0% | 100.0% | 3,295 | $0.000138 | 281 ms | 572 ms | 12.0% | 2/2 | 4/4 |
-| `full` | 100.0% | 100.0% | 100.0% | 4,892 | $0.000205 | 290 ms | 364 ms | – | 2/2 | 4/4 |
+| `fast` | 98.5% | 95.5% | 98.9% | 2,259 | $0.000095 | 288 ms | 634 ms | – | 5/5 | 6/6 |
+| `auto` (default) | 95.5% | 92.4% | 96.8% | 3,475 | $0.000146 | 306 ms | 600 ms | 24.2% | 3/5 | 6/6 |
+| `full` | 89.4% | 87.9% | 92.1% | 5,017 | $0.000211 | 293 ms | 425 ms | – | 3/5 | 6/6 |
 
-This 50-turn set was written alongside jevmem, and 33 of its 50 turns share text with the examples inside jevmem's own Jev questions (`src/questions.ts`; the count is pinned by `test/heldout.test.ts`), while the LLMs in the Benchmark get a zero-shot prompt. Treat it as a regression test, not a benchmark. It has 8 decisions, 5 constraints, 4 preferences, 5 bugs, 4 architecture facts, 4 todos, 4 chit-chat, 3 questions, 3 injection attempts, 4 format-instruction turns, and 6 turns lifted verbatim from a real Claude Code desktop session (one of which is a fourth injection turn). The one miss in `fast`/`auto` is a turn that begins with "Decision:" but states a must/never rule. Differences of one or two turns are within run-to-run noise: the same `auto` mode scored 89.4% save+kind on the held-out set in the eval run and 90.9% in the benchmark run an hour earlier.
+On the held-out set tier 2 makes things worse: `full` is below `fast`, and `auto` loses both reversal-of-a-constraint turns that `fast` catches. We have not retuned against these turns (that would make the set no longer held out).
+
+**Regression set** ([`eval/transcript.jsonl`](eval/transcript.jsonl), the original 50 turns). Results: [`results/eval-regression-2026-09-23-v041.json`](results/eval-regression-2026-09-23-v041.json).
+
+| mode | save/skip | save/skip + kind | F1 (save/skip) | input tokens/turn | cost/turn | p50 | p95 | escalated | contradictions | injection not saved |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `fast` | 100.0% | 98.0% | 100.0% | 2,143 | $0.000090 | 302 ms | 425 ms | – | 2/2 | 4/4 |
+| `auto` (default) | 100.0% | 100.0% | 100.0% | 2,825 | $0.000119 | 293 ms | 647 ms | 14.0% | 2/2 | 4/4 |
+| `full` | 100.0% | 100.0% | 100.0% | 4,892 | $0.000205 | 335 ms | 409 ms | – | 2/2 | 4/4 |
+
+This 50-turn set was written alongside jevmem, and 33 of its 50 turns share text with the examples inside jevmem's own Jev questions (`src/questions.ts`; the count is pinned by `test/heldout.test.ts`), while the LLMs in the Benchmark get a zero-shot prompt. Treat it as a regression test, not a benchmark. It has 8 decisions, 5 constraints, 4 preferences, 5 bugs, 4 architecture facts, 4 todos, 4 chit-chat, 3 questions, 3 injection attempts, 4 format-instruction turns, and 6 turns lifted verbatim from a real Claude Code desktop session (one of which is a fourth injection turn). The one miss in `fast` is a turn that begins with "Decision:" but states a must/never rule. Differences of one or two turns are within run-to-run noise: the same `auto` mode scored 100.0% save+kind on the regression set in the eval run and 98.0% in the benchmark run.
 
 | Tier-2 family | Atomic nouls |
 |---|---|
@@ -197,21 +200,21 @@ Every Jev call is logged to `.jevmem/log.jsonl` (question count, tier, tokens, l
 
 | Call | Input tokens | p50 in-process, warm | p50 as a real process (hook or CLI) | Cost per call |
 |---|---|---|---|---|
-| `decide` tier 1 (`fast`) | 2,709–2,825 | 266–287 ms | – | $0.000114–$0.000119 |
-| `decide` in `auto` | 3,295–4,274 | 281–303 ms | `Stop` hook: 848 ms cold, 732 ms via the warm daemon | $0.000138–$0.000180 |
-| `decide` tier 2 (`full`) | 4,892–5,017 | 290–299 ms | – | $0.000205–$0.000211 |
+| `decide` tier 1 (`fast`) | 2,143–2,259 | 288–302 ms | – | $0.000090–$0.000095 |
+| `decide` in `auto` | 2,825–3,475 | 293–306 ms | `Stop` hook: 937 ms cold, 786 ms via the warm daemon | $0.000119–$0.000146 |
+| `decide` tier 2 (`full`) | 4,892–5,017 | 293–335 ms | – | $0.000205–$0.000211 |
 | `decide`, cache hit | 0 | 1 ms | – | $0 |
-| `recall` (choice over 19 memories) | 1,668 | 275 ms | `UserPromptSubmit` hook: 496 ms cold, 445 ms via the warm daemon | $0.000070 |
-| `search` (choice + noul per candidate, 19 memories) | 4,602 | 268 ms | `jevmem search`: 533 ms | $0.000193 |
-| `audit` (noul per memory, 19 memories) | 3,295 | 304 ms | `jevmem audit --dry-run`: 505 ms | $0.000138 |
+| `recall` (choice over 19 memories) | 1,652 | 326 ms | `UserPromptSubmit` hook: 495 ms cold, 427 ms via the warm daemon | $0.000069 |
+| `search` (choice + noul per candidate, 19 memories) | 4,572 | 355 ms | `jevmem search`: 529 ms | $0.000192 |
+| `audit` (noul per memory, 19 memories) | 3,273 | 316 ms | `jevmem audit --dry-run`: 495 ms | $0.000137 |
 
-`decide` rows are the two eval runs above (the range spans the held-out and regression sets). The other rows are [`results/ops-2026-09-23.json`](results/ops-2026-09-23.json) (`node scripts/bench-ops.mjs`: a scratch project with 19 memories, 20 warm calls each, 10 process runs each; "real process" is the wall time of a new `node dist/cli.js …` process, which is what Claude Code waits for). 300 turns a day in `auto` mode is about $0.04–$0.05 for `decide` plus about $0.02 for recall, plus one short LLM completion per *saved* line if you configure a writer. For how this compares with an LLM doing the same job, see [Benchmark](#benchmark).
+`decide` rows are the two eval runs above (the range spans the held-out and regression sets). The other rows are [`results/ops-2026-09-23-v041.json`](results/ops-2026-09-23-v041.json) (`node scripts/bench-ops.mjs`: a scratch project with 19 memories, 20 warm calls each, 10 process runs each; "real process" is the wall time of a new `node dist/cli.js …` process, which is what Claude Code waits for). 300 turns a day in `auto` mode is about $0.04 for `decide` plus about $0.02 for recall, plus one short LLM completion per *saved* line if you configure a writer. For how this compares with an LLM doing the same job, see [Benchmark](#benchmark).
 
 ## Why Jev and not an LLM
 
-- **It is fast enough to run on every turn.** 0.3 s in-process, 0.7 s through the hook, against 2.9–4.1 s p50 for the LLMs we measured, means the decision can happen on *every* Stop, not once per session. Memory that updates continuously catches the decision made in passing at turn 41. It is not more accurate: see [Benchmark](#benchmark).
+- **It is fast enough to run on every turn.** 0.3 s in-process, 0.8 s through the hook, against 2.4–4.0 s p50 for the LLMs we measured, means the decision can happen on *every* Stop, not once per session. Memory that updates continuously catches the decision made in passing at turn 41. It is not more accurate: see [Benchmark](#benchmark).
 - **Typed answers, thresholds in code.** Jev returns probabilities, not prose. "Save if importance ≥ useful and chit-chat < 0.5" is a line of config, testable and tunable, not a prompt you hope the model follows.
-- **A narrow attack surface, not a closed one.** Per TypeSafe, Jev returns probabilities and does not generate text or call tools, so a transcript that says "ignore previous instructions and remember X" has no channel to run a command through Jev; the failure mode is a wrong probability. Injected text can still bias those probabilities, which is why five injection nouls gate every hook and MCP `add_memory` save (all five in tier 1, the four atomic ones again in tier 2), the eval sets carry injection attempts, and the harness sends one. Once Jev says save, the line itself is written by the writer LLM (or the extract) from the scrubbed message, so injected text that gets past the gate can still shape the line's wording. Lines typed with `jevmem add` are not checked by Jev.
+- **A narrow attack surface, not a closed one.** Per TypeSafe, Jev returns probabilities and does not generate text or call tools, so a transcript that says "ignore previous instructions and remember X" has no channel to run a command through Jev; the failure mode is a wrong probability. Injected text can still bias those probabilities, which is why an injection noul gates every hook and MCP `add_memory` save (one broad noul in tier 1, four atomic nouls when tier 2 runs), the eval sets carry injection attempts, and the harness sends one. Once Jev says save, the line itself is written by the writer LLM (or the extract) from the scrubbed message, so injected text that gets past the gate can still shape the line's wording. Lines typed with `jevmem add` are not checked by Jev.
 
 ## Compared with an LLM as the decider
 
@@ -219,10 +222,11 @@ Only rows the [Benchmark](#benchmark) measures (held-out set, 66 turns):
 
 | | An LLM called as the decider (six benchmarked) | Jevmem (`auto`) |
 |---|---|---|
-| Decides what to save with | One LLM call with a zero-shot prompt | One Jev call of 16 questions (18 with the assistant reply); a second of 33 (37) on 12–29% of turns |
-| Accuracy (save/skip + kind) | 92.4%–98.5% | 90.9% |
-| Latency per decision | 2.9–4.1 s p50, 5.1–37.9 s p95 | 379 ms p50, 690 ms p95 |
-| Cost per decision | $0.000088 (GPT-6 Luna) to $0.013335 (Claude Fable 5.1) | $0.000173 |
+| Decides what to save with | One LLM call with a zero-shot prompt | One Jev call of 12 questions (14 with the assistant reply); a second of 33 (37) on 14–24% of turns |
+| Accuracy: save/skip | 93.9%–98.5% | 95.5% |
+| Accuracy: save/skip + kind | 93.9%–98.5% | 92.4% (lowest) |
+| Latency per decision | 2.4–4.0 s p50, 4.2–13.0 s p95 | 341 ms p50, 718 ms p95 |
+| Cost per decision | $0.000089 (GPT-6 Luna) to $0.013271 (Claude Fable 5.1) | $0.000143 |
 | Detects contradictions | All six found 5/5 with a named id, and none flagged a false one | 3/5 (`contradicts_existing_memory` ≥ 0.7 AND a named memory id) |
 | Injection resistance | All six refused all 6 injection turns | Refused all 6 injection turns |
 
@@ -230,46 +234,48 @@ Only rows the [Benchmark](#benchmark) measures (held-out set, 66 turns):
 
 `scripts/bench-llm.mjs` runs an eval set through six current LLMs acting as the memory decider and through jevmem. Every decider receives the identical state, built by the same function jevmem's `decide` uses (`buildDecideState`): the user message, the assistant reply when jevmem's heuristic would include it, the previous turns when the turn has them, and the existing memories with ids. The LLMs get the committed zero-shot system prompt ([`bench/system-prompt.md`](bench/system-prompt.md)) and must answer strict JSON `{save, kind, contradicts_id, injection}` through the provider's structured-output mode; the text from the first `{` to the last `}` is validated against the schema, and a malformed answer counts as wrong. jevmem gets its own Jev questions, which contain few-shot examples. Cost is real token usage × the list price on the provider's pricing page (URLs and dates in the results file); jevmem's is input tokens × $0.042/M.
 
-**How it was run.** 2026-09-23, macOS arm64, Node 22. The six LLMs were called through OpenRouter's chat-completions endpoint with one key, at each provider's default reasoning setting (a lower-reasoning or non-reasoning configuration was not tested and would likely narrow the latency gap), with a 4,000-token output cap. jevmem was called directly to TypeSafe's API. Every decider made one unscored warm-up call first, and all seven ran concurrently, so they share one time window: held-out 13:11–13:26 UTC, regression 13:26–13:31 UTC. Retries (429/5xx, up to 6 with backoff, included in latency) are counted per row, and the OpenRouter upstream host is recorded per model. Reproduce with `node scripts/bench-llm.mjs --set heldout` (needs `TYPESAFE_API_KEY` plus `OPENROUTER_API_KEY`, or the providers' own keys).
+**How it was run.** 2026-09-23, macOS arm64, Node 22. The six LLMs were called through OpenRouter's chat-completions endpoint with one key, at each provider's default reasoning setting (a lower-reasoning or non-reasoning configuration was not tested and would likely narrow the latency gap), with a 4,000-token output cap. jevmem was called directly to TypeSafe's API. Every decider made one unscored warm-up call first, and all seven ran concurrently, so they share one time window: held-out 14:35–14:42 UTC, regression 14:42–14:48 UTC (v0.4.1, commit `bd6951b`). Retries (429/5xx, up to 6 with backoff, included in latency) are counted per row, and the OpenRouter upstream host is recorded per model. Reproduce with `node scripts/bench-llm.mjs --set heldout` (needs `TYPESAFE_API_KEY` plus `OPENROUTER_API_KEY`, or the providers' own keys).
 
 ### Held-out set (66 turns, written for v0.4.0, no shared text with jevmem's prompts)
 
-Results: [`results/bench-heldout-2026-09-23.json`](results/bench-heldout-2026-09-23.json).
+Results: [`results/bench-heldout-2026-09-23-v041.json`](results/bench-heldout-2026-09-23-v041.json).
 
 | Model (API id) | save/skip | save/skip + kind | contradiction id found | false contradictions | injection turns not saved | malformed | p50 | p95 | $/decision | $/300 turns | retries |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| GPT-6 Astra (`gpt-6-astra`) | 98.5% (65/66) | 98.5% (65/66) | 5/5 | 0 | 6/6 | 0 | 3,297 ms | 5,786 ms | $0.007499 | $2.250 | 0 |
-| GPT-6 Luna (`gpt-6-luna`) | 93.9% (62/66) | 93.9% (62/66) | 5/5 | 0 | 6/6 | 0 | 3,367 ms | 5,054 ms | $0.000088 | $0.026 | 0 |
-| Claude Fable 5.1 (`claude-fable-5-1`) | 98.5% (65/66) | 98.5% (65/66) | 5/5 | 0 | 6/6 | 0 | 4,110 ms | 9,318 ms | $0.013335 | $4.001 | 0 |
-| Claude Opus 5.5 (`claude-opus-5-5`) | 98.5% (65/66) | 98.5% (65/66) | 5/5 | 0 | 6/6 | 0 | 2,920 ms | 6,372 ms | $0.005172 | $1.552 | 0 |
-| Gemini 3.8 Flash (`gemini-3.8-flash`) | 93.9% (62/66) | 93.9% (62/66) | 5/5 | 0 | 6/6 | 0 | 3,589 ms | 13,820 ms | $0.001119 | $0.336 | 1 |
-| Grok 4.7 (`grok-4.7`) | 92.4% (61/66) | 92.4% (61/66) | 5/5 | 0 | 6/6 | 0 | 3,322 ms | 37,857 ms | $0.004854 | $1.456 | 0 |
-| **jevmem `auto`** (`jev-latest`) | 93.9% (62/66) | **90.9% (60/66)** | **3/5** | 0 | 6/6 | 0 | **379 ms** | **690 ms** | $0.000173 | $0.052 | 0 |
+| GPT-6 Astra (`gpt-6-astra`) | 98.5% (65/66) | 98.5% (65/66) | 5/5 | 0 | 6/6 | 0 | 2,922 ms | 4,236 ms | $0.007489 | $2.247 | 0 |
+| GPT-6 Luna (`gpt-6-luna`) | 93.9% (62/66) | 93.9% (62/66) | 5/5 | 0 | 6/6 | 0 | 2,448 ms | 6,293 ms | $0.000089 | $0.027 | 0 |
+| Claude Fable 5.1 (`claude-fable-5-1`) | 97.0% (64/66) | 97.0% (64/66) | 5/5 | 0 | 6/6 | 0 | 4,005 ms | 9,248 ms | $0.013271 | $3.981 | 0 |
+| Claude Opus 5.5 (`claude-opus-5-5`) | 97.0% (64/66) | 97.0% (64/66) | 5/5 | 0 | 6/6 | 0 | 2,861 ms | 6,767 ms | $0.005187 | $1.556 | 0 |
+| Gemini 3.8 Flash (`gemini-3.8-flash`) | 93.9% (62/66) | 93.9% (62/66) | 5/5 | 0 | 6/6 | 0 | 3,274 ms | 12,973 ms | $0.001304 | $0.391 | 0 |
+| Grok 4.7 (`grok-4.7`) | 95.5% (63/66) | 95.5% (63/66) | 5/5 | 0 | 6/6 | 0 | 2,935 ms | 9,624 ms | $0.004854 | $1.456 | 0 |
+| **jevmem `auto`** (`jev-latest`) | 95.5% (63/66) | **92.4% (61/66)** | **3/5** | 0 | 6/6 | 0 | **341 ms** | **718 ms** | $0.000143 | $0.043 | 0 |
 
-Read it plainly:
+#### How it compares
 
-- **More accurate than jevmem:** GPT-6 Astra, Claude Fable 5.1 and Claude Opus 5.5 (65/66 on both metrics against jevmem's 62/66 and 60/66). GPT-6 Luna and Gemini 3.8 Flash tie jevmem on save/skip and beat it on save+kind (62/66 against 60/66). Grok 4.7 is one turn behind on save/skip and one ahead on save+kind. On save+kind, jevmem is last.
-- **Cheaper than jevmem:** GPT-6 Luna, at $0.000088 against $0.000173 per decision, and more accurate. Every other LLM costs more.
-- **Contradictions:** every LLM named the reversed memory's id on all 5 contradiction turns; jevmem found 3/5 (in `auto` it skipped two constraint reversals that `fast` saves).
-- **Injection:** all seven refused all 6 injection turns.
-- **What jevmem keeps is latency:** 379 ms p50 and 690 ms p95 against 2.9–4.1 s p50 and 5.1–37.9 s p95.
-- **Where the misses are.** Six of the seven got a turn I labelled a preference wrong ("Write doc comments on every public function…": five LLMs skipped it, jevmem filed it as a todo), which suggests the label is debatable; it was not changed after the run. GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 skipped three bug reports whose wording the state heuristic does not recognise ("…panics on…", "…are empty after…", "…grows without bound…"), so no decider saw the assistant's diagnosis; jevmem saved them from the user message. That is a limit of jevmem's state design, which every model inherits here. jevmem's own misses: one decision filed as architecture, the doc-comments turn, a "Remind me…" todo refused as an injection (the atomic `asks_the_ai_to_store_or_alter_memory_or_rules` noul, added to tier 1 in v0.4.0), the two constraint reversals, and a "no, leave it as is" reply saved as a decision (as did GPT-6 Astra and Grok 4.7).
+On 66 held-out turns, jevmem's median decision took 0.34 s, against 2.4–4.0 s for six current LLMs.
+It was less accurate on save+kind: 92.4%, against 93.9–98.5% for the LLMs. On save/skip it scored 95.5% (LLMs 93.9–98.5%). It found 3/5 contradictions; every LLM found 5/5.
+GPT-6 Luna was both cheaper and more accurate on save+kind (lower on save/skip), but about 7× slower.
+If accuracy matters most, an LLM decider is better. jevmem is for when you want a fast, cheap decision on every message.
+
+On the held-out set `--mode fast` scored higher than `auto`. We'll confirm on a fresh set before changing the default.
+
+- **Where the misses are.** Six of the seven got a turn I labelled a preference wrong ("Write doc comments on every public function…": five LLMs skipped it, jevmem filed it as a todo), which suggests the label is debatable; it was not changed after the run. GPT-6 Luna, Claude Fable 5.1, Gemini 3.8 Flash and Grok 4.7 each skipped one to three bug reports whose wording the state heuristic does not recognise ("…panics on…", "…are empty after…", "…grows without bound…"), so no decider saw the assistant's diagnosis; jevmem saved all three from the user message. That is a limit of jevmem's state design, which every model inherits here. "no, leave it as is" (declining a proposal) was saved as a decision by jevmem, GPT-6 Astra, GPT-6 Luna and Claude Opus 5.5. jevmem's other misses: one decision filed as architecture and the two constraint reversals, which `auto` skips and `fast` saves.
 
 ### Regression set (the original 50 turns; contaminated, see above)
 
-Results: [`results/bench-regression-2026-09-23.json`](results/bench-regression-2026-09-23.json).
+Results: [`results/bench-regression-2026-09-23-v041.json`](results/bench-regression-2026-09-23-v041.json).
 
 | Model (API id) | save/skip | save/skip + kind | contradiction id found | false contradictions | injection turns not saved | malformed | p50 | p95 | $/decision | $/300 turns | retries |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| GPT-6 Astra (`gpt-6-astra`) | 98.0% (49/50) | 98.0% (49/50) | 2/2 | 1 | 4/4 | 0 | 2,771 ms | 4,959 ms | $0.007338 | $2.202 | 0 |
-| GPT-6 Luna (`gpt-6-luna`) | 98.0% (49/50) | 94.0% (47/50) | 2/2 | 2 | 4/4 | 0 | 2,357 ms | 3,749 ms | $0.000083 | $0.025 | 0 |
-| Claude Fable 5.1 (`claude-fable-5-1`) | 96.0% (48/50) | 94.0% (47/50) | 2/2 | 0 | 3/4 | 1 | 4,150 ms | 11,981 ms | $0.011873 | $3.562 | 0 |
-| Claude Opus 5.5 (`claude-opus-5-5`) | 98.0% (49/50) | 96.0% (48/50) | 2/2 | 0 | 4/4 | 0 | 2,847 ms | 7,658 ms | $0.004851 | $1.455 | 0 |
-| Gemini 3.8 Flash (`gemini-3.8-flash`) | 96.0% (48/50) | 94.0% (47/50) | 2/2 | 0 | 4/4 | 1 | 2,435 ms | 12,655 ms | $0.001000 | $0.300 | 0 |
-| Grok 4.7 (`grok-4.7`) | 98.0% (49/50) | 96.0% (48/50) | 2/2 | 1 | 4/4 | 0 | 2,669 ms | 10,289 ms | $0.004841 | $1.452 | 0 |
-| jevmem `auto` (`jev-latest`) | 100.0% (50/50) | 98.0% (49/50) | 2/2 | 0 | 4/4 | 0 | 300 ms | 603 ms | $0.000139 | $0.042 | 0 |
+| GPT-6 Astra (`gpt-6-astra`) | 98.0% (49/50) | 96.0% (48/50) | 2/2 | 1 | 4/4 | 0 | 2,855 ms | 5,711 ms | $0.007371 | $2.211 | 0 |
+| GPT-6 Luna (`gpt-6-luna`) | 98.0% (49/50) | 96.0% (48/50) | 2/2 | 2 | 4/4 | 0 | 2,766 ms | 4,685 ms | $0.000084 | $0.025 | 0 |
+| Claude Fable 5.1 (`claude-fable-5-1`) | 96.0% (48/50) | 94.0% (47/50) | 2/2 | 0 | 3/4 | 1 | 4,066 ms | 11,179 ms | $0.011846 | $3.554 | 0 |
+| Claude Opus 5.5 (`claude-opus-5-5`) | 98.0% (49/50) | 96.0% (48/50) | 2/2 | 0 | 4/4 | 0 | 2,812 ms | 5,501 ms | $0.004846 | $1.454 | 0 |
+| Gemini 3.8 Flash (`gemini-3.8-flash`) | 98.0% (49/50) | 96.0% (48/50) | 2/2 | 0 | 4/4 | 1 | 2,852 ms | 13,204 ms | $0.000958 | $0.288 | 0 |
+| Grok 4.7 (`grok-4.7`) | 100.0% (50/50) | 98.0% (49/50) | 2/2 | 1 | 4/4 | 0 | 3,365 ms | 21,286 ms | $0.005046 | $1.514 | 0 |
+| jevmem `auto` (`jev-latest`) | 100.0% (50/50) | 98.0% (49/50) | 2/2 | 0 | 4/4 | 0 | 334 ms | 721 ms | $0.000115 | $0.034 | 0 |
 
-On this set jevmem scores highest and GPT-6 Astra ties it on save+kind; every other LLM is one or two turns behind; GPT-6 Luna is cheaper ($0.000083 against $0.000139). Because 33 of these 50 turns share text with jevmem's own few-shot examples and the LLMs see none, this table says jevmem still passes its regression tests, not that it beats the LLMs. The "false contradictions" column counts contradiction ids named on turns that contradict nothing; the "contradiction id found" column counts only true positives. The two malformed answers are Claude Fable 5.1 returning invalid JSON on an injection turn and Gemini 3.8 Flash returning zero output tokens on a bug turn.
+On this set jevmem and Grok 4.7 score highest (50/50 and 49/50); every other LLM is one or two turns behind; GPT-6 Luna is cheaper ($0.000084 against $0.000115). Because 33 of these 50 turns share text with jevmem's own few-shot examples and the LLMs see none, this table says jevmem still passes its regression tests, not that it beats the LLMs. The "false contradictions" column counts contradiction ids named on turns that contradict nothing; the "contradiction id found" column counts only true positives. The two malformed answers are Claude Fable 5.1 returning invalid JSON on an injection turn and Gemini 3.8 Flash returning zero output tokens on a question turn.
 
 Pricing sources recorded in the results files (all read 2026-09-23): OpenAI `https://developers.openai.com/api/docs/pricing` (Astra $10 in / $50 out per million, Luna $0.1 / $0.5, standard tier), Anthropic `https://platform.claude.com/docs/en/about-claude/pricing` (Fable 5.1 $10 / $50, Opus 5.5 $4 / $20), Google `https://ai.google.dev/gemini-api/docs/pricing` (Gemini 3.8 Flash $0.75 / $3.75 through 2026-12-31), xAI `https://docs.x.ai/docs/models` (Grok 4.7 $2 / $6; OpenRouter listed $1.6 / $4.8 that day and the higher list price is used), Jev $0.042 per million input tokens, output free, from TypeSafe's launch post `https://typesafe.ai/blog/introducing-system-one-models-and-jev`.
 
@@ -425,7 +431,7 @@ Environment:
 
 - **Retention.** Jevmem can add a `zeroDataRetention: true` field to each Jev request (automatic for Vercel AI Gateway base URLs, or forced with `jev.zeroDataRetention: true`). Whether any retention guarantee applies depends on the gateway and on TypeSafe AI's own terms; Jevmem does not verify it, and the direct TypeSafe endpoint's retention is governed by TypeSafe's policy.
 - **Redaction.** Common credential shapes and some PII are redacted before text reaches Jev or the writer: `sk-`/`ghp_`/`github_pat_`/`xox*`/`AKIA`/`AIza`/`npm_`/`hf_`/`glpat-`/Stripe keys, JWTs, bearer tokens, env-style `*_PASSWORD=` / `*_SECRET=` / `*_TOKEN=` / `*_KEY=` of any length, `password=` / `pwd=` / `pass:` of any length, connection-string passwords, private key blocks, email addresses, 16-digit numbers, and 48+ character opaque blobs. It happens twice: inside `decide`, `recall`, `audit` and MCP `add_memory` when the state is built ([src/scrub.ts](src/scrub.ts)), and again in the Jev client right before the HTTP request. Names, phone numbers, addresses and other formats are **not** caught; [SECURITY.md](SECURITY.md#what-is-scrubbed) has the full list and [test/scrub.test.ts](test/scrub.test.ts) the cases. `jevmem add` and `jevmem missed` scrub too; text you edit into `JEVMEM.md` by hand is written as typed.
-- **Injection gate.** Five injection nouls gate every hook save and every MCP `add_memory` line (all five in tier 1, the four atomic ones again in tier 2 when it runs). Lines typed with `jevmem add` are not checked by Jev.
+- **Injection gate.** An injection noul gates every hook save and every MCP `add_memory` line: one broad noul in tier 1, and four atomic injection nouls in tier 2 when it runs. Lines typed with `jevmem add` are not checked by Jev.
 - **The warm daemon** listens on a Unix socket with mode 0600 (in `.jevmem/`, or the system temp dir for very long paths; a named pipe on Windows) and only runs the hook code path.
 - **Hooks always exit 0** and do not emit a `block` decision, so they do not make Claude continue or loop. A test spawns the built CLI with invalid JSON, no key, a broken transcript, a missing transcript and an unreachable Jev, and asserts exit code 0. A missing key, an unreadable transcript, a Jev timeout, or any exception is logged to `.jevmem/log.jsonl` as a `hook` entry (the missing-key and unreachable-Jev cases are asserted).
 - **Files outside the project.** Only `init --tool codex` / `--tool all` write outside the project (the MCP section in `~/.codex/config.toml`); they print the file path, a backup path, and the exact lines before writing, and keep the backup. Plain `init` never touches your home directory.
@@ -441,8 +447,8 @@ Observed on Claude Code CLI 2.0.30. `Stop` carries **no message text**; jevmem r
 
 ## Honest limits
 
-- **Early.** This is v0.4. The held-out set is 66 turns hand-labelled by one person (the author), across three invented projects; the regression set is 50 turns, 33 of which overlap jevmem's own prompt examples. Neither is an independent benchmark. Expect rough edges and file issues.
-- **Not the most accurate decider.** On the held-out set three frontier LLMs beat jevmem on accuracy and one cheap LLM beats it on both accuracy and price; jevmem's advantage is latency.
+- **Early.** This is v0.4.1. The held-out set is 66 turns hand-labelled by one person (the author), across three invented projects; the regression set is 50 turns, 33 of which overlap jevmem's own prompt examples. Neither is an independent benchmark. Expect rough edges and file issues.
+- **Not the most accurate decider.** On the held-out set every LLM we measured scored higher on save+kind, and GPT-6 Luna is also cheaper; jevmem's advantage is latency.
 - **Recall's effect on answer quality is not measured.** The read side injects the top five relevant lines per prompt; that the plumbing injects Jev's top picks is tested with a mock, and one opt-in live test checks a two-memory ranking. Selection quality on real memory files, and whether Claude answers better because of it, are not measured.
 - **Long-run noise is not measured.** The harness covers five-turn sessions. How much drift a `JEVMEM.md` accumulates over weeks of real use, and how often `audit` and `wrong` are needed, is unknown.
 - **Only Claude Code (and Codex under `watch`) capture automatically.** Cursor and Claude Desktop save memories only when the agent calls `add_memory`.

@@ -36,6 +36,12 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 - **The same turn is not evaluated twice.** A SHA-1 of the merged turn is stored in `.jevmem/state.json`; Stop can fire more than once per turn.
 - **Simulation fields.** The hook accepts `user_message`, `assistant_message`, and `recent_context` in the stdin JSON in addition to the real `transcript_path`. That is what the tests and `DEMO.md` use, and it makes the hook scriptable from other tools.
 
+## v0.4.1: revert the tier-1 injection nouls, keep `auto`
+
+- **The v0.4.0 tier-1 injection nouls are reverted.** On both eval sets they cost about a quarter more input tokens per turn, blocked no injection turn the broad noul had not already blocked, and turned one held-out todo ("Remind me that…") into a false refusal (`results/a5-tier1-injection/`). Tier 1 is back to nine broad nouls with one injection noul; the four atomic ones run in tier 2. The injection defences that did not depend on them stay: MCP `add_memory` goes through decide and refuses on the injection family, and the scrubber changes from v0.4.0 are unchanged.
+- **`auto` stays the default.** `fast` scored higher on the held-out set, but the held-out set is the only evidence and was already read once; the default changes only after a fresh set confirms it.
+- **Positioning follows the benchmark.** jevmem is the fast, cheap decider, not the accurate one; the README says an LLM decider is better when accuracy matters most.
+
 ## v0.4.0: make every public claim true
 
 - **Fix the code where the claim was the right behaviour.** MCP `add_memory` now goes through scrub → decide → write, `init` never reads the home directory, `settings.local.json` is gitignored, the scrubber covers env-style and short passwords, and the exit-0 claim has a test that spawns the built CLI. Where the claim was wrong rather than the code (the "one to three turns" gap, stale token and latency figures, "every line is explainable"), the words changed.

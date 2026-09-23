@@ -2,6 +2,19 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-09-23
+
+### Changed
+- Reverted tier-1 injection questions: more cost, no measured benefit, one false refusal. Tier 1 is back to nine broad nouls with one injection noul; the four atomic injection nouls run in tier 2 only. The v0.4.0 MCP `add_memory` gate and scrubber changes stay. (The measurement is in `results/a5-tier1-injection/`.)
+- `auto` stays the default mode. On the held-out set `fast` scored higher (95.5% against 92.4% save+kind in `results/eval-heldout-2026-09-23-v041.json`); the default will change only after a fresh set confirms it.
+- Positioning: jevmem is the fast, cheap decider, not the accurate one. New README opening, package description and GitHub About text; a "How it compares" section under the benchmark says an LLM decider is better when accuracy matters most.
+
+### Benchmark (re-run on v0.4.1, same machine, held-out 14:35–14:42 UTC and regression 14:42–14:48 UTC)
+- Held-out (`results/bench-heldout-2026-09-23-v041.json`): jevmem 95.5% save/skip, 92.4% save+kind (lowest of the seven), 3/5 contradictions, 341 ms p50, $0.000143 per decision. The six LLMs: 93.9–98.5% on both metrics, 5/5 contradictions each, 2.4–4.0 s p50. GPT-6 Luna: $0.000089 per decision.
+- Regression (`results/bench-regression-2026-09-23-v041.json`): jevmem and Grok 4.7 50/50 and 49/50; the other LLMs one or two turns behind.
+- Eval, ops, demo and e2e re-run on v0.4.1 (`results/*-v041.*`); `scripts/e2e.sh --runs 3`: all three runs passed.
+- A first v0.4.1 benchmark run was discarded after OpenRouter's key credit limit returned HTTP 402 for four LLMs on the regression set.
+
 ## [0.4.0] - 2026-09-23
 
 An independent fact-check of v0.3.8 found wrong, misleading and inconsistent claims. This release fixes the code where the claim was the right behaviour and the words where it was not, and every measured number in the docs now traces to a committed results file (`node scripts/check-claims.mjs`, run in CI).
