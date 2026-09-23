@@ -66,4 +66,18 @@ describe("eval/heldout.jsonl", () => {
     for (const t of heldout) for (const s of turnTexts(t)) for (const sh of shingles(s, 5)) if (reg.has(sh)) hits.push(`"${sh}" in "${s}"`);
     expect(hits).toEqual([]);
   });
+
+  it("the regression set's contamination count cited in the README is still 33 of 50 turns", () => {
+    const litShingles = new Set<string>();
+    for (const l of promptLits) for (const sh of shingles(l, 5)) litShingles.add(sh);
+    const reg = readJsonl("eval/transcript.jsonl");
+    const contaminated = reg.filter((t) =>
+      turnTexts(t).some((text) => {
+        const nt = ` ${norm(text)} `;
+        return promptLits.some((l) => norm(l) === nt.trim() || (words(l).length >= 3 && nt.includes(` ${norm(l)} `))) || [...shingles(text, 5)].some((sh) => litShingles.has(sh));
+      }),
+    ).length;
+    expect(reg.length).toBe(50);
+    expect(contaminated).toBe(33);
+  });
 });

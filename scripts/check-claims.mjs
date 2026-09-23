@@ -7,7 +7,8 @@
 // the CLI help text in src/cli-main.ts. A "measured number" is one with a unit: %, ms, s, $, tokens, or an N/M
 // count ("4/4"). Each must round-match (at the precision it is written with) a value in a results file listed in
 // results/CURRENT.json, or be in scripts/claims-allow.json (prices, config defaults), which says why for each.
-// JSON results: every numeric leaf counts, with unit conversions (fraction → %, ms → s, cost ×300 → per 300 turns).
+// JSON results: every aggregate numeric leaf counts (per-row data does not), with unit conversions (fraction → %,
+// ms → s, cost ×300 → per 300 turns).
 // Text results (.txt, e.g. captured CLI output): numbers must appear in the file with the same unit.
 import fs from "node:fs";
 import path from "node:path";
@@ -24,6 +25,8 @@ function walk(v, key, parentTurns) {
   if (v === null || v === undefined) return;
   if (Array.isArray(v)) return v.forEach((x) => walk(x, key, parentTurns));
   if (typeof v === "object") {
+    // Per-row data (every single turn's latency, tokens, cost) is not a claim anyone can cite; only aggregates count.
+    if (key === "rows" || key === "warm_up") return;
     const turns = typeof v.turns === "number" ? v.turns : typeof v.n === "number" ? v.n : parentTurns;
     for (const [k, x] of Object.entries(v)) walk(x, k, turns);
     return;
@@ -35,7 +38,7 @@ function walk(v, key, parentTurns) {
   }
   if (typeof v !== "number") return;
   if (/usd|cost/.test(k)) {
-    pool.$.push(v, v * 300, v * 1000);
+    pool.$.push(v, v * 300); // per decision, and per 300 turns
     return;
   }
   if (/(^|_)ms$|ms$|latency/.test(k)) {

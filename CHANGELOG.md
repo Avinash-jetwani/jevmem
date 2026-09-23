@@ -2,6 +2,40 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-09-23
+
+An independent fact-check of v0.3.8 found wrong, misleading and inconsistent claims. This release fixes the code where the claim was the right behaviour and the words where it was not, and every measured number in the docs now traces to a committed results file (`node scripts/check-claims.mjs`, run in CI).
+
+### Fixed (code)
+- **MCP `add_memory` bypassed Jev and the scrubber.** It now runs the hook's path: scrub → decide → write. It refuses, with a reason, a line whose injection family is at or above `injectionMax`, small talk (chit-chat at or above `chitChatMax`), and exact duplicates; Jev may correct the kind; a contradiction supersedes the old line; the decision is recorded for `why`. Without `TYPESAFE_API_KEY` it refuses. Tests: a secret in the text never reaches Jev or `JEVMEM.md`; an injection is refused and nothing is written.
+- **`jevmem init` with no `--tool` could skip Claude Code** when `~/.codex` existed and the project had no `.claude/`. Detection now looks only at the project (`.claude/`, `.cursor/`, `AGENTS.md`); nothing detected means `claude`. `~/.codex/config.toml` is edited only with an explicit `--tool codex` or `--tool all`; Codex detected from `AGENTS.md` gets the project section and a note. Tested both ways.
+- **`.claude/settings.local.json` was not gitignored.** `init` now adds it (and `.jevmem/`) to the project `.gitignore`, creating one in a git repository that has none. Tested.
+- **Scrubber gaps:** env-style `*_PASSWORD=` / `*_SECRET=` / `*_TOKEN=` / `*_KEY=` (any value length), `password=` / `passwd=` / `pwd=` / `pass:` with short values, and `npm_`, `hf_`, `glpat-`, short Stripe `sk_live_` / `rk_` keys are redacted. `jevmem add` and `jevmem missed` now scrub too. Tests for each case, plus tests that pin what is documented as *not* caught.
+- **"Four injection nouls gate every save" was false** (tier 1 had one). Chosen fix: the four atomic injection nouls now also run in tier 1, and the tier-1 injection family is the max of the five; the borderline and sure-skip rules use it. Measured cost (`results/a5-tier1-injection/`, same day, `fast` mode): input tokens per turn from 2,259 to 2,825 (held-out) and 2,143 to 2,709 (regression); cost from $0.000095 to $0.000119 and $0.000090 to $0.000114 per turn; p50 from 308 ms to 311 ms and 288 ms to 309 ms. Measured benefit: none on these sets (injection turns not saved: 6/6 and 4/4 both before and after), and one held-out todo ("Remind me that…") is now refused as an injection, so held-out `fast` save+kind went from 95.5% to 93.9%. Kept because it closes the gap the claim described; see DECISIONS.md.
+- **Hook exit codes are now tested end to end:** `test/exitcode.test.ts` spawns `dist/cli.js hook` with invalid JSON, empty stdin, no key, a broken transcript, a missing transcript and an unreachable Jev, and asserts exit code 0.
+- **Assistant-reply inclusion:** the real rule (`looksLikeQuestion`: question marks, question/investigation openings, bug-report vocabulary) is documented in the code, README and SECURITY.md; bare 3-digit numbers no longer count, only an HTTP-context 4xx/5xx ("returns 500", "HTTP 404"). No regression-set turn changed.
+- `jevmem stats`, `scripts/eval.mjs` and `scripts/bench-llm.mjs` use one cost method: input tokens × $0.042/M, output free.
+- `jevmem mcp --root <dir>` / `JEVMEM_ROOT`; the Claude Desktop snippet uses it instead of relying on a `cwd` key.
+- OpenAI writer: 1,000-token completion cap and `reasoning_effort: "minimal"` for `gpt-5*` / `o*` on api.openai.com, so a reasoning model cannot spend the whole cap before the line; which writer produced each line is recorded in `.jevmem/decisions.jsonl`.
+- Cursor rule and AGENTS.md section say ≤ 200 chars (the real limit) and that `add_memory` may refuse. CLI help: `daemon [status|start|stop]`, "30 minutes of inactivity", the missing env vars, escalation rate under `stats`, the gitignore wording.
+- Daemon protocol version 2, so `jevmem daemon status` flags a daemon left running from 0.3.x as outdated. After upgrading, run `jevmem daemon stop` (or wait 30 idle minutes) so hooks use the new code.
+
+### Benchmark and eval
+- **Held-out set:** `eval/heldout.jsonl`, 66 new hand-labelled turns (every kind, chit-chat, generic questions, 6 injection turns, 5 contradictions, previous-turn context), committed before any model was run on them. `test/heldout.test.ts` fails if any turn shares text with `src/questions.ts` or the regression set; it also pins the regression set's overlap with `src/questions.ts` at 33 of 50 turns.
+- `scripts/bench-llm.mjs`: every decider gets the state from `buildDecideState` (the function `decide` uses), including previous turns; one unscored warm-up per model; all models concurrently in one window; start/end timestamps, retries per row, network path and OpenRouter upstream host recorded; false contradictions counted.
+- **Held-out results** (`results/bench-heldout-2026-09-23.json`): GPT-6 Astra, Claude Fable 5.1 and Claude Opus 5.5 are more accurate than jevmem (65/66 on save/skip and save+kind, against 62/66 and 60/66); GPT-6 Luna and Gemini 3.8 Flash tie on save/skip and beat it on save+kind; jevmem is last on save+kind and found 3/5 contradictions against 5/5 for every LLM. GPT-6 Luna is cheaper ($0.000088 against $0.000173) and more accurate. jevmem keeps latency: 379 ms p50 against 2.9–4.1 s.
+- Regression results (`results/bench-regression-2026-09-23.json`) kept as a regression test: jevmem 50/50 and 49/50, GPT-6 Astra ties it on save+kind.
+- `scripts/eval.mjs --set heldout|regression --out`: eval output is committed (`results/eval-*-2026-09-23.json`) with contradiction and injection scoring. On the held-out set `fast` (93.9% save+kind) beats `auto` (89.4%) and `full` (87.9%); not retuned, to keep the set held out.
+- `scripts/bench-ops.mjs` → `results/ops-2026-09-23.json`: recall, search, audit, cache hit, cold processes, and hook processes through the warm daemon (`Stop` 732 ms p50 end to end).
+- `scripts/check-claims.mjs` + `scripts/claims-allow.json` + `.github/workflows/ci.yml`.
+- `scripts/e2e.sh --runs 3` on Claude Code 2.1.280: all three runs passed (`PASS run 1` to `PASS run 3` in `results/e2e-2026-09-23.txt`).
+
+### Changed (docs)
+- README rewritten against the new results: held-out benchmark first, regression set labelled as contaminated, plain statements of which models are more accurate and which are cheaper, the LLM comparison reduced to rows the benchmark measures, instruction files (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules`) acknowledged as shared committed files, per-tool table saying what is automatic and what is agent-initiated, privacy wording listing what is and is not redacted, zero retention described as a request flag whose effect depends on the gateway, `why` scoped to the machine that saved the line, the cost table sourced from `results/`.
+- SECURITY.md, DEMO.md and DECISIONS.md corrected (DECISIONS entries superseded by later versions are marked). DEMO shows captured output of its own steps and of the e2e run.
+- `package.json` description is the tagline alone.
+- CHANGELOG 0.3.7 notes that `results/bench-2026-09-23.json` was overwritten by that run.
+
 ## [0.3.8] - 2026-09-23
 
 ### Changed

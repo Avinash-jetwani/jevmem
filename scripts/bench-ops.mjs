@@ -115,7 +115,7 @@ for (let i = 0; i < Math.min(N, 10); i++) {
   const ms = await timed(() => lib.auditMemories(jev, store, { staleBelow: 0.4 }));
   audit.push({ ms, inputTokens: lastLog(jev).inputTokens });
 }
-results.warm = { recall: summary(recall), search: summary(search), audit_20_memories: summary(audit) };
+results.warm = { recall: summary(recall), search: summary(search), audit_all_memories: summary(audit) };
 
 // --- cache hit ------------------------------------------------------------------------------
 const cjev = lib.createJev({ root, noLogFile: true, cache: true });

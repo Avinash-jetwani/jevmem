@@ -1,0 +1,42 @@
+$ jevmem init --tool claude --no-hooks
+  created  JEVMEM.md
+  created  jevmem.config.json
+  created  .jevmem/
+  created  .gitignore (+ .jevmem/)
+
+Tools: claude
+Claude Code hook command: "~/.nvm/versions/node/v22.22.0/bin/node" "~/jevmem/dist/cli.js" hook
+
+Next: keep working. JEVMEM.md fills itself. Try `jevmem list`, `jevmem search "<query>"`, `jevmem why <id>`, `jevmem stats`.
+
+# 1. save
+jevmem: 1 jev call(s), p50 382 ms, 2944 tokens, $0.000107 via inline
+jevmem Stop: saved — [decision] We are going with SQLite as the primary store. id:0mjfwa via fallback
+$ jevmem list
+0mjfwa  [decision] We are going with SQLite as the primary store.
+
+# 2. contradiction
+jevmem: 2 jev call(s), p50 450 ms, 8640 tokens, $0.000310 via inline
+jevmem Stop: saved — [decision] Switch the primary store to Postgres 16. id:kecvxg (supersedes 0mjfwa) via fallback
+$ jevmem list --all
+0mjfwa  [superseded] We are going with SQLite as the primary store. → kecvxg
+kecvxg  [decision] Switch the primary store to Postgres 16.
+
+# 3. chit-chat
+jevmem: 1 jev call(s), p50 408 ms, 3009 tokens, $0.000109 via inline
+jevmem Stop: skipped — skip: kind=none, content=0.10<0.5, importance=trivial<useful, chit_chat=0.97 [tier 1]
+
+# 4. relevance injection
+{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"<jevmem-memory>\nRelevant project memory from JEVMEM.md (selected by Jev):\n- [decision] Switch the primary store to Postgres 16. (id:kecvxg, p=0.92)\n</jevmem-memory>"}}
+jevmem: 1 jev call(s), p50 325 ms, 466 tokens, $0.000018 via inline
+jevmem UserPromptSubmit: injected — 1 memories: kecvxg
+
+$ jevmem stats
+5 call(s), 5 ok, 0 cache hit(s) (0%), p50 382 ms, p95 450 ms, 15059 tokens, $0.000544 total
+  decide      4 calls  p50   408 ms  p95   450 ms    14593 tokens  $0.000527  cache 0%
+  recall      1 calls  p50   325 ms  p95   325 ms      466 tokens  $0.000018  cache 0%
+decide tiers: 3 tier-1, 1 tier-2; escalation rate 33%
+cost per day:
+  2026-09-23  $0.000544
+labels: 0 (0 right, 0 wrong, 0 missed); 40 more before `jevmem fit`
+last fit: never
