@@ -91,6 +91,7 @@ Exactly what is sent, stored and scrubbed: [SECURITY.md](SECURITY.md).
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.
 - **Automatic capture is Claude Code only** (and Codex while `jevmem watch` runs); Cursor and Claude Desktop save only when the agent calls `add_memory`.
+- **Jev outages drop turns:** each Jev call has a 2 s budget; when the API is slow or down, the turn is skipped and logged in `.jevmem/log.jsonl`, not retried later.
 
 ## Commands
 
