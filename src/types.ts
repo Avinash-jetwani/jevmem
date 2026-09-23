@@ -160,7 +160,9 @@ export const DEFAULT_CONFIG: JevmemConfig = {
       kindNoulLow: 0.3,
       kindNoulHigh: 0.7,
       kindConfidenceMin: 0.6,
-      contradictionMin: 0.5,
+      // Off by default since v0.4.2 (1.01 never fires): escalating on a likely contradiction sent every reversal to
+      // tier 2, whose kind and injection gates skipped terse reversals, so the old line stayed live. See DECISIONS.md.
+      contradictionMin: 1.01,
       importanceConfidenceMin: 0.5,
       injectionLow: 0.3,
       injectionHigh: 0.7,

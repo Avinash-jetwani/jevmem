@@ -111,3 +111,22 @@ describe("writer", () => {
     expect(b.writerUsed).toBe("fallback");
   });
 });
+
+describe("reversal satisfies the content gate (v0.4.2)", () => {
+  it("saves and supersedes a terse reversal whose kind nouls are weak, but only with a named id and a strong contradiction", async () => {
+    const { evaluatePolicy } = await import("../src/combine.js");
+    const { DEFAULT_CONFIG } = await import("../src/types.js");
+    const t = DEFAULT_CONFIG.thresholds;
+    const fam = (content: number, contradiction: number) => ({ decision: content, constraint: 0, preference: 0, bug: 0, architecture: 0, todo: 0, chit_chat: 0.05, injection: 0.05, contradiction, meta: 0 });
+    const reversal = evaluatePolicy({ kindChoice: "decision", importanceScore: 3, families: fam(0.3, 0.85), touchesMemoryId: "l3" }, t);
+    expect(reversal.save).toBe(true);
+    expect(reversal.contradiction).toBe(true);
+    expect(reversal.reason).toMatch(/\(reversal\)/);
+    // No named memory, or a weak contradiction: the content gate applies as before.
+    expect(evaluatePolicy({ kindChoice: "decision", importanceScore: 3, families: fam(0.3, 0.85), touchesMemoryId: "none" }, t).save).toBe(false);
+    expect(evaluatePolicy({ kindChoice: "decision", importanceScore: 3, families: fam(0.3, 0.6), touchesMemoryId: "l3" }, t).save).toBe(false);
+    // The other gates still apply to a reversal.
+    expect(evaluatePolicy({ kindChoice: "none", importanceScore: 3, families: fam(0.3, 0.9), touchesMemoryId: "l3" }, t).save).toBe(false);
+    expect(evaluatePolicy({ kindChoice: "decision", importanceScore: 3, families: { ...fam(0.3, 0.9), injection: 0.8 }, touchesMemoryId: "l3" }, t).save).toBe(false);
+  });
+});

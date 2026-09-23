@@ -81,9 +81,12 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
   const levelIdx = Math.min(IMPORTANCE_LEVELS.length - 1, Math.max(0, Math.round(a.importanceScore)));
   const importance = IMPORTANCE_LEVELS[levelIdx]!;
   const content = Math.max(...KIND_FAMILIES.map((k) => a.families[k]));
+  // A message that reverses a listed memory is memory-worthy by definition, even when it is too terse for the kind
+  // nouls ("Money columns become Decimal."). Without this the old line stayed live while the reversal was skipped.
+  const reversal = a.touchesMemoryId !== "none" && a.families.contradiction >= t.contradictionMin;
   const reasons: string[] = [];
   if (a.kindChoice === "none") reasons.push("kind=none");
-  if (content < t.contentMin) reasons.push(`content=${content.toFixed(2)}<${t.contentMin}`);
+  if (content < t.contentMin && !reversal) reasons.push(`content=${content.toFixed(2)}<${t.contentMin}`);
   if (levelIdx < importanceIndex(t.importanceMin)) reasons.push(`importance=${importance}<${t.importanceMin}`);
   if (a.families.chit_chat >= t.chitChatMax) reasons.push(`chit_chat=${a.families.chit_chat.toFixed(2)}`);
   if (a.families.injection >= t.injectionMax) reasons.push(`injection=${a.families.injection.toFixed(2)}`);
@@ -98,7 +101,7 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
     importance,
     content,
     reason: save
-      ? `save kind=${a.kindChoice} content=${content.toFixed(2)} importance=${importance}${a.source && a.source !== "user_message" ? ` source=${a.source}` : ""}${contradiction ? ` supersedes=${a.touchesMemoryId}` : ""}`
+      ? `save kind=${a.kindChoice} content=${content.toFixed(2)}${content < t.contentMin ? " (reversal)" : ""} importance=${importance}${a.source && a.source !== "user_message" ? ` source=${a.source}` : ""}${contradiction ? ` supersedes=${a.touchesMemoryId}` : ""}`
       : `skip: ${reasons.join(", ")}`,
   };
 }

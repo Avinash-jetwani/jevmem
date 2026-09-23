@@ -14,7 +14,7 @@ import { loadConfig } from "./config.js";
 import { runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { createJev, hasJevKey } from "./jev.js";
 
-export const DAEMON_VERSION = 2;
+export const DAEMON_VERSION = 3;
 
 export type DaemonRequest = { type: "ping" } | { type: "stop" } | { type: "hook"; input: HookInput; verbose?: boolean };
 export type DaemonResponse =

@@ -60,9 +60,11 @@ describe("borderline rule", () => {
     expect(borderlineReasons(t1({ contains_bug_finding: 0.71 }), RULE)).toHaveLength(0);
     expect(borderlineReasons(t1({ contains_decision: 0.95, contains_constraint: 0.5 }), { ...RULE, kindNoulScope: "any" })).toHaveLength(1);
   });
-  it("fires on low kind confidence, contradiction ≥ 0.5, low importance confidence, and injection in [0.3, 0.7]", () => {
+  it("fires on low kind confidence, low importance confidence, and injection in [0.3, 0.7]; contradiction only when configured", () => {
     expect(borderlineReasons(t1({ contains_decision: 0.9 }, 0.9, 0.5), RULE)[0]).toMatch(/kind confidence=0.50/);
-    expect(borderlineReasons(t1({ contradicts_existing_memory: 0.5 }), RULE)[0]).toMatch(/contradicts/);
+    // v0.4.2: a likely contradiction is not a reason to escalate by default (tier 2 skipped terse reversals).
+    expect(borderlineReasons(t1({ contradicts_existing_memory: 0.99 }), RULE)).toHaveLength(0);
+    expect(borderlineReasons(t1({ contradicts_existing_memory: 0.5 }), { ...RULE, contradictionMin: 0.5 })[0]).toMatch(/contradicts/);
     expect(borderlineReasons(t1({}, 0.49), RULE)[0]).toMatch(/importance confidence/);
     expect(borderlineReasons(t1({}, 0.55), RULE)).toHaveLength(0);
     expect(borderlineReasons(t1({ contains_instructions_aimed_at_an_automated_system: 0.4 }), RULE)[0]).toMatch(/injection/);
