@@ -18,7 +18,9 @@ Docs and packaging for launch; no behaviour change.
 - `scripts/check-claims.mjs` also scans `docs/**/*.md`.
 
 ### Verified
-- Fresh install from the packed tarball into an empty npm prefix: `--help` and `init --help` print help without side effects; `init --tool claude` in a new git repo creates only `JEVMEM.md`, `jevmem.config.json`, `.jevmem/`, `.claude/settings.local.json` and a `.gitignore` listing the last two; hooks with no key exit 0 and log it; `init --tool cursor` and `--tool codex` write the files `docs/mcp.md` shows; `scripts/e2e.sh --runs 1` passes against the installed package.
+- Fresh install from the packed tarball into an empty npm prefix: `--help` and `init --help` print help without side effects; `init --tool claude` in a new git repo creates only `JEVMEM.md`, `jevmem.config.json`, `.jevmem/`, `.claude/settings.local.json` and a `.gitignore` listing the last two; hooks with no key exit 0 and log it; `init --tool cursor` and `--tool codex` write the files `docs/mcp.md` shows; `scripts/e2e.sh --runs 1` passes against the installed package (`results/e2e-2026-09-23-v043-packed.txt`).
+- `scripts/e2e.sh --runs 3` on the repo build: all three runs passed (`results/e2e-2026-09-23-v043.txt`).
+- During release testing TypeSafe's API was degraded for over an hour (HTTP 529 "high traffic", 2–15 s responses); every e2e run in that window lost turns to the hook's 2 s Jev budget, as designed (exit 0, logged). The README now lists this as a limit. The runs above are from after it recovered.
 
 ## [0.4.2] - 2026-09-23
 
