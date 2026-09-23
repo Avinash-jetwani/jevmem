@@ -81,3 +81,42 @@ describe("eval/heldout.jsonl", () => {
     expect(contaminated).toBe(33);
   });
 });
+
+describe("eval/contradictions-dev.jsonl (dev set for contradiction work; the held-out set stays the final exam)", () => {
+  const dev = readJsonl("eval/contradictions-dev.jsonl");
+
+  it("has at least 40 cases, ~25 contradictions and ~15 near-misses, each with 3–15 memories and a valid target id", () => {
+    expect(dev.length).toBeGreaterThanOrEqual(40);
+    const contra = dev.filter((t) => t.contradicts);
+    expect(contra.length).toBeGreaterThanOrEqual(25);
+    expect(dev.length - contra.length).toBeGreaterThanOrEqual(15);
+    for (const t of dev) {
+      expect(t.existing.length, t.user).toBeGreaterThanOrEqual(3);
+      expect(t.existing.length, t.user).toBeLessThanOrEqual(15);
+      if (t.contradicts) expect(t.existing.map((m: any) => m.id), t.user).toContain(t.contradicts);
+    }
+  });
+
+  it("shares no text with src/questions.ts, the regression set or the held-out set", () => {
+    const hits: string[] = [];
+    const litShingles = new Map<string, string>();
+    for (const l of promptLits) for (const sh of shingles(l, 5)) litShingles.set(sh, l);
+    const other = new Set<string>();
+    for (const f of ["eval/transcript.jsonl", "eval/heldout.jsonl"]) for (const t of readJsonl(f)) for (const s of turnTexts(t)) for (const sh of shingles(s, 5)) other.add(sh);
+    for (const t of dev) {
+      for (const text of turnTexts(t)) {
+        const nt = ` ${norm(text)} `;
+        for (const l of promptLits) {
+          const nl = norm(l);
+          if (nl === nt.trim()) hits.push(`equal: "${text}" = questions.ts "${l}"`);
+          else if (words(l).length >= 3 && nt.includes(` ${nl} `)) hits.push(`contains: "${text}" ⊃ questions.ts "${l}"`);
+        }
+        for (const sh of shingles(text, 5)) {
+          if (litShingles.has(sh)) hits.push(`5-gram "${sh}" (questions.ts): "${text}"`);
+          if (other.has(sh)) hits.push(`5-gram "${sh}" (eval set): "${text}"`);
+        }
+      }
+    }
+    expect(hits).toEqual([]);
+  });
+});
