@@ -28,6 +28,9 @@ function walk(v, key, parentTurns) {
     // Per-row data (every single turn's latency, tokens, cost) is not a claim anyone can cite; only aggregates count.
     if (key === "rows" || key === "warm_up") return;
     const turns = typeof v.turns === "number" ? v.turns : typeof v.n === "number" ? v.n : parentTurns;
+    // Contradiction diagnostics (scripts/diag-contradictions.mjs) store counts, not "N/M" strings.
+    if (typeof v.found === "number" && typeof v.contradictions === "number") pool.frac.add(`${v.found}/${v.contradictions}`);
+    if (typeof v.false_supersedes === "number" && typeof v.near_misses === "number") pool.frac.add(`${v.false_supersedes}/${v.near_misses}`);
     for (const [k, x] of Object.entries(v)) walk(x, k, turns);
     return;
   }
@@ -41,7 +44,7 @@ function walk(v, key, parentTurns) {
     pool.$.push(v, v * 300); // per decision, and per 300 turns
     return;
   }
-  if (/(^|_)ms$|ms$|latency/.test(k)) {
+  if (/(^|_)ms($|_)|ms$|latency/.test(k)) {
     pool.ms.push(v);
     pool.s.push(v / 1000);
     return;

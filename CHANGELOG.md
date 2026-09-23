@@ -2,6 +2,25 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] - 2026-09-23
+
+### Fixed
+- **`auto` lost contradictions, so `JEVMEM.md` kept the old and the new decision both active.** Found on a new dev set, not on the held-out set: `auto` found 20/27 reversals on `eval/contradictions-dev.jsonl`, `fast` 26/27. The borderline rule escalated every likely contradiction to tier 2, whose kind nouls scored terse reversals as no content and whose injection nouls read "I've changed my mind…" as changing the AI's rules, so the turn was skipped and the old line stayed live. Now:
+  - a likely contradiction alone is not an escalation reason (`tiers.borderline.contradictionMin` defaults to 1.01; set it to turn escalation back on);
+  - a reversal of a listed memory (contradiction ≥ `contradictionMin` and a named id) satisfies the content gate; the kind, importance, chit-chat and injection gates still apply;
+  - the "no" side of two injection nouls names changing or relaxing an earlier project decision or rule.
+- Dev set after the fix, two runs: `auto` 25/27 both times, 0 wrong ids, 0 false supersedes, p50 311–323 ms on turns that save (`results/contradictions-dev-after-run*.json`). No dedicated supersede call was added: wrong ids and false supersedes were already 0.
+
+### Added
+- `eval/contradictions-dev.jsonl`: 43 cases (27 reversals of every shape, 16 same-topic near-misses, 3–15 memories each), committed before any run; the test checks it shares no text with the prompts, the regression set or the held-out set.
+- `scripts/diag-contradictions.mjs`: found / wrong id / false supersedes per mode, plus each tier's contradiction signals per case.
+
+### Final exam (held-out set, run once after the fix; 15:17–15:44 UTC)
+- Held-out (`results/bench-heldout-2026-09-23-v042.json`): jevmem `auto` found 5/5 contradictions with 0 false ones, 98.5% save/skip (tied highest), 95.5% save+kind (below GPT-6 Astra and Claude Opus 5.5, tied with Claude Fable 5.1, above GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7), 300 ms p50, $0.000127 per decision.
+- Regression (`results/bench-regression-2026-09-23-v042.json`): jevmem 50/50 and 49/50.
+- README "How it compares" rewritten to match: jevmem is no longer the least accurate on save+kind; GPT-6 Astra and Claude Opus 5.5 are more accurate at far higher cost and latency.
+- `scripts/e2e.sh --runs 3` on v0.4.2 (`results/e2e-2026-09-23-v042.txt`). Daemon protocol version 3: run `jevmem daemon stop` after upgrading.
+
 ## [0.4.1] - 2026-09-23
 
 ### Changed
