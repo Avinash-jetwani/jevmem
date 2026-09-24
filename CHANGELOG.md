@@ -17,6 +17,9 @@ Tell AI assistants not to write JEVMEM.md by hand.
 - `scripts/e2e.sh --scenario handwrite` (run by default alongside the LinkGuard scenario): a fresh, otherwise empty repo where Claude may edit files; each turn must add exactly one jevmem-format line. Every turn of every scenario now fails on any line in `JEVMEM.md` that is not the init header, a jevmem-format memory line or the footer.
 - Unit tests: old default header replaced (with and without memories), edited or custom header untouched, injection line present only with memories, rule and `AGENTS.md` upgrades exact and idempotent.
 
+### Verified
+- `scripts/e2e.sh --runs 3` (both scenarios): all six runs passed (`results/e2e-2026-09-24-v044.txt`). The same handwrite scenario against the 0.4.3 package failed all three runs on a hand-written line (`results/e2e-handwrite-2026-09-24-v043-repro.txt`).
+
 ## [0.4.3] - 2026-09-23
 
 Docs and packaging for launch; no behaviour change.
