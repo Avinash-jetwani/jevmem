@@ -9,7 +9,8 @@ Automatic project memory for Claude Code. Also works with Cursor and Codex.
 
 ## What it does
 
-https://github.com/user-attachments/assets/d45cf567-aefb-4861-b6e6-7878bed308f2
+https://github.com/user-attachments/assets/ed77849e-db1c-4c05-9ad8-4cab0b3968a2
+
 
 - Saves decisions, constraints, bugs and todos from your Claude Code chats into `JEVMEM.md`, automatically.
 - When you change your mind, the old line is marked superseded, not deleted.
