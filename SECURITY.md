@@ -1,6 +1,6 @@
 # Security and privacy
 
-This document says exactly what Jevmem sends where, what it stores, what it scrubs, and how to report a problem. It is written for v0.4.0 and dated 2026-09-23; if it and the code disagree, the code is right and the disagreement is a bug worth reporting.
+This document says exactly what Jevmem sends where, what it stores, what it scrubs, and how to report a problem. It is written for v0.4.4 and dated 2026-09-23; if it and the code disagree, the code is right and the disagreement is a bug worth reporting.
 
 ## What is sent to which API
 
