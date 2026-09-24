@@ -8,10 +8,35 @@ const FOOTER_RE = /^<!--\s*jevmem:.*-->\s*$/;
 
 export const MEMORY_HEADER = `# JEVMEM.md
 
+Project memory, maintained automatically by jevmem (https://github.com/Avinash-jetwani/jevmem).
+AI assistants: do not add, edit or remove lines in this file. jevmem records decisions, constraints and bugs from the conversation on its own.
+People: edit freely, one memory per line.
+
+`;
+
+/**
+ * Headers that earlier versions of `init` wrote, verbatim. `init` replaces one of these with MEMORY_HEADER; any
+ * other header is the user's and is never touched. (The v0.4.3 header said "Edit freely" without addressing AI
+ * assistants, and assistants read it as an invitation to write lines by hand.)
+ */
+export const LEGACY_HEADERS: readonly string[] = [
+  `# JEVMEM.md
+
 Project memory maintained by [Jevmem](https://github.com/Avinash-jetwani/jevmem).
 Jev decides what is worth keeping; one line is written per memory. Edit freely; keep one memory per line.
 
-`;
+`,
+];
+
+const normHeader = (h: string) => h.replace(/\r\n/g, "\n").replace(/\s+$/, "");
+
+/** Replace the header with MEMORY_HEADER when it is exactly a legacy default (footer lines ignored). Returns true if it did. */
+export function upgradeLegacyHeader(file: MemoryFile): boolean {
+  const text = normHeader(file.header.filter((l) => !FOOTER_RE.test(l)).join("\n"));
+  if (!LEGACY_HEADERS.some((h) => normHeader(h) === text)) return false;
+  file.header = normHeader(MEMORY_HEADER).split("\n");
+  return true;
+}
 
 const LINE_RE =
   /^- \[(?<kind>[a-z]+)\]\s+(?<text>.*?)\s*<!--\s*(?<meta>[^>]*?)\s*-->\s*$/;
@@ -132,6 +157,15 @@ export class MemoryStore {
     const meta = footerMeta(this.root);
     fs.writeFileSync(this.file, serializeMemoryFile(file, meta ? formatFooter(meta) : null));
     this.writeIndex(file.memories);
+  }
+
+  /** `init` on an existing file: replace a legacy default header, keep everything else. */
+  upgradeHeader(): boolean {
+    if (!this.exists()) return false;
+    const file = this.read();
+    if (!upgradeLegacyHeader(file)) return false;
+    this.write(file);
+    return true;
   }
 
   /** Rewrite the file unchanged except for the footer (used after labelling/fitting). */

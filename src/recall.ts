@@ -72,8 +72,11 @@ export async function recallForPrompt(jev: JevCaller, prompt: string, memories: 
   return ranked.filter((r) => r.choiceProbability >= opts.min).slice(0, opts.topK);
 }
 
+/** Added to every injection: assistants that find JEVMEM.md otherwise write duplicate lines into it by hand. */
+export const JEVMEM_HANDS_OFF = "jevmem saves memories automatically; don't write to JEVMEM.md yourself.";
+
 export function formatInjection(ranked: RankedMemory[]): string {
   if (ranked.length === 0) return "";
   const lines = ranked.map((r) => `- [${r.memory.kind}] ${r.memory.text} (id:${r.memory.id}, p=${r.choiceProbability.toFixed(2)})`);
-  return ["<jevmem-memory>", "Relevant project memory from JEVMEM.md (selected by Jev):", ...lines, "</jevmem-memory>"].join("\n");
+  return ["<jevmem-memory>", "Relevant project memory from JEVMEM.md (selected by Jev):", ...lines, JEVMEM_HANDS_OFF, "</jevmem-memory>"].join("\n");
 }

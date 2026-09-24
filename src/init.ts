@@ -142,7 +142,8 @@ export function init(opts: InitOptions): InitResult {
   if (!store.exists()) {
     fs.writeFileSync(store.file, MEMORY_HEADER);
     created.push("JEVMEM.md");
-  } else skipped.push("JEVMEM.md");
+  } else if (store.upgradeHeader()) created.push("JEVMEM.md (header updated: tells AI assistants not to edit it)");
+  else skipped.push("JEVMEM.md");
   if (writeDefaultConfig(root)) created.push(CONFIG_FILE);
   else skipped.push(CONFIG_FILE);
   store.ensureDir();

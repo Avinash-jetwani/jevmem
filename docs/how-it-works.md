@@ -110,7 +110,7 @@ v0.4.1's `auto` lost reversals by escalating every likely contradiction to tier 
 
 ### The read side: one call per prompt (`src/recall.ts`)
 
-`UserPromptSubmit` sends `{ query, memories }` (at most 60 candidates after keyword pre-filtering) and asks one `choice`, *"Which memory is most relevant to the query?"*, over the ids plus `none`. The distribution is the ranking; the top five above `recallMin` are injected as `<jevmem-memory>` context. `search_memory` (MCP) and `jevmem search` add one structured noul per candidate, *"Would memory X help answer or act on the query?"*, for up to 50 candidates in the same call.
+`UserPromptSubmit` sends `{ query, memories }` (at most 60 candidates after keyword pre-filtering) and asks one `choice`, *"Which memory is most relevant to the query?"*, over the ids plus `none`. The distribution is the ranking; the top five above `recallMin` are injected as `<jevmem-memory>` context, ending with the line "jevmem saves memories automatically; don't write to JEVMEM.md yourself." (nothing is injected when no memory clears `recallMin`). `search_memory` (MCP) and `jevmem search` add one structured noul per candidate, *"Would memory X help answer or act on the query?"*, for up to 50 candidates in the same call.
 
 ### Audit: one noul per memory (`src/audit.ts`)
 
@@ -142,7 +142,7 @@ jevmem stats                        # p50/p95 latency, cost per day, cache hit r
 - [kind] text  <!-- id:xxxxxx ts:ISO-8601 conf:0.91 -->
 ```
 
-`kind` ∈ `decision | constraint | preference | bug | architecture | todo | superseded`. Superseded lines carry `→ id:new` in the text and `by:new` in the comment. Audit adds `[stale?]` before the text and `stale:0.31` in the comment. Anything that is not a memory line (headings, prose) is preserved verbatim.
+`kind` ∈ `decision | constraint | preference | bug | architecture | todo | superseded`. Superseded lines carry `→ id:new` in the text and `by:new` in the comment. Audit adds `[stale?]` before the text and `stale:0.31` in the comment. Anything that is not a memory line (headings, prose) is preserved verbatim. The header `init` writes tells AI assistants not to add, edit or remove lines (they otherwise add hand-written duplicates next to jevmem's) and tells people they may edit freely; re-running `init` replaces the pre-0.4.4 default header, and leaves any header you changed alone.
 
 ## Security and privacy
 

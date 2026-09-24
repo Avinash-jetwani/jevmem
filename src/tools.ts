@@ -47,7 +47,24 @@ This project keeps durable memory in \`JEVMEM.md\` (one line per decision, const
 - When the user states a decision, a hard rule, a preference, a root cause, or defers work, call \`add_memory\` with one line (≤ 200 chars) and the right kind: decision | constraint | preference | bug | architecture | todo. jevmem scrubs secrets and asks Jev first; it may refuse the line (injection, small talk, duplicate) or correct the kind, and says why.
 - If something you learned contradicts a memory, add the new memory and tell the user which line it replaces.
 - Do not add greetings, questions, or anything already obvious from the code.
+- Never add, edit or remove lines in \`JEVMEM.md\` directly: record memories only through \`add_memory\`, which checks and formats them.
 `;
+
+/** The v0.4.3 rule, verbatim; `init --tool cursor` replaces a file that still matches it exactly. */
+export const LEGACY_CURSOR_RULES: readonly string[] = [`---
+description: Project memory via Jevmem (JEVMEM.md). Use the jevmem MCP tools to read and write it.
+alwaysApply: true
+---
+
+# Jevmem project memory
+
+This project keeps durable memory in \`JEVMEM.md\` (one line per decision, constraint, preference, bug, architecture fact, or todo), managed by the \`jevmem\` MCP server.
+
+- Before any non-trivial task, call \`search_memory\` with a one-line description of the task and read the results. They are decisions and constraints from earlier sessions; follow them unless the user overrides.
+- When the user states a decision, a hard rule, a preference, a root cause, or defers work, call \`add_memory\` with one line (≤ 200 chars) and the right kind: decision | constraint | preference | bug | architecture | todo. jevmem scrubs secrets and asks Jev first; it may refuse the line (injection, small talk, duplicate) or correct the kind, and says why.
+- If something you learned contradicts a memory, add the new memory and tell the user which line it replaces.
+- Do not add greetings, questions, or anything already obvious from the code.
+`];
 
 export const AGENTS_SECTION = `
 ## Jevmem project memory
@@ -58,7 +75,20 @@ Durable project memory lives in \`JEVMEM.md\` (one line per decision, constraint
 - When the user states a decision, a hard rule, a preference, a root cause, or defers work, call \`add_memory\` with one line (≤ 200 chars) and the right kind: decision | constraint | preference | bug | architecture | todo. jevmem scrubs secrets and asks Jev first; it may refuse the line or correct the kind, and says why.
 - If something contradicts an existing memory, add the new line and say which memory it replaces.
 - Never add greetings, questions, or things already obvious from the code.
+- Never add, edit or remove lines in \`JEVMEM.md\` directly: record memories only through \`add_memory\` (with \`jevmem watch\` running, jevmem also records them from the session on its own).
 `;
+
+/** The v0.4.3 AGENTS.md section, verbatim; `init --tool codex` replaces it only when it still matches exactly. */
+export const LEGACY_AGENTS_SECTIONS: readonly string[] = [`
+## Jevmem project memory
+
+Durable project memory lives in \`JEVMEM.md\` (one line per decision, constraint, preference, bug, architecture fact, or todo) and is served by the \`jevmem\` MCP server.
+
+- Before any non-trivial task, call the \`search_memory\` tool with a one-line description of the task and follow what comes back unless the user overrides it.
+- When the user states a decision, a hard rule, a preference, a root cause, or defers work, call \`add_memory\` with one line (≤ 200 chars) and the right kind: decision | constraint | preference | bug | architecture | todo. jevmem scrubs secrets and asks Jev first; it may refuse the line or correct the kind, and says why.
+- If something contradicts an existing memory, add the new line and say which memory it replaces.
+- Never add greetings, questions, or things already obvious from the code.
+`];
 
 function readJson(file: string): any {
   try {
@@ -84,6 +114,9 @@ export function setupCursor(root: string): ToolSetupResult {
   if (!fs.existsSync(rule)) {
     fs.writeFileSync(rule, CURSOR_RULE);
     r.created.push(".cursor/rules/jevmem.mdc");
+  } else if (LEGACY_CURSOR_RULES.includes(fs.readFileSync(rule, "utf8"))) {
+    fs.writeFileSync(rule, CURSOR_RULE);
+    r.created.push(".cursor/rules/jevmem.mdc (updated: never edit JEVMEM.md directly)");
   } else r.skipped.push(".cursor/rules/jevmem.mdc");
   r.notes.push("Cursor has no per-turn hook: capture happens when the agent calls add_memory (the rule tells it when). Reload the window so Cursor picks up the MCP server.");
   return r;
@@ -93,11 +126,21 @@ export function setupCursor(root: string): ToolSetupResult {
  * Codex setup. The AGENTS.md section is always written; `~/.codex/config.toml` (the only file outside the project
  * jevmem ever edits) is touched only when `editGlobalConfig` is true, i.e. the user passed `--tool codex` or `--tool all`.
  */
+/** The whole jevmem section of an AGENTS.md: from its heading to the next `## ` heading or the end. */
+function jevmemSection(text: string): string | null {
+  const m = /^##\s+Jevmem project memory[^\n]*\n[\s\S]*?(?=^##\s|(?![\s\S]))/m.exec(text);
+  return m ? m[0] : null;
+}
+
 export function setupCodex(root: string, home = os.homedir(), announce?: Announce, editGlobalConfig = true): ToolSetupResult {
   const r: ToolSetupResult = { created: [], skipped: [], notes: [] };
   const agents = path.join(root, "AGENTS.md");
   const cur = fs.existsSync(agents) ? fs.readFileSync(agents, "utf8") : "";
-  if (/##\s+Jevmem project memory/i.test(cur)) r.skipped.push("AGENTS.md (jevmem section)");
+  const section = jevmemSection(cur);
+  if (section !== null && LEGACY_AGENTS_SECTIONS.some((sec) => sec.trim() === section.trim())) {
+    fs.writeFileSync(agents, cur.replace(section.trim(), AGENTS_SECTION.trim()));
+    r.created.push("AGENTS.md (jevmem section updated: never edit JEVMEM.md directly)");
+  } else if (/##\s+Jevmem project memory/i.test(cur)) r.skipped.push("AGENTS.md (jevmem section)");
   else {
     fs.writeFileSync(agents, (cur ? cur.replace(/\s+$/, "") + "\n" : "# AGENTS.md\n") + AGENTS_SECTION);
     r.created.push(cur ? "AGENTS.md (+ jevmem section)" : "AGENTS.md");
