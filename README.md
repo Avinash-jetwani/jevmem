@@ -7,17 +7,11 @@ Automatic project memory for Claude Code. Also works with Cursor and Codex.
 [![node](https://img.shields.io/node/v/jevmem.svg)](package.json)
 [![CI](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml/badge.svg)](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml)
 
-
-
-https://github.com/user-attachments/assets/d45cf567-aefb-4861-b6e6-7878bed308f2
-
-
+<img width="1280" height="640" alt="jevmem-social-preview" src="https://github.com/user-attachments/assets/af63682e-2f92-48b5-8f27-d120cc61e4f4" />
 
 ## What it does
 
-https://github.com/user-attachments/assets/6c31bc24-9a23-4032-b966-cd1bf8054770
-
-
+https://github.com/user-attachments/assets/d45cf567-aefb-4861-b6e6-7878bed308f2
 
 - Saves decisions, constraints, bugs and todos from your Claude Code chats into `JEVMEM.md`, automatically.
 - When you change your mind, the old line is marked superseded, not deleted.
