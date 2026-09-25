@@ -19,9 +19,10 @@ node scripts/bench-llm.mjs --set heldout   # the Benchmark tables (needs TYPESAF
 node scripts/bench-ops.mjs                 # the non-decide rows of the Cost math table
 node scripts/eval-injection.mjs            # the memory-poisoning gate on eval/memory-injection.jsonl (live Jev); --set dev for the dev set
 node scripts/check-claims.mjs              # fails if a number in the docs is not in a results file listed in results/CURRENT.json (runs in CI)
-scripts/e2e.sh --runs 3 --automemory both   # REAL multi-turn Claude Code session under the desktop app's stripped env (needs a logged-in `claude`)
+scripts/e2e.sh --runs 3 --automemory both   # REAL multi-turn Claude Code sessions under the desktop app's stripped env, in a temporary CLAUDE_CONFIG_DIR (needs CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`)
 scripts/e2e.sh --scenario plugin           # the same turns with jevmem installed as a Claude Code plugin (from an npm pack tarball)
 scripts/e2e.sh --scenario outage           # Jev answers 529 for one turn (local proxy), then recovers
+scripts/e2e.sh --scenario dormant          # plugin installed, a session in a project without `jevmem enable` (nothing may happen), then enable
 claude plugin validate --strict .claude-plugin/plugin.json
 ```
 
@@ -41,6 +42,6 @@ Keep them focused, add a test for behaviour changes, and run `pnpm build && pnpm
 
 1. Bump the version in `package.json`, `.claude-plugin/plugin.json` and the npm source in `.claude-plugin/marketplace.json` (a test keeps the three equal), and add a CHANGELOG entry.
 2. `pnpm build && pnpm lint && pnpm test && node scripts/check-claims.mjs`, and `scripts/e2e.sh --runs 3` plus the `plugin` and `outage` scenarios for anything that touches the hooks.
-3. Tag `vX.Y.Z` and push the tag. `.github/workflows/release.yml` verifies the tag (build, lint, tests, check-claims, matching versions, the packed tarball runs without `node_modules`) and, when the repository variable `NPM_PUBLISH` is `true`, publishes to npm with provenance through npm trusted publishing (OIDC). With `NPM_PUBLISH` unset, publish by hand with `npm publish`.
+3. Tag `vX.Y.Z` and push the tag. **Tags are permanent: never move, delete or re-use a pushed tag.** The release workflow publishes whatever a version tag points at, so a moved tag can publish different code under a version people already installed. If something is wrong after tagging, fix it in a new commit and release the next patch version. `.github/workflows/release.yml` verifies the tag (build, lint, tests, check-claims, matching versions, the packed tarball runs without `node_modules`) and, when the repository variable `NPM_PUBLISH` is `true`, publishes to npm with provenance through npm trusted publishing (OIDC). With `NPM_PUBLISH` unset, publish by hand with `npm publish`.
 
 The Claude Code plugin is installed from npm (`.claude-plugin/marketplace.json` names an `npm` source), so a new plugin version reaches users only once that version is on npm.

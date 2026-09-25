@@ -1,5 +1,10 @@
 version: 2
 updates:
+  # Dependabot updates pnpm-lock.yaml (lockfile v9) through the npm ecosystem; the first run's PR installed with
+  # --frozen-lockfile and passed pnpm's supply-chain check. Minor and patch updates are grouped; major versions come
+  # as separate pull requests so one breaking upgrade does not hold back the rest. Majors held back on purpose:
+  # @types/node follows the oldest supported Node (20, the engines floor), and vitest 5 needs Node 22.12+ while CI
+  # tests on Node 20. TypeScript 7 breaks tsup's declaration build (rollup-plugin-dts) as of 2026-09-25.
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -8,6 +13,17 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+        update-types: [minor, patch]
+      dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: vitest
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

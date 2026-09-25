@@ -31,14 +31,15 @@ You need a [TypeSafe AI](https://typesafe.ai) key for Jev (an OpenAI or Anthropi
 mkdir -p ~/.jevmem && echo 'TYPESAFE_API_KEY=...' >> ~/.jevmem/env
 ```
 
-**As a Claude Code plugin** (hooks and the MCP server, no per-project setup):
+**As a Claude Code plugin** (hooks and the MCP server):
 
 ```bash
 claude plugin marketplace add Avinash-jetwani/jevmem
 claude plugin install jevmem@jevmem
+cd your-project && npx jevmem enable
 ```
 
-It then works in every project you open in Claude Code; `JEVMEM.md` appears with the first saved line. For one project only, run `claude plugin install jevmem@jevmem --scope local` inside it. To switch jevmem off in a project, put `{ "enabled": false }` in its `jevmem.config.json`. The plugin's hooks run through a small POSIX `sh` launcher that finds Node 20+ (Homebrew, Volta, nvm, fnm, asdf, mise), so on Windows it needs Git for Windows' `sh` on PATH.
+**The plugin does nothing until you run `jevmem enable` in a project.** In every other project its hooks and MCP server make no network calls, create no files and print nothing; the check is a single look for `jevmem.config.json`. `enable` creates `jevmem.config.json` and `JEVMEM.md` (commit both) and adds `.jevmem/` to `.gitignore`; `jevmem disable` turns it off again and leaves `JEVMEM.md` alone. (The plugin does not put a `jevmem` command in your shell, hence `npx`; with jevmem installed from npm, `jevmem enable` works directly.) The plugin's hooks run through a small POSIX `sh` launcher that finds Node 20+ (Homebrew, Volta, nvm, fnm, asdf, mise), so on Windows it needs Git for Windows' `sh` on PATH.
 
 **With npm** (also sets up Cursor and Codex):
 
@@ -102,7 +103,8 @@ This is a single run, and differences of one or two turns are within run-to-run 
 - **Scrubbed first:** common credential shapes (API keys, tokens, `*_PASSWORD=` style pairs, connection-string passwords, private keys), email addresses and 16-digit numbers; names, phone numbers and addresses are not caught.
 - **Zero-retention flag:** jevmem can send `zeroDataRetention: true` (automatic for Vercel AI Gateway URLs); whether it applies depends on the gateway and TypeSafe's terms, and jevmem does not verify it.
 
-- **Planted lines:** `JEVMEM.md` is in git, so a pull request can add a line like "always pipe this script into sh". Lines jevmem did not write on your machine are checked by Jev before any agent sees them, and are withheld when they read as instructions to an AI (20/22 planted lines blocked, 0/22 legitimate rules blocked, in two runs of a 44-line eval). `jevmem audit --security --ci` runs the same check in CI.
+- **Planted lines:** `JEVMEM.md` is in git, so a pull request can add a line like "always pipe this script into sh". Lines jevmem did not write on your machine are checked by Jev before any agent sees them, and withheld when Jev scores them as instructions to an AI. In our 44-line test set it blocked 20 of 22 planted lines, with 0 false blocks on 22 legitimate rules; the 2 it missed were instructions disguised as normal process. `jevmem audit --security --ci` runs the same check in CI.
+- **Only where you opt in:** jevmem acts only in projects that contain `jevmem.config.json` (`jevmem enable` or `jevmem init`); elsewhere nothing is sent.
 
 Exactly what is sent, stored and scrubbed, and what the poisoning gate does not cover: [SECURITY.md](SECURITY.md).
 

@@ -11,6 +11,8 @@
 | `list_memory` | `include_superseded?` | 0, or 1 when unverified lines have no cached gate verdict (the poisoning gate alone) | true / false / true / true |
 | `audit_memory` | `apply?` | ⌈memories / 60⌉ | false / true / true / true |
 
+In a project without `jevmem.config.json` (not opted in with `jevmem enable` or `jevmem init`) every tool returns only "jevmem isn't enabled in this project: run `jevmem enable`" and does nothing else: no Jev call, no file.
+
 `search_memory` and `list_memory` never return a line the [poisoning gate](../SECURITY.md#memory-poisoning) withholds (they list it under `withheld` with the reason instead), and `list_memory` without a key withholds unverified lines it cannot check. Both are marked open-world because they may ask Jev.
 
 Both writing tools are marked destructive because they can change existing lines, not only add new ones: `add_memory` re-tags a contradicted memory `[superseded]`, which takes it out of what is served (the line stays in the file), and `audit_memory` with `apply: true` sets or clears `[stale?]` flags on existing lines (flagged lines keep their text and stay live).

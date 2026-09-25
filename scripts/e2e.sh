@@ -2,16 +2,24 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|outage|all] [--automemory present|cleared|both|keep] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|outage|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
 #
-# Scenarios (default: all = linkguard + handwrite, each run does both):
+# Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
+# harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
+# not logged in, so authentication comes from CLAUDE_CODE_OAUTH_TOKEN (run `claude setup-token` once) or
+# ANTHROPIC_API_KEY, per https://code.claude.com/docs/en/authentication. The harness refuses to run without one.
+#
+# Scenarios (default: all = linkguard + handwrite, each run does both; full = all five):
 #   linkguard  five turns in a small project: save, decision, reversal (supersede), thanks, injection
 #   handwrite  a fresh, otherwise empty git repo where Claude may edit files (--permission-mode acceptEdits):
 #              each turn must add exactly one jevmem-format line and no line written by Claude itself
 #   plugin     the linkguard turns with jevmem installed as a Claude Code plugin instead of `jevmem init`: the package is
-#              packed with `npm pack` (what npm would publish), listed in a local marketplace, and installed with
-#              `claude plugin marketplace add <dir> --scope local` + `claude plugin install jevmem@jevmem-e2e --scope local`
-#              in the scratch project; both are removed again at the end
+#              packed with `npm pack` (what npm would publish), listed in a local marketplace, installed at user scope
+#              (`claude plugin marketplace add <dir>` + `claude plugin install jevmem@jevmem-e2e`, in the temporary
+#              config dir), and the scratch project is opted in with `jevmem enable`
+#   dormant    the plugin installed as above, one session in a project that has not run `jevmem enable`: no request may
+#              reach Jev (a counting proxy sits in front of it) and no file may appear in the project; then
+#              `jevmem enable` and a second session there, whose line must be saved
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
@@ -37,6 +45,26 @@ if [ -z "${CLAUDE_BIN:-}" ]; then
   [ -n "$CLAUDE_BIN" ] || CLAUDE_BIN="$(command -v claude)"
 fi
 [ -x "$CLAUDE_BIN" ] || { echo "no claude binary (set CLAUDE_BIN)"; exit 2; }
+if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+  echo "e2e runs Claude Code in a temporary CLAUDE_CONFIG_DIR (never ~/.claude), which is not logged in."
+  echo "Set CLAUDE_CODE_OAUTH_TOKEN (create one with \`claude setup-token\`) or ANTHROPIC_API_KEY and run again."
+  exit 2
+fi
+E2E_CONFIG_DIR="$(mktemp -d /tmp/jevmem-e2e-config.XXXXXX)"
+trap 'rm -rf "$E2E_CONFIG_DIR"' EXIT
+AUTH_ENV=()
+[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && AUTH_ENV+=("CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN")
+[ -n "${ANTHROPIC_API_KEY:-}" ] && AUTH_ENV+=("ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
+# A Claude Code session as the desktop app runs it (bare PATH, no shell variables), in the temporary config dir.
+# Extra NAME=value arguments before `--` go into its environment.
+claude_session() {
+  local extra=()
+  while [ $# -gt 0 ] && [ "$1" != "--" ]; do extra+=("$1"); shift; done
+  shift
+  env -i HOME="$HOME" USER="$USER" PATH="$STRIP_PATH" TERM=dumb CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" "${AUTH_ENV[@]}" ${extra[@]+"${extra[@]}"} "$CLAUDE_BIN" "$@" < /dev/null
+}
+# `claude plugin …` in the temporary config dir.
+claude_cli() { CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" "$CLAUDE_BIN" "$@"; }
 NODE="$(command -v node)"
 STRIP_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 
@@ -64,7 +92,7 @@ HW_EXPECT=(
   "2 0 any 0"
 )
 
-slug_of() { printf '%s' "$1" | sed 's#/#-#g'; }
+slug_of() { printf '%s' "$1" | sed 's#[^A-Za-z0-9]#-#g'; }
 
 # Decisions recorded so far (every e2e prompt produces exactly one, saved or skipped).
 decisions() { [ -f "$1/.jevmem/decisions.jsonl" ] && wc -l < "$1/.jevmem/decisions.jsonl" | tr -d ' ' || echo 0; }
@@ -104,7 +132,7 @@ run_outage() {
   local p1="Decision: invoices are stored as PDF files in S3 under invoices/<year>/, one file per invoice."
   local p2="Constraint: invoice numbers must never be reused, even after a refund."
   echo "---- turn 1 (Jev down): $p1"
-  ( cd "$scratch" && env -i HOME="$HOME" USER="$USER" PATH="$STRIP_PATH" TERM=dumb "$CLAUDE_BIN" -p --max-turns 15 "$p1" < /dev/null 2>&1 | tail -2 | sed 's/^/   claude> /' )
+  ( cd "$scratch" && claude_session -- -p --max-turns 15 "$p1" 2>&1 | tail -2 | sed 's/^/   claude> /' )
   for _ in $(seq 1 300); do grep -q '"event":"queued"' "$scratch/.jevmem/log.jsonl" 2>/dev/null && break; sleep 0.1; done
   "$NODE" - "$scratch" 1 <<'JS' || fail=1
     const fs=require("fs");const [root]=process.argv.slice(2);
@@ -124,7 +152,7 @@ JS
   echo "   proxy recovered"
   if [ $fail -eq 0 ]; then
     echo "---- turn 2 (Jev back): $p2"
-    ( cd "$scratch" && env -i HOME="$HOME" USER="$USER" PATH="$STRIP_PATH" TERM=dumb "$CLAUDE_BIN" -p --continue --max-turns 15 "$p2" < /dev/null 2>&1 | tail -2 | sed 's/^/   claude> /' )
+    ( cd "$scratch" && claude_session -- -p --continue --max-turns 15 "$p2" 2>&1 | tail -2 | sed 's/^/   claude> /' )
     # The queued turn waits out its backoff (15 s) and the daemon's retry tick (15 s); turn 2 waits behind it.
     wait_queue "$scratch" 1 || { echo "   ✗ queue did not drain within 60 s"; fail=1; }
   fi
@@ -166,24 +194,79 @@ install_plugin() {
   mkdir -p "$mkt/plugins" "$mkt/.claude-plugin"
   ( cd "$mkt" && tar xzf jevmem-*.tgz && mv package plugins/jevmem && rm -f jevmem-*.tgz )
   printf '{"name":"jevmem-e2e","owner":{"name":"jevmem e2e"},"plugins":[{"name":"jevmem","source":"./plugins/jevmem"}]}\n' > "$mkt/.claude-plugin/marketplace.json"
-  ( cd "$scratch" && "$CLAUDE_BIN" plugin marketplace add "$mkt" --scope local 2>&1 | tail -1 | sed 's/^/   /' )
-  ( cd "$scratch" && "$CLAUDE_BIN" plugin install jevmem@jevmem-e2e --scope local 2>&1 | tail -1 | sed 's/^/   /' )
-  ( cd "$scratch" && "$CLAUDE_BIN" plugin list 2>&1 | grep -A2 "jevmem@jevmem-e2e" | sed 's/^/   /' )
-  # No jevmem init: JEVMEM.md is created by the first saved line, with the default header.
-  mkdir -p "$scratch/.jevmem"
-  "$NODE" --input-type=module -e 'const l=await import(process.argv[1]);const fs=await import("node:fs");fs.writeFileSync(process.argv[2]+"/.jevmem/e2e-header.json",JSON.stringify(l.MEMORY_HEADER.split("\n")))' "$ROOT/dist/index.js" "$scratch"
-  [ -f "$scratch/.claude/settings.local.json" ] || { echo "plugin install wrote no .claude/settings.local.json"; return 1; }
+  ( cd "$scratch" && claude_cli plugin marketplace add "$mkt" 2>&1 | tail -1 | sed 's/^/   /' )
+  ( cd "$scratch" && claude_cli plugin install jevmem@jevmem-e2e 2>&1 | tail -1 | sed 's/^/   /' )
+  ( cd "$scratch" && claude_cli plugin list 2>&1 | grep -A2 "jevmem@jevmem-e2e" | sed 's/^/   /' )
+  grep -q '"jevmem@jevmem-e2e"' "$E2E_CONFIG_DIR/settings.json" 2>/dev/null || { echo "plugin install did not enable jevmem@jevmem-e2e in the temporary config"; return 1; }
 }
 
 uninstall_plugin() {
   local scratch="$1"
-  ( cd "$scratch" && "$CLAUDE_BIN" plugin uninstall jevmem@jevmem-e2e --scope local >/dev/null 2>&1 )
-  ( cd "$scratch" && "$CLAUDE_BIN" plugin marketplace remove jevmem-e2e >/dev/null 2>&1 )
+  ( cd "$scratch" && claude_cli plugin uninstall jevmem@jevmem-e2e >/dev/null 2>&1 )
+  ( cd "$scratch" && claude_cli plugin marketplace remove jevmem-e2e >/dev/null 2>&1 )
   [ -n "${PLUGIN_MKT:-}" ] && rm -rf "$PLUGIN_MKT"
+}
+
+# The plugin in a project that has not opted in: nothing may happen. Then `jevmem enable`: the next turn is saved.
+run_dormant() {
+  local run="$1" scratch proxy_pid proxy_url plog fail=0 n
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "$scratch"/* "$scratch"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=dormant  scratch=$scratch"
+  ( cd "$scratch" && git init -q && printf '{"name":"client-app","private":true}\n' > package.json && printf '# client-app\n' > README.md )
+  install_plugin "$scratch" || { uninstall_plugin "$scratch"; return 1; }
+  # A pass-through proxy in front of the real Jev API that logs every request (its flag file never exists).
+  plog="$(mktemp /tmp/jevmem-e2e-proxy.XXXXXX)"
+  "$NODE" "$ROOT/scripts/jev-outage-proxy.mjs" --flag "$plog.never" > "$plog.url" 2> "$plog" &
+  proxy_pid=$!
+  for _ in $(seq 1 50); do [ -s "$plog.url" ] && break; sleep 0.1; done
+  proxy_url="$(cat "$plog.url")"
+  local listing='find . -path ./.git -prune -o -print | sort'
+  ( cd "$scratch" && eval "$listing" ) > "$plog.before"
+  local p1="Decision: invoices are archived as PDFs in S3, one file per invoice."
+  local p2="Decision: refunds go back to the original payment method only."
+  echo "---- turn 1 (project not enabled): $p1"
+  ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --max-turns 15 "$p1" 2>&1 | tail -2 | sed 's/^/   claude> /' )
+  sleep 5 # any detached hook process would have finished by now
+  ( cd "$scratch" && eval "$listing" ) > "$plog.after"
+  n=$(wc -l < "$plog" | tr -d ' ')
+  if [ "$n" -ne 0 ]; then echo "   ✗ FAIL turn 1: $n request(s) reached Jev from a project that is not enabled"; fail=1; fi
+  if ! diff -q "$plog.before" "$plog.after" >/dev/null; then echo "   ✗ FAIL turn 1: files appeared in the project:"; diff "$plog.before" "$plog.after" | sed 's/^/     /'; fail=1; fi
+  [ $fail -eq 0 ] && echo "   ✓ turn 1: 0 requests to Jev, no file created in the project (plugin enabled at user scope: $(claude_cli plugin list 2>&1 | grep -c 'jevmem@jevmem-e2e') listing)"
+  if [ $fail -eq 0 ]; then
+    echo "---- jevmem enable"
+    ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" enable | sed 's/^/   /' )
+    echo "---- turn 2 (project enabled): $p2"
+    ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --continue --max-turns 15 "$p2" 2>&1 | tail -2 | sed 's/^/   claude> /' )
+    wait_queue "$scratch" 0 || { echo "   ✗ queue did not drain within 60 s"; fail=1; }
+  fi
+  if [ $fail -eq 0 ]; then
+    n=$(wc -l < "$plog" | tr -d ' ')
+    "$NODE" - "$scratch" "$n" <<'JS' || fail=1
+      const fs=require("fs");const [root,n]=process.argv.slice(2);
+      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+\] .*<!-- id:\w+/.test(l));
+      for(const l of lines)console.log("     "+l.replace(/\s*<!--.*-->/,""));
+      const errs=[];
+      if(lines.length!==1)errs.push(`expected 1 line, got ${lines.length}`);
+      else if(!/refund/i.test(lines[0]))errs.push("the saved line is not turn 2's");
+      if(!(Number(n)>0))errs.push("no request reached Jev after enable");
+      if(errs.length){console.log("   ✗ FAIL turn 2: "+errs.join("; "));process.exit(1);}
+      console.log(`   ✓ turn 2: saved after jevmem enable (${n} request(s) to Jev, all after enable)`);
+JS
+  fi
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  { kill "$proxy_pid"; wait "$proxy_pid"; } 2>/dev/null
+  uninstall_plugin "$scratch"
+  rm -f "$plog" "$plog".*
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=dormant"; else echo "FAIL run $run scenario=dormant"; fi
+  [ $KEEP -eq 1 ] || rm -rf "$scratch"
+  return $fail
 }
 
 run_once() {
   local run="$1" automem="$2" scenario="$3"
+  [ "$scenario" = dormant ] && { run_dormant "$run"; return $?; }
   [ "$scenario" = outage ] && { run_outage "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
@@ -202,6 +285,10 @@ run_once() {
   fi
   if [ "$scenario" = plugin ]; then
     install_plugin "$scratch" || { uninstall_plugin "$scratch"; return 1; }
+    # The plugin does nothing until the project opts in.
+    ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" enable | sed 's/^/   /' ) || { echo "enable failed"; return 1; }
+    "$NODE" -e 'const fs=require("fs");const r=process.argv[1];fs.writeFileSync(r+"/.jevmem/e2e-header.json",JSON.stringify(fs.readFileSync(r+"/JEVMEM.md","utf8").split("\n")))' "$scratch"
+    mkdir -p "$scratch/.claude"; [ -f "$scratch/.claude/settings.local.json" ] || echo '{}' > "$scratch/.claude/settings.local.json"
   else
     ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
     # The lines init wrote (the header) are the only non-memory lines JEVMEM.md may ever contain.
@@ -210,8 +297,8 @@ run_once() {
   "$NODE" -e '
     const fs=require("fs");const p=process.argv[1]+"/.claude/settings.local.json";const s=JSON.parse(fs.readFileSync(p,"utf8"));
     s.env={...(s.env||{}),JEVMEM_DEBUG:"1",JEVMEM_VERBOSE:"1"};fs.writeFileSync(p,JSON.stringify(s,null,2)+"\n");' "$scratch"
-  # Claude Code auto-memory for this project lives under ~/.claude/projects/<slug>/memory
-  local memdir="$HOME/.claude/projects/$(slug_of "$scratch")/memory"
+  # Claude Code auto-memory for this project lives under <config dir>/projects/<slug>/memory (here: the temporary one)
+  local memdir="$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")/memory"
   case "$automem" in
     cleared) rm -rf "$memdir";;
     present) mkdir -p "$memdir"; printf '# Memory index\n\n- [Distribution](dist.md) — LinkGuard ships as a sideload zip; Web Store later\n' > "$memdir/MEMORY.md"; printf -- '---\nname: dist\ndescription: distribution plan\nmetadata:\n  type: project\n---\nLinkGuard ships as a sideload zip; Chrome Web Store later.\n' > "$memdir/dist.md";;
@@ -224,7 +311,7 @@ run_once() {
     [ $first -eq 1 ] || args+=(--continue)
     first=0
     local before; before=$(decisions "$scratch")
-    ( cd "$scratch" && env -i HOME="$HOME" USER="$USER" PATH="$STRIP_PATH" TERM=dumb "$CLAUDE_BIN" "${args[@]}" "$prompt" < /dev/null 2>&1 | tail -3 | sed 's/^/   claude> /' )
+    ( cd "$scratch" && claude_session -- "${args[@]}" "$prompt" 2>&1 | tail -3 | sed 's/^/   claude> /' )
     # Since v0.5.0 the Stop hook only queues the turn (async, detached) and the daemon evaluates it, so the line can
     # land after claude exits: wait until the queue is empty and nobody is evaluating it (at most 60 s).
     wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; fail=1; break; }
@@ -278,10 +365,9 @@ JS
       const s=JSON.parse(fs.readFileSync(root+"/.claude/settings.local.json","utf8"));
       const errs=[];
       if(s.hooks)errs.push("settings.local.json has hooks (expected the plugin's only)");
-      if(!Object.keys(s.enabledPlugins||{}).includes("jevmem@jevmem-e2e"))errs.push("jevmem@jevmem-e2e not enabled");
       if(!fs.existsSync(root+"/.jevmem/provenance.jsonl"))errs.push("no provenance records (lines not written by jevmem?)");
       if(errs.length){console.log("   ✗ FAIL plugin: "+errs.join("; "));process.exit(1);}
-      console.log("   ✓ plugin install did the work (no init hooks; enabledPlugins jevmem@jevmem-e2e)");
+      console.log("   ✓ the plugin did the work (no init hooks; installed at user scope in the temporary config, project opted in with jevmem enable)");
 JS
   fi
   ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
@@ -298,7 +384,7 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant outage)
 status=0
 for m in "${modes[@]}"; do
   for r in $(seq 1 "$RUNS"); do

@@ -2,6 +2,24 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.1] - 2026-09-25
+
+The plugin is now opt-in per project. (0.5.0 was tagged but never published to npm.)
+
+### Security
+- **The plugin is now opt-in per project.** In 0.5.0 the plugin, installed at user scope by default, ran in every project Claude Code opened: prompts from every repository were sent to TypeSafe's API, and `JEVMEM.md` and `.jevmem/` appeared everywhere. Now jevmem does nothing in a project until it contains `jevmem.config.json`: no network calls, no files, no output. The hook launcher checks for that file before it looks for Node or reads anything; the MCP tools answer only "jevmem isn't enabled in this project: run `jevmem enable`". The rule covers the plugin, hooks registered by `jevmem init` (which writes the config) and `jevmem watch`. A test runs the real launcher, the hook command and the MCP server in a project without the config against a fake Jev and a snapshot of the project, home, plugin-data and temp directories: zero requests, zero files, no output.
+- SECURITY.md states the poisoning gate's measured result plainly (blocked 20 of 22 planted lines in our 44-line test set, 0 false blocks on 22 legitimate rules; the misses were instructions disguised as normal process) and calls it a filter, not a guarantee.
+
+### Added
+- `jevmem enable`: opt a project in. Creates `jevmem.config.json` and `JEVMEM.md` and adds `.jevmem/` to `.gitignore`, like `init` without registering hooks. Plugin users run `npx jevmem enable`.
+- `jevmem disable`: opt a project out. Sets `jevmem.config.json` aside in `.jevmem/` (the next `enable` restores it), stops the daemon, and leaves `JEVMEM.md` untouched.
+- `scripts/e2e.sh --scenario dormant`: the plugin installed, a session in a project that has not opted in (no request may reach Jev, no file may appear), then `jevmem enable` and a session whose line must be saved.
+
+### Changed
+- The e2e harness runs every `claude` call in a temporary `CLAUDE_CONFIG_DIR`, so it never touches `~/.claude`; it needs `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY`. The plugin scenario installs at user scope in that directory and opts the project in with `jevmem enable`.
+- Dependabot: minor and patch updates are grouped; majors come one per pull request, and majors of `@types/node`, `vitest` and `typescript` are held back (Node 20 support; TypeScript 7 breaks the declaration build).
+- CONTRIBUTING: tags are permanent; a pushed tag is never moved or re-used.
+
 ## [0.5.0] - 2026-09-25
 
 Trust, reliability, easier install.
