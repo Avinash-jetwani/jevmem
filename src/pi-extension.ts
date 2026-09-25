@@ -1,7 +1,6 @@
 import type { AgentEndEvent, ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { loadConfig } from "./config.js";
+import { isEnabled, loadConfig } from "./config.js";
 import { runHook, type HookOutcome } from "./hook.js";
-import { MemoryStore } from "./store.js";
 
 type PiMessage = AgentEndEvent["messages"][number];
 type PiTurn = { user: string; assistant: string; previous: string };
@@ -110,7 +109,7 @@ function turnsForRun(messages: PiMessage[], branch: PiMessage[], startedPrompt: 
 }
 
 function initialized(root: string): boolean {
-  return new MemoryStore(root, loadConfig(root).memoryFile).exists();
+  return isEnabled(root) && loadConfig(root).enabled !== false;
 }
 
 function preview(text: string): string {
@@ -155,7 +154,7 @@ export default function jevmemExtension(pi: ExtensionAPI): void {
     const outcome = await runHook({ hook_event_name: "UserPromptSubmit", cwd: ctx.cwd, prompt }, { root: ctx.cwd });
     notifyMissingKey(outcome, ctx);
     if (outcome.action === "error") ctx.ui.notify(`jevmem: recall failed — ${preview(outcome.detail)}`, "warning");
-    if (outcome.action === "noop" && outcome.detail === "no relevant memories") ctx.ui.notify("jevmem: no relevant memory for this prompt", "info");
+    if (outcome.action === "noop" && outcome.detail.startsWith("no relevant memories")) ctx.ui.notify("jevmem: no relevant memory for this prompt", "info");
     if (outcome.additionalContext) ctx.ui.notify(recallNotice(outcome.additionalContext), "info");
     return outcome.additionalContext;
   };
@@ -194,7 +193,7 @@ export default function jevmemExtension(pi: ExtensionAPI): void {
     return { messages: [...event.messages.slice(0, index + 1), injected, ...following] };
   });
 
-  pi.on("agent_end", async (event, ctx) => {
+  pi.on("agent_end", (event, ctx) => {
     const startedHere = startedPrompt;
     startedPrompt = false;
     if (!initialized(ctx.cwd)) return;
@@ -206,13 +205,17 @@ export default function jevmemExtension(pi: ExtensionAPI): void {
     const finalAssistant = [...event.messages].reverse().find((message) => message.role === "assistant");
     if (finalAssistant?.role === "assistant" && (finalAssistant.stopReason === "stop" || finalAssistant.stopReason === "aborted")) activePrompt = undefined;
     for (const turn of turnsForRun(event.messages, branch, startedHere, boundary)) {
-      const outcome = await runHook({ hook_event_name: "Stop", cwd: ctx.cwd, user_message: turn.user, assistant_message: turn.assistant, recent_context: turn.previous }, { root: ctx.cwd });
-      notifyMissingKey(outcome, ctx);
-      if (outcome.action === "saved") {
-        const saved = outcome.detail.replace(/ id:[a-z0-9]+/, "").replace(/ via \S+$/, "");
-        ctx.ui.notify(`jevmem: saved ${preview(saved)}`, "info");
-      } else if (outcome.action === "skipped") ctx.ui.notify(`jevmem: no memory saved — ${preview(outcome.detail)}`, "info");
-      else if (outcome.action === "error") ctx.ui.notify(`jevmem: capture failed — ${preview(outcome.detail)}`, "warning");
+      // runHook scrubs and persists the turn to the queue before its first await.
+      // Let Jev drain asynchronously so agent_end never waits for the decision.
+      void runHook({ hook_event_name: "Stop", cwd: ctx.cwd, user_message: turn.user, assistant_message: turn.assistant, recent_context: turn.previous }, { root: ctx.cwd }).then((outcome) => {
+        notifyMissingKey(outcome, ctx);
+        if (outcome.action === "saved") {
+          const saved = outcome.detail.replace(/ id:[a-z0-9]+/, "").replace(/ via \S+$/, "");
+          ctx.ui.notify(`jevmem: saved ${preview(saved)}`, "info");
+        } else if (outcome.action === "skipped") ctx.ui.notify(`jevmem: no memory saved — ${preview(outcome.detail)}`, "info");
+        else if (outcome.action === "queued") ctx.ui.notify(`jevmem: memory queued — ${preview(outcome.detail)}`, "info");
+        else if (outcome.action === "error") ctx.ui.notify(`jevmem: capture failed — ${preview(outcome.detail)}`, "warning");
+      }, () => ctx.ui.notify("jevmem: capture failed unexpectedly", "warning"));
     }
   });
 }
