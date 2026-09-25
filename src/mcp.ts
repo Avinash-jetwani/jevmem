@@ -26,6 +26,9 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
       title: "Search project memory",
       description: "Rank JEVMEM.md memories by relevance to a query using one Jev call (choice over ids + a noul per candidate). Returns ranked results with probabilities.",
       inputSchema: { query: z.string().min(1), limit: z.number().int().min(1).max(50).optional() },
+      // Reads JEVMEM.md and asks Jev (an external API); never changes memories. (The Jev client appends to jevmem's
+      // own .jevmem/log.jsonl and answer cache, which is bookkeeping, not memory state.)
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
     async ({ query, limit }) => {
       const memories = store.active();
@@ -50,6 +53,10 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
       description:
         "Append one memory line to JEVMEM.md. The line is scrubbed of secrets and checked by Jev first (the same gate as the Claude Code hook): lines that read as instructions aimed at an AI, small talk, or duplicates are refused with a reason. Jev may correct the kind.",
       inputSchema: { text: z.string().min(3).max(500), kind: z.enum(NEW_KINDS as unknown as [string, ...string[]]) },
+      // Writes JEVMEM.md after asking Jev (external API), so openWorldHint is true. destructiveHint is true because
+      // a line that contradicts a live memory re-tags that memory [superseded], taking it out of what is served:
+      // an update to existing data, not an additive-only write. Not idempotent: each accepted call appends a line.
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
     async ({ text: t, kind }) => {
       let jev: JevCaller;
@@ -75,6 +82,7 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
       title: "List memories",
       description: "List every memory in JEVMEM.md (live ones by default).",
       inputSchema: { include_superseded: z.boolean().optional() },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async ({ include_superseded }) => {
       const memories = include_superseded ? store.list() : store.active();
@@ -88,6 +96,10 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
       title: "Audit memories",
       description: "Re-score every live memory against a snapshot of the repository ('is this still true?') and flag stale ones. Set apply=true to write [stale?] flags into JEVMEM.md.",
       inputSchema: { apply: z.boolean().optional() },
+      // apply=true writes [stale?] flags into JEVMEM.md (so not read-only). Flags only mark or unmark lines; no text
+      // is changed and flagged lines stay live, so not destructive. Repeating the call with the same repository
+      // gives the same flags. Asks Jev (external API).
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
     async ({ apply }) => {
       const rows = await auditMemories(getJev(), store, { staleBelow: cfg.thresholds.staleBelow });
