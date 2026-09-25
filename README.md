@@ -6,6 +6,7 @@ Automatic project memory for Claude Code. Also works with Cursor and Codex.
 [![license](https://img.shields.io/npm/l/jevmem.svg)](LICENSE)
 [![node](https://img.shields.io/node/v/jevmem.svg)](package.json)
 [![CI](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml/badge.svg)](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml)
+[![M8ven Verified](https://m8ven.ai/badge/mcp/avinash-jetwani/jevmem?variant=verified)](https://m8ven.ai/mcp/avinash-jetwani/jevmem)
 
 ## What it does
 
