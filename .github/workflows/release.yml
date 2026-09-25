@@ -49,8 +49,9 @@ jobs:
           ' "$tag"
       - name: The packed tarball runs without node_modules (what npm users and the Claude Code plugin get)
         run: |
+          mkdir -p /tmp/pack /tmp/pkg
           npm pack --pack-destination /tmp/pack
-          mkdir /tmp/pkg && tar xzf /tmp/pack/jevmem-*.tgz -C /tmp/pkg
+          tar xzf /tmp/pack/jevmem-*.tgz -C /tmp/pkg
           node /tmp/pkg/package/dist/cli.js --version
 
   publish:
