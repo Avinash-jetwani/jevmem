@@ -53,7 +53,8 @@ describe("daemon", () => {
   it("retries a queued turn on its own once the backoff has passed, and answers a drain request at once", async () => {
     const root = tmp();
     const saved = { key: process.env.TYPESAFE_API_KEY, base: process.env.TYPESAFE_BASE_URL, writer: process.env.JEVMEM_WRITER };
-    const fake = await startFakeJev(() => SAVE_DECISION);
+    // Jev answers after 400 ms, so a drain reply that comes back sooner did not wait for it.
+    const fake = await startFakeJev(() => SAVE_DECISION, { delayMs: 400 });
     process.env.TYPESAFE_API_KEY = "test-key";
     process.env.TYPESAFE_BASE_URL = fake.url;
     process.env.JEVMEM_WRITER = "none";
@@ -71,10 +72,10 @@ describe("daemon", () => {
 
       // The Stop handoff: queue a turn, ask the daemon to drain, and get the answer before the turn is evaluated.
       enqueueTurn(root, { hash: "e".repeat(16), user: "Workers live in apps/worker and use BullMQ.", assistant: "", previous: "", source: "payload" });
-      const before = fake.requests.length;
+      const t0 = performance.now();
       const r = await daemonRequest(root, { type: "drain" });
       expect(r).toMatchObject({ ok: true, type: "draining", pending: 1 });
-      expect(fake.requests.length).toBe(before);
+      expect(performance.now() - t0).toBeLessThan(300);
       await waitFor(() => new MemoryStore(root).active().length === 2);
     } finally {
       await fake.close();

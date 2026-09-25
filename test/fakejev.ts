@@ -14,12 +14,13 @@ export interface FakeJev {
 }
 
 /** `respond` returns answer overrides, or `{ status }` to fail the request with that HTTP status. */
-export async function startFakeJev(respond: (questions: Questions, state: any, i: number) => AnswerOverrides | { status: number }): Promise<FakeJev> {
+export async function startFakeJev(respond: (questions: Questions, state: any, i: number) => AnswerOverrides | { status: number }, opts: { delayMs?: number } = {}): Promise<FakeJev> {
   const requests: FakeJev["requests"] = [];
   const server = http.createServer((req, res) => {
     let body = "";
     req.on("data", (c) => (body += c));
-    req.on("end", () => {
+    req.on("end", async () => {
+      if (opts.delayMs) await new Promise((r) => setTimeout(r, opts.delayMs));
       let parsed: any = {};
       try {
         parsed = JSON.parse(body);
