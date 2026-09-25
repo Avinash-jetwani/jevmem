@@ -6,8 +6,12 @@ export { MemoryStore, parseLine, formatLine, parseMemoryFile, serializeMemoryFil
 export type { MemoryFile } from "./store.js";
 export { createJev, hasJevKey, summarizeLog, readLog } from "./jev.js";
 export type { JevCaller, JevLogEntry, JevCallOptions } from "./jev.js";
-export { rankMemories, recallForPrompt, formatInjection } from "./recall.js";
-export type { RankedMemory } from "./recall.js";
+export { rankMemories, recallForPrompt, recallGuarded, rankGuarded, formatInjection, MEMORY_FRAME, neutralize } from "./recall.js";
+export type { RankedMemory, GuardedRank } from "./recall.js";
+export { gateNoul, gateKey, gateQuestions, gateLines, planGate, settleGate, filterForServing, knownWithheld, hiddenTextReason, readVerdicts, cachedVerdict, GATE_VERSION } from "./guard.js";
+export type { GatePlan, Withheld, Verdict } from "./guard.js";
+export { lineSha, recordProvenance, readProvenance, isVerified, provenanceFile } from "./provenance.js";
+export type { ProvenanceRecord, ProvenanceVia } from "./provenance.js";
 export { auditMemories, applyAudit, snapshotRepo, formatAuditTable } from "./audit.js";
 export type { AuditRow } from "./audit.js";
 export { runHook, readStdinJson, hookRoot, hookEvent, debugLogPayload, logHookProblem } from "./hook.js";

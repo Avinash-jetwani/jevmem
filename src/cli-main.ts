@@ -1,5 +1,7 @@
 import fs from "node:fs";
-import { applyAudit, auditMemories, formatAuditTable } from "./audit.js";
+import { applyAudit, auditMemories, formatAuditTable, formatSecurityTable, securityAudit } from "./audit.js";
+import { knownWithheld, planGate } from "./guard.js";
+import { isVerified, readProvenance } from "./provenance.js";
 import { loadConfig } from "./config.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { hookRoot, logHookProblem, readStdinJson, runHook } from "./hook.js";
@@ -11,7 +13,7 @@ import { watchCodex } from "./watch.js";
 import { mergeTurn } from "./transcript.js";
 import { createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
 import { serveMcp } from "./mcp.js";
-import { rankMemories } from "./recall.js";
+import { rankGuarded } from "./recall.js";
 import { scrubSecrets } from "./scrub.js";
 import { MemoryStore } from "./store.js";
 import { NEW_KINDS, type Kind } from "./types.js";
@@ -27,8 +29,9 @@ Usage: jevmem <command> [options]
   daemon [status|start|stop]              Warm Jev client for the hook (auto-started by the hook; exits when idle)
   mcp [--root <dir>]                      Start the stdio MCP server (search_memory, add_memory, list_memory, audit_memory)
   audit [--dry-run]                       Re-score every memory against the repo and flag [stale?] lines
+  audit --security [--ci]                 List lines that read as instructions to an AI (--ci: exit 1 if any)
   search <query> [--limit N]              Rank memories by relevance to a query (one Jev call)
-  list [--all]                            Print memories (live by default)
+  list [--all]                            Print memories (live by default; --all adds superseded lines and provenance)
   add <kind> <text>                       Append a memory line by hand (kinds: ${NEW_KINDS.join(", ")})
   watch [--replay] [--once]               Capture turns from Codex's session log for this project (Cursor: use MCP)
   why <id|hash>                           Show every Jev answer behind a memory line or a skipped turn
@@ -100,9 +103,15 @@ or for --root <dir> (or JEVMEM_ROOT) when the client has no project working dire
 add_memory scrubs secrets and asks Jev first; it refuses injection, small talk and duplicates with a reason.
 `,
   audit: `jevmem audit [--dry-run]
+jevmem audit --security [--ci]
 
 Re-score every live memory against a snapshot of the repository ("is this still true?") and flag lines under
-thresholds.staleBelow as [stale?]. --dry-run prints the table without writing.
+thresholds.staleBelow as [stale?]. --dry-run prints the table without writing. Also lists lines the poisoning gate
+has withheld from recall.
+  --security  Ask the poisoning gate about every live line, verified or not: does it contain instructions aimed at an
+              AI assistant or automated system? Lines at or above thresholds.injectionMax, or with hidden text, are
+              listed as SUSPICIOUS. Writes nothing to JEVMEM.md.
+  --ci        With --security: exit 1 when any line is suspicious, 2 when the check cannot run (no key). For CI.
 `,
   search: `jevmem search <query> [--limit N]
 
@@ -110,7 +119,9 @@ Rank memories by relevance to the query with one Jev call (choice over ids + a n
 `,
   list: `jevmem list [--all]
 
-Print live memories (id, kind, text). --all includes superseded lines.
+Print live memories (id, kind, text). --all includes superseded lines and shows each line's provenance:
+verified (jevmem wrote this exact text on this machine) or unverified (hand-written, from git, or jevmem add),
+and whether the poisoning gate withheld it.
 `,
   add: `jevmem add <kind> <text>
 
@@ -290,9 +301,29 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
     }
     case "audit": {
       const dry = flag(args, "--dry-run");
-      requireKey();
+      const ci = flag(args, "--ci");
+      const security = flag(args, "--security") || ci;
       const cfg = loadConfig(root);
       const store = new MemoryStore(root, cfg.memoryFile);
+      if (security) {
+        if (!hasJevKey()) loadEnvFallbacks(root);
+        if (!hasJevKey()) {
+          io.err("jevmem audit --security: TYPESAFE_API_KEY is not set, so the lines cannot be checked.\n");
+          return ci ? 2 : 1;
+        }
+        const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+        let rows;
+        try {
+          rows = await securityAudit(jev, store, { injectionMax: cfg.thresholds.injectionMax });
+        } catch (err) {
+          io.err(`jevmem audit --security: the check failed: ${err instanceof Error ? err.message : String(err)}\n`);
+          return ci ? 2 : 1;
+        }
+        io.out(formatSecurityTable(rows) + "\n");
+        printJevSummary(jev.log);
+        return ci && rows.some((r) => r.flagged) ? 1 : 0;
+      }
+      requireKey();
       const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
       const rows = await auditMemories(jev, store, { staleBelow: cfg.thresholds.staleBelow });
       io.out(formatAuditTable(rows) + "\n");
@@ -300,6 +331,11 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
         applyAudit(store, rows);
         const n = rows.filter((r) => r.stale).length;
         io.out(`\n${n} line(s) marked [stale?] in ${cfg.memoryFile}\n`);
+      }
+      const held = knownWithheld(root, store.active(), cfg.thresholds.injectionMax);
+      if (held.length) {
+        io.out(`\nWithheld from recall by the poisoning gate (${held.length}); run \`jevmem audit --security\` to re-check:\n`);
+        for (const w of held) io.out(`  ${w.memory.id}  ${w.reason}  ${w.memory.text.slice(0, 80)}\n`);
       }
       printJevSummary(jev.log);
       return 0;
@@ -312,11 +348,12 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       const cfg = loadConfig(root);
       const store = new MemoryStore(root, cfg.memoryFile);
       const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
-      const ranked = await rankMemories(jev, query, store.active(), { perCandidateNouls: true, maxIds: cfg.jev.maxRecallCandidates, label: "search" });
+      const { ranked, withheld } = await rankGuarded(jev, root, query, store.active(), { perCandidateNouls: true, maxIds: cfg.jev.maxRecallCandidates, label: "search", injectionMax: cfg.thresholds.injectionMax, source: "jevmem search" });
       for (const r of ranked.slice(0, limit)) {
         io.out(`${(r.relevance ?? r.choiceProbability).toFixed(2)}  ${r.choiceProbability.toFixed(2)}  [${r.memory.kind}] ${r.memory.text}  (${r.memory.id})\n`);
       }
       if (ranked.length === 0) io.out("no memories\n");
+      for (const w of withheld) io.out(`withheld  ${w.memory.id}  ${w.reason}\n`);
       printJevSummary(jev.log);
       return 0;
     }
@@ -325,8 +362,14 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       const cfg = loadConfig(root);
       const store = new MemoryStore(root, cfg.memoryFile);
       const mems = all ? store.list() : store.active();
-      for (const m of mems) io.out(`${m.id}  [${m.kind}]${m.stale !== undefined ? " [stale?]" : ""} ${m.text}${m.supersededBy ? ` → ${m.supersededBy}` : ""}\n`);
+      const prov = all ? readProvenance(root) : null;
+      const held = all ? new Map(planGate(root, mems, cfg.thresholds.injectionMax).withheld.map((w) => [w.memory.id, w])) : null;
+      for (const m of mems) {
+        const status = prov ? `${(isVerified(prov, m) ? "verified" : "unverified").padEnd(10)}${held!.has(m.id) ? " WITHHELD" : ""}  ` : "";
+        io.out(`${m.id}  ${status}[${m.kind}]${m.stale !== undefined ? " [stale?]" : ""} ${m.text}${m.supersededBy ? ` → ${m.supersededBy}` : ""}\n`);
+      }
       if (mems.length === 0) io.out("no memories\n");
+      if (all && mems.length) io.out(`\nverified: jevmem wrote this exact text on this machine. unverified lines go through the poisoning gate before any agent sees them.\n`);
       return 0;
     }
     case "add": {

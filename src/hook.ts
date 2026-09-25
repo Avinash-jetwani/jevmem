@@ -6,7 +6,8 @@ import { decide } from "./decide.js";
 import { loadEnvFallbacks } from "./env.js";
 import { appendLog, createJev, hasJevKey, summarizeLog, type JevCaller } from "./jev.js";
 import { recordDecision } from "./labels.js";
-import { formatInjection, recallForPrompt } from "./recall.js";
+import { recordProvenance } from "./provenance.js";
+import { formatInjection, recallGuarded } from "./recall.js";
 import { MemoryStore } from "./store.js";
 import { lastTurnFromTranscript, mergeTurn } from "./transcript.js";
 import { writeMemory } from "./write.js";
@@ -131,16 +132,19 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       const prompt = (input.user_prompt ?? input.prompt ?? input.user_prompt_raw ?? input.message ?? "").trim();
       const memories = store.active();
       if (!prompt || memories.length === 0) return { event, action: "noop", detail: "no prompt or no memories" };
-      const ranked = await recallForPrompt(jev, prompt, memories, {
+      // Unverified lines (not written here by jevmem) go through the poisoning gate in the same Jev call.
+      const { ranked, withheld, gated } = await recallGuarded(jev, store.root, prompt, memories, {
         topK: cfg.thresholds.recallTopK,
         min: cfg.thresholds.recallMin,
+        injectionMax: cfg.thresholds.injectionMax,
         timeoutMs: cfg.jev.timeoutMs,
         maxIds: cfg.jev.maxRecallCandidates,
       });
-      if (ranked.length === 0) return { event, action: "noop", detail: "no relevant memories" };
+      const gate = `${gated} gated${withheld.length ? `, withheld ${withheld.map((w) => w.memory.id).join(",")}` : ""}`;
+      if (ranked.length === 0) return { event, action: "noop", detail: `no relevant memories (${gate})` };
       const additionalContext = formatInjection(ranked);
       const stdout = JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } });
-      return { event, action: "injected", detail: `${ranked.length} memories: ${ranked.map((r) => r.memory.id).join(",")}`, stdout };
+      return { event, action: "injected", detail: `${ranked.length} memories: ${ranked.map((r) => r.memory.id).join(",")} (${gate})`, stdout };
     }
 
     // Stop (and anything else): evaluate the latest turn. Real payloads carry no user text, only `transcript_path`
@@ -194,6 +198,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       store.remove(result.saved.id);
       return { event, action: "skipped", detail: `duplicate of ${dup.id}`, decision };
     }
+    recordProvenance(store.root, result.saved, "hook");
     const sup = result.superseded ? ` (supersedes ${result.superseded.id})` : "";
     return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}`, decision };
   } catch (err) {

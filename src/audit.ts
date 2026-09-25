@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { noul, type JsonValue, type Questions } from "@typesafe-ai/sdk";
+import { gateLines, gateReason, hiddenTextReason, settleGate } from "./guard.js";
 import type { JevCaller } from "./jev.js";
+import { isVerified, readProvenance } from "./provenance.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
 import type { Memory } from "./types.js";
@@ -111,4 +113,55 @@ export function formatAuditTable(rows: AuditRow[]): string {
   const head = `${"id".padEnd(idW)}  ${"kind".padEnd(kindW)}  true   flag    text`;
   const lines = rows.map((r) => `${r.memory.id.padEnd(idW)}  ${r.memory.kind.padEnd(kindW)}  ${r.stillTrue.toFixed(2)}   ${r.stale ? "stale?" : "ok    "}  ${r.memory.text.slice(0, 80)}`);
   return [head, "-".repeat(head.length + 40), ...lines].join("\n");
+}
+
+// ---------------------------------------------------------------------------------------------
+// `jevmem audit --security`: the poisoning gate over every live line
+
+export interface SecurityRow {
+  memory: Memory;
+  verified: boolean;
+  /** Jev's gate probability; null when the line was withheld by the hidden-text check or the answer was missing. */
+  injection: number | null;
+  flagged: boolean;
+  reason: string;
+}
+
+/**
+ * Ask the poisoning gate about every live line, verified or not (in CI nothing is verified: `.jevmem/` is not in git).
+ * Hidden-text lines are flagged in code. Verdicts for unverified lines are cached for recall.
+ */
+export async function securityAudit(jev: JevCaller, store: MemoryStore, opts: { injectionMax: number; timeoutMs?: number }): Promise<SecurityRow[]> {
+  const memories = store.active();
+  const prov = readProvenance(store.root);
+  const rows: SecurityRow[] = [];
+  const ask: Memory[] = [];
+  for (const m of memories) {
+    const hidden = hiddenTextReason(m.text);
+    if (hidden) rows.push({ memory: m, verified: isVerified(prov, m), injection: null, flagged: true, reason: hidden });
+    else ask.push(m);
+  }
+  if (ask.length) {
+    const { scores, model } = await gateLines(jev, ask, { timeoutMs: opts.timeoutMs, label: "gate" });
+    const unverified = ask.filter((m) => !isVerified(prov, m));
+    settleGate(store.root, unverified, scores, opts.injectionMax, model, "audit --security");
+    for (const m of ask) {
+      const p = scores.get(m.id);
+      const verified = isVerified(prov, m);
+      if (typeof p !== "number") rows.push({ memory: m, verified, injection: null, flagged: true, reason: "gate answer missing" });
+      else rows.push({ memory: m, verified, injection: p, flagged: p >= opts.injectionMax, reason: p >= opts.injectionMax ? gateReason(p, opts.injectionMax) : "ok" });
+    }
+  }
+  const order = new Map(memories.map((m, i) => [m.id, i]));
+  return rows.sort((a, b) => order.get(a.memory.id)! - order.get(b.memory.id)!);
+}
+
+export function formatSecurityTable(rows: SecurityRow[]): string {
+  if (rows.length === 0) return "No live memories to check.";
+  const idW = Math.max(2, ...rows.map((r) => r.memory.id.length));
+  const head = `${"id".padEnd(idW)}  gate   status      source      text`;
+  const lines = rows.map((r) => `${r.memory.id.padEnd(idW)}  ${r.injection === null ? " -  " : r.injection.toFixed(2)}   ${(r.flagged ? "SUSPICIOUS" : "ok").padEnd(10)}  ${(r.verified ? "verified" : "unverified").padEnd(10)}  ${r.memory.text.slice(0, 80)}`);
+  const flagged = rows.filter((r) => r.flagged);
+  const tail = flagged.length ? ["", `${flagged.length} suspicious line(s); never injected into an agent's context by jevmem:`, ...flagged.map((r) => `  ${r.memory.id}  ${r.reason}`)] : ["", "No suspicious lines."];
+  return [head, "-".repeat(head.length + 40), ...lines, ...tail].join("\n");
 }

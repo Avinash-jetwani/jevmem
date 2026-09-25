@@ -29,6 +29,14 @@ export interface JevLogEntry {
   /** Where the call ran, when known. */
   via?: "inline" | "daemon";
   tier?: 1 | 2;
+  /**
+   * Set on entries that record an event rather than a Jev call (the poisoning gate withholding a line, the retry
+   * queue). They carry no latency or cost and are left out of every latency/cost summary.
+   */
+  event?: "withheld" | "queued" | "retried" | "dequeued" | "dropped" | "plugin-standdown";
+  memoryId?: string;
+  injection?: number;
+  detail?: string;
 }
 
 /** Anything that can answer a batch of Jev questions. The real client and test mocks both implement it. */
@@ -100,6 +108,7 @@ function percentile(sorted: number[], p: number): number {
 
 /** Latency percentiles exclude cache hits (they measure the network, not the cache). Cost includes only real calls. */
 export function summarizeLog(entries: JevLogEntry[]): LogSummary {
+  entries = entries.filter((e) => !e.event);
   const ok = entries.filter((e) => e.ok);
   const hits = ok.filter((e) => e.cacheHit);
   const net = ok.filter((e) => !e.cacheHit);

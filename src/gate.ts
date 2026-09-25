@@ -7,6 +7,7 @@ import type { loadConfig } from "./config.js";
 import { decide, type Decision } from "./decide.js";
 import type { JevCaller } from "./jev.js";
 import { recordDecision } from "./labels.js";
+import { recordProvenance } from "./provenance.js";
 import { clampLine } from "./llm/index.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
@@ -47,6 +48,7 @@ export async function gatedAdd(jev: JevCaller, store: MemoryStore, cfg: ReturnTy
   const kindFrom = decision.kind !== "none" ? "jev" : "caller";
   const kind = (decision.kind !== "none" ? decision.kind : callerKind) as Kind;
   const saved = store.add({ kind, text: clean, conf: decision.confidence });
+  recordProvenance(store.root, saved, "mcp");
   const superseded = decision.contradiction && decision.touchesMemoryId ? store.supersede(decision.touchesMemoryId, saved.id) : null;
   recordDecision(store.root, { hash, memoryId: saved.id, message: clean, decision: { ...decision, save: true, kind } });
   return { ok: true, saved, superseded, kind, kindFrom, redacted: clean !== clampLine(text.replace(/\s+/g, " ").trim(), cfg.writer.maxChars), decision };
