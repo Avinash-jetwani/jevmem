@@ -226,3 +226,39 @@ export function init(opts: InitOptions): InitResult {
   }
   return { created, skipped, warnings, command, stopCommand };
 }
+
+const DISABLED_CONFIG = path.join(".jevmem", "jevmem.config.json.disabled");
+
+/**
+ * `jevmem enable`: opt this project in (for the Claude Code plugin, or any jevmem hook or MCP server). Creates
+ * `jevmem.config.json` (restoring the one `jevmem disable` set aside, if any), `JEVMEM.md` and `.jevmem/`, and adds
+ * `.jevmem/` to `.gitignore`, as `init` does, but registers no hooks.
+ */
+export function enableProject(root: string): InitResult & { restored: boolean } {
+  const backup = path.join(root, DISABLED_CONFIG);
+  let restored = false;
+  if (!fs.existsSync(path.join(root, CONFIG_FILE)) && fs.existsSync(backup)) {
+    fs.renameSync(backup, path.join(root, CONFIG_FILE));
+    restored = true;
+  }
+  const r = init({ root, hooks: false });
+  if (restored) {
+    r.skipped = r.skipped.filter((k) => k !== CONFIG_FILE);
+    r.created.unshift(`${CONFIG_FILE} (restored from ${DISABLED_CONFIG})`);
+  }
+  return { ...r, restored };
+}
+
+/**
+ * `jevmem disable`: opt this project out. Moves `jevmem.config.json` to `.jevmem/jevmem.config.json.disabled` (so
+ * `jevmem enable` brings back any fitted thresholds), after which hooks and the MCP server do nothing here.
+ * `JEVMEM.md` is left untouched.
+ */
+export function disableProject(root: string): { disabled: boolean; backup: string | null; initHooks: boolean } {
+  const cfg = path.join(root, CONFIG_FILE);
+  const initHooks = projectHasInitHooks(root);
+  if (!fs.existsSync(cfg)) return { disabled: false, backup: null, initHooks };
+  fs.mkdirSync(path.join(root, ".jevmem"), { recursive: true });
+  fs.renameSync(cfg, path.join(root, DISABLED_CONFIG));
+  return { disabled: true, backup: DISABLED_CONFIG, initHooks };
+}

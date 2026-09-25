@@ -3,12 +3,12 @@ import path from "node:path";
 import { applyAudit, auditMemories, formatAuditTable, formatSecurityTable, securityAudit } from "./audit.js";
 import { knownWithheld, planGate } from "./guard.js";
 import { isVerified, readProvenance } from "./provenance.js";
-import { loadConfig } from "./config.js";
+import { isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { loadEnvFallbacks } from "./env.js";
 import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
-import { init, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
+import { disableProject, enableProject, init, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
 import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong, MIN_LABELS, readFitInfo, readLabels, runFit } from "./labels.js";
 import { detectTools, setupClaudeDesktop, setupCodex, setupCursor, TOOLS, type Tool } from "./tools.js";
 import { watchCodex } from "./watch.js";
@@ -28,6 +28,8 @@ Usage: jevmem <command> [options]
   init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
                                           Create JEVMEM.md, jevmem.config.json, .jevmem/ and set up the tool(s) (default: detect)
   init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (e.g. when using the plugin)
+  enable                                  Opt this project in (plugin users): jevmem.config.json, JEVMEM.md, .jevmem/
+  disable                                 Opt this project out: jevmem does nothing here (JEVMEM.md is kept)
   <command> --help                        Help for one command
   hook                                    Claude Code hook entrypoint (reads the hook JSON from stdin)
   daemon [status|start|stop]              Warm Jev client for the hook (auto-started by the hook; exits when idle)
@@ -76,9 +78,20 @@ const stderrWrite = (s: string) => void process.stderr.write(s);
 const defaultIo: CliIo = { out: stdoutWrite, err: stderrWrite };
 let io: CliIo = defaultIo;
 
-export const COMMANDS = ["init", "hook", "daemon", "mcp", "audit", "search", "list", "add", "import", "why", "right", "wrong", "missed", "fit", "stats", "log", "watch"] as const;
+export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "search", "list", "add", "import", "why", "right", "wrong", "missed", "fit", "stats", "log", "watch"] as const;
 
 export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
+  enable: `jevmem enable
+
+Opt this project in. jevmem (the Claude Code plugin's hooks and MCP server, or any jevmem hook) does nothing in a
+project without jevmem.config.json: no network calls, no files. enable creates jevmem.config.json, JEVMEM.md and
+.jevmem/, and adds .jevmem/ to .gitignore, like init, but registers no hooks. Commit jevmem.config.json and JEVMEM.md.
+`,
+  disable: `jevmem disable
+
+Opt this project out: moves jevmem.config.json to .jevmem/jevmem.config.json.disabled (jevmem enable restores it) and
+stops the daemon. From then on jevmem's hooks and MCP server do nothing here. JEVMEM.md is left untouched.
+`,
   init: `jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
 
 Create JEVMEM.md, jevmem.config.json and .jevmem/ in the current directory and set up the chosen tool(s).
@@ -220,6 +233,26 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       io.out(pj.version + "\n");
       return 0;
     }
+    case "enable": {
+      const r = enableProject(root);
+      for (const c of r.created) io.out(`  created  ${c}\n`);
+      for (const k of r.skipped) io.out(`  kept     ${k}\n`);
+      io.out(`\njevmem is enabled in this project. With the Claude Code plugin installed, it starts with your next prompt; without it, run \`jevmem init\` to register the hooks.\n`);
+      if (!hasJevKey()) loadEnvFallbacks(root);
+      if (!hasJevKey()) io.out(`\n! TYPESAFE_API_KEY is not set. jevmem no-ops until it is: put TYPESAFE_API_KEY=... in ~/.jevmem/env. Get a key at https://typesafe.ai\n`);
+      return 0;
+    }
+    case "disable": {
+      const r = disableProject(root);
+      if (!r.disabled) {
+        io.out("jevmem is not enabled in this project (no jevmem.config.json); nothing to do.\n");
+        return 0;
+      }
+      await daemonRequest(root, { type: "stop" }, { connectMs: 250, responseMs: 1000 });
+      io.out(`jevmem is disabled in this project: jevmem.config.json moved to ${r.backup} (\`jevmem enable\` restores it). JEVMEM.md is untouched.\n`);
+      if (r.initHooks) io.out("The hooks `jevmem init` registered stay in .claude/settings.local.json but do nothing now; `jevmem init --remove-hooks` removes them.\n");
+      return 0;
+    }
     case "init": {
       if (flag(args, "--remove-hooks")) {
         const removed = unregisterClaudeHooks(root);
@@ -276,6 +309,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
         const input = stdinFile ? readInputFile(stdinFile) : await readStdinJson();
         projectRoot = hookRoot(input);
         event = hookEvent(input);
+        // Opt-in per project: without jevmem.config.json, do nothing at all (no key lookup, no log, no network).
+        if (!isEnabled(projectRoot)) return 0;
         // Plugin and `jevmem init` hooks in the same project would both fire on every event: the plugin's stand down.
         if (viaPlugin && projectHasInitHooks(projectRoot)) {
           const warning = standDown(projectRoot, input, event);
@@ -547,6 +582,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       const replay = flag(args, "--replay");
       const once = flag(args, "--once");
       const tool = opt(args, "--tool") ?? "codex";
+      if (!isEnabled(root)) return fail(NOT_ENABLED_MESSAGE);
       if (tool !== "codex") return fail(`watch supports --tool codex only. Cursor keeps chats in a SQLite database (state.vscdb) with no text log; use the MCP add_memory path (jevmem init --tool cursor).`);
       requireKey();
       io.err(`jevmem watch: tailing Codex sessions for ${root}${replay ? " (replaying last 24 h)" : ""}. Ctrl-C to stop.\n`);

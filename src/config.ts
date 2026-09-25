@@ -33,3 +33,13 @@ export function writeDefaultConfig(root: string): boolean {
   fs.writeFileSync(file, JSON.stringify(DEFAULT_CONFIG, null, 2) + "\n");
   return true;
 }
+
+/**
+ * Has this project opted in? jevmem acts only in a project that contains `jevmem.config.json` (written by
+ * `jevmem enable` or `jevmem init`). One file-exists check, nothing read or written.
+ */
+export function isEnabled(root: string): boolean {
+  return fs.existsSync(path.join(root, CONFIG_FILE));
+}
+
+export const NOT_ENABLED_MESSAGE = "jevmem isn't enabled in this project: run `jevmem enable`";

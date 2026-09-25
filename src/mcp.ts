@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { applyAudit, auditMemories, formatAuditTable } from "./audit.js";
-import { loadConfig } from "./config.js";
+import { isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { gatedAdd } from "./gate.js";
 import { createJev, hasJevKey, type JevCaller } from "./jev.js";
 import { filterForServing } from "./guard.js";
@@ -21,6 +21,9 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
   };
   const server = new McpServer({ name: "jevmem", version: PACKAGE_VERSION });
   const text = (s: unknown) => ({ content: [{ type: "text" as const, text: typeof s === "string" ? s : JSON.stringify(s, null, 2) }] });
+  // Opt-in per project, checked on every call so `jevmem enable` takes effect without restarting the server. In a
+  // project that has not opted in, every tool returns this one message and does nothing else (no Jev call, no file).
+  const dormant = () => (isEnabled(root) ? null : { ...text(NOT_ENABLED_MESSAGE), isError: true });
 
   server.registerTool(
     "search_memory",
@@ -33,6 +36,8 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
     async ({ query, limit }) => {
+      const off = dormant();
+      if (off) return off;
       const memories = store.active();
       if (memories.length === 0) return text({ results: [], note: "No memories yet." });
       const { ranked, withheld } = await rankGuarded(getJev(), root, query, memories, { perCandidateNouls: true, noulCap: 50, maxIds: cfg.jev.maxRecallCandidates, label: "search", injectionMax: cfg.thresholds.injectionMax, source: "mcp search_memory" });
@@ -61,6 +66,8 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
     async ({ text: t, kind }) => {
+      const off = dormant();
+      if (off) return off;
       let jev: JevCaller;
       try {
         jev = getJev();
@@ -89,6 +96,8 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
     async ({ include_superseded }) => {
+      const off = dormant();
+      if (off) return off;
       const all = include_superseded ? store.list() : store.active();
       let jev: JevCaller | null = null;
       try {
@@ -113,6 +122,8 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ apply }) => {
+      const off = dormant();
+      if (off) return off;
       const rows = await auditMemories(getJev(), store, { staleBelow: cfg.thresholds.staleBelow });
       if (apply) applyAudit(store, rows);
       return text(formatAuditTable(rows) + (apply ? "\n\n(flags written to JEVMEM.md)" : ""));

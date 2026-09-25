@@ -17,6 +17,8 @@ beforeAll(() => {
 
 function runHookCli(stdin: string, extraEnv: Record<string, string> = {}) {
   const cwd = tmp();
+  // An opted-in project (jevmem acts only where jevmem.config.json exists; test/dormant.test.ts covers the rest).
+  fs.writeFileSync(path.join(cwd, "jevmem.config.json"), "{}\n");
   const home = tmp(); // no ~/.jevmem/env and no shell profiles, so no key is found unless given
   const env: Record<string, string> = { PATH: "/usr/bin:/bin", HOME: home, JEVMEM_DAEMON: "0", JEVMEM_WRITER: "none", ...extraEnv };
   const r = spawnSync(process.execPath, [CLI, "hook"], { cwd, env, input: stdin, encoding: "utf8", timeout: 20_000 });

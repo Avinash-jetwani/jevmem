@@ -15,6 +15,19 @@
 #
 # Always exits 0: a missing node must not block Claude Code (the reason is printed to stderr).
 
+# Opt-in per project: jevmem acts only in a project that contains jevmem.config.json (written by `jevmem enable` or
+# `jevmem init`). For a hook, this check runs first, before node is looked for or anything is read or written: in any
+# other project the hook reads its input, exits 0 and does nothing else (no network, no files, no output).
+project="${CLAUDE_PROJECT_DIR:-$PWD}"
+enabled=0
+[ -f "$project/jevmem.config.json" ] && enabled=1
+for a in "$@"; do
+  if [ "$a" = "hook" ] && [ "$enabled" -eq 0 ]; then
+    cat > /dev/null 2>&1
+    exit 0
+  fi
+done
+
 case "$0" in */*) here="${0%/*}" ;; *) here="." ;; esac
 here=$(cd "$here" && pwd -P)
 cli="$here/../dist/cli.js"
@@ -57,7 +70,8 @@ if [ -z "$node" ] || [ ! -x "$node" ]; then
     echo "jevmem: no Node.js 20+ found (set JEVMEM_NODE to its path); skipped" >&2
     exit 0
   fi
-  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+  # Cached only for an enabled project, so a project that has not opted in leaves no file anywhere.
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ "$enabled" -eq 1 ]; then
     mkdir -p "$CLAUDE_PLUGIN_DATA" 2>/dev/null && printf '%s' "$node" > "$CLAUDE_PLUGIN_DATA/node-path" 2>/dev/null
   fi
 fi
