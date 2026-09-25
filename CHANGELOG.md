@@ -20,6 +20,9 @@ The plugin is now opt-in per project. (0.5.0 was tagged but never published to n
 - Dependabot: minor and patch updates are grouped; majors come one per pull request, and majors of `@types/node`, `vitest` and `typescript` are held back (Node 20 support; TypeScript 7 breaks the declaration build).
 - CONTRIBUTING: tags are permanent; a pushed tag is never moved or re-used.
 
+### Verified
+- `scripts/e2e.sh --runs 3 --scenario full`: all 15 runs passed (linkguard, handwrite, plugin, dormant, outage, three each), every `claude` call in a temporary `CLAUDE_CONFIG_DIR` (`results/e2e-2026-09-25-v051.txt`). In each dormant run the session in the project that had not opted in sent 0 requests to Jev and created no file, and after `jevmem enable` the next turn's line was saved.
+
 ## [0.5.0] - 2026-09-25
 
 Trust, reliability, easier install.
