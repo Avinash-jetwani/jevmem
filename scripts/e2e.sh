@@ -120,7 +120,7 @@ run_once() {
       if(wantPrevSup==="1"){ const prevDec=prev.filter(p=>p.kind==="decision"); const nowSup=parsed.find(p=>prevDec.some(d=>d.id===p.id)&&p.kind==="superseded"); if(!nowSup)errs.push("previous decision was not marked [superseded]"); else if(!/→ id:\w+/.test(nowSup.raw))errs.push("superseded line lacks → id:new"); }
       // assistant prose must never be the saved text
       for(const n of newLines) if(/^(Options I can|One note from|Recorded\.|Understood\.|You're welcome|I'll|I've)/.test(n.text)) errs.push(`saved assistant prose: ${n.text.slice(0,80)}`);
-      for(const n of newLines) if(/^(Decision|Actually|So|OK|Okay)\b\s*[,:]/i.test(n.text)) errs.push(`leading filler not stripped: ${n.text.slice(0,60)}`);
+      for(const n of newLines) if(/^(Decision|Constraint|Bug|To-?do|Preference|Actually|So|OK|Okay)\b\s*[,:]|^(please\s+)?remember(\s+that\b|\s*:)/i.test(n.text)) errs.push(`leading filler not stripped: ${n.text.slice(0,60)}`);
       console.log(`   JEVMEM.md after turn ${turn} (${live.length} live, ${sup.length} superseded):`);
       for(const p of parsed)console.log("     "+p.raw.replace(/\s*<!--.*-->/,"  <!-- id:"+p.id+" -->"));
       if(parsed.length===0)console.log("     (no memory lines)");

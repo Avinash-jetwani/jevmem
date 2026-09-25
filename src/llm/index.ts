@@ -154,16 +154,21 @@ export function extractFirstSentence(message: string, maxChars: number, kind?: s
 
 const URL_RE = /^[a-z][a-z0-9+.-]*:\/\/\S+|^www\.\S+/i;
 
-const FILLER_LABEL = /^(?:decision|decided|update|note|fyi|reminder|change of plan|heads[ -]?up|quick note|context)\s*:\s*/i;
+const FILLER_LABEL = /^(?:decision|decided|constraint|bug|to-?do|preference|update|note|fyi|reminder|change of plan|heads[ -]?up|quick note|context)\s*:\s*/i;
+// "Remember that …" / "Remember: …" (a bare "Remember" is kept: "Remember-me tokens expire after 30 days").
+const FILLER_LEAD = /^(?:please\s+)?remember(?:\s+that\b\s*|\s*:\s*)/i;
 const FILLER_WORD = /^(?:actually|so|ok|okay|also|well|alright|right|anyway|basically|honestly|just so you know|to be clear|for the record|btw|by the way)\b/i;
 const SEP = /^\s*(?:[,:;]|[-–—])\s*/;
 
-/** Drop leading conversational filler ("Decision:", "Actually,", "So,", "OK,"); keep the rest verbatim, capitalised. */
+/**
+ * Drop leading conversational filler ("Decision:", "Constraint:", "Bug:", "Todo:", "Preference:", "Remember that",
+ * "Actually,", "So,", "OK,"); keep the rest verbatim, capitalised. The kind is already recorded in the line's tag.
+ */
 export function stripFiller(line: string): string {
   let t = line.trim();
   // Peel filler from the front: "Label:" prefixes, and filler words followed by punctuation or by another filler word.
   for (;;) {
-    const label = FILLER_LABEL.exec(t);
+    const label = FILLER_LABEL.exec(t) ?? FILLER_LEAD.exec(t);
     if (label) {
       t = t.slice(label[0].length).trimStart();
       continue;
@@ -173,7 +178,7 @@ export function stripFiller(line: string): string {
     const rest = t.slice(word[0].length);
     const sep = SEP.exec(rest);
     if (sep) t = rest.slice(sep[0].length).trimStart();
-    else if (/^\s+/.test(rest) && (FILLER_WORD.test(rest.trimStart()) || FILLER_LABEL.test(rest.trimStart()))) t = rest.trimStart();
+    else if (/^\s+/.test(rest) && (FILLER_WORD.test(rest.trimStart()) || FILLER_LABEL.test(rest.trimStart()) || FILLER_LEAD.test(rest.trimStart()))) t = rest.trimStart();
     else break;
   }
   if (!t) return line.trim();

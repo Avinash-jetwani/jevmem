@@ -2,7 +2,13 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.5] - 2026-09-25
+
+### Changed
+- Saved lines no longer start with "Constraint:", "Bug:", "Todo:" / "To-do:", "Preference:" or "Remember that" / "Remember:", the way "Decision:" already did not; the kind is already in the line's `[tag]`. ("Remember that the API must stay backwards compatible." is now saved as "The API must stay backwards compatible.") A bare "Remember" and these words mid-sentence are kept. The e2e harness checks every saved line for them.
+
+### Verified
+- `scripts/e2e.sh --runs 3` (both scenarios): all six runs passed (`results/e2e-2026-09-25-v045.txt`).
 
 ### Security
 - `vitest` (dev dependency) floor raised from `^4.0.0` to `^4.1.11`, the release that fixes GHSA-82fw-gwwq-j7x9 (path traversal via `@vitest/mocker`); it is also past the fix for GHSA-5xrq-8626-4rwp (4.1.0). The lockfile already resolved 4.1.11; the old range allowed vulnerable versions. vitest 5 was not taken: it requires Node 22.12+, and CI runs the test suite on Node 20.

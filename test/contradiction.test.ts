@@ -60,6 +60,21 @@ describe("filler stripping", () => {
     expect(stripFiller("The decision is final.")).toBe("The decision is final."); // 'decision' mid-sentence is not filler
     expect(stripFiller("Sometimes the cache is stale.")).toBe("Sometimes the cache is stale."); // 'So' must be a whole word
     expect(stripFiller("Decision:")).toBe("Decision:"); // never empty
+    // v0.4.5: the other kind labels and "Remember that" go too (the kind is already in the line's [tag]).
+    expect(stripFiller("Constraint: the API must stay backwards compatible.")).toBe("The API must stay backwards compatible.");
+    expect(stripFiller("Bug: uploads over 10 MB return 500.")).toBe("Uploads over 10 MB return 500.");
+    expect(stripFiller("Todo: add rate limiting before launch.")).toBe("Add rate limiting before launch.");
+    expect(stripFiller("TODO: migrate the cron job to the queue.")).toBe("Migrate the cron job to the queue.");
+    expect(stripFiller("To-do: add pagination.")).toBe("Add pagination.");
+    expect(stripFiller("Preference: short commit messages.")).toBe("Short commit messages.");
+    expect(stripFiller("Remember that the API must stay backwards compatible.")).toBe("The API must stay backwards compatible.");
+    expect(stripFiller("Please remember: tabs, not spaces.")).toBe("Tabs, not spaces.");
+    expect(stripFiller("OK, remember that deploys go through CI only.")).toBe("Deploys go through CI only.");
+    // Kept: the words mid-sentence, without a colon, or a bare "Remember".
+    expect(stripFiller("Remember-me tokens expire after 30 days.")).toBe("Remember-me tokens expire after 30 days.");
+    expect(stripFiller("Bug fixes go to the release branch.")).toBe("Bug fixes go to the release branch.");
+    expect(stripFiller("Remembering state across tabs needs IndexedDB.")).toBe("Remembering state across tabs needs IndexedDB.");
+    expect(stripFiller("The constraint: node 20 minimum.")).toBe("The constraint: node 20 minimum.");
   });
   it("applies to both the fallback and the LLM writer output", async () => {
     const none = { writer: { ...DEFAULT_CONFIG.writer, provider: "none" as const }, env: {} as any };
