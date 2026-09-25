@@ -2,12 +2,14 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|all] [--automemory present|cleared|both|keep] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|outage|all] [--automemory present|cleared|both|keep] [--keep-scratch]
 #
-# Scenarios (default: all, each run does both):
+# Scenarios (default: all = linkguard + handwrite, each run does both):
 #   linkguard  five turns in a small project: save, decision, reversal (supersede), thanks, injection
 #   handwrite  a fresh, otherwise empty git repo where Claude may edit files (--permission-mode acceptEdits):
 #              each turn must add exactly one jevmem-format line and no line written by Claude itself
+#   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
+#              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
 # memory line, or the jevmem footer (i.e. a line the assistant wrote by hand).
 #
@@ -78,8 +80,82 @@ wait_queue() {
   return 1
 }
 
+# Outage then recovery: turn 1 while Jev answers 529, turn 2 after it recovers.
+run_outage() {
+  local run="$1" scratch proxy_pid proxy_url flag fail=0
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "$scratch"/* "$scratch"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=outage  scratch=$scratch"
+  ( cd "$scratch" && git init -q && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+  flag="$scratch/.jevmem/outage"
+  touch "$flag"
+  "$NODE" "$ROOT/scripts/jev-outage-proxy.mjs" --flag "$flag" > "$scratch/.jevmem/proxy.url" 2> "$scratch/.jevmem/proxy.log" &
+  proxy_pid=$!
+  for _ in $(seq 1 50); do [ -s "$scratch/.jevmem/proxy.url" ] && break; sleep 0.1; done
+  proxy_url="$(cat "$scratch/.jevmem/proxy.url")"
+  # Hooks and the daemon read TYPESAFE_BASE_URL from the project's .jevmem/.env (the key still comes from the profile).
+  printf 'TYPESAFE_BASE_URL=%s\n' "$proxy_url" > "$scratch/.jevmem/.env"
+  echo "   proxy $proxy_url (answering 529)"
+  local p1="Decision: invoices are stored as PDF files in S3 under invoices/<year>/, one file per invoice."
+  local p2="Constraint: invoice numbers must never be reused, even after a refund."
+  echo "---- turn 1 (Jev down): $p1"
+  ( cd "$scratch" && env -i HOME="$HOME" USER="$USER" PATH="$STRIP_PATH" TERM=dumb "$CLAUDE_BIN" -p --max-turns 15 "$p1" < /dev/null 2>&1 | tail -2 | sed 's/^/   claude> /' )
+  for _ in $(seq 1 300); do grep -q '"event":"queued"' "$scratch/.jevmem/log.jsonl" 2>/dev/null && break; sleep 0.1; done
+  "$NODE" - "$scratch" 1 <<'JS' || fail=1
+    const fs=require("fs");const [root]=process.argv.slice(2);
+    const raw=fs.existsSync(root+"/JEVMEM.md")?fs.readFileSync(root+"/JEVMEM.md","utf8"):"";
+    const lines=raw.split("\n").filter(l=>/^- \[[a-z]+\] .*<!-- id:\w+/.test(l));
+    const q=fs.existsSync(root+"/.jevmem/queue.jsonl")?fs.readFileSync(root+"/.jevmem/queue.jsonl","utf8").trim().split("\n").filter(Boolean).map(JSON.parse):[];
+    const log=fs.readFileSync(root+"/.jevmem/log.jsonl","utf8");
+    const errs=[];
+    if(lines.length!==0)errs.push(`expected no memory line during the outage, got ${lines.length}`);
+    if(q.length!==1)errs.push(`expected 1 queued turn, got ${q.length}`);
+    else if(!(q[0].attempts>=1)||!/529|verload/i.test(q[0].lastError||""))errs.push(`queued turn has attempts=${q[0].attempts} lastError=${q[0].lastError}`);
+    if(!log.includes('"event":"queued"'))errs.push("no queued event in log.jsonl");
+    if(errs.length){console.log("   ✗ FAIL turn 1: "+errs.join("; "));process.exit(1);}
+    console.log(`   ✓ turn 1 queued, not lost (attempts ${q[0].attempts}, last error: ${q[0].lastError.slice(0,80)})`);
+JS
+  rm -f "$flag"
+  echo "   proxy recovered"
+  if [ $fail -eq 0 ]; then
+    echo "---- turn 2 (Jev back): $p2"
+    ( cd "$scratch" && env -i HOME="$HOME" USER="$USER" PATH="$STRIP_PATH" TERM=dumb "$CLAUDE_BIN" -p --continue --max-turns 15 "$p2" < /dev/null 2>&1 | tail -2 | sed 's/^/   claude> /' )
+    # The queued turn waits out its backoff (15 s) and the daemon's retry tick (15 s); turn 2 waits behind it.
+    wait_queue "$scratch" 1 || { echo "   ✗ queue did not drain within 60 s"; fail=1; }
+  fi
+  if [ $fail -eq 0 ]; then
+    "$NODE" - "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [root]=process.argv.slice(2);
+      const raw=fs.readFileSync(root+"/JEVMEM.md","utf8");
+      const lines=raw.split("\n").filter(l=>/^- \[[a-z]+\] .*<!-- id:\w+/.test(l));
+      const dec=fs.readFileSync(root+"/.jevmem/decisions.jsonl","utf8").trim().split("\n").map(JSON.parse);
+      const errs=[];
+      for(const l of lines)console.log("     "+l.replace(/\s*<!--.*-->/,""));
+      if(lines.length!==2)errs.push(`expected 2 lines, got ${lines.length}`);
+      else{ if(!/invoice/i.test(lines[0])||!/PDF|S3/i.test(lines[0]))errs.push("first line is not the queued turn-1 decision");
+            if(!/reused|reuse/i.test(lines[1]))errs.push("second line is not the turn-2 constraint"); }
+      if(dec.length!==2)errs.push(`expected 2 decisions, got ${dec.length}`);
+      if(new Set(dec.map(d=>d.hash)).size!==dec.length)errs.push("a turn was decided twice");
+      const log=fs.readFileSync(root+"/.jevmem/log.jsonl","utf8").trim().split("\n").map(JSON.parse);
+      const deq=log.filter(e=>e.event==="dequeued");
+      if(deq.length!==1||!/^saved/.test(deq[0].detail))errs.push(`expected 1 saved-from-queue event, got ${JSON.stringify(deq.map(e=>e.detail))}`);
+      if(errs.length){console.log("   ✗ FAIL turn 2: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ turn 2 ok: the queued turn-1 line landed first, then turn 2's, each decided once");
+JS
+  fi
+  echo "---- proxy log (status per request)"; sort "$scratch/.jevmem/proxy.log" | uniq -c | sed 's/^/   /'
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" stats | grep "retry queue" | sed 's/^/   /' )
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  { kill "$proxy_pid"; wait "$proxy_pid"; } 2>/dev/null
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=outage"; else echo "FAIL run $run scenario=outage"; fi
+  [ $KEEP -eq 1 ] || rm -rf "$scratch"
+  return $fail
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
+  [ "$scenario" = outage ] && { run_outage "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
     linkguard) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;
