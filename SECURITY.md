@@ -11,6 +11,7 @@ This document says exactly what Jevmem sends where, what it stores, what it scru
 | The line an agent passes to MCP `add_memory`, plus the id/kind/text of up to 200 live memories | TypeSafe AI, same endpoint | Every MCP `add_memory` call | The same gate as the hook: injection, small talk, kind, contradiction |
 | Your new prompt and the id/kind/text of up to 60 live memories | TypeSafe AI, same endpoint | Every `UserPromptSubmit` hook, `jevmem search`, MCP `search_memory` | Pick the memories to inject or return, and, in the same call, ask the [poisoning gate](#memory-poisoning) about lines that are unverified and not yet checked |
 | The id/kind/text of unverified live memories not yet checked (all live memories for `audit --security`) | TypeSafe AI, same endpoint | MCP `list_memory` when such lines exist, `jevmem audit --security` | The [poisoning gate](#memory-poisoning) alone |
+| Each statement found in `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/*` (and, with `--from claude-auto-memory`, your auto-memory topic files), scrubbed, with the id/kind/text of up to 200 live memories; then the accepted statements to the poisoning gate | TypeSafe AI, same endpoint | `jevmem import` (also without `--apply`) | Decide which statements to import |
 | A repository snapshot: file tree to depth 3 (names only, no contents), `package.json` fields, the first 3,000 characters of the README, plus every live memory | TypeSafe AI, same endpoint | `jevmem audit`, MCP `audit_memory` | "Is this memory still true?" |
 | The source text of a turn that Jev decided to save (user message, or assistant reply when the content came from it) | OpenAI (`OPENAI_API_KEY`, or `OPENAI_BASE_URL`) or Anthropic (`ANTHROPIC_API_KEY`) | Only on a hook save, only when one of those keys is set | Condense the text into one line |
 
@@ -104,6 +105,8 @@ Hooks do not get your shell profile, so `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, `A
 ## Files outside the project
 
 `jevmem init` writes outside the project only when Codex is selected explicitly (`--tool codex` or `--tool all`): it then appends an `[mcp_servers.jevmem]` section to `~/.codex/config.toml` if that file exists and has no such section. It prints the path, the backup path, and the exact lines first, and writes a backup next to the file. Plain `jevmem init` detects tools from the project only (`.claude/`, `.cursor/`, `AGENTS.md`) and never edits `~/.codex`, even when Codex is installed (tested). For very deep project paths the daemon socket is created in the system temp directory. `jevmem watch` reads `~/.codex/sessions/**/rollout-*.jsonl` for sessions whose `cwd` is this project and writes nothing there.
+
+`jevmem import` reads files in the home directory only when asked with `--from claude-auto-memory` (Claude Code's auto memory for the project, and `~/.claude/settings.json` for `autoMemoryDirectory`); it never writes there, and never modifies any source file.
 
 **The Claude Code plugin** installs into `~/.claude/plugins/` (Claude Code's own directory) and runs in every project where it is enabled: in a project without `JEVMEM.md`, the first saved line creates it. Its launcher writes one file outside the project, `${CLAUDE_PLUGIN_DATA}/node-path` (the node binary it found). Set `{ "enabled": false }` in a project's `jevmem.config.json`, or install with `--scope local`, to limit where it runs.
 

@@ -118,6 +118,10 @@ v0.4.1's `auto` lost reversals by escalating every likely contradiction to tier 
 
 `jevmem audit` snapshots the repo (file tree to depth 3, `package.json`, top of README) and asks per live memory, *"Is memory X still true for this repository, given the snapshot?"* Lines under 0.4 are flagged `[stale?]` in place. It also lists the lines the poisoning gate has withheld from recall. `jevmem audit --security` asks the gate about every live line instead, verified or not, and `--ci` makes a suspicious line exit 1.
 
+### Import (`src/import.ts`)
+
+`jevmem import` reads `CLAUDE.md` (or `.claude/CLAUDE.md`), `AGENTS.md` and `.cursor/rules/*.mdc|md` from the project, and, only with `--from claude-auto-memory`, the topic files of Claude Code's auto memory for this project (`autoMemoryDirectory` from the settings, else `~/.claude/projects/<project>/memory/`, `<project>` being the git repository root with every character other than a letter or digit replaced by `-`; `--memory-dir` overrides). Each list item and each prose sentence is a candidate; headings, frontmatter, code blocks, HTML comments, tables, `@` imports, statements under three words, jevmem's own `Jevmem project memory` section and `.cursor/rules/jevmem.mdc` are skipped. Every candidate is scrubbed and decided like a turn, in file order, against the live lines plus those accepted earlier in the same import; exact duplicates are skipped and a contradiction supersedes the old line. Accepted statements then pass the poisoning gate in one batched call, since imported lines become verified. Without `--apply` nothing is written; with it, the lines are added with provenance. The source files are opened for reading only (a test compares their bytes and modification times before and after).
+
 ### Cache
 
 Identical `(model, tier, state, questions)` are answered from `.jevmem/cache/` without a request (retries, re-runs, a repeated prompt). Hits are logged with `cacheHit: true` and zero cost; `jevmem stats` shows the hit rate. `JEVMEM_CACHE=0` or `jev.cache: false` disables it.

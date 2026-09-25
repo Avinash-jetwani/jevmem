@@ -49,6 +49,8 @@ jevmem init --tool claude
 
 `init` creates `JEVMEM.md`, `jevmem.config.json` and a gitignored `.jevmem/` folder, and registers two Claude Code hooks in `.claude/settings.local.json`, which it adds to `.gitignore` ([details](docs/hooks.md)). If a project has both the plugin and `init` hooks, the plugin's hooks stand down (nothing runs twice) and say so once per session; `jevmem init --remove-hooks` keeps only the plugin.
 
+**Already have a `CLAUDE.md`?** `jevmem import` splits `CLAUDE.md`, `AGENTS.md` and `.cursor/rules/*` into statements, puts each through the same gate as a turn, and prints what it would add; `--apply` writes them. `--from claude-auto-memory` also reads Claude Code's own auto memory for the project. The source files are only read.
+
 ## Works with
 
 What is automatic and what depends on the agent:
@@ -126,6 +128,7 @@ jevmem audit --security [--ci]                 List lines that read as instructi
 jevmem search <query> [--limit N]              Rank memories by relevance
 jevmem list [--all]                            Print memories (--all: with superseded lines and provenance)
 jevmem add <kind> <text>                       Add a line by hand (secrets scrubbed; no Jev check)
+jevmem import [--from <sources>] [--apply]     Import CLAUDE.md, AGENTS.md, .cursor/rules/* (claude-auto-memory on request); dry run by default
 jevmem why <id|hash>                           Every Jev answer behind a line or a skipped turn
 jevmem right <id|hash>                         Label a decision as correct
 jevmem wrong <id|hash> [--should-be <kind|none>]   Label a decision as wrong

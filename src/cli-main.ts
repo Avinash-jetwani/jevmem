@@ -7,6 +7,7 @@ import { loadConfig } from "./config.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { loadEnvFallbacks } from "./env.js";
+import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
 import { init, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
 import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong, MIN_LABELS, readFitInfo, readLabels, runFit } from "./labels.js";
 import { detectTools, setupClaudeDesktop, setupCodex, setupCursor, TOOLS, type Tool } from "./tools.js";
@@ -36,6 +37,7 @@ Usage: jevmem <command> [options]
   search <query> [--limit N]              Rank memories by relevance to a query (one Jev call)
   list [--all]                            Print memories (live by default; --all adds superseded lines and provenance)
   add <kind> <text>                       Append a memory line by hand (kinds: ${NEW_KINDS.join(", ")})
+  import [--from <sources>] [--apply]     Import CLAUDE.md, AGENTS.md, .cursor/rules/* (dry run unless --apply)
   watch [--replay] [--once]               Capture turns from Codex's session log for this project (Cursor: use MCP)
   why <id|hash>                           Show every Jev answer behind a memory line or a skipped turn
   right <id|hash>                         Label the decision as correct
@@ -74,7 +76,7 @@ const stderrWrite = (s: string) => void process.stderr.write(s);
 const defaultIo: CliIo = { out: stdoutWrite, err: stderrWrite };
 let io: CliIo = defaultIo;
 
-export const COMMANDS = ["init", "hook", "daemon", "mcp", "audit", "search", "list", "add", "why", "right", "wrong", "missed", "fit", "stats", "log", "watch"] as const;
+export const COMMANDS = ["init", "hook", "daemon", "mcp", "audit", "search", "list", "add", "import", "why", "right", "wrong", "missed", "fit", "stats", "log", "watch"] as const;
 
 export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
   init: `jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
@@ -134,6 +136,20 @@ and whether the poisoning gate withheld it.
 
 Append one memory line by hand. kind: decision | constraint | preference | bug | architecture | todo.
 Secrets are scrubbed; there is no Jev check (you typed it).
+`,
+  import: `jevmem import [--from claude-md,agents-md,cursor-rules,claude-auto-memory] [--apply] [--memory-dir <dir>]
+
+Read existing instruction and memory files, split them into statements (list items and prose sentences; headings,
+code, tables and jevmem's own sections are skipped), and put each through the same gate as a turn: scrub, Jev decide,
+dedupe against live lines. Accepted statements also pass the memory-poisoning gate. Prints what would be added, with
+the kind; nothing is written without --apply. The source files are only read, never changed.
+  --from <list>       Default: claude-md,agents-md,cursor-rules (CLAUDE.md or .claude/CLAUDE.md, AGENTS.md, .cursor/rules/*).
+                      claude-auto-memory reads Claude Code's auto memory for this project, which lives in your home
+                      directory, so it is only read when named: autoMemoryDirectory from the settings, else
+                      ~/.claude/projects/<project>/memory/ (<project> from the git repository root).
+  --memory-dir <dir>  Read auto memory from this directory instead.
+  --apply             Write the accepted lines (verified: jevmem wrote them here).
+Costs one Jev call per statement (two on borderline ones), plus one gate call per 60 accepted statements.
 `,
   why: `jevmem why <memory id | turn hash>
 
@@ -412,6 +428,28 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       // Typed by a person, so no Jev check; secrets are still scrubbed because JEVMEM.md is committed.
       const m = store.add({ kind, text: scrubSecrets(text).slice(0, cfg.writer.maxChars), conf: 1 });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}\n`);
+      return 0;
+    }
+    case "import": {
+      const apply = flag(args, "--apply");
+      const memoryDir = opt(args, "--memory-dir");
+      const fromArg = opt(args, "--from");
+      const sources = (fromArg ? fromArg.split(",").map((x) => x.trim()) : DEFAULT_IMPORT_SOURCES) as ImportSource[];
+      const bad = sources.filter((x) => !(IMPORT_SOURCES as readonly string[]).includes(x));
+      if (bad.length) return fail(`unknown source(s): ${bad.join(", ")}. Choose from ${IMPORT_SOURCES.join(", ")}`);
+      requireKey();
+      const cfg = loadConfig(root);
+      const store = new MemoryStore(root, cfg.memoryFile);
+      const { candidates, files, notFound } = collectCandidates(root, sources, { memoryDir, maxChars: cfg.writer.maxChars });
+      if (candidates.length === 0) {
+        io.out(`jevmem import: nothing to import${notFound.length ? ` (not found: ${notFound.join(", ")})` : ""}\n`);
+        return 0;
+      }
+      const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+      const rows = await runImport(jev, store, cfg, candidates, { apply, onProgress: (d, t) => io.err(`\rjevmem import: ${d}/${t} statements checked`) });
+      io.err("\n");
+      io.out(formatImport(rows, { apply, files, notFound }) + "\n");
+      printJevSummary(jev.log);
       return 0;
     }
     case "log":
