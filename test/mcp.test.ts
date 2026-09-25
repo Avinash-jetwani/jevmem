@@ -107,7 +107,8 @@ describe("MCP tool annotations", () => {
     expect(hints.list_memory).toEqual({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
     // add_memory asks Jev (open world) and can re-tag a contradicted memory [superseded] (not additive-only).
     expect(hints.add_memory).toEqual({ readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true });
-    expect(hints.audit_memory).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true });
+    // audit_memory with apply=true edits existing lines ([stale?] flags): destructive by the same rule as add_memory.
+    expect(hints.audit_memory).toEqual({ readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true });
   });
 });
 
@@ -169,7 +170,7 @@ describe("MCP audit_memory", () => {
     const byId = new Map(new MemoryStore(root).list().map((m) => [m.id, m]));
     expect(byId.get(stale.id)!.stale).toBeCloseTo(0.1);
     expect(byId.get(fresh.id)!.stale).toBeUndefined();
-    // Not destructive: the flagged line keeps its text and stays live.
+    // The flagged line keeps its text and stays live (the flag itself is the edit to existing data).
     expect(new MemoryStore(root).active().map((m) => m.id).sort()).toEqual([fresh.id, stale.id].sort());
     expect(after).toContain("Auth lives in packages/legacy-auth");
     // Idempotent: the same call again produces the same file.

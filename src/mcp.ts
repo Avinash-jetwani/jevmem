@@ -96,10 +96,10 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
       title: "Audit memories",
       description: "Re-score every live memory against a snapshot of the repository ('is this still true?') and flag stale ones. Set apply=true to write [stale?] flags into JEVMEM.md.",
       inputSchema: { apply: z.boolean().optional() },
-      // apply=true writes [stale?] flags into JEVMEM.md (so not read-only). Flags only mark or unmark lines; no text
-      // is changed and flagged lines stay live, so not destructive. Repeating the call with the same repository
-      // gives the same flags. Asks Jev (external API).
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      // apply=true edits existing lines (sets or clears [stale?] flags in JEVMEM.md), so not read-only and, by the
+      // same rule as add_memory (changes to existing data, not additive-only writes), destructive. Repeating the call
+      // with the same repository gives the same flags. Asks Jev (external API).
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ apply }) => {
       const rows = await auditMemories(getJev(), store, { staleBelow: cfg.thresholds.staleBelow });
