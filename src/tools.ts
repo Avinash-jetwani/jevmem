@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-export const TOOLS = ["claude", "cursor", "codex", "claude-desktop"] as const;
+export const TOOLS = ["claude", "cursor", "codex", "claude-desktop", "pi"] as const;
 export type Tool = (typeof TOOLS)[number];
 
 export interface ToolSetupResult {
@@ -29,6 +29,7 @@ export function detectTools(root: string): Tool[] {
   if (fs.existsSync(path.join(root, ".claude"))) out.push("claude");
   if (fs.existsSync(path.join(root, ".cursor"))) out.push("cursor");
   if (fs.existsSync(path.join(root, "AGENTS.md"))) out.push("codex");
+  if (fs.existsSync(path.join(root, ".pi", "settings.json")) || fs.existsSync(path.join(root, ".pi", "extensions"))) out.push("pi");
   return out;
 }
 

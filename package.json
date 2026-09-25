@@ -1,7 +1,7 @@
 {
   "name": "jevmem",
   "version": "0.5.3",
-  "description": "Automatic project memory for Claude Code. Also works with Cursor and Codex.",
+  "description": "Automatic project memory for Claude Code and Pi. Also works with Cursor and Codex.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -14,6 +14,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "pi": {
+    "extensions": ["./dist/pi-extension.js"]
   },
   "files": [
     "dist",
@@ -39,6 +42,7 @@
   },
   "keywords": [
     "claude-code",
+    "pi-package",
     "cursor",
     "codex",
     "mcp",
@@ -62,8 +66,15 @@
     "@typesafe-ai/sdk": "^0.6.0",
     "zod": "^4.6.5"
   },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": { "optional": true }
+  },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.127.0",
+    "@earendil-works/pi-coding-agent": "0.80.3",
     "@eslint/js": "^9.39.0",
     "@types/node": "^22.19.0",
     "eslint": "^9.39.0",

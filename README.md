@@ -1,6 +1,6 @@
 # jevmem
 
-Automatic project memory for Claude Code. Also works with Cursor and Codex.
+Automatic project memory for Claude Code and Pi. Also works with Cursor and Codex.
 
 [![npm version](https://img.shields.io/npm/v/jevmem.svg)](https://www.npmjs.com/package/jevmem)
 [![license](https://img.shields.io/npm/l/jevmem.svg)](LICENSE)
@@ -60,6 +60,15 @@ jevmem init --tool claude
 
 **Already have a `CLAUDE.md`?** `jevmem import` splits `CLAUDE.md`, `AGENTS.md` and `.cursor/rules/*` into statements, puts each through the same gate as a turn, and prints what it would add; `--apply` writes them. `--from claude-auto-memory` also reads Claude Code's own auto memory for the project. The source files are only read.
 
+For Pi, initialize each project and install the extension package separately (after this version is published):
+
+```bash
+jevmem init --tool pi
+pi install npm:jevmem                  # or pi install --local npm:jevmem for this project
+```
+
+Restart Pi after installing. The extension does nothing in projects without `jevmem.config.json` (`jevmem enable` or `jevmem init`). For a local checkout, run `pnpm build` and load it with `pi -e ./dist/pi-extension.js`. Set `TYPESAFE_API_KEY` in the environment or `~/.jevmem/env`; see [configuration](docs/configuration.md).
+
 ## Works with
 
 What is automatic and what depends on the agent:
@@ -67,6 +76,7 @@ What is automatic and what depends on the agent:
 | Tool | Setup | Capture | Recall |
 |---|---|---|---|
 | **Claude Code** | the plugin, or `jevmem init --tool claude` | **Automatic**, every turn, via the `Stop` hook | **Automatic**, every prompt, via `UserPromptSubmit` |
+| **Pi** | `jevmem init --tool pi` and `pi install npm:jevmem` | **Automatic**, on completed turns via `agent_end` | **Automatic**, before prompts via `before_agent_start` (queued prompts via `context`) |
 | **Codex** | `jevmem init --tool codex` | **Automatic while `jevmem watch` runs** (it tails Codex's session log for this project and runs the same decide → write path); otherwise agent-initiated via MCP `add_memory`, prompted by an `AGENTS.md` section | Agent-initiated: `search_memory` via MCP, prompted by `AGENTS.md` |
 | **Cursor** | `jevmem init --tool cursor` | Agent-initiated: a `.cursor/rules/jevmem.mdc` rule tells the agent to call MCP `add_memory` when you state a decision. Nothing is captured if it doesn't | Agent-initiated: the rule tells it to call `search_memory` before non-trivial tasks |
 | **Claude Desktop** | `jevmem init --tool claude-desktop` prints a config snippet to paste (one project per config, named with `--root`) | Manual: ask it to call `add_memory` (no hook, no rule file) | On request: `search_memory` |
@@ -121,14 +131,14 @@ Exactly what is sent, stored and scrubbed, and what the poisoning gate does not 
 - **Not the most accurate:** GPT-6 Astra and Claude Opus 5.5 scored higher on save+kind; jevmem's edge is speed and cost.
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.
-- **Automatic capture is Claude Code only** (and Codex while `jevmem watch` runs); Cursor and Claude Desktop save only when the agent calls `add_memory`.
+- **Automatic capture is Claude Code and Pi** (and Codex while `jevmem watch` runs); Cursor and Claude Desktop save only when the agent calls `add_memory`.
 - **The poisoning gate is a filter, not a guarantee:** it missed 2 of 22 planted lines in our eval (both worded as ordinary process), it does not apply when an agent opens `JEVMEM.md` as a file, and on a fresh clone its first check costs one noul per line. Review `JEVMEM.md` diffs like code ([SECURITY.md](SECURITY.md#memory-poisoning)).
 - **Jev outages delay turns, up to a limit:** each Jev call has a 2 s budget. When it times out or Jev answers 5xx/529/429, the scrubbed turn waits in `.jevmem/queue.jsonl` and is retried with backoff (15 s, doubling to every 10 min) on the next hook run or by the idle daemon, in order, and saved once. A turn still unsaved after 24 hours, or past 200 queued turns, is dropped with a log line; `jevmem stats` counts all of these.
 
 ## Commands
 
 ```text
-jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
+jevmem init [--tool claude|cursor|codex|claude-desktop|pi|all] [--no-hooks] [--command "<cmd>"]
 jevmem init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (plugin users)
 jevmem hook                                    Hook entrypoint; reads the Claude Code hook JSON on stdin
 jevmem daemon [status|start|stop]              Warm Jev client used by the hook (auto-started, exits when idle)

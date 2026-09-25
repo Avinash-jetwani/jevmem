@@ -1,9 +1,9 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig([
-  // Library entry: dependencies stay external (installed by npm alongside the package).
+  // Library and Pi extension: dependencies stay external (installed by npm alongside the package).
   {
-    entry: { index: "src/index.ts" },
+    entry: { index: "src/index.ts", "pi-extension": "src/pi-extension.ts" },
     format: ["esm"],
     target: "node20",
     platform: "node",

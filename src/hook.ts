@@ -43,9 +43,13 @@ export interface HookOutcome {
   summary?: string;
   /** Where the work ran: in this process or in the warm daemon. */
   via?: "inline" | "daemon";
+  /** Recall text for integrations that do not use Claude Code's JSON hook protocol. */
+  additionalContext?: string;
 }
 
 export interface HookDeps {
+  /** Explicit project root for integrations whose cwd should override CLAUDE_PROJECT_DIR. */
+  root?: string;
   jev?: JevCaller;
   env?: NodeJS.ProcessEnv;
   fetchImpl?: typeof fetch;
@@ -101,7 +105,7 @@ export function logHookProblem(root: string, event: string, error: string): void
 /** Handle one Claude Code hook event. Never throws; never blocks longer than the configured Jev timeout. */
 export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<HookOutcome> {
   const env = deps.env ?? process.env;
-  const root = hookRoot(input, env);
+  const root = deps.root ?? hookRoot(input, env);
   debugLogPayload(root, input, env);
   const cfg = loadConfig(root);
   const store = new MemoryStore(root, cfg.memoryFile);
@@ -146,7 +150,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       if (ranked.length === 0) return { event, action: "noop", detail: `no relevant memories (${gate})` };
       const additionalContext = formatInjection(ranked);
       const stdout = JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } });
-      return { event, action: "injected", detail: `${ranked.length} memories: ${ranked.map((r) => r.memory.id).join(",")} (${gate})`, stdout };
+      return { event, action: "injected", detail: `${ranked.length} memories: ${ranked.map((r) => r.memory.id).join(",")} (${gate})`, stdout, additionalContext };
     }
 
     // Stop (and anything else): capture the latest turn, queue it, and evaluate the queue in order.
