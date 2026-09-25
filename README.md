@@ -107,7 +107,7 @@ Exactly what is sent, stored and scrubbed, and what the poisoning gate does not 
 
 ## Honest limits
 
-- **Early:** v0.4; both eval sets were written by the author, and neither is an independent benchmark.
+- **Early:** v0.5; every eval set was written by the author, and none is an independent benchmark.
 - **Not the most accurate:** GPT-6 Astra and Claude Opus 5.5 scored higher on save+kind; jevmem's edge is speed and cost.
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.

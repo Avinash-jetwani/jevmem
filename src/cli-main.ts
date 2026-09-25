@@ -258,7 +258,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
         notes.push(...res.notes);
       }
       io.out(`\nTools: ${tools.join(", ")}${toolArg ? "" : " (detected; use --tool to choose)"}\n`);
-      if (tools.includes("claude")) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n`);
+      if (tools.includes("claude") && !noHooks) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n`);
       for (const n of notes) io.out(`\n${n}\n`);
       for (const w of r.warnings) io.out(`\n! ${w}\n`);
       if (!hasJevKey()) io.out(`\n! TYPESAFE_API_KEY is not set. Jevmem no-ops until it is. Get a key at https://typesafe.ai\n`);
@@ -467,7 +467,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       if (cmd === "stats") {
         const q = queueStats(root, allEntries);
         io.out(`retry queue: ${q.queued} queued after a Jev failure, ${q.retried} retries, ${q.savedFromQueue} saved from the queue (${q.skippedFromQueue} skipped by Jev), ${q.dropped} dropped, ${q.pending} pending\n`);
-        const withheld = allEntries.filter((e) => e.event === "withheld").length;
+        const withheld = new Set(allEntries.filter((e) => e.event === "withheld").map((e) => e.memoryId)).size;
         if (withheld) io.out(`poisoning gate: ${withheld} line(s) withheld from recall (see \`jevmem audit\`)\n`);
         io.out(`decide tiers: ${s.decideTier1} tier-1, ${s.decideTier2} tier-2; escalation rate ${s.escalationRate === null ? "n/a (no tier-1 calls; mode=full?)" : (s.escalationRate * 100).toFixed(0) + "%"}\n`);
         const days = Object.entries(s.costPerDay).sort();
@@ -635,8 +635,13 @@ async function handOffStop(root: string, cfg: ReturnType<typeof loadConfig>, inp
   if ("outcome" in cap) return cap.outcome;
   const pending = enqueueTurn(root, cap.turn);
   if (!useDaemon) {
-    const out = await runQueueInline(root, cfg);
-    return { event, action: "queued", detail: `evaluated inline: ${out}`, via: "inline" };
+    const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+    const r = await drainTurns(root, cfg, jev);
+    const mine = r.processed.find((p) => p.turn.hash === cap.turn.hash)?.outcome;
+    const s = summarizeLog(jev.log);
+    const summary = `${s.calls} jev call(s), p50 ${s.p50LatencyMs} ms, ${s.totalTokens} tokens, $${s.totalCostUsd.toFixed(6)}`;
+    if (mine) return { ...mine, summary, via: "inline" };
+    return { event, action: "queued", detail: r.blocked ? "queued; the oldest queued turn is waiting for a retry" : "queued", summary, via: "inline" };
   }
   const res = await daemonRequest(root, { type: "drain" }, { connectMs: 250, responseMs: 1500 });
   if (res && res.ok && res.type === "draining") return { event, action: "queued", detail: `handed to the daemon (${res.pending} turn(s) queued)`, via: "daemon" };
@@ -647,12 +652,6 @@ async function handOffStop(root: string, cfg: ReturnType<typeof loadConfig>, inp
   }
   spawnDaemon(root, cliFile());
   return { event, action: "queued", detail: `daemon starting; it evaluates the ${pending} queued turn(s)`, via: "daemon" };
-}
-
-async function runQueueInline(root: string, cfg: ReturnType<typeof loadConfig>): Promise<string> {
-  const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
-  const r = await drainTurns(root, cfg, jev);
-  return `${r.processed.map((p) => p.outcome.action).join(", ") || "nothing evaluated"}${r.blocked ? "; head waiting for retry" : ""}`;
 }
 
 function fail(msg: string): number {
