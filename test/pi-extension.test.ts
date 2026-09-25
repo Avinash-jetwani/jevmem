@@ -5,7 +5,7 @@ import type { AgentEndEvent, ExtensionAPI } from "@earendil-works/pi-coding-agen
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { init } from "../src/init.js";
 import jevmemExtension, { lastPiTurn } from "../src/pi-extension.js";
-import { runHook } from "../src/hook.js";
+import { runHook, type HookOutcome } from "../src/hook.js";
 
 vi.mock("../src/hook.js", () => ({ runHook: vi.fn() }));
 
@@ -25,7 +25,7 @@ function handlers() {
   return events;
 }
 
-beforeEach(() => vi.mocked(runHook).mockReset());
+beforeEach(() => { vi.mocked(runHook).mockReset(); });
 
 describe("Pi turn extraction", () => {
   it("keeps only text from the last user exchange, excluding tools and injected context", () => {
@@ -58,6 +58,26 @@ describe("Pi lifecycle", () => {
     expect(runHook).not.toHaveBeenCalled();
   });
 
+  it("is inert without project opt-in even when JEVMEM.md exists, or when explicitly disabled", async () => {
+    const root = tmp();
+    fs.writeFileSync(path.join(root, "JEVMEM.md"), "project memory\n");
+    const events = handlers();
+    const notices: { message: string; type: string | undefined }[] = [];
+    await events.before_agent_start!({ prompt: "Use Postgres" }, ctx(root, [], notices));
+    await events.context!({ messages: messages(user("Use Postgres")) }, ctx(root, [], notices));
+    await events.agent_end!({ messages: messages(user("Use Postgres"), assistant("Agreed")) }, ctx(root, [], notices));
+    expect(runHook).not.toHaveBeenCalled();
+    expect(notices).toEqual([]);
+    expect(fs.readdirSync(root)).toEqual(["JEVMEM.md"]);
+
+    init({ root, hooks: false });
+    fs.writeFileSync(path.join(root, "jevmem.config.json"), JSON.stringify({ enabled: false }));
+    await events.before_agent_start!({ prompt: "Use Postgres" }, ctx(root, [], notices));
+    await events.agent_end!({ messages: messages(user("Use Postgres"), assistant("Agreed")) }, ctx(root, [], notices));
+    expect(runHook).not.toHaveBeenCalled();
+    expect(notices).toEqual([]);
+  });
+
   it("injects recall and captures completed turns using the Pi cwd", async () => {
     const root = tmp();
     init({ root, hooks: false });
@@ -85,7 +105,7 @@ describe("Pi lifecycle", () => {
     const events = handlers();
     const notices: { message: string; type: string | undefined }[] = [];
     const context = ctx(root, [], notices);
-    vi.mocked(runHook).mockResolvedValueOnce({ event: "UserPromptSubmit", action: "noop", detail: "no relevant memories" })
+    vi.mocked(runHook).mockResolvedValueOnce({ event: "UserPromptSubmit", action: "noop", detail: "no relevant memories (1 gated)" })
       .mockResolvedValueOnce({ event: "Stop", action: "skipped", detail: "chit-chat" })
       .mockResolvedValueOnce({ event: "UserPromptSubmit", action: "error", detail: "API timeout" })
       .mockResolvedValueOnce({ event: "Stop", action: "error", detail: "writer unavailable" });
@@ -113,6 +133,21 @@ describe("Pi lifecycle", () => {
     expect(await events.context!({ messages: messages(user("  What changed?\n")) }, context)).toBeUndefined();
     expect(runHook).toHaveBeenCalledTimes(1);
     expect(notices).toEqual([{ message: "jevmem: no relevant memory for this prompt", type: "info" }]);
+  });
+
+  it("returns from agent_end while queued capture is still evaluating", async () => {
+    const root = tmp();
+    init({ root, hooks: false });
+    const events = handlers();
+    const notices: { message: string; type: string | undefined }[] = [];
+    let finish!: (outcome: HookOutcome) => void;
+    vi.mocked(runHook).mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    const result = events.agent_end!({ messages: messages(user("Use Postgres"), assistant("Agreed")) }, ctx(root, [], notices));
+    expect(result).toBeUndefined();
+    expect(runHook).toHaveBeenCalledTimes(1);
+    expect(notices).toEqual([]);
+    finish({ event: "Stop", action: "queued", detail: "queued for retry: Jev failed (529)" });
+    await vi.waitFor(() => expect(notices).toEqual([{ message: "jevmem: memory queued — queued for retry: Jev failed (529)", type: "info" }]), { timeout: 1000 });
   });
 
   it("warns once when the TypeSafe key is missing", async () => {

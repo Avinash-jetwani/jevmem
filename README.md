@@ -67,7 +67,7 @@ jevmem init --tool pi
 pi install npm:jevmem                  # or pi install --local npm:jevmem for this project
 ```
 
-Restart Pi after installing. The extension does nothing in projects without `jevmem.config.json` (`jevmem enable` or `jevmem init`). In Pi's interactive chat, it shows brief notices with the first recalled memory, the saved memory, or the reason a turn was skipped; these UI notices are not persisted in the session. For a local checkout, run `pnpm build` and load it with `pi -e ./dist/pi-extension.js`. Set `TYPESAFE_API_KEY` in the environment or `~/.jevmem/env`; see [configuration](docs/configuration.md).
+Restart Pi after installing. The extension does nothing in projects without `jevmem.config.json` (`jevmem enable` or `jevmem init`). In Pi's interactive chat, it shows brief notices with the first recalled memory, the saved or queued memory, or the reason a turn was skipped; these UI notices are not persisted in the session. Completed turns enter the durable queue without waiting for Jev to finish. For a local checkout, run `pnpm build` and load it with `pi -e ./dist/pi-extension.js`. Set `TYPESAFE_API_KEY` in the environment or `~/.jevmem/env`; see [configuration](docs/configuration.md).
 
 ## Works with
 
