@@ -13,6 +13,7 @@ import { watchCodex } from "./watch.js";
 import { mergeTurn } from "./transcript.js";
 import { createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
 import { serveMcp } from "./mcp.js";
+import { queueStats } from "./queue.js";
 import { rankGuarded } from "./recall.js";
 import { scrubSecrets } from "./scrub.js";
 import { MemoryStore } from "./store.js";
@@ -39,7 +40,7 @@ Usage: jevmem <command> [options]
   wrong <id|hash> [--should-be <kind|none>] Label the decision as wrong
   missed "<text>"  [--kind <kind>]        Label a turn that should have been saved
   fit [--dry-run] [--force]               Refit weights and thresholds from labels (needs ${MIN_LABELS}+ labels)
-  stats                                   Latency p50/p95, cost per day, cache hit rate, escalation rate, labels, last fit
+  stats                                   Latency p50/p95, cost per day, cache hit rate, escalation rate, retry queue, labels, last fit
   log                                     Summarise .jevmem/log.jsonl (Jev latency and cost)
 
 Env: TYPESAFE_API_KEY (required for Jev), OPENAI_API_KEY / ANTHROPIC_API_KEY (optional writer),
@@ -153,6 +154,8 @@ Writes to jevmem.config.json and prints a reliability table. --dry-run only prin
   stats: `jevmem stats
 
 Latency p50/p95, cost per day, cache hit rate, tier-1/tier-2 counts and escalation rate, labels and last fit.
+Retry queue: turns queued after a Jev failure (timeout, 5xx, 529), retries, turns saved from the queue, turns dropped
+(older than 24 h or past 200 entries), and turns pending in .jevmem/queue.jsonl.
 `,
   log: `jevmem log
 
@@ -385,7 +388,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
     }
     case "log":
     case "stats": {
-      const entries = readLog(root);
+      const allEntries = readLog(root);
+      const entries = allEntries.filter((e) => !e.event); // Jev calls only; queue and gate events are counted below
       const s = summarizeLog(entries);
       const byLabel = new Map<string, typeof entries>();
       for (const e of entries) byLabel.set(e.label, [...(byLabel.get(e.label) ?? []), e]);
@@ -395,6 +399,10 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
         io.out(`  ${label.padEnd(8)} ${String(ls.calls).padStart(4)} calls  p50 ${String(ls.p50LatencyMs).padStart(5)} ms  p95 ${String(ls.p95LatencyMs).padStart(5)} ms  ${String(ls.totalTokens).padStart(7)} tokens  $${ls.totalCostUsd.toFixed(6)}  cache ${(ls.cacheHitRate * 100).toFixed(0)}%\n`);
       }
       if (cmd === "stats") {
+        const q = queueStats(root, allEntries);
+        io.out(`retry queue: ${q.queued} queued after a Jev failure, ${q.retried} retries, ${q.savedFromQueue} saved from the queue (${q.skippedFromQueue} skipped by Jev), ${q.dropped} dropped, ${q.pending} pending\n`);
+        const withheld = allEntries.filter((e) => e.event === "withheld").length;
+        if (withheld) io.out(`poisoning gate: ${withheld} line(s) withheld from recall (see \`jevmem audit\`)\n`);
         io.out(`decide tiers: ${s.decideTier1} tier-1, ${s.decideTier2} tier-2; escalation rate ${s.escalationRate === null ? "n/a (no tier-1 calls; mode=full?)" : (s.escalationRate * 100).toFixed(0) + "%"}\n`);
         const days = Object.entries(s.costPerDay).sort();
         if (days.length) {

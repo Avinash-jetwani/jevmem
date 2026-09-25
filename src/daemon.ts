@@ -11,16 +11,21 @@ import os from "node:os";
 import path from "node:path";
 import { noul } from "@typesafe-ai/sdk";
 import { loadConfig } from "./config.js";
-import { runHook, type HookInput, type HookOutcome } from "./hook.js";
+import { drainTurns, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { createJev, hasJevKey } from "./jev.js";
+import { nextDue, readQueue } from "./queue.js";
 
-export const DAEMON_VERSION = 3;
+export const DAEMON_VERSION = 4;
 
-export type DaemonRequest = { type: "ping" } | { type: "stop" } | { type: "hook"; input: HookInput; verbose?: boolean };
+/** How often an idle daemon looks at the retry queue. */
+export const RETRY_TICK_MS = 15_000;
+
+export type DaemonRequest = { type: "ping" } | { type: "stop" } | { type: "hook"; input: HookInput; verbose?: boolean } | { type: "drain" };
 export type DaemonResponse =
-  | { ok: true; type: "pong"; pid: number; version: number; uptimeMs: number; served: number }
+  | { ok: true; type: "pong"; pid: number; version: number; uptimeMs: number; served: number; pending: number }
   | { ok: true; type: "stopping" }
   | { ok: true; type: "hook"; outcome: HookOutcome }
+  | { ok: true; type: "draining"; pending: number }
   | { ok: false; error: string };
 
 function hashRoot(root: string): string {
@@ -99,6 +104,10 @@ export interface ServeOptions {
   idleMs?: number;
   /** Make one tiny Jev call at start so the first real request is already warm. */
   prewarm?: boolean;
+  /** How often to check the retry queue while idle (default 15 s). */
+  retryTickMs?: number;
+  /** Called after shutdown (default: `process.exit(0)`); tests pass a no-op. */
+  exit?: () => void;
   onListening?: (sock: string) => void;
 }
 
@@ -110,13 +119,39 @@ export async function serveDaemon(root: string, opts: ServeOptions = {}): Promis
   const idleMs = opts.idleMs ?? cfg.daemon.idleMinutes * 60_000;
   const startedAt = Date.now();
   let served = 0;
+  // One drain at a time in this process (the drain lock also keeps other processes out). Turns are evaluated in queue
+  // order; a failed head is retried by the timer below once its backoff has passed.
+  let draining: Promise<unknown> | null = null;
+  let again = false;
+  const drainNow = (): void => {
+    if (draining) {
+      again = true; // a turn arrived while draining: go round once more when this pass ends
+      return;
+    }
+    draining = drainTurns(root, loadConfig(root), jev)
+      .catch(() => {})
+      .finally(() => {
+        draining = null;
+        if (again) {
+          again = false;
+          drainNow();
+        }
+      });
+  };
+  const retryTimer = setInterval(() => {
+    const due = nextDue(root);
+    if (due && due.getTime() <= Date.now()) drainNow();
+  }, opts.retryTickMs ?? RETRY_TICK_MS);
+  retryTimer.unref();
   let idle: NodeJS.Timeout | undefined;
   const bump = () => {
     if (idle) clearTimeout(idle);
-    idle = setTimeout(() => shutdown(), idleMs);
+    // Idle exit, except while turns wait in the retry queue (they are dropped after 24 h, so this ends).
+    idle = setTimeout(() => (readQueue(root).length ? bump() : shutdown()), idleMs);
     idle.unref();
   };
   const shutdown = () => {
+    clearInterval(retryTimer);
     server.close();
     try {
       if (process.platform !== "win32") fs.unlinkSync(sockPath);
@@ -128,7 +163,7 @@ export async function serveDaemon(root: string, opts: ServeOptions = {}): Promis
     } catch {
       /* gone already */
     }
-    setTimeout(() => process.exit(0), 50).unref();
+    setTimeout(opts.exit ?? (() => process.exit(0)), 50).unref();
   };
 
   const server = net.createServer((sock) => {
@@ -143,10 +178,15 @@ export async function serveDaemon(root: string, opts: ServeOptions = {}): Promis
         try {
           const req = JSON.parse(line) as DaemonRequest;
           bump();
-          if (req.type === "ping") res = { ok: true, type: "pong", pid: process.pid, version: DAEMON_VERSION, uptimeMs: Date.now() - startedAt, served };
+          if (req.type === "ping") res = { ok: true, type: "pong", pid: process.pid, version: DAEMON_VERSION, uptimeMs: Date.now() - startedAt, served, pending: readQueue(root).length };
           else if (req.type === "stop") {
             res = { ok: true, type: "stopping" };
             setTimeout(shutdown, 20);
+          } else if (req.type === "drain") {
+            // The Stop hook has queued a turn and exits without waiting: answer at once, evaluate in the background.
+            served++;
+            res = { ok: true, type: "draining", pending: readQueue(root).length };
+            setImmediate(drainNow);
           } else {
             served++;
             const outcome = await runHook(req.input, { jev });
@@ -183,7 +223,10 @@ export async function serveDaemon(root: string, opts: ServeOptions = {}): Promis
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
 
-  if (opts.prewarm !== false) {
+  if (readQueue(root).length) {
+    // Started by a Stop hook that queued a turn (or with turns left from an outage): evaluate them now.
+    drainNow();
+  } else if (opts.prewarm !== false) {
     // One tiny call (~300 tokens, ~$0.00001) opens the TLS connection so the first real turn is warm.
     jev.call("ready", { ok: noul("Is the state the word ready?") }, { label: "prewarm" }).catch(() => {});
   }

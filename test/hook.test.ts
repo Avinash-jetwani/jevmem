@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { runHook } from "../src/hook.js";
 import { init, registerClaudeHooks } from "../src/init.js";
+import { readQueue } from "../src/queue.js";
 import { MemoryStore } from "../src/store.js";
 import { lastTurnFromTranscript } from "../src/transcript.js";
 import { CHIT_CHAT, CONTRADICTS, INJECTION, mockJev, SAVE_DECISION } from "./helpers.js";
@@ -90,14 +91,25 @@ describe("Stop hook", () => {
     expect(raw).toContain("[constraint]");
   });
 
-  it("never throws: a Jev failure becomes an error outcome", async () => {
+  it("never throws: a Jev timeout queues the turn for a retry (since v0.5.0)", async () => {
     const root = tmp();
     const jev = mockJev(() => {
       throw new Error("APITimeoutError: 2000ms");
     });
     const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: "We decided on Vite." }, { jev, env });
-    expect(r.action).toBe("error");
+    expect(r.action).toBe("queued");
     expect(r.detail).toContain("Timeout");
+    expect(readQueue(root)).toHaveLength(1);
+  });
+
+  it("never throws: a non-retryable Jev failure becomes an error outcome and drops the turn", async () => {
+    const root = tmp();
+    const jev = mockJev(() => {
+      throw Object.assign(new Error("invalid request"), { name: "BadRequestError", status: 400 });
+    });
+    const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: "We decided on Vite." }, { jev, env });
+    expect(r.action).toBe("error");
+    expect(readQueue(root)).toHaveLength(0);
   });
 });
 

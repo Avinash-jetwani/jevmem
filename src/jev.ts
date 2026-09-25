@@ -37,6 +37,9 @@ export interface JevLogEntry {
   memoryId?: string;
   injection?: number;
   detail?: string;
+  /** Queue events: the turn hash, and failed attempts so far. */
+  turn?: string;
+  attempts?: number;
 }
 
 /** Anything that can answer a batch of Jev questions. The real client and test mocks both implement it. */

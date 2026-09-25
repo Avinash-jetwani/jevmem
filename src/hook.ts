@@ -8,6 +8,7 @@ import { appendLog, createJev, hasJevKey, summarizeLog, type JevCaller } from ".
 import { recordDecision } from "./labels.js";
 import { recordProvenance } from "./provenance.js";
 import { formatInjection, recallGuarded } from "./recall.js";
+import { drainQueue, enqueueTurn, readQueue, type QueuedTurn } from "./queue.js";
 import { MemoryStore } from "./store.js";
 import { lastTurnFromTranscript, mergeTurn } from "./transcript.js";
 import { writeMemory } from "./write.js";
@@ -33,7 +34,8 @@ export interface HookInput {
 
 export interface HookOutcome {
   event: string;
-  action: "saved" | "skipped" | "injected" | "noop" | "error";
+  /** `queued`: the turn is in `.jevmem/queue.jsonl` and will be evaluated later (behind older turns, or after a Jev failure). */
+  action: "saved" | "skipped" | "injected" | "noop" | "error" | "queued";
   detail: string;
   stdout?: string;
   decision?: unknown;
@@ -126,7 +128,6 @@ export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<Ho
 }
 
 async function runHookInner(event: string, input: HookInput, store: MemoryStore, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, deps: HookDeps): Promise<HookOutcome> {
-  const env = deps.env ?? process.env;
   try {
     if (event === "UserPromptSubmit") {
       const prompt = (input.user_prompt ?? input.prompt ?? input.user_prompt_raw ?? input.message ?? "").trim();
@@ -147,63 +148,103 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       return { event, action: "injected", detail: `${ranked.length} memories: ${ranked.map((r) => r.memory.id).join(",")} (${gate})`, stdout };
     }
 
-    // Stop (and anything else): evaluate the latest turn. Real payloads carry no user text, only `transcript_path`
-    // (and, on newer Claude Code, `last_assistant_message`); the simulated shape carries the text directly.
-    // `stop_hook_active` means another Stop hook already made Claude continue; we never block, so no loop is
-    // possible from here, and the turn-hash check below stops the same content being evaluated twice.
-    let user = input.user_message ?? input.message ?? "";
-    let assistant = input.assistant_message ?? "";
-    let previous = input.recent_context ?? "";
-    let source = "payload";
-    if (!user && !assistant && input.transcript_path) {
-      const t = lastTurnFromTranscript(input.transcript_path);
-      if (t) {
-        ({ user, assistant, previous } = t);
-        source = "transcript";
-      } else source = "transcript-unreadable";
+    // Stop (and anything else): capture the latest turn, queue it, and evaluate the queue in order.
+    const cap = captureTurn(input, store.root, event, deps);
+    if ("outcome" in cap) return cap.outcome;
+    enqueueTurn(store.root, cap.turn);
+    const r = await drainTurns(store.root, cfg, jev, deps, { deadlineMs: 12_000 });
+    const mine = r.processed.find((p) => p.turn.hash === cap.turn.hash);
+    if (mine) {
+      const others = r.processed.length - 1;
+      return others > 0 ? { ...mine.outcome, detail: `${mine.outcome.detail} (after ${others} queued turn(s))` } : mine.outcome;
     }
-    if (!assistant && input.last_assistant_message) {
-      assistant = input.last_assistant_message;
-      source += "+last_assistant_message";
-    }
-    const message = mergeTurn(user, assistant);
-    if (message.trim().length < 8) {
-      const detail = `empty turn (source: ${source}${input.transcript_path ? `, transcript ${fs.existsSync(input.transcript_path) ? "exists" : "missing"}` : ", no transcript_path"})`;
-      if (source !== "payload") logHookProblem(store.root, event, detail);
-      return { event, action: "noop", detail };
-    }
-
-    // Don't evaluate the same turn twice (Stop can fire more than once per turn).
-    const hash = crypto.createHash("sha1").update(message).digest("hex").slice(0, 16);
-    const state = readStateFile(store.dir);
-    if (state.lastTurnHash === hash) return { event, action: "noop", detail: "turn already evaluated" };
-    writeStateFile(store.dir, { ...state, lastTurnHash: hash, lastRunAt: (deps.now ?? (() => new Date()))().toISOString() });
-
-    const existing = store.active();
-    const decision = await decide(
-      jev,
-      { userMessage: user, assistantReply: assistant, recentContext: previous, existingMemories: existing },
-      { thresholds: cfg.thresholds, weights: cfg.weights, tiers: cfg.tiers, maxIds: cfg.jev.maxIdsPerCall, timeoutMs: cfg.jev.timeoutMs },
-    );
-    if (!decision.save) {
-      recordDecision(store.root, { hash, message, decision });
-      return { event, action: "skipped", detail: decision.reason, decision };
-    }
-
-    const result = await writeMemory(store, decision.sourceText || message, decision, { writer: cfg.writer, env, fetchImpl: deps.fetchImpl });
-    recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision, writer: result.writerUsed });
-    // Exact duplicate of a live memory: drop the new line again.
-    const dup = existing.find((m) => m.text.toLowerCase() === result.line.toLowerCase());
-    if (dup && !result.superseded) {
-      store.remove(result.saved.id);
-      return { event, action: "skipped", detail: `duplicate of ${dup.id}`, decision };
-    }
-    recordProvenance(store.root, result.saved, "hook");
-    const sup = result.superseded ? ` (supersedes ${result.superseded.id})` : "";
-    return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}`, decision };
+    const q = readQueue(store.root);
+    const head = q[0];
+    const detail = !r.ran
+      ? "queued; another jevmem process is evaluating the queue"
+      : head && head.hash === cap.turn.hash && head.attempts > 0
+        ? `queued for retry: Jev failed (${head.lastError ?? "unknown error"}); next try after ${head.nextAttemptAt}`
+        : `queued behind ${Math.max(0, q.findIndex((t) => t.hash === cap.turn.hash))} older turn(s)${head?.lastError ? ` (head failed: ${head.lastError})` : ""}`;
+    return { event, action: "queued", detail };
   } catch (err) {
     return { event, action: "error", detail: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
   }
+}
+
+/**
+ * Read the turn a Stop event refers to. Real payloads carry no user text, only `transcript_path` (and, on newer Claude
+ * Code, `last_assistant_message`); the simulated shape carries the text directly. Returns the turn with its hash, or
+ * the no-op outcome (empty turn, or a turn already captured: Stop can fire more than once per turn).
+ */
+export function captureTurn(input: HookInput, root: string, event: string, deps: Pick<HookDeps, "now"> = {}): { turn: Omit<QueuedTurn, "enqueuedAt" | "attempts"> } | { outcome: HookOutcome } {
+  // `stop_hook_active` means another Stop hook already made Claude continue; we never block, so no loop is possible
+  // from here, and the turn-hash check below stops the same content being evaluated twice.
+  let user = input.user_message ?? input.message ?? "";
+  let assistant = input.assistant_message ?? "";
+  let previous = input.recent_context ?? "";
+  let source = "payload";
+  if (!user && !assistant && input.transcript_path) {
+    const t = lastTurnFromTranscript(input.transcript_path);
+    if (t) {
+      ({ user, assistant, previous } = t);
+      source = "transcript";
+    } else source = "transcript-unreadable";
+  }
+  if (!assistant && input.last_assistant_message) {
+    assistant = input.last_assistant_message;
+    source += "+last_assistant_message";
+  }
+  const message = mergeTurn(user, assistant);
+  if (message.trim().length < 8) {
+    const detail = `empty turn (source: ${source}${input.transcript_path ? `, transcript ${fs.existsSync(input.transcript_path) ? "exists" : "missing"}` : ", no transcript_path"})`;
+    if (source !== "payload") logHookProblem(root, event, detail);
+    return { outcome: { event, action: "noop", detail } };
+  }
+  const hash = crypto.createHash("sha1").update(message).digest("hex").slice(0, 16);
+  const dir = path.join(root, ".jevmem");
+  const state = readStateFile(dir);
+  if (state.lastTurnHash === hash) return { outcome: { event, action: "noop", detail: "turn already captured" } };
+  writeStateFile(dir, { ...state, lastTurnHash: hash, lastRunAt: (deps.now ?? (() => new Date()))().toISOString() });
+  return { turn: { hash, user, assistant, previous, source } };
+}
+
+/**
+ * Evaluate one queued turn: decide, then write. Throws when Jev fails, so the queue keeps the turn for a retry.
+ * The text was scrubbed when it was queued; decide and the writer scrub again.
+ */
+export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, turn: Pick<QueuedTurn, "hash" | "user" | "assistant" | "previous">, deps: HookDeps = {}): Promise<HookOutcome> {
+  const env = deps.env ?? process.env;
+  const event = "Stop";
+  const { hash, user, assistant, previous } = turn;
+  const message = mergeTurn(user, assistant);
+  const existing = store.active();
+  const decision = await decide(
+    jev,
+    { userMessage: user, assistantReply: assistant, recentContext: previous, existingMemories: existing },
+    { thresholds: cfg.thresholds, weights: cfg.weights, tiers: cfg.tiers, maxIds: cfg.jev.maxIdsPerCall, timeoutMs: cfg.jev.timeoutMs },
+  );
+  if (!decision.save) {
+    recordDecision(store.root, { hash, message, decision });
+    return { event, action: "skipped", detail: decision.reason, decision };
+  }
+
+  const result = await writeMemory(store, decision.sourceText || message, decision, { writer: cfg.writer, env, fetchImpl: deps.fetchImpl });
+  recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision, writer: result.writerUsed });
+  // Exact duplicate of a live memory: drop the new line again.
+  const dup = existing.find((m) => m.text.toLowerCase() === result.line.toLowerCase());
+  if (dup && !result.superseded) {
+    store.remove(result.saved.id);
+    return { event, action: "skipped", detail: `duplicate of ${dup.id}`, decision };
+  }
+  recordProvenance(store.root, result.saved, "hook");
+  const sup = result.superseded ? ` (supersedes ${result.superseded.id})` : "";
+  return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}`, decision };
+}
+
+/** Evaluate the queue in order with `jev` (the hook's client, or the daemon's warm one). */
+export function drainTurns(root: string, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, deps: HookDeps = {}, opts: { deadlineMs?: number; ignoreBackoff?: boolean } = {}) {
+  const store = new MemoryStore(root, cfg.memoryFile);
+  return drainQueue<HookOutcome>(root, (t) => evaluateTurn(store, cfg, jev, t, deps), { now: deps.now, deadlineMs: opts.deadlineMs, ignoreBackoff: opts.ignoreBackoff });
 }
 
 export async function readStdinJson(): Promise<HookInput> {

@@ -26,6 +26,7 @@ Nothing else is sent by Jevmem. There is no telemetry, no analytics endpoint, an
 | `.jevmem/log.jsonl` | One line per Jev call: label, tier, tokens, latency, cost, cache hit, and any error | No |
 | `.jevmem/decisions.jsonl` | The most recent 500–1,000 decisions (trimmed to 500 when it passes 1,000): the scrubbed turn text (2,000 chars), every noul probability, the outcome, which writer produced the line | No |
 | `.jevmem/labels.jsonl` | Your `right` / `wrong` / `missed` labels with the Jev answers at the time | No |
+| `.jevmem/queue.jsonl` | Turns waiting to be evaluated: the scrubbed user message, assistant reply and previous turns, with retry state. Emptied as turns are evaluated; entries older than 24 hours or past 200 are dropped | No |
 | `.jevmem/provenance.jsonl` | One line per memory jevmem wrote on this machine: its id, a 16-hex-character hash of its text, the time, and the path (hook, mcp, import). No text | No |
 | `.jevmem/gate.json` | The poisoning gate's verdict per line-text hash (probability, id, model, time), newest 2,000. No text | No |
 | `.jevmem/cache/` | Jev answers (`{model, answers, usage}`), in files named by a hash of (model, tier, state, questions); no turn text | No |

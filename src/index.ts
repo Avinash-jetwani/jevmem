@@ -14,7 +14,9 @@ export { lineSha, recordProvenance, readProvenance, isVerified, provenanceFile }
 export type { ProvenanceRecord, ProvenanceVia } from "./provenance.js";
 export { auditMemories, applyAudit, snapshotRepo, formatAuditTable } from "./audit.js";
 export type { AuditRow } from "./audit.js";
-export { runHook, readStdinJson, hookRoot, hookEvent, debugLogPayload, logHookProblem } from "./hook.js";
+export { runHook, readStdinJson, hookRoot, hookEvent, debugLogPayload, logHookProblem, captureTurn, evaluateTurn, drainTurns } from "./hook.js";
+export { enqueueTurn, drainQueue, readQueue, isRetryable, queueStats, nextDue, backoffMs, QUEUE_MAX_ENTRIES, QUEUE_MAX_AGE_MS, BACKOFF_MS } from "./queue.js";
+export type { QueuedTurn, DrainResult, QueueStats } from "./queue.js";
 export { loadEnvFallbacks, parseEnvFile, envFileCandidates, KEY_VARS } from "./env.js";
 export type { HookInput, HookOutcome } from "./hook.js";
 export { init, registerClaudeHooks, resolveHookCommand } from "./init.js";
