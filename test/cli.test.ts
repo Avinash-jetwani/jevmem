@@ -82,6 +82,16 @@ describe("init with no --tool", () => {
     }
   });
 
+  it("initializes Pi memory without registering Claude Code hooks", async () => {
+    const cwd = tmp();
+    const r = await run(["init", "--tool", "pi"], cwd);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("pi install npm:jevmem");
+    expect(fs.existsSync(path.join(cwd, "JEVMEM.md"))).toBe(true);
+    expect(fs.existsSync(path.join(cwd, ".claude"))).toBe(false);
+    expect(fs.existsSync(path.join(cwd, ".pi", "settings.json"))).toBe(false);
+  });
+
   it("edits ~/.codex/config.toml only when --tool codex is passed explicitly", async () => {
     const cwd = tmp();
     const home = tmp();
