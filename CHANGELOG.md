@@ -2,6 +2,11 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- A Pi extension package that recalls project memories before prompts and queues completed conversations for capture without blocking Pi, including queued prompts and successful retries. It honors project opt-in and the existing recall poisoning gate, and shows concise recall, capture and queue notices without adding status messages to model context.
+
 ## [0.5.3] - 2026-09-25
 
 The plugin moved to `plugin/`, runs the installed CLI, and takes the key via userConfig.

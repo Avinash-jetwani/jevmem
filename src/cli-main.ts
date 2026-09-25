@@ -22,11 +22,11 @@ import { scrubSecrets } from "./scrub.js";
 import { MemoryStore } from "./store.js";
 import { NEW_KINDS, type Kind } from "./types.js";
 
-const HELP = `jevmem — Automatic project memory for Claude Code. Also works with Cursor and Codex.
+const HELP = `jevmem — Automatic project memory for Claude Code and Pi. Also works with Cursor and Codex.
 
 Usage: jevmem <command> [options]
 
-  init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
+  init [--tool claude|cursor|codex|claude-desktop|pi|all] [--no-hooks] [--command "<cmd>"]
                                           Create JEVMEM.md, jevmem.config.json, .jevmem/ and set up the tool(s) (default: detect)
   init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (e.g. when using the plugin)
   enable                                  Opt this project in (plugin users): jevmem.config.json, JEVMEM.md, .jevmem/
@@ -84,21 +84,22 @@ export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "
 export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
   enable: `jevmem enable
 
-Opt this project in. jevmem (the Claude Code plugin's hooks and MCP server, or any jevmem hook) does nothing in a
-project without jevmem.config.json: no network calls, no files. enable creates jevmem.config.json, JEVMEM.md and
-.jevmem/, and adds .jevmem/ to .gitignore, like init, but registers no hooks. Commit jevmem.config.json and JEVMEM.md.
+Opt this project in. jevmem (the Claude Code plugin's hooks and MCP server, Pi extension, or any jevmem hook) does
+nothing in a project without jevmem.config.json: no network calls, no files. enable creates jevmem.config.json,
+JEVMEM.md and .jevmem/, and adds .jevmem/ to .gitignore, like init, but registers no hooks. Commit both files.
 `,
   disable: `jevmem disable
 
 Opt this project out: moves jevmem.config.json to .jevmem/jevmem.config.json.disabled (jevmem enable restores it) and
-stops the daemon. From then on jevmem's hooks and MCP server do nothing here. JEVMEM.md is left untouched.
+stops the daemon. From then on jevmem's hooks, Pi extension and MCP server do nothing here. JEVMEM.md is left untouched.
 `,
-  init: `jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
+  init: `jevmem init [--tool claude|cursor|codex|claude-desktop|pi|all] [--no-hooks] [--command "<cmd>"]
 
 Create JEVMEM.md, jevmem.config.json and .jevmem/ in the current directory and set up the chosen tool(s).
   --tool <list>     Comma-separated; default: detect from .claude/, .cursor/, AGENTS.md in this project (else claude).
                     ~/.codex/config.toml is edited only with an explicit --tool codex or --tool all.
   --no-hooks        Skip the Claude Code hook registration
+  --tool pi          Initialize project memory; install the extension separately with pi install npm:jevmem
   --command "<cmd>" Register this hook command instead of the resolved absolute node + cli.js path
 Claude Code hooks go to .claude/settings.local.json (machine-specific paths); init adds it to .gitignore.
 Re-running init repairs an existing jevmem hook command and moves one found in .claude/settings.json.
@@ -294,6 +295,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       }
       io.out(`\nTools: ${tools.join(", ")}${toolArg ? "" : " (detected; use --tool to choose)"}\n`);
       if (tools.includes("claude") && !noHooks) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n`);
+      if (tools.includes("pi")) notes.push("Pi: after this version is published, run `pi install npm:jevmem` (or `pi install --local npm:jevmem` for this project). From a development checkout, build and run `pi install /path/to/jevmem`. Restart Pi after installing. No Claude Code hooks are registered by --tool pi alone.");
       for (const n of notes) io.out(`\n${n}\n`);
       for (const w of r.warnings) io.out(`\n! ${w}\n`);
       if (!hasJevKey()) io.out(`\n! TYPESAFE_API_KEY is not set. Jevmem no-ops until it is. Get a key at https://typesafe.ai\n`);

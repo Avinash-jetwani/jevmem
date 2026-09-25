@@ -34,6 +34,12 @@
 
 `usdPerMillionTokens` is applied to input tokens only. `injectionMax` gates two things: a turn is not saved when its injection family reaches it, and an unverified memory line is not served to an agent when the poisoning gate's noul reaches it ([SECURITY.md](../SECURITY.md#memory-poisoning)).
 
+## Pi setup and API key
+
+Pi support requires the jevmem extension and project initialization. After publishing, run `pi install npm:jevmem` once (or `pi install --local npm:jevmem` for one trusted project), then `jevmem init --tool pi` in each project and restart Pi. From a local checkout, build and use `pi -e ./dist/pi-extension.js` instead of installing from npm. The extension is inert without `jevmem.config.json` (created by `jevmem enable` or `jevmem init`), or when the config sets `"enabled": false`. On a completed turn it queues the scrubbed text before returning control to Pi; Jev evaluates it in the background and retries failures through the same durable queue used by Claude Code.
+
+`TYPESAFE_API_KEY` is required for automatic recall and capture. Obtain it from https://typesafe.ai. To make it available to Pi without placing a secret in project files, create `~/.jevmem/env` with a single line `TYPESAFE_API_KEY=your-key-here` and restrict the file to your user (`chmod 600 ~/.jevmem/env`). Alternatively export the variable in the environment that launches Pi. Restart Pi after configuring it. Never paste a real key into a Pi prompt, commit it, or put it in `.pi/settings.json`. Without the key, jevmem logs a no-op in `.jevmem/log.jsonl`; it cannot evaluate or recall turns. An optional `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` enables the one-line writer; without either, jevmem uses its deterministic writer.
+
 Environment:
 
 | Variable | Purpose |
