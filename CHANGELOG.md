@@ -9,6 +9,9 @@ Publish this version: it contains everything in 0.5.1 (the plugin is now opt-in 
 ### Fixed
 - The Stop hook launcher ignores SIGTERM as its first statement. In 0.5.0 and 0.5.1 the `trap` came after option parsing (and in 0.5.1 after the opt-in check), so a session-end SIGTERM landing in that window could kill the launcher before it handed the turn to the daemon. A full test run under load hit it after 0.5.1 was tagged; the test now signals once the launcher is running, and passed three full-suite runs in a row.
 
+### Verified
+- `scripts/e2e.sh --runs 3 --scenario full`: all 15 runs passed again on 0.5.2 (`results/e2e-2026-09-25-v052.txt`), in a temporary `CLAUDE_CONFIG_DIR`; `~/.claude` was the same before and after.
+
 ## [0.5.1] - 2026-09-25
 
 The plugin is now opt-in per project. (0.5.0 was tagged but never published to npm.)
