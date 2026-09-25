@@ -112,6 +112,7 @@ Exactly what is sent, stored and scrubbed, and what the poisoning gate does not 
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.
 - **Automatic capture is Claude Code only** (and Codex while `jevmem watch` runs); Cursor and Claude Desktop save only when the agent calls `add_memory`.
+- **The poisoning gate is a filter, not a guarantee:** it missed 2 of 22 planted lines in our eval (both worded as ordinary process), it does not apply when an agent opens `JEVMEM.md` as a file, and on a fresh clone its first check costs one noul per line. Review `JEVMEM.md` diffs like code ([SECURITY.md](SECURITY.md#memory-poisoning)).
 - **Jev outages delay turns, up to a limit:** each Jev call has a 2 s budget. When it times out or Jev answers 5xx/529/429, the scrubbed turn waits in `.jevmem/queue.jsonl` and is retried with backoff (15 s, doubling to every 10 min) on the next hook run or by the idle daemon, in order, and saved once. A turn still unsaved after 24 hours, or past 200 queued turns, is dropped with a log line; `jevmem stats` counts all of these.
 
 ## Commands
