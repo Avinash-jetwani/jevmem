@@ -218,6 +218,30 @@ function runLauncher(stdin, env) {
 }
 const launcherRows = [];
 for (let i = 0; i < nProc; i++) launcherRows.push(await runLauncher(stop(300 + i), daemonEnv));
+// v0.5.3 plugin: plugin/hooks/jevmem-hook.sh finds the installed CLI (here a global-install-like bin dir: `jevmem` linked
+// to dist/cli.js, and `node`), checks its version once per CLI file (cached in CLAUDE_PLUGIN_DATA), then detaches.
+const PLUGIN_LAUNCHER = path.resolve("plugin/hooks/jevmem-hook.sh");
+const pbin = fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-ops-bin-"));
+fs.symlinkSync(CLI, path.join(pbin, "jevmem"));
+fs.symlinkSync(process.execPath, path.join(pbin, "node"));
+const pdata = fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-ops-data-"));
+function runPluginLauncher(stdin, env) {
+  return new Promise((resolve) => {
+    const before = decisionsCount();
+    const t0 = performance.now();
+    const p = spawn("sh", [PLUGIN_LAUNCHER, "--detach", "hook", "--plugin"], { cwd: root, env: { ...process.env, PATH: `${pbin}:/usr/bin:/bin`, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: pdata, JEVMEM_WRITER: "none", ...env }, stdio: ["pipe", "ignore", "ignore"] });
+    p.on("close", async (code) => {
+      const ms = Math.round(performance.now() - t0);
+      while (decisionsCount() <= before && performance.now() - t0 < 30_000) await new Promise((r) => setTimeout(r, 5));
+      resolve({ ms, code, decidedMs: Math.round(performance.now() - t0) });
+    });
+    p.stdin.end(stdin);
+  });
+}
+await runPluginLauncher(stop(399), daemonEnv); // first run: the version check fills the cache
+const pluginRows = [];
+for (let i = 0; i < nProc; i++) pluginRows.push(await runPluginLauncher(stop(400 + i), daemonEnv));
+if (pluginRows.some((r) => r.code !== 0)) throw new Error("plugin launcher: non-zero exit");
 if (launcherRows.some((r) => r.code !== 0)) throw new Error("launcher: non-zero exit");
 results.hook_via_warm_daemon = {
   // v0.5.0: `node dist/cli.js hook` for Stop only queues the turn and hands it to the daemon (no Jev wait).
@@ -226,6 +250,9 @@ results.hook_via_warm_daemon = {
   hook_stop_launcher_detach: summary(launcherRows),
   // From the launcher's start until the turn's decision is recorded by the daemon (the line lands then).
   hook_stop_start_to_decided: summary(launcherRows.map((r) => ({ ms: r.decidedMs }))),
+  // v0.5.3: the Stop hook as the plugin registers it (plugin/hooks/jevmem-hook.sh --detach, the installed CLI).
+  hook_stop_plugin_launcher_detach: summary(pluginRows),
+  hook_stop_plugin_start_to_decided: summary(pluginRows.map((r) => ({ ms: r.decidedMs }))),
   hook_prompt_recall: await procSeries("ups-daemon", (i, env) => runCli(["hook"], { stdin: ups(i + 3), env }), daemonEnv),
 };
 // Were the hook runs really served by the daemon? It counts the requests it handled.

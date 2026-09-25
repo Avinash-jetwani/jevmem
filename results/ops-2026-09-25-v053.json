@@ -1,0 +1,142 @@
+{
+  "kind": "ops",
+  "date": "2026-09-25",
+  "started_at": "2026-09-25T19:30:19.510Z",
+  "finished_at": "2026-09-25T19:31:53.075Z",
+  "jevmem_version": "0.5.3",
+  "commit": "536fcd7+dirty",
+  "machine": "darwin arm64, node v22.22.0",
+  "network_path": "direct HTTPS to the TypeSafe API default base URL (POST /v1/systemone)",
+  "cost_method": "input tokens × $0.042 per million; output tokens free",
+  "method": "Scratch project with the memories listed in `memories`. warm: one in-process client after one warm-up call, cache off; recall_gated_*: the poisoning gate with every line unverified (no cached verdicts, then cached) and with every line verified. cache_hit_decide: second identical decide call (fast mode) served from .jevmem/cache/. cold_process: wall time of a new `node dist/cli.js …` process per call (node start-up + TLS + Jev), daemon off, cache off. hook_via_warm_daemon: wall time of a new hook process with an already-warm daemon; for Stop (v0.5.0) `hook_stop_handoff` is `node dist/cli.js hook` (queue + hand off), `hook_stop_launcher_detach` is `sh hooks/jevmem-hook.sh --detach hook` as init registers it, and `hook_stop_start_to_decided` runs from the launcher's start until the daemon has recorded the turn's decision.",
+  "results": {
+    "memories": 19,
+    "warm": {
+      "recall": {
+        "n": 20,
+        "p50_ms": 241,
+        "p95_ms": 567,
+        "avg_input_tokens": 1670,
+        "cost_per_call_usd": 0.00007015680000000001
+      },
+      "recall_gated_all_unverified_uncached": {
+        "n": 20,
+        "p50_ms": 250,
+        "p95_ms": 318,
+        "avg_input_tokens": 6561,
+        "cost_per_call_usd": 0.0002755788
+      },
+      "recall_gated_all_unverified_cached": {
+        "n": 20,
+        "p50_ms": 214,
+        "p95_ms": 278,
+        "avg_input_tokens": 1670,
+        "cost_per_call_usd": 0.00007015680000000001
+      },
+      "recall_gated_all_verified": {
+        "n": 20,
+        "p50_ms": 244,
+        "p95_ms": 319,
+        "avg_input_tokens": 1670,
+        "cost_per_call_usd": 0.00007015680000000001
+      },
+      "gate_withheld_fixture_lines": 0,
+      "search": {
+        "n": 20,
+        "p50_ms": 245,
+        "p95_ms": 355,
+        "avg_input_tokens": 4604,
+        "cost_per_call_usd": 0.0001933848
+      },
+      "audit_all_memories": {
+        "n": 10,
+        "p50_ms": 230,
+        "p95_ms": 298,
+        "avg_input_tokens": 3296,
+        "cost_per_call_usd": 0.000138432
+      }
+    },
+    "cache_hit_decide": {
+      "n": 20,
+      "p50_ms": 1,
+      "p95_ms": 11,
+      "avg_input_tokens": null,
+      "cost_per_call_usd": null
+    },
+    "cold_process": {
+      "hook_stop_decide": {
+        "n": 10,
+        "p50_ms": 1557,
+        "p95_ms": 1787,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "hook_prompt_recall": {
+        "n": 10,
+        "p50_ms": 1036,
+        "p95_ms": 1279,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "search": {
+        "n": 10,
+        "p50_ms": 1067,
+        "p95_ms": 1325,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "audit_dry_run_20_memories": {
+        "n": 10,
+        "p50_ms": 885,
+        "p95_ms": 951,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      }
+    },
+    "hook_via_warm_daemon": {
+      "hook_stop_handoff": {
+        "n": 10,
+        "p50_ms": 240,
+        "p95_ms": 285,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "hook_stop_launcher_detach": {
+        "n": 10,
+        "p50_ms": 26,
+        "p95_ms": 42,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "hook_stop_start_to_decided": {
+        "n": 10,
+        "p50_ms": 263,
+        "p95_ms": 965,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "hook_stop_plugin_launcher_detach": {
+        "n": 10,
+        "p50_ms": 44,
+        "p95_ms": 57,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "hook_stop_plugin_start_to_decided": {
+        "n": 10,
+        "p50_ms": 432,
+        "p95_ms": 794,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "hook_prompt_recall": {
+        "n": 10,
+        "p50_ms": 421,
+        "p95_ms": 511,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "daemon_served_requests": 42
+    }
+  }
+}

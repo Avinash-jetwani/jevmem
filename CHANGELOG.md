@@ -2,6 +2,20 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.3] - 2026-09-25
+
+The plugin moved to `plugin/`, runs the installed CLI, and takes the key via userConfig.
+
+### Changed
+- **The plugin moved to `plugin/`, runs the installed CLI, key via userConfig.** The Claude Code directory installs a plugin from its repository folder, and the old root plugin needed the built `dist/` that the repository does not contain. `plugin/` now holds only `.claude-plugin/plugin.json`, `hooks/hooks.json`, a short POSIX launcher and a README: no built or bundled code. The marketplace lists it as `./plugin`. The hooks run the `jevmem` CLI you install with `npm install -g jevmem`; the launcher looks for it on PATH and in the usual global npm bin directories, exits 0 silently when there is none, and prints one warning line when the CLI is older than the plugin. The MCP server is the plain command `jevmem mcp`. Nothing is downloaded at run time.
+- **API key via `userConfig`.** Enabling the plugin asks for the TypeSafe key as a sensitive option, which Claude Code keeps in the system's secure credential store and passes to the hooks and the MCP server. It is used before `TYPESAFE_API_KEY` and `~/.jevmem/env`, which remain the fallbacks. The key is not written to any file (tested).
+- The install is now `npm install -g jevmem`, `claude plugin marketplace add Avinash-jetwani/jevmem`, `claude plugin install jevmem@jevmem`, `cd your-project && jevmem enable`.
+- The plugin's Stop launcher, which now also finds the installed CLI, took 44 ms p50 as a process against 26 ms for the `init` launcher in the same run (`results/ops-2026-09-25-v053.json`, a busier machine than the earlier runs); the hook is async, so Claude Code does not wait for either.
+
+### Added
+- CI: `scripts/check-plugin.mjs` fails when a file in `plugin/` is 256 KiB or larger, `plugin/` contains `dist/`, or a file looks minified; `scripts/check-versions.mjs` compares `package.json` with `plugin/.claude-plugin/plugin.json`.
+- `scripts/e2e.sh --scenario nocli`: the plugin with no CLI installed, whose hooks must stay silent; the dormant and published scenarios also check that recall uses the saved line on the next prompt.
+
 ## [0.5.2] - 2026-09-25
 
 Publish this version: it contains everything in 0.5.1 (the plugin is now opt-in per project) plus one fix. Neither 0.5.0 nor 0.5.1 was published to npm.

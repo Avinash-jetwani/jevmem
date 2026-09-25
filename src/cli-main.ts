@@ -4,9 +4,10 @@ import { applyAudit, auditMemories, formatAuditTable, formatSecurityTable, secur
 import { knownWithheld, planGate } from "./guard.js";
 import { isVerified, readProvenance } from "./provenance.js";
 import { isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
+import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
-import { loadEnvFallbacks } from "./env.js";
+import { applyPluginOption, loadEnvFallbacks } from "./env.js";
 import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
 import { disableProject, enableProject, init, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
 import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong, MIN_LABELS, readFitInfo, readLabels, runFit } from "./labels.js";
@@ -210,6 +211,7 @@ function wantsHelp(args: string[]): boolean {
 
 export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<number> {
   io = ioArg;
+  applyPluginOption(); // the Claude Code plugin's typesafe_api_key option comes first
   const args = [...argv];
   const cmd = args.shift();
   const root = io.cwd ?? process.cwd();
@@ -378,6 +380,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       // The Claude Code plugin's MCP server gets CLAUDE_PROJECT_DIR (set for stdio MCP servers).
       const mcpRoot = opt(args, "--root") ?? process.env.JEVMEM_ROOT ?? process.env.CLAUDE_PROJECT_DIR ?? root;
       if (!fs.existsSync(mcpRoot)) return fail(`--root ${mcpRoot} does not exist`);
+      const pluginVersion = process.env.JEVMEM_PLUGIN_VERSION;
+      if (pluginVersion && isOlder(PACKAGE_VERSION, pluginVersion)) io.err(`jevmem: the installed CLI is ${PACKAGE_VERSION}, older than the Claude Code plugin (${pluginVersion}); run: npm install -g jevmem\n`);
       await serveMcp(mcpRoot);
       return -1; // keep running
     }
@@ -634,6 +638,14 @@ function standDown(root: string, input: HookInput, event: string): string | null
     /* best effort */
   }
   return warning;
+}
+
+/** Is version a older than b (x.y.z, numeric)? */
+export function isOlder(a: string, b: string): boolean {
+  const pa = a.split(".").map((x) => parseInt(x, 10) || 0);
+  const pb = b.split(".").map((x) => parseInt(x, 10) || 0);
+  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) < (pb[i] ?? 0);
+  return false;
 }
 
 function cliFile(): string {

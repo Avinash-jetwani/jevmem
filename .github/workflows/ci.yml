@@ -37,3 +37,5 @@ jobs:
       - run: node scripts/check-claims.mjs
       # Claude Code updates an installed plugin only when plugin.json "version" changes: it must match package.json.
       - run: node scripts/check-versions.mjs
+      # The plugin in plugin/ ships no code: no file over 256 KiB, no dist/, nothing minified.
+      - run: node scripts/check-plugin.mjs

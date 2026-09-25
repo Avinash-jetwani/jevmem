@@ -19,31 +19,52 @@ beforeAll(() => {
 
 describe("plugin files", () => {
   const pkg = json("package.json");
-  it("plugin.json and the marketplace entry carry the package version, and the package ships the plugin", () => {
-    const manifest = json(".claude-plugin/plugin.json");
+  it("plugin/ holds the plugin at the package version; the marketplace points at ./plugin; the root is no plugin", () => {
+    const manifest = json("plugin/.claude-plugin/plugin.json");
     const market = json(".claude-plugin/marketplace.json");
     expect(manifest.name).toBe("jevmem");
     expect(manifest.version).toBe(pkg.version);
-    const entry = market.plugins.find((p: any) => p.name === "jevmem");
-    expect(entry.source).toEqual({ source: "npm", package: "jevmem", version: pkg.version });
-    for (const f of ["hooks", ".claude-plugin/plugin.json", "dist"]) expect(pkg.files).toContain(f);
-    // The MCP server is declared in plugin.json: a root .mcp.json would also be read as this repo's own project config.
-    expect(fs.existsSync(".mcp.json")).toBe(false);
-    // A plugin-root bin/ would go on the Bash tool's PATH and stop claude.ai/Cowork installs.
-    expect(pkg.files).not.toContain("bin");
-    expect(fs.existsSync("bin")).toBe(false);
+    expect(manifest.mcpServers.jevmem.env.JEVMEM_PLUGIN_VERSION).toBe(pkg.version);
+    expect(market.plugins.find((p: any) => p.name === "jevmem").source).toBe("./plugin");
+    expect(fs.existsSync(".claude-plugin/plugin.json")).toBe(false);
+    expect(fs.existsSync("hooks/hooks.json")).toBe(false);
+    // The npm package no longer carries a plugin; it keeps hooks/jevmem-hook.sh for projects set up with `jevmem init`.
+    expect(pkg.files).not.toContain(".claude-plugin/plugin.json");
+    expect(pkg.files).toContain("hooks");
+    // A plugin bin/ would go on the Bash tool's PATH and stop claude.ai/Cowork installs; no .mcp.json either.
+    expect(fs.existsSync("plugin/bin")).toBe(false);
+    expect(fs.existsSync("plugin/.mcp.json")).toBe(false);
+  });
+
+  it("plugin/ contains only the manifest, the hooks, one launcher and the README: no code, nothing large", () => {
+    const files: string[] = [];
+    const walk = (d: string) => {
+      for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      if (e.isDirectory()) walk(path.join(d, e.name));
+      else files.push(path.relative("plugin", path.join(d, e.name)));
+    }
+    };
+    walk("plugin");
+    expect(files.sort()).toEqual([".claude-plugin/plugin.json", "README.md", "hooks/hooks.json", "hooks/jevmem-hook.sh"]);
+    for (const f of files) expect(fs.statSync(path.join("plugin", f)).size, f).toBeLessThan(256 * 1024);
+  });
+
+  it("the API key is a sensitive userConfig option that reaches the MCP server by reference, never as a literal", () => {
+    const m = json("plugin/.claude-plugin/plugin.json");
+    expect(m.userConfig.typesafe_api_key).toMatchObject({ type: "string", sensitive: true });
+    expect(m.mcpServers.jevmem).toMatchObject({ command: "jevmem", args: ["mcp"] });
+    expect(m.mcpServers.jevmem.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY).toBe("${user_config.typesafe_api_key}");
   });
 
   it("hooks.json: Stop is async and detached, UserPromptSubmit is synchronous, both through the launcher with --plugin", () => {
-    const h = json("hooks/hooks.json").hooks;
+    const h = json("plugin/hooks/hooks.json").hooks;
     const stop = h.Stop[0].hooks[0];
     const ups = h.UserPromptSubmit[0].hooks[0];
     expect(stop).toMatchObject({ type: "command", command: "sh", async: true });
     expect(stop.args).toEqual(["${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh", "--detach", "hook", "--plugin"]);
     expect(ups.async).toBeUndefined();
     expect(ups.args).toEqual(["${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh", "hook", "--plugin"]);
-    expect(fs.existsSync("hooks/jevmem-hook.sh")).toBe(true);
-    expect(json(".claude-plugin/plugin.json").mcpServers.jevmem).toEqual({ command: "sh", args: ["${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh", "mcp"] });
+    expect(fs.existsSync("plugin/hooks/jevmem-hook.sh")).toBe(true);
   });
 });
 

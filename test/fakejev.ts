@@ -9,7 +9,7 @@ import { makeAnswers, type AnswerOverrides } from "./helpers.js";
 
 export interface FakeJev {
   url: string;
-  requests: { state: any; questions: Questions }[];
+  requests: { state: any; questions: Questions; headers: http.IncomingHttpHeaders }[];
   close: () => Promise<void>;
 }
 
@@ -27,7 +27,7 @@ export async function startFakeJev(respond: (questions: Questions, state: any, i
       } catch {
         /* empty */
       }
-      requests.push({ state: parsed.state, questions: parsed.questions });
+      requests.push({ state: parsed.state, questions: parsed.questions, headers: req.headers });
       const r = respond(parsed.questions ?? {}, parsed.state, requests.length - 1) as any;
       if (r && typeof r.status === "number") {
         res.writeHead(r.status, { "content-type": "application/json" });

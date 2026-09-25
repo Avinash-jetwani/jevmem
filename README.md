@@ -33,23 +33,20 @@ https://github.com/user-attachments/assets/ed77849e-db1c-4c05-9ad8-4cab0b3968a2
 
 ## Install (60 seconds)
 
-You need a [TypeSafe AI](https://typesafe.ai) key for Jev (an OpenAI or Anthropic key is optional). Hooks do not read your shell profile reliably, so the simplest place for it is `~/.jevmem/env`:
-
-```bash
-mkdir -p ~/.jevmem && echo 'TYPESAFE_API_KEY=...' >> ~/.jevmem/env
-```
+You need a [TypeSafe AI](https://typesafe.ai) key for Jev (an OpenAI or Anthropic key is optional).
 
 **Option 1: Claude Code plugin (recommended)**
 
 <!-- Community directory install line goes here once the listing is live. -->
 
 ```bash
+npm install -g jevmem
 claude plugin marketplace add Avinash-jetwani/jevmem
 claude plugin install jevmem@jevmem
-cd your-project && npx jevmem enable
+cd your-project && jevmem enable
 ```
 
-The plugin does nothing until you run `jevmem enable` in a project; what it runs, where it looks for Node, and how to switch it off: [docs/hooks.md](docs/hooks.md#the-claude-code-plugin).
+The plugin runs the `jevmem` CLI from npm, so install that first: without it the hooks stay silent and the MCP server fails to start (`/mcp` shows it as failed). Claude Code asks for your key when you enable the plugin and keeps it in your system's secure credential store. The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](docs/hooks.md#the-claude-code-plugin).
 
 **Option 2: npm** (also sets up Cursor and Codex)
 
@@ -59,7 +56,7 @@ cd your-project
 jevmem init --tool claude
 ```
 
-`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the two Claude Code hooks ([details](docs/hooks.md#what-init-sets-up)).
+`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the two Claude Code hooks ([details](docs/hooks.md#what-init-sets-up)). Hooks do not read your shell profile reliably, so put the key in `~/.jevmem/env` (`TYPESAFE_API_KEY=...`).
 
 **Already have a `CLAUDE.md`?** `jevmem import` splits `CLAUDE.md`, `AGENTS.md` and `.cursor/rules/*` into statements, puts each through the same gate as a turn, and prints what it would add; `--apply` writes them. `--from claude-auto-memory` also reads Claude Code's own auto memory for the project. The source files are only read.
 

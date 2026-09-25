@@ -24,7 +24,8 @@ scripts/e2e.sh --runs 3 --automemory both   # REAL multi-turn Claude Code sessio
 scripts/e2e.sh --scenario plugin           # the same turns with jevmem installed as a Claude Code plugin (from an npm pack tarball)
 scripts/e2e.sh --scenario outage           # Jev answers 529 for one turn (local proxy), then recovers
 scripts/e2e.sh --scenario dormant          # plugin installed, a session in a project without `jevmem enable` (nothing may happen), then enable
-claude plugin validate --strict .claude-plugin/plugin.json
+claude plugin validate --strict plugin     # the Claude Code plugin (plugin/)
+node scripts/check-plugin.mjs              # plugin/ ships no code: no file over 256 KiB, no dist/, nothing minified (runs in CI)
 ```
 
 See [DEMO.md](DEMO.md) for a scripted 60-second demo, [DECISIONS.md](DECISIONS.md) for the design decisions, and [results/README.md](results/README.md) for what each results file is.
@@ -41,7 +42,7 @@ Keep them focused, add a test for behaviour changes, and run `pnpm build && pnpm
 
 ## Releasing
 
-1. Bump the version in `package.json`, `.claude-plugin/plugin.json` and the npm source in `.claude-plugin/marketplace.json` together, in the same commit, and add a CHANGELOG entry. Claude Code updates an installed plugin only when `plugin.json`'s `version` changes, so a release that bumps only `package.json` never reaches plugin users. `node scripts/check-versions.mjs` (run in CI) and `test/plugin.test.ts` fail when the three differ.
+1. Bump the version in `package.json` and `plugin/.claude-plugin/plugin.json` (its `version` and `mcpServers.jevmem.env.JEVMEM_PLUGIN_VERSION`) together, in the same commit, and add a CHANGELOG entry. Claude Code updates an installed plugin only when `plugin.json`'s `version` changes, so a release that bumps only `package.json` never reaches plugin users. `node scripts/check-versions.mjs` (run in CI) and `test/plugin.test.ts` fail when they differ.
 2. `pnpm build && pnpm lint && pnpm test && node scripts/check-claims.mjs`, and `scripts/e2e.sh --runs 3` plus the `plugin` and `outage` scenarios for anything that touches the hooks.
 3. Tag `vX.Y.Z` and push the tag. **Tags are permanent: never move, delete or re-use a pushed tag.** The release workflow publishes whatever a version tag points at, so a moved tag can publish different code under a version people already installed. If something is wrong after tagging, fix it in a new commit and release the next patch version. `.github/workflows/release.yml` verifies the tag (build, lint, tests, check-claims, matching versions, the packed tarball runs without `node_modules`) and, when the repository variable `NPM_PUBLISH` is `true`, publishes to npm with provenance through npm trusted publishing (OIDC). With `NPM_PUBLISH` unset, publish by hand with `npm publish`.
 

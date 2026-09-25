@@ -1,7 +1,9 @@
 /**
  * Key discovery for processes that don't get a login shell (Claude Code desktop hooks, Cursor/Codex MCP servers).
- * Order: process env → `<project>/.jevmem/.env` → `~/.jevmem/env` → `export VAR=…` lines in the user's shell profiles.
- * Only the named variables are read; nothing else in those files is touched.
+ * Order: the Claude Code plugin's `typesafe_api_key` option (`CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY`, see
+ * `applyPluginOption`) → process env → `<project>/.jevmem/.env` → `~/.jevmem/env` → `export VAR=…` lines in the
+ * user's shell profiles. Only the named variables are read; nothing else in those files is touched. The key is never
+ * logged.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -62,4 +64,18 @@ export function loadEnvFallbacks(root: string, env: NodeJS.ProcessEnv = process.
     }
   }
   return loaded;
+}
+
+/** The Claude Code plugin's sensitive `typesafe_api_key` option, as Claude Code passes it to hooks and the MCP server. */
+export const PLUGIN_KEY_VAR = "CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY";
+
+/**
+ * When the plugin's `typesafe_api_key` option is set, it wins over TYPESAFE_API_KEY. An empty value, or a
+ * `${user_config.…}` reference Claude Code left unsubstituted, counts as unset. Returns true when it applied.
+ */
+export function applyPluginOption(env: NodeJS.ProcessEnv = process.env): boolean {
+  const v = env[PLUGIN_KEY_VAR]?.trim();
+  if (!v || v.startsWith("${")) return false;
+  env.TYPESAFE_API_KEY = v;
+  return true;
 }

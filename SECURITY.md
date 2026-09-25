@@ -1,6 +1,6 @@
 # Security and privacy
 
-This document says exactly what Jevmem sends where, what it stores, what it scrubs, and how to report a problem. It is written for v0.5.2 and dated 2026-09-25; if it and the code disagree, the code is right and the disagreement is a bug worth reporting.
+This document says exactly what Jevmem sends where, what it stores, what it scrubs, and how to report a problem. It is written for v0.5.3 and dated 2026-09-25; if it and the code disagree, the code is right and the disagreement is a bug worth reporting.
 
 ## What is sent to which API
 
@@ -100,7 +100,7 @@ in `jevmem.config.json`. That is all Jevmem does: it sends the field (a test che
 
 ## Where your keys are read from
 
-Hooks do not get your shell profile, so `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, the base URLs, and `JEVMEM_WRITER*` are read, in order, from the process environment, `<project>/.jevmem/.env`, `~/.jevmem/env`, and then `export NAME=…` lines in `~/.zshenv`, `~/.zprofile`, `~/.zshrc`, `~/.bash_profile`, `~/.bashrc`, `~/.profile`. Only those named variables are parsed; the files are not executed. Put the key in `~/.jevmem/env` if you would rather the profiles were not read.
+With the Claude Code plugin, the TypeSafe key you enter when you enable it (the sensitive `typesafe_api_key` option) comes first: Claude Code keeps it in your system's secure credential store, not in `settings.json`, and passes it to the hooks as `CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY` and to the MCP server's environment. jevmem uses it in place of `TYPESAFE_API_KEY` for that process and never writes it to a file or a log (tested). When the option is empty, and without the plugin: hooks do not get your shell profile, so `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, the base URLs, and `JEVMEM_WRITER*` are read, in order, from the process environment, `<project>/.jevmem/.env`, `~/.jevmem/env`, and then `export NAME=…` lines in `~/.zshenv`, `~/.zprofile`, `~/.zshrc`, `~/.bash_profile`, `~/.bashrc`, `~/.profile`. Only those named variables are parsed; the files are not executed. Put the key in `~/.jevmem/env` if you would rather the profiles were not read.
 
 ## Files outside the project
 

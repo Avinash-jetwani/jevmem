@@ -1,6 +1,6 @@
 {
   "name": "jevmem",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Automatic project memory for Claude Code. After each message, TypeSafe's Jev decides whether it's worth remembering and saves it as one line in JEVMEM.md in your repo. Opt-in per project.",
   "author": {
     "name": "Avinash Jetwani",
@@ -16,13 +16,24 @@
     "jev",
     "mcp"
   ],
+  "userConfig": {
+    "typesafe_api_key": {
+      "type": "string",
+      "title": "TypeSafe API key",
+      "description": "Your TypeSafe AI key for Jev (https://typesafe.ai). Kept in your system's secure credential store. Leave empty to use TYPESAFE_API_KEY from the environment or ~/.jevmem/env.",
+      "sensitive": true
+    }
+  },
   "mcpServers": {
     "jevmem": {
-      "command": "sh",
+      "command": "jevmem",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh",
         "mcp"
-      ]
+      ],
+      "env": {
+        "CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY": "${user_config.typesafe_api_key}",
+        "JEVMEM_PLUGIN_VERSION": "0.5.3"
+      }
     }
   }
 }

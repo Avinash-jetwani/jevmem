@@ -1,0 +1,39 @@
+{
+  "description": "jevmem: queue each finished turn for Jev (Stop, async) and add the relevant project memories to each prompt (UserPromptSubmit). Runs the jevmem CLI installed from npm; does nothing in a project until `jevmem enable`.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh",
+              "hook",
+              "--plugin"
+            ],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh",
+              "--detach",
+              "hook",
+              "--plugin"
+            ],
+            "async": true,
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

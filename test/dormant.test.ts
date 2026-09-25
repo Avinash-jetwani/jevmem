@@ -14,7 +14,14 @@ import { startFakeJev, type FakeJev } from "./fakejev.js";
 import { SAVE_DECISION } from "./helpers.js";
 
 const CLI = path.resolve("dist/cli.js");
-const LAUNCHER = path.resolve("hooks/jevmem-hook.sh");
+const LAUNCHER = path.resolve("plugin/hooks/jevmem-hook.sh");
+/** A bin directory with `jevmem` (the built CLI, as `npm install -g` would link it) and `node`, like a global install. */
+function binDir(): string {
+  const d = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-bin-")));
+  fs.symlinkSync(CLI, path.join(d, "jevmem"));
+  fs.symlinkSync(process.execPath, path.join(d, "node"));
+  return d;
+}
 const tmp = () => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-dormant-")));
 beforeAll(() => {
   if (!fs.existsSync(CLI)) execFileSync("pnpm", ["build"], { stdio: "ignore" });
@@ -51,11 +58,11 @@ function world() {
   fs.writeFileSync(path.join(home, ".jevmem", "env"), "TYPESAFE_API_KEY=test-key\n"); // a key is available: dormancy is not "no key"
   const pluginData = tmp();
   const tmpdir = tmp();
-  return { project, home, pluginData, tmpdir, dirs: [project, home, pluginData, tmpdir] };
+  return { project, home, pluginData, tmpdir, bin: binDir(), dirs: [project, home, pluginData, tmpdir] };
 }
 
 function env(w: ReturnType<typeof world>, extra: Record<string, string> = {}): Record<string, string> {
-  return { PATH: "/usr/bin:/bin", HOME: w.home, TMPDIR: w.tmpdir, CLAUDE_PROJECT_DIR: w.project, CLAUDE_PLUGIN_ROOT: path.resolve("."), CLAUDE_PLUGIN_DATA: w.pluginData, TYPESAFE_BASE_URL: fake!.url, JEVMEM_NODE: process.execPath, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0", ...extra };
+  return { PATH: `${w.bin}:/usr/bin:/bin`, HOME: w.home, TMPDIR: w.tmpdir, CLAUDE_PROJECT_DIR: w.project, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: w.pluginData, TYPESAFE_BASE_URL: fake!.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0", ...extra };
 }
 
 const stop = (w: ReturnType<typeof world>) => JSON.stringify({ hook_event_name: "Stop", session_id: "s1", cwd: w.project, user_message: "We will use Postgres 16 for the primary store." });
@@ -128,11 +135,11 @@ describe.skipIf(process.platform === "win32")("a project that has not run `jevme
     expect(snapshot(w.dirs)).toEqual(before);
   });
 
-  it("the MCP server (the plugin's, through the launcher): every tool answers one message and does nothing else", async () => {
+  it("the MCP server (the plugin's plain `jevmem mcp`): every tool answers one message and does nothing else", async () => {
     fake = await startFakeJev(() => SAVE_DECISION);
     const w = world();
     const before = snapshot(w.dirs);
-    const r = await mcpSession("sh", [LAUNCHER, "mcp"], env(w), w.project);
+    const r = await mcpSession(path.join(w.bin, "jevmem"), ["mcp"], env(w), w.project);
     expect(r.tools.sort()).toEqual(["add_memory", "audit_memory", "list_memory", "search_memory"]);
     for (const t of r.results) expect(t).toBe("jevmem isn't enabled in this project: run `jevmem enable`");
     expect(r.stderr).toBe("");
@@ -154,7 +161,7 @@ describe.skipIf(process.platform === "win32")("a project that has not run `jevme
     expect(new MemoryStore(w.project).active().map((m) => m.text)).toEqual(["We will use Postgres 16 for the primary store."]);
     expect(fake.requests.length).toBeGreaterThan(0);
     // The MCP server in the same process-less form now works too.
-    const mcp = await mcpSession("sh", [LAUNCHER, "mcp"], env(w), w.project);
+    const mcp = await mcpSession(path.join(w.bin, "jevmem"), ["mcp"], env(w), w.project);
     expect(JSON.parse(mcp.results[2]!).count).toBe(1);
 
     const jevmemMd = fs.readFileSync(path.join(w.project, "JEVMEM.md"), "utf8");
