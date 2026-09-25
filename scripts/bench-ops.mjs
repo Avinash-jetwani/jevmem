@@ -115,7 +115,41 @@ for (let i = 0; i < Math.min(N, 10); i++) {
   const ms = await timed(() => lib.auditMemories(jev, store, { staleBelow: 0.4 }));
   audit.push({ ms, inputTokens: lastLog(jev).inputTokens });
 }
-results.warm = { recall: summary(recall), search: summary(search), audit_all_memories: summary(audit) };
+// The poisoning gate on recall (src/guard.ts). The fixture's lines were added with store.add, so none is verified.
+//   gated_uncached: every line unverified, no cached verdict (a fresh clone's first prompt): one gate noul per line
+//   gated_cached:   the same lines once their verdicts are cached (every later prompt): no gate nouls
+//   verified:       every line written by jevmem on this machine: no gate nouls
+const gateFile = path.join(root, ".jevmem", "gate.json");
+const gUncached = [];
+const gCached = [];
+const gVerified = [];
+for (let i = 0; i < N; i++) {
+  const q = PROMPTS[i % PROMPTS.length];
+  fs.rmSync(gateFile, { force: true });
+  let ms = await timed(() => lib.recallGuarded(jev, root, q, memories, { topK: 5, min: 0.05, maxIds: 60, injectionMax: 0.5 }));
+  gUncached.push({ ms, inputTokens: lastLog(jev).inputTokens });
+  ms = await timed(() => lib.recallGuarded(jev, root, q, memories, { topK: 5, min: 0.05, maxIds: 60, injectionMax: 0.5 }));
+  gCached.push({ ms, inputTokens: lastLog(jev).inputTokens });
+}
+const gateWithheld = lib.knownWithheld(root, memories, 0.5).length; // fixture lines the gate flagged (expected 0)
+const provFile = lib.provenanceFile(root);
+for (const m of memories) lib.recordProvenance(root, m, "hook");
+for (let i = 0; i < N; i++) {
+  const q = PROMPTS[i % PROMPTS.length];
+  const ms = await timed(() => lib.recallGuarded(jev, root, q, memories, { topK: 5, min: 0.05, maxIds: 60, injectionMax: 0.5 }));
+  gVerified.push({ ms, inputTokens: lastLog(jev).inputTokens });
+}
+results.warm = {
+  recall: summary(recall),
+  recall_gated_all_unverified_uncached: summary(gUncached),
+  recall_gated_all_unverified_cached: summary(gCached),
+  recall_gated_all_verified: summary(gVerified),
+  gate_withheld_fixture_lines: gateWithheld,
+  search: summary(search),
+  audit_all_memories: summary(audit),
+};
+// The process measurements below run with every fixture line verified (the author's own machine).
+void provFile;
 
 // --- cache hit ------------------------------------------------------------------------------
 const cjev = lib.createJev({ root, noLogFile: true, cache: true });

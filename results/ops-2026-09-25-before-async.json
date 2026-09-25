@@ -1,0 +1,114 @@
+{
+  "kind": "ops",
+  "date": "2026-09-25",
+  "started_at": "2026-09-25T16:29:39.618Z",
+  "finished_at": "2026-09-25T16:30:43.477Z",
+  "jevmem_version": "0.4.5",
+  "commit": "e9f4111",
+  "machine": "darwin arm64, node v22.22.0",
+  "network_path": "direct HTTPS to the TypeSafe API default base URL (POST /v1/systemone)",
+  "cost_method": "input tokens × $0.042 per million; output tokens free",
+  "method": "Scratch project with the memories listed in `memories`. warm: one in-process client after one warm-up call, cache off. cache_hit_decide: second identical decide call (fast mode) served from .jevmem/cache/. cold_process: wall time of a new `node dist/cli.js …` process per call (node start-up + TLS + Jev), daemon off, cache off. hook_via_warm_daemon: wall time of a new hook process that hands the event to an already-warm daemon.",
+  "results": {
+    "memories": 19,
+    "warm": {
+      "recall": {
+        "n": 20,
+        "p50_ms": 207,
+        "p95_ms": 476,
+        "avg_input_tokens": 1672,
+        "cost_per_call_usd": 0.00007024080000000001
+      },
+      "recall_gated_all_unverified_uncached": {
+        "n": 20,
+        "p50_ms": 221,
+        "p95_ms": 252,
+        "avg_input_tokens": 6559,
+        "cost_per_call_usd": 0.0002754948
+      },
+      "recall_gated_all_unverified_cached": {
+        "n": 20,
+        "p50_ms": 198,
+        "p95_ms": 276,
+        "avg_input_tokens": 1672,
+        "cost_per_call_usd": 0.00007024080000000001
+      },
+      "recall_gated_all_verified": {
+        "n": 20,
+        "p50_ms": 208,
+        "p95_ms": 249,
+        "avg_input_tokens": 1672,
+        "cost_per_call_usd": 0.00007024080000000001
+      },
+      "gate_withheld_fixture_lines": 0,
+      "search": {
+        "n": 20,
+        "p50_ms": 206,
+        "p95_ms": 272,
+        "avg_input_tokens": 4602,
+        "cost_per_call_usd": 0.00019330079999999998
+      },
+      "audit_all_memories": {
+        "n": 10,
+        "p50_ms": 211,
+        "p95_ms": 258,
+        "avg_input_tokens": 3293,
+        "cost_per_call_usd": 0.00013830600000000001
+      }
+    },
+    "cache_hit_decide": {
+      "n": 20,
+      "p50_ms": 1,
+      "p95_ms": 2,
+      "avg_input_tokens": null,
+      "cost_per_call_usd": null
+    },
+    "cold_process": {
+      "hook_stop_decide": {
+        "n": 10,
+        "p50_ms": 679,
+        "p95_ms": 1263,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "hook_prompt_recall": {
+        "n": 10,
+        "p50_ms": 641,
+        "p95_ms": 669,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "search": {
+        "n": 10,
+        "p50_ms": 645,
+        "p95_ms": 681,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "audit_dry_run_20_memories": {
+        "n": 10,
+        "p50_ms": 635,
+        "p95_ms": 641,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      }
+    },
+    "hook_via_warm_daemon": {
+      "hook_stop_decide": {
+        "n": 10,
+        "p50_ms": 355,
+        "p95_ms": 630,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "hook_prompt_recall": {
+        "n": 10,
+        "p50_ms": 325,
+        "p95_ms": 353,
+        "avg_input_tokens": null,
+        "cost_per_call_usd": null
+      },
+      "daemon_served_requests": 21
+    }
+  }
+}

@@ -32,7 +32,7 @@
 }
 ```
 
-`usdPerMillionTokens` is applied to input tokens only.
+`usdPerMillionTokens` is applied to input tokens only. `injectionMax` gates two things: a turn is not saved when its injection family reaches it, and an unverified memory line is not served to an agent when the poisoning gate's noul reaches it ([SECURITY.md](../SECURITY.md#memory-poisoning)).
 
 Environment:
 

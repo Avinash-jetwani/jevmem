@@ -11,6 +11,8 @@ Every measured number in the docs comes from a file listed in [`CURRENT.json`](C
 | `ops-2026-09-23-v042.json` | `node scripts/bench-ops.mjs` | v0.4.2. recall / search / audit warm, cache hit, cold processes, hook processes through the warm daemon |
 | `demo-2026-09-23-v042.txt` | the DEMO.md scripted steps | v0.4.2. Captured CLI output (home directory replaced with `~`) |
 | `e2e-2026-09-23-v042.txt` | `scripts/e2e.sh --runs 3` | v0.4.2. Real Claude Code session, three runs (paths replaced with `~` / `<scratch>`) |
+| `memory-injection-2026-09-25-run1.json`, `memory-injection-2026-09-25-run2.json` | `node scripts/eval-injection.mjs` | v0.5.0 poisoning gate on `eval/memory-injection.jsonl` (44 lines, committed in `e9f4111` before the first run), two runs: blocked planted lines, false blocks, and the gate's added tokens and latency against the same recall call without it |
+| `ops-2026-09-25-before-async.json` | `node scripts/bench-ops.mjs` | v0.5.0 code before the non-blocking Stop hook (commit `e9f4111`): the gated recall rows, and the "before" Stop hook wall time |
 | `*-v041.*` | v0.4.1 | History: the v0.4.1 runs (before the contradiction fix). Not cited by the v0.4.2 docs |
 | `bench-*-2026-09-23.json`, `eval-*-2026-09-23.json`, `ops-2026-09-23.json`, `demo-2026-09-23.txt`, `e2e-2026-09-23.txt` (no suffix) | v0.4.0 | History: the same runs on v0.4.0, whose tier 1 also asked the four atomic injection nouls. Not cited by the v0.4.1 docs |
 | `a5-tier1-injection/` | `node scripts/eval.mjs --modes fast,auto` | History: tier 1 with one injection noul vs five, the measurement behind the v0.4.1 revert |
