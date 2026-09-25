@@ -16,12 +16,20 @@ https://github.com/user-attachments/assets/ed77849e-db1c-4c05-9ad8-4cab0b3968a2
 - Saves decisions, constraints, bugs and todos from your Claude Code chats into `JEVMEM.md`, automatically.
 - When you change your mind, the old line is marked superseded, not deleted.
 - Next session, the relevant lines are added to Claude's context.
+- Checks lines added by others before Claude sees them.
 
 ```text
 - [decision] Use Postgres 16 for the primary store; SQLite locks under load  <!-- id:k3d9xq ts:2026-09-22T10:14:02.113Z conf:0.93 -->
 - [constraint] Node 20 is the floor; CI runs 20 and 22  <!-- id:p1m4zt ts:2026-09-22T10:20:41.907Z conf:0.88 -->
 - [superseded] Use SQLite as the primary store → id:k3d9xq  <!-- id:a8s2ww ts:2026-09-20T16:02:11.000Z conf:0.81 by:k3d9xq -->
 ```
+
+## What's new in v0.5
+
+- **Install as a Claude Code plugin**, opt-in per project: it does nothing until you run `jevmem enable` in a repo.
+- **A memory-poisoning check on recall:** lines that jevmem did not write on your machine (a teammate's, a pull request's, your own hand edits) are checked by Jev before Claude sees them. In our 44-line test set it blocked 20 of 22 planted lines, with 0 of 22 false blocks on legitimate rules ([SECURITY.md](SECURITY.md#memory-poisoning)).
+- **Turns queued during Jev outages** and retried later, in order, instead of being dropped.
+- **`jevmem import`** for an existing `CLAUDE.md`, `AGENTS.md` or Cursor rules.
 
 ## Install (60 seconds)
 
@@ -31,7 +39,9 @@ You need a [TypeSafe AI](https://typesafe.ai) key for Jev (an OpenAI or Anthropi
 mkdir -p ~/.jevmem && echo 'TYPESAFE_API_KEY=...' >> ~/.jevmem/env
 ```
 
-**As a Claude Code plugin** (hooks and the MCP server):
+**Option 1: Claude Code plugin (recommended)**
+
+<!-- Community directory install line goes here once the listing is live. -->
 
 ```bash
 claude plugin marketplace add Avinash-jetwani/jevmem
@@ -39,9 +49,9 @@ claude plugin install jevmem@jevmem
 cd your-project && npx jevmem enable
 ```
 
-**The plugin does nothing until you run `jevmem enable` in a project.** In every other project its hooks and MCP server make no network calls, create no files and print nothing; the check is a single look for `jevmem.config.json`. `enable` creates `jevmem.config.json` and `JEVMEM.md` (commit both) and adds `.jevmem/` to `.gitignore`; `jevmem disable` turns it off again and leaves `JEVMEM.md` alone. (The plugin does not put a `jevmem` command in your shell, hence `npx`; with jevmem installed from npm, `jevmem enable` works directly.) The plugin's hooks run through a small POSIX `sh` launcher that finds Node 20+ (Homebrew, Volta, nvm, fnm, asdf, mise), so on Windows it needs Git for Windows' `sh` on PATH.
+The plugin does nothing until you run `jevmem enable` in a project; what it runs, where it looks for Node, and how to switch it off: [docs/hooks.md](docs/hooks.md#the-claude-code-plugin).
 
-**With npm** (also sets up Cursor and Codex):
+**Option 2: npm** (also sets up Cursor and Codex)
 
 ```bash
 npm install -g jevmem
@@ -49,7 +59,7 @@ cd your-project
 jevmem init --tool claude
 ```
 
-`init` creates `JEVMEM.md`, `jevmem.config.json` and a gitignored `.jevmem/` folder, and registers two Claude Code hooks in `.claude/settings.local.json`, which it adds to `.gitignore` ([details](docs/hooks.md)). If a project has both the plugin and `init` hooks, the plugin's hooks stand down (nothing runs twice) and say so once per session; `jevmem init --remove-hooks` keeps only the plugin.
+`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the two Claude Code hooks ([details](docs/hooks.md#what-init-sets-up)).
 
 **Already have a `CLAUDE.md`?** `jevmem import` splits `CLAUDE.md`, `AGENTS.md` and `.cursor/rules/*` into statements, puts each through the same gate as a turn, and prints what it would add; `--apply` writes them. `--from claude-auto-memory` also reads Claude Code's own auto memory for the project. The source files are only read.
 

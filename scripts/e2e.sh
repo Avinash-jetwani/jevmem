@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|outage|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|outage|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -21,6 +21,9 @@
 #   dormant    the plugin installed as above, one session in a project that has not run `jevmem enable`: no request may
 #              reach Jev (a counting proxy sits in front of it) and no file may appear in the project; then
 #              `jevmem enable` and a second session there, whose line must be saved
+#   published  the dormant scenario, but installed the way a user does it: `claude plugin marketplace add
+#              Avinash-jetwani/jevmem` (GitHub) and `claude plugin install jevmem@jevmem`, i.e. the published npm
+#              package the marketplace entry names (not this checkout)
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
@@ -193,8 +196,16 @@ JS
 }
 
 # Install jevmem as a plugin into $1 from a freshly packed tarball (see the header).
+PLUGIN_ID="jevmem@jevmem-e2e"; PLUGIN_MKT_NAME="jevmem-e2e"; PUBLISHED=0
 install_plugin() {
   local scratch="$1" mkt
+  if [ "$PUBLISHED" -eq 1 ]; then
+    ( cd "$scratch" && claude_cli plugin marketplace add Avinash-jetwani/jevmem 2>&1 | tail -1 | sed 's/^/   /' )
+    ( cd "$scratch" && claude_cli plugin install "$PLUGIN_ID" 2>&1 | tail -1 | sed 's/^/   /' )
+    ( cd "$scratch" && claude_cli plugin list 2>&1 | grep -A2 "$PLUGIN_ID" | sed 's/^/   /' )
+    grep -q "\"$PLUGIN_ID\"" "$E2E_CONFIG_DIR/settings.json" 2>/dev/null || { echo "plugin install did not enable $PLUGIN_ID in the temporary config"; return 1; }
+    return 0
+  fi
   mkt="$(mktemp -d /tmp/jevmem-e2e-mkt.XXXXXX)"
   PLUGIN_MKT="$mkt"
   ( cd "$ROOT" && npm pack --pack-destination "$mkt" >/dev/null 2>&1 ) || { echo "npm pack failed"; return 1; }
@@ -209,8 +220,8 @@ install_plugin() {
 
 uninstall_plugin() {
   local scratch="$1"
-  ( cd "$scratch" && claude_cli plugin uninstall jevmem@jevmem-e2e >/dev/null 2>&1 )
-  ( cd "$scratch" && claude_cli plugin marketplace remove jevmem-e2e >/dev/null 2>&1 )
+  ( cd "$scratch" && claude_cli plugin uninstall "$PLUGIN_ID" >/dev/null 2>&1 )
+  ( cd "$scratch" && claude_cli plugin marketplace remove "$PLUGIN_MKT_NAME" >/dev/null 2>&1 )
   [ -n "${PLUGIN_MKT:-}" ] && rm -rf "$PLUGIN_MKT"
 }
 
@@ -220,7 +231,7 @@ run_dormant() {
   scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
   scratch="$(cd "$scratch" && pwd -P)"
   rm -rf "$scratch"/* "$scratch"/.[!.]* 2>/dev/null
-  echo "================ run $run  scenario=dormant  scratch=$scratch"
+  echo "================ run $run  scenario=$([ "$PUBLISHED" -eq 1 ] && echo published || echo dormant)  scratch=$scratch"
   ( cd "$scratch" && git init -q && printf '{"name":"client-app","private":true}\n' > package.json && printf '# client-app\n' > README.md )
   install_plugin "$scratch" || { uninstall_plugin "$scratch"; return 1; }
   # A pass-through proxy in front of the real Jev API that logs every request (its flag file never exists).
@@ -240,10 +251,17 @@ run_dormant() {
   n=$(wc -l < "$plog" | tr -d ' ')
   if [ "$n" -ne 0 ]; then echo "   ✗ FAIL turn 1: $n request(s) reached Jev from a project that is not enabled"; fail=1; fi
   if ! diff -q "$plog.before" "$plog.after" >/dev/null; then echo "   ✗ FAIL turn 1: files appeared in the project:"; diff "$plog.before" "$plog.after" | sed 's/^/     /'; fail=1; fi
-  [ $fail -eq 0 ] && echo "   ✓ turn 1: 0 requests to Jev, no file created in the project (plugin enabled at user scope: $(claude_cli plugin list 2>&1 | grep -c 'jevmem@jevmem-e2e') listing)"
+  [ $fail -eq 0 ] && echo "   ✓ turn 1: 0 requests to Jev, no file created in the project (plugin $PLUGIN_ID enabled at user scope)"
   if [ $fail -eq 0 ]; then
-    echo "---- jevmem enable"
-    ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" enable | sed 's/^/   /' )
+    if [ "$PUBLISHED" -eq 1 ]; then
+      # As the README tells plugin users: the published package through npx, pinned to this version.
+      local v; v="$("$NODE" -p 'require(process.argv[1]).version' "$ROOT/package.json")"
+      echo "---- npx -y jevmem@$v enable"
+      ( cd "$scratch" && npx -y "jevmem@$v" enable | sed 's/^/   /' )
+    else
+      echo "---- jevmem enable"
+      ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" enable | sed 's/^/   /' )
+    fi
     echo "---- turn 2 (project enabled): $p2"
     ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --continue --max-turns 15 "$p2" 2>&1 | tail -2 | sed 's/^/   claude> /' )
     wait_queue "$scratch" 0 || { echo "   ✗ queue did not drain within 60 s"; fail=1; }
@@ -266,14 +284,16 @@ JS
   { kill "$proxy_pid"; wait "$proxy_pid"; } 2>/dev/null
   uninstall_plugin "$scratch"
   rm -f "$plog" "$plog".*
-  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=dormant"; else echo "FAIL run $run scenario=dormant"; fi
+  local name=dormant; [ "$PUBLISHED" -eq 1 ] && name=published
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=$name"; else echo "FAIL run $run scenario=$name"; fi
   [ $KEEP -eq 1 ] || rm -rf "$scratch"
   return $fail
 }
 
 run_once() {
   local run="$1" automem="$2" scenario="$3"
-  [ "$scenario" = dormant ] && { run_dormant "$run"; return $?; }
+  [ "$scenario" = dormant ] && { PUBLISHED=0; PLUGIN_ID="jevmem@jevmem-e2e"; PLUGIN_MKT_NAME="jevmem-e2e"; run_dormant "$run"; return $?; }
+  [ "$scenario" = published ] && { PUBLISHED=1; PLUGIN_ID="jevmem@jevmem"; PLUGIN_MKT_NAME="jevmem"; run_dormant "$run"; local r=$?; PUBLISHED=0; PLUGIN_ID="jevmem@jevmem-e2e"; PLUGIN_MKT_NAME="jevmem-e2e"; return $r; }
   [ "$scenario" = outage ] && { run_outage "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in

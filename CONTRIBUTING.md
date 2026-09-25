@@ -19,6 +19,7 @@ node scripts/bench-llm.mjs --set heldout   # the Benchmark tables (needs TYPESAF
 node scripts/bench-ops.mjs                 # the non-decide rows of the Cost math table
 node scripts/eval-injection.mjs            # the memory-poisoning gate on eval/memory-injection.jsonl (live Jev); --set dev for the dev set
 node scripts/check-claims.mjs              # fails if a number in the docs is not in a results file listed in results/CURRENT.json (runs in CI)
+node scripts/check-versions.mjs            # fails if package.json, plugin.json and the marketplace entry name different versions (runs in CI)
 scripts/e2e.sh --runs 3 --automemory both   # REAL multi-turn Claude Code sessions under the desktop app's stripped env, in a temporary CLAUDE_CONFIG_DIR (needs CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`)
 scripts/e2e.sh --scenario plugin           # the same turns with jevmem installed as a Claude Code plugin (from an npm pack tarball)
 scripts/e2e.sh --scenario outage           # Jev answers 529 for one turn (local proxy), then recovers
@@ -40,7 +41,7 @@ Keep them focused, add a test for behaviour changes, and run `pnpm build && pnpm
 
 ## Releasing
 
-1. Bump the version in `package.json`, `.claude-plugin/plugin.json` and the npm source in `.claude-plugin/marketplace.json` (a test keeps the three equal), and add a CHANGELOG entry.
+1. Bump the version in `package.json`, `.claude-plugin/plugin.json` and the npm source in `.claude-plugin/marketplace.json` together, in the same commit, and add a CHANGELOG entry. Claude Code updates an installed plugin only when `plugin.json`'s `version` changes, so a release that bumps only `package.json` never reaches plugin users. `node scripts/check-versions.mjs` (run in CI) and `test/plugin.test.ts` fail when the three differ.
 2. `pnpm build && pnpm lint && pnpm test && node scripts/check-claims.mjs`, and `scripts/e2e.sh --runs 3` plus the `plugin` and `outage` scenarios for anything that touches the hooks.
 3. Tag `vX.Y.Z` and push the tag. **Tags are permanent: never move, delete or re-use a pushed tag.** The release workflow publishes whatever a version tag points at, so a moved tag can publish different code under a version people already installed. If something is wrong after tagging, fix it in a new commit and release the next patch version. `.github/workflows/release.yml` verifies the tag (build, lint, tests, check-claims, matching versions, the packed tarball runs without `node_modules`) and, when the repository variable `NPM_PUBLISH` is `true`, publishes to npm with provenance through npm trusted publishing (OIDC). With `NPM_PUBLISH` unset, publish by hand with `npm publish`.
 
