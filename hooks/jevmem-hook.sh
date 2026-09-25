@@ -15,6 +15,12 @@
 #
 # Always exits 0: a missing node must not block Claude Code (the reason is printed to stderr).
 
+# First of all: a detaching (Stop) hook ignores SIGTERM, SIGHUP and SIGINT. With `claude -p` the session-end SIGTERM
+# reaches the hook's process group as soon as the hook starts, so this must come before anything else can run.
+for a in "$@"; do
+  if [ "$a" = "--detach" ]; then trap '' TERM HUP INT; fi
+done
+
 # Opt-in per project: jevmem acts only in a project that contains jevmem.config.json (written by `jevmem enable` or
 # `jevmem init`). For a hook, this check runs first, before node is looked for or anything is read or written: in any
 # other project the hook reads its input, exits 0 and does nothing else (no network, no files, no output).
@@ -77,7 +83,6 @@ if [ -z "$node" ] || [ ! -x "$node" ]; then
 fi
 
 if [ "$detach" -eq 1 ]; then
-  trap '' TERM HUP INT
   tmp=$(mktemp "${TMPDIR:-/tmp}/jevmem-hook.XXXXXX") || exit 0
   cat > "$tmp"
   if command -v setsid >/dev/null 2>&1; then

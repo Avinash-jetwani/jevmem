@@ -70,9 +70,13 @@ describe.skipIf(process.platform === "win32")("hooks/jevmem-hook.sh --detach (th
     const root = tmp();
     init({ root, hooks: false });
     fake = await startFakeJev(() => SAVE_DECISION);
-    const child = spawn("sh", [LAUNCHER, "--node", process.execPath, "--detach", "hook"], { cwd: root, detached: true, env: { PATH: "/usr/bin:/bin", HOME: tmp(), JEVMEM_WRITER: "none", JEVMEM_CACHE: "0", TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_DAEMON: "0" }, stdio: ["pipe", "ignore", "ignore"] });
+    const tmpdir = tmp();
+    const child = spawn("sh", [LAUNCHER, "--node", process.execPath, "--detach", "hook"], { cwd: root, detached: true, env: { PATH: "/usr/bin:/bin", HOME: tmp(), TMPDIR: tmpdir, JEVMEM_WRITER: "none", JEVMEM_CACHE: "0", TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_DAEMON: "0" }, stdio: ["pipe", "ignore", "ignore"] });
     child.stdin.end(JSON.stringify({ hook_event_name: "Stop", cwd: root, user_message: "Deploys go out from the GitHub Actions deploy job only." }));
-    await new Promise((r) => setTimeout(r, 30));
+    // Signal the group while the launcher is handing off: once its temp file exists (the shell is running; a signal
+    // that lands before a shell has run its first line cannot be caught by any script). Under a loaded test run a
+    // fixed delay could fire before that.
+    await waitFor(() => fs.readdirSync(tmpdir).some((f) => f.startsWith("jevmem-hook.")), 5000);
     try {
       process.kill(-child.pid!, "SIGTERM");
     } catch {

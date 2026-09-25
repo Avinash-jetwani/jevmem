@@ -2,6 +2,13 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.2] - 2026-09-25
+
+Publish this version: it contains everything in 0.5.1 (the plugin is now opt-in per project) plus one fix. Neither 0.5.0 nor 0.5.1 was published to npm.
+
+### Fixed
+- The Stop hook launcher ignores SIGTERM as its first statement. In 0.5.0 and 0.5.1 the `trap` came after option parsing (and in 0.5.1 after the opt-in check), so a session-end SIGTERM landing in that window could kill the launcher before it handed the turn to the daemon. A full test run under load hit it after 0.5.1 was tagged; the test now signals once the launcher is running, and passed three full-suite runs in a row.
+
 ## [0.5.1] - 2026-09-25
 
 The plugin is now opt-in per project. (0.5.0 was tagged but never published to npm.)
