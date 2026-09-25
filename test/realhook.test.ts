@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { envFileCandidates, loadEnvFallbacks, parseEnvFile } from "../src/env.js";
 import { hookEvent, hookRoot, runHook } from "../src/hook.js";
-import { init, registerClaudeHooks, resolveHookCommand } from "../src/init.js";
+import { init, resolveStopCommand, registerClaudeHooks, resolveHookCommand } from "../src/init.js";
 import { readLog } from "../src/jev.js";
 import { clampLine } from "../src/llm/index.js";
 import { MemoryStore } from "../src/store.js";
@@ -159,7 +159,7 @@ describe("hook command registration", () => {
     fs.mkdirSync(path.join(root, ".claude"));
     fs.writeFileSync(path.join(root, ".claude", "settings.json"), JSON.stringify({ permissions: { allow: ["Bash(ls)"] }, hooks: { Stop: [{ hooks: [{ type: "command", command: "echo other" }, { type: "command", command: "jevmem hook", timeout: 20 }] }], UserPromptSubmit: [{ hooks: [{ type: "command", command: "jevmem hook", timeout: 5 }] }] } }));
     const r = init({ root, command: '"/n/node" "/j/cli.js" hook' });
-    expect(r.created.some((c) => c.includes("settings.local.json") && c.includes("command updated"))).toBe(true);
+    expect(r.created.some((c) => c.includes("settings.local.json") && c.includes("updated"))).toBe(true);
     const shared = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.json"), "utf8"));
     expect(shared.permissions.allow).toEqual(["Bash(ls)"]);
     expect(shared.hooks.Stop[0].hooks.map((h: any) => h.command)).toEqual(["echo other"]);
@@ -169,6 +169,34 @@ describe("hook command registration", () => {
     expect(local.hooks.UserPromptSubmit[0].hooks[0].command).toBe('"/n/node" "/j/cli.js" hook');
     expect(registerClaudeHooks(root, '"/n/node" "/j/cli.js" hook')).toBe("present");
   });
+  it("registers Stop as an async hook through the detaching launcher, and UserPromptSubmit as a plain synchronous node command", () => {
+    const root = tmp();
+    const r = init({ root, cliPath: path.resolve("dist/cli.js") });
+    const local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
+    const stop = local.hooks.Stop[0].hooks[0];
+    const ups = local.hooks.UserPromptSubmit[0].hooks[0];
+    expect(stop.async).toBe(true);
+    expect(stop.command).toBe(r.stopCommand);
+    expect(stop.command).toMatch(/^sh ".*[/\\]bin[/\\]jevmem-hook\.sh" --node ".*" --detach hook$/);
+    expect(ups.async).toBeUndefined();
+    expect(ups.command).toMatch(/^".*node.*" ".*[/\\]dist[/\\]cli\.js" hook$/);
+    // Windows has no POSIX launcher: the node command, still async.
+    expect(resolveStopCommand(root, path.resolve("dist/cli.js"), process.execPath, "win32")).toBe(r.command);
+  });
+
+  it("re-running init on a v0.4 project makes its Stop hook async and switches it to the launcher", () => {
+    const root = tmp();
+    fs.mkdirSync(path.join(root, ".claude"));
+    const old = `"${fs.realpathSync(process.execPath)}" "${fs.realpathSync(path.resolve("dist/cli.js"))}" hook`;
+    fs.writeFileSync(path.join(root, ".claude", "settings.local.json"), JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: old, timeout: 20 }] }], UserPromptSubmit: [{ hooks: [{ type: "command", command: old, timeout: 5 }] }] } }));
+    const r = init({ root, cliPath: path.resolve("dist/cli.js") });
+    const local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
+    expect(local.hooks.Stop).toHaveLength(1);
+    expect(local.hooks.Stop[0].hooks).toHaveLength(1);
+    expect(local.hooks.Stop[0].hooks[0]).toMatchObject({ command: r.stopCommand, async: true, timeout: 20 });
+    expect(local.hooks.UserPromptSubmit[0].hooks).toEqual([{ type: "command", command: old, timeout: 5 }]);
+  });
+
   it("re-running init repairs a stale PATH-dependent command in settings.local.json in place", () => {
     const root = tmp();
     fs.mkdirSync(path.join(root, ".claude"));

@@ -4,7 +4,7 @@ import { knownWithheld, planGate } from "./guard.js";
 import { isVerified, readProvenance } from "./provenance.js";
 import { loadConfig } from "./config.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
-import { hookRoot, logHookProblem, readStdinJson, runHook } from "./hook.js";
+import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { loadEnvFallbacks } from "./env.js";
 import { init } from "./init.js";
 import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong, MIN_LABELS, readFitInfo, readLabels, runFit } from "./labels.js";
@@ -13,7 +13,7 @@ import { watchCodex } from "./watch.js";
 import { mergeTurn } from "./transcript.js";
 import { createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
 import { serveMcp } from "./mcp.js";
-import { queueStats } from "./queue.js";
+import { enqueueTurn, queueStats } from "./queue.js";
 import { rankGuarded } from "./recall.js";
 import { scrubSecrets } from "./scrub.js";
 import { MemoryStore } from "./store.js";
@@ -231,7 +231,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
         notes.push(...res.notes);
       }
       io.out(`\nTools: ${tools.join(", ")}${toolArg ? "" : " (detected; use --tool to choose)"}\n`);
-      if (tools.includes("claude")) io.out(`Claude Code hook command: ${r.command}\n`);
+      if (tools.includes("claude")) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n`);
       for (const n of notes) io.out(`\n${n}\n`);
       if (!hasJevKey()) io.out(`\n! TYPESAFE_API_KEY is not set. Jevmem no-ops until it is. Get a key at https://typesafe.ai\n`);
       io.out(`\nNext: keep working. JEVMEM.md fills itself. Try \`jevmem list\`, \`jevmem search "<query>"\`, \`jevmem why <id>\`, \`jevmem stats\`.\n`);
@@ -242,25 +242,32 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       let projectRoot = root;
       let event = "hook";
       try {
-        const input = await readStdinJson();
+        // --stdin-file: the launcher (bin/jevmem-hook.sh --detach) saved the hook JSON to a temp file and detached us.
+        const stdinFile = opt(args, "--stdin-file");
+        const input = stdinFile ? readInputFile(stdinFile) : await readStdinJson();
         projectRoot = hookRoot(input);
-        event = input.hook_event_name ?? event;
+        event = hookEvent(input);
         loadEnvFallbacks(projectRoot); // desktop-app hooks get no shell profile
         const cfg = loadConfig(projectRoot);
         const verbose = process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1";
         let out = null as Awaited<ReturnType<typeof runHook>> | null;
         const useDaemon = daemonEnabled(cfg) && hasJevKey();
-        if (useDaemon) {
-          const t0 = performance.now();
-          const res = await daemonRequest(projectRoot, { type: "hook", input }, { connectMs: 250, responseMs: cfg.jev.timeoutMs + cfg.writer.timeoutMs + 2000 });
-          if (res && res.ok && res.type === "hook") {
-            out = res.outcome;
-            if (out.summary) out.summary += ` (daemon round trip ${Math.round(performance.now() - t0)} ms)`;
+        if (event !== "UserPromptSubmit" && hasJevKey()) {
+          // Stop: queue the turn and hand it to the daemon; never wait for Jev here.
+          out = await handOffStop(projectRoot, cfg, input, event, useDaemon);
+        } else {
+          if (useDaemon) {
+            const t0 = performance.now();
+            const res = await daemonRequest(projectRoot, { type: "hook", input }, { connectMs: 250, responseMs: cfg.jev.timeoutMs + cfg.writer.timeoutMs + 2000 });
+            if (res && res.ok && res.type === "hook") {
+              out = res.outcome;
+              if (out.summary) out.summary += ` (daemon round trip ${Math.round(performance.now() - t0)} ms)`;
+            }
           }
-        }
-        if (!out) {
-          out = await runHook(input);
-          if (useDaemon && out.action !== "noop") spawnDaemon(projectRoot, fs.realpathSync(process.argv[1] ?? new URL(import.meta.url).pathname));
+          if (!out) {
+            out = await runHook(input);
+            if (useDaemon && out.action !== "noop") spawnDaemon(projectRoot, cliFile());
+          }
         }
         if (out.stdout) io.out(out.stdout + "\n");
         if (verbose) {
@@ -499,6 +506,61 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
     default:
       return fail(`unknown command: ${cmd}\n\n${HELP}`);
   }
+}
+
+function cliFile(): string {
+  return fs.realpathSync(process.argv[1] ?? new URL(import.meta.url).pathname);
+}
+
+/** The hook JSON the launcher saved; the file is removed after reading. */
+function readInputFile(file: string): HookInput {
+  let raw = "";
+  try {
+    raw = fs.readFileSync(file, "utf8").trim();
+  } finally {
+    try {
+      fs.unlinkSync(file);
+    } catch {
+      /* already gone */
+    }
+  }
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as HookInput;
+  } catch {
+    return { message: raw };
+  }
+}
+
+/**
+ * The Stop hook's whole job since v0.5.0: capture the turn, append it (scrubbed) to .jevmem/queue.jsonl, and ask the
+ * daemon to evaluate the queue, without waiting for the answer. A daemon that is not running is started (it evaluates
+ * the queue as it starts); an older one without the `drain` request is stopped and replaced. With the daemon off, the
+ * queue is evaluated here (the Stop hook is async, so nobody waits for it).
+ */
+async function handOffStop(root: string, cfg: ReturnType<typeof loadConfig>, input: HookInput, event: string, useDaemon: boolean): Promise<HookOutcome> {
+  const cap = captureTurn(input, root, event);
+  if ("outcome" in cap) return cap.outcome;
+  const pending = enqueueTurn(root, cap.turn);
+  if (!useDaemon) {
+    const out = await runQueueInline(root, cfg);
+    return { event, action: "queued", detail: `evaluated inline: ${out}`, via: "inline" };
+  }
+  const res = await daemonRequest(root, { type: "drain" }, { connectMs: 250, responseMs: 1500 });
+  if (res && res.ok && res.type === "draining") return { event, action: "queued", detail: `handed to the daemon (${res.pending} turn(s) queued)`, via: "daemon" };
+  if (res) {
+    // An older daemon (no `drain` request): replace it.
+    await daemonRequest(root, { type: "stop" }, { connectMs: 250, responseMs: 1000 });
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  spawnDaemon(root, cliFile());
+  return { event, action: "queued", detail: `daemon starting; it evaluates the ${pending} queued turn(s)`, via: "daemon" };
+}
+
+async function runQueueInline(root: string, cfg: ReturnType<typeof loadConfig>): Promise<string> {
+  const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+  const r = await drainTurns(root, cfg, jev);
+  return `${r.processed.map((p) => p.outcome.action).join(", ") || "nothing evaluated"}${r.blocked ? "; head waiting for retry" : ""}`;
 }
 
 function fail(msg: string): number {

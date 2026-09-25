@@ -60,6 +60,24 @@ HW_EXPECT=(
 
 slug_of() { printf '%s' "$1" | sed 's#/#-#g'; }
 
+# Decisions recorded so far (every e2e prompt produces exactly one, saved or skipped).
+decisions() { [ -f "$1/.jevmem/decisions.jsonl" ] && wc -l < "$1/.jevmem/decisions.jsonl" | tr -d ' ' || echo 0; }
+# Wait until this turn's decision is recorded, .jevmem/queue.jsonl is empty and no drain is running; print how long
+# that took after claude exited.
+wait_queue() {
+  local root="$1" before="$2" t0 now
+  t0=$("$NODE" -e 'console.log(Date.now())')
+  for _ in $(seq 1 600); do
+    if [ "$(decisions "$root")" -gt "$before" ] && [ ! -s "$root/.jevmem/queue.jsonl" ] && [ ! -e "$root/.jevmem/drain.lock" ]; then
+      now=$("$NODE" -e 'console.log(Date.now())')
+      echo "   queue drained $((now - t0)) ms after claude exited"
+      return 0
+    fi
+    sleep 0.1
+  done
+  return 1
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
   local scratch perm=()
@@ -96,7 +114,11 @@ run_once() {
     local args=(-p --max-turns 15 ${perm[@]+"${perm[@]}"})
     [ $first -eq 1 ] || args+=(--continue)
     first=0
-    ( cd "$scratch" && env -i HOME="$HOME" USER="$USER" PATH="$STRIP_PATH" TERM=dumb "$CLAUDE_BIN" "${args[@]}" "$prompt" 2>&1 | tail -3 | sed 's/^/   claude> /' )
+    local before; before=$(decisions "$scratch")
+    ( cd "$scratch" && env -i HOME="$HOME" USER="$USER" PATH="$STRIP_PATH" TERM=dumb "$CLAUDE_BIN" "${args[@]}" "$prompt" < /dev/null 2>&1 | tail -3 | sed 's/^/   claude> /' )
+    # Since v0.5.0 the Stop hook only queues the turn (async, detached) and the daemon evaluates it, so the line can
+    # land after claude exits: wait until the queue is empty and nobody is evaluating it (at most 60 s).
+    wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; fail=1; break; }
     "$NODE" - "$scratch" "$exp" "$((i+1))" <<'JS' || fail=1
       const fs=require("fs");const [root,exp,turn]=process.argv.slice(2);
       const [wantTotal,wantSup,wantKind,wantPrevSup]=exp.split(" ");

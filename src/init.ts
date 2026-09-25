@@ -15,7 +15,10 @@ export interface InitOptions {
 export interface InitResult {
   created: string[];
   skipped: string[];
+  /** The UserPromptSubmit command. */
   command: string;
+  /** The Stop command (the detaching launcher on macOS/Linux). */
+  stopCommand: string;
 }
 
 /**
@@ -24,6 +27,12 @@ export interface InitResult {
  * the node binary running `init` and the absolute path of this CLI; nothing on PATH is assumed.
  */
 export function resolveHookCommand(root: string, cliPath?: string, nodePath: string = process.execPath): string {
+  const { node, cli } = hookPaths(cliPath, nodePath);
+  void root;
+  return `"${node}" "${cli}" hook`;
+}
+
+function hookPaths(cliPath?: string, nodePath: string = process.execPath): { node: string; cli: string } {
   const real = (p: string) => {
     try {
       return fs.realpathSync(p);
@@ -31,9 +40,22 @@ export function resolveHookCommand(root: string, cliPath?: string, nodePath: str
       return p;
     }
   };
-  void root;
-  const cli = real(path.resolve(cliPath ?? new URL(import.meta.url).pathname));
-  return `"${real(nodePath)}" "${cli}" hook`;
+  return { node: real(nodePath), cli: real(path.resolve(cliPath ?? new URL(import.meta.url).pathname)) };
+}
+
+/**
+ * The Stop command. On macOS and Linux it runs the package's POSIX launcher with `--detach`
+ * (`bin/jevmem-hook.sh`): the hook process exits within milliseconds and node carries on in its own process group,
+ * so the end of a session (which signals an async hook's process group) cannot cut the handoff short. On Windows, or
+ * when the launcher is missing, it is the same node command as UserPromptSubmit (registered async either way).
+ */
+export function resolveStopCommand(root: string, cliPath?: string, nodePath: string = process.execPath, platform: NodeJS.Platform = process.platform): string {
+  const hookCmd = resolveHookCommand(root, cliPath, nodePath);
+  if (platform === "win32") return hookCmd;
+  const { node, cli } = hookPaths(cliPath, nodePath);
+  const launcher = path.join(path.dirname(path.dirname(cli)), "bin", "jevmem-hook.sh");
+  if (!fs.existsSync(launcher)) return hookCmd;
+  return `sh "${launcher}" --node "${node}" --detach hook`;
 }
 
 /**
@@ -65,8 +87,8 @@ function readSettings(file: string): any {
 
 const HOOK_EVENTS: Record<string, number> = { Stop: 20, UserPromptSubmit: 5 };
 
-function isJevmemHook(h: any, command?: string): boolean {
-  return typeof h?.command === "string" && ((command !== undefined && h.command === command) || /jevmem[^ ]*\s+hook\b/.test(h.command) || /jevmem\S*[\\/]dist[\\/]cli\.js"? hook\b/.test(h.command));
+export function isJevmemHook(h: any, command?: string): boolean {
+  return typeof h?.command === "string" && ((command !== undefined && h.command === command) || /jevmem[^ ]*\s+hook\b/.test(h.command) || /jevmem\S*[\\/]dist[\\/]cli\.js"? hook\b/.test(h.command) || /jevmem-hook\.sh"?\s/.test(h.command));
 }
 
 /** Remove every jevmem hook from a settings object; returns true when something was removed. Empty groups and events are pruned. */
@@ -94,7 +116,7 @@ function removeJevmemHooks(settings: any): boolean {
  * machine paths (node binary, CLI), so it does not belong in the shared, committed `.claude/settings.json`;
  * a jevmem hook found there is moved out.
  */
-export function registerClaudeHooks(root: string, command: string): "added" | "updated" | "present" {
+export function registerClaudeHooks(root: string, command: string, stopCommand: string = command): "added" | "updated" | "present" {
   const dir = path.join(root, ".claude");
   fs.mkdirSync(dir, { recursive: true });
   const localFile = path.join(dir, HOOK_SETTINGS_FILE);
@@ -112,22 +134,29 @@ export function registerClaudeHooks(root: string, command: string): "added" | "u
 
   local.hooks ??= {};
   for (const [event, timeout] of Object.entries(HOOK_EVENTS)) {
+    const cmd = event === "Stop" ? stopCommand : command;
+    // Stop is async (since v0.5.0): it only queues the turn, so Claude Code never waits for it.
+    const isAsync = event === "Stop";
     const list: any[] = (local.hooks[event] ??= []);
     let present = false;
     for (const g of list) {
       if (!Array.isArray(g?.hooks)) continue;
       for (const h of g.hooks) {
-        if (!isJevmemHook(h, command)) continue;
+        if (!isJevmemHook(h, cmd)) continue;
         present = true;
-        if (h.command !== command) {
-          h.command = command; // re-running init repairs a stale or PATH-dependent command
+        if (h.command !== cmd) {
+          h.command = cmd; // re-running init repairs a stale or PATH-dependent command
           h.timeout ??= timeout;
+          updated = true;
+        }
+        if (isAsync && h.async !== true) {
+          h.async = true;
           updated = true;
         }
       }
     }
     if (present) continue;
-    list.push({ hooks: [{ type: "command", command, timeout }] });
+    list.push({ hooks: [{ type: "command", command: cmd, timeout, ...(isAsync ? { async: true } : {}) }] });
     added = true;
   }
   if (added || updated) fs.writeFileSync(localFile, JSON.stringify(local, null, 2) + "\n");
@@ -149,10 +178,11 @@ export function init(opts: InitOptions): InitResult {
   store.ensureDir();
   created.push(".jevmem/");
   const command = opts.command ?? resolveHookCommand(root, opts.cliPath);
+  const stopCommand = opts.command ?? resolveStopCommand(root, opts.cliPath);
   ensureGitignore(root, opts.hooks !== false ? [".jevmem/", `.claude/${HOOK_SETTINGS_FILE}`] : [".jevmem/"], created);
   if (opts.hooks !== false) {
-    const r = registerClaudeHooks(root, command);
-    (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop + UserPromptSubmit hooks${r === "updated" ? ", command updated" : ""})`);
+    const r = registerClaudeHooks(root, command, stopCommand);
+    (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop (async) + UserPromptSubmit hooks${r === "updated" ? ", updated" : ""})`);
   }
-  return { created, skipped, command };
+  return { created, skipped, command, stopCommand };
 }
