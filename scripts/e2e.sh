@@ -8,6 +8,10 @@
 #   linkguard  five turns in a small project: save, decision, reversal (supersede), thanks, injection
 #   handwrite  a fresh, otherwise empty git repo where Claude may edit files (--permission-mode acceptEdits):
 #              each turn must add exactly one jevmem-format line and no line written by Claude itself
+#   plugin     the linkguard turns with jevmem installed as a Claude Code plugin instead of `jevmem init`: the package is
+#              packed with `npm pack` (what npm would publish), listed in a local marketplace, and installed with
+#              `claude plugin marketplace add <dir> --scope local` + `claude plugin install jevmem@jevmem-e2e --scope local`
+#              in the scratch project; both are removed again at the end
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
@@ -153,12 +157,37 @@ JS
   return $fail
 }
 
+# Install jevmem as a plugin into $1 from a freshly packed tarball (see the header).
+install_plugin() {
+  local scratch="$1" mkt
+  mkt="$(mktemp -d /tmp/jevmem-e2e-mkt.XXXXXX)"
+  PLUGIN_MKT="$mkt"
+  ( cd "$ROOT" && npm pack --pack-destination "$mkt" >/dev/null 2>&1 ) || { echo "npm pack failed"; return 1; }
+  mkdir -p "$mkt/plugins" "$mkt/.claude-plugin"
+  ( cd "$mkt" && tar xzf jevmem-*.tgz && mv package plugins/jevmem && rm -f jevmem-*.tgz )
+  printf '{"name":"jevmem-e2e","owner":{"name":"jevmem e2e"},"plugins":[{"name":"jevmem","source":"./plugins/jevmem"}]}\n' > "$mkt/.claude-plugin/marketplace.json"
+  ( cd "$scratch" && "$CLAUDE_BIN" plugin marketplace add "$mkt" --scope local 2>&1 | tail -1 | sed 's/^/   /' )
+  ( cd "$scratch" && "$CLAUDE_BIN" plugin install jevmem@jevmem-e2e --scope local 2>&1 | tail -1 | sed 's/^/   /' )
+  ( cd "$scratch" && "$CLAUDE_BIN" plugin list 2>&1 | grep -A2 "jevmem@jevmem-e2e" | sed 's/^/   /' )
+  # No jevmem init: JEVMEM.md is created by the first saved line, with the default header.
+  mkdir -p "$scratch/.jevmem"
+  "$NODE" --input-type=module -e 'const l=await import(process.argv[1]);const fs=await import("node:fs");fs.writeFileSync(process.argv[2]+"/.jevmem/e2e-header.json",JSON.stringify(l.MEMORY_HEADER.split("\n")))' "$ROOT/dist/index.js" "$scratch"
+  [ -f "$scratch/.claude/settings.local.json" ] || { echo "plugin install wrote no .claude/settings.local.json"; return 1; }
+}
+
+uninstall_plugin() {
+  local scratch="$1"
+  ( cd "$scratch" && "$CLAUDE_BIN" plugin uninstall jevmem@jevmem-e2e --scope local >/dev/null 2>&1 )
+  ( cd "$scratch" && "$CLAUDE_BIN" plugin marketplace remove jevmem-e2e >/dev/null 2>&1 )
+  [ -n "${PLUGIN_MKT:-}" ] && rm -rf "$PLUGIN_MKT"
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
   [ "$scenario" = outage ] && { run_outage "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
-    linkguard) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;
+    linkguard|plugin) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;
     handwrite) PROMPTS=("${HW_PROMPTS[@]}"); EXPECT=("${HW_EXPECT[@]}"); perm=(--permission-mode acceptEdits);;
     *) echo "unknown scenario $scenario"; return 1;;
   esac
@@ -166,14 +195,18 @@ run_once() {
   scratch="$(cd "$scratch" && pwd -P)"
   rm -rf "$scratch"/* "$scratch"/.[!.]* 2>/dev/null
   echo "================ run $run  scenario=$scenario  (automemory=$automem)  scratch=$scratch"
-  if [ "$scenario" = linkguard ]; then
+  if [ "$scenario" = linkguard ] || [ "$scenario" = plugin ]; then
     ( cd "$scratch" && git init -q && printf '{"name":"linkguard-e2e","private":true}\n' > package.json && printf '# linkguard-e2e\nScratch project for the jevmem end-to-end harness.\n' > README.md )
   else
     ( cd "$scratch" && git init -q )
   fi
-  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
-  # The lines init wrote (the header) are the only non-memory lines JEVMEM.md may ever contain.
-  "$NODE" -e 'const fs=require("fs");const r=process.argv[1];fs.writeFileSync(r+"/.jevmem/e2e-header.json",JSON.stringify(fs.readFileSync(r+"/JEVMEM.md","utf8").split("\n")))' "$scratch"
+  if [ "$scenario" = plugin ]; then
+    install_plugin "$scratch" || { uninstall_plugin "$scratch"; return 1; }
+  else
+    ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+    # The lines init wrote (the header) are the only non-memory lines JEVMEM.md may ever contain.
+    "$NODE" -e 'const fs=require("fs");const r=process.argv[1];fs.writeFileSync(r+"/.jevmem/e2e-header.json",JSON.stringify(fs.readFileSync(r+"/JEVMEM.md","utf8").split("\n")))' "$scratch"
+  fi
   "$NODE" -e '
     const fs=require("fs");const p=process.argv[1]+"/.claude/settings.local.json";const s=JSON.parse(fs.readFileSync(p,"utf8"));
     s.env={...(s.env||{}),JEVMEM_DEBUG:"1",JEVMEM_VERBOSE:"1"};fs.writeFileSync(p,JSON.stringify(s,null,2)+"\n");' "$scratch"
@@ -238,7 +271,21 @@ run_once() {
 JS
     [ $fail -eq 1 ] && break
   done
+  if [ "$scenario" = plugin ] && [ $fail -eq 0 ]; then
+    # The work was done by the plugin's hooks: the hook payloads came through the plugin launcher, and no init hook exists.
+    "$NODE" - "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const root=process.argv[2];
+      const s=JSON.parse(fs.readFileSync(root+"/.claude/settings.local.json","utf8"));
+      const errs=[];
+      if(s.hooks)errs.push("settings.local.json has hooks (expected the plugin's only)");
+      if(!Object.keys(s.enabledPlugins||{}).includes("jevmem@jevmem-e2e"))errs.push("jevmem@jevmem-e2e not enabled");
+      if(!fs.existsSync(root+"/.jevmem/provenance.jsonl"))errs.push("no provenance records (lines not written by jevmem?)");
+      if(errs.length){console.log("   ✗ FAIL plugin: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ plugin install did the work (no init hooks; enabledPlugins jevmem@jevmem-e2e)");
+JS
+  fi
   ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  [ "$scenario" = plugin ] && uninstall_plugin "$scratch"
   if [ $fail -eq 0 ]; then
     echo "---- log summary"; ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" stats | sed -n '1,4p' | sed 's/^/   /' )
     echo "PASS run $run scenario=$scenario (automemory=$automem)"

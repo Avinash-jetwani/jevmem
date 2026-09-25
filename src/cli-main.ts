@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { applyAudit, auditMemories, formatAuditTable, formatSecurityTable, securityAudit } from "./audit.js";
 import { knownWithheld, planGate } from "./guard.js";
 import { isVerified, readProvenance } from "./provenance.js";
@@ -6,12 +7,12 @@ import { loadConfig } from "./config.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { loadEnvFallbacks } from "./env.js";
-import { init } from "./init.js";
+import { init, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
 import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong, MIN_LABELS, readFitInfo, readLabels, runFit } from "./labels.js";
 import { detectTools, setupClaudeDesktop, setupCodex, setupCursor, TOOLS, type Tool } from "./tools.js";
 import { watchCodex } from "./watch.js";
 import { mergeTurn } from "./transcript.js";
-import { createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
+import { appendLog, createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
 import { serveMcp } from "./mcp.js";
 import { enqueueTurn, queueStats } from "./queue.js";
 import { rankGuarded } from "./recall.js";
@@ -25,6 +26,7 @@ Usage: jevmem <command> [options]
 
   init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
                                           Create JEVMEM.md, jevmem.config.json, .jevmem/ and set up the tool(s) (default: detect)
+  init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (e.g. when using the plugin)
   <command> --help                        Help for one command
   hook                                    Claude Code hook entrypoint (reads the hook JSON from stdin)
   daemon [status|start|stop]              Warm Jev client for the hook (auto-started by the hook; exits when idle)
@@ -84,6 +86,10 @@ Create JEVMEM.md, jevmem.config.json and .jevmem/ in the current directory and s
   --command "<cmd>" Register this hook command instead of the resolved absolute node + cli.js path
 Claude Code hooks go to .claude/settings.local.json (machine-specific paths); init adds it to .gitignore.
 Re-running init repairs an existing jevmem hook command and moves one found in .claude/settings.json.
+  --remove-hooks    Only remove jevmem's hooks from .claude/settings.local.json and .claude/settings.json (for
+                    projects that use the jevmem Claude Code plugin instead). Nothing else is touched.
+With the Claude Code plugin installed you do not need init: the plugin's hooks and MCP server work in every project.
+If a project has both, the plugin's hooks stand down and say so once per session.
 `,
   hook: `jevmem hook
 
@@ -199,6 +205,11 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       return 0;
     }
     case "init": {
+      if (flag(args, "--remove-hooks")) {
+        const removed = unregisterClaudeHooks(root);
+        io.out(removed.length ? `removed jevmem's hooks from ${removed.join(", ")}\n` : "no jevmem hooks in .claude/settings.local.json or .claude/settings.json\n");
+        return 0;
+      }
       const noHooks = flag(args, "--no-hooks");
       const command = opt(args, "--command");
       const toolArg = opt(args, "--tool");
@@ -233,6 +244,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       io.out(`\nTools: ${tools.join(", ")}${toolArg ? "" : " (detected; use --tool to choose)"}\n`);
       if (tools.includes("claude")) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n`);
       for (const n of notes) io.out(`\n${n}\n`);
+      for (const w of r.warnings) io.out(`\n! ${w}\n`);
       if (!hasJevKey()) io.out(`\n! TYPESAFE_API_KEY is not set. Jevmem no-ops until it is. Get a key at https://typesafe.ai\n`);
       io.out(`\nNext: keep working. JEVMEM.md fills itself. Try \`jevmem list\`, \`jevmem search "<query>"\`, \`jevmem why <id>\`, \`jevmem stats\`.\n`);
       return 0;
@@ -242,13 +254,21 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       let projectRoot = root;
       let event = "hook";
       try {
-        // --stdin-file: the launcher (bin/jevmem-hook.sh --detach) saved the hook JSON to a temp file and detached us.
+        // --stdin-file: the launcher (hooks/jevmem-hook.sh --detach) saved the hook JSON to a temp file and detached us.
         const stdinFile = opt(args, "--stdin-file");
+        const viaPlugin = flag(args, "--plugin");
         const input = stdinFile ? readInputFile(stdinFile) : await readStdinJson();
         projectRoot = hookRoot(input);
         event = hookEvent(input);
+        // Plugin and `jevmem init` hooks in the same project would both fire on every event: the plugin's stand down.
+        if (viaPlugin && projectHasInitHooks(projectRoot)) {
+          const warning = standDown(projectRoot, input, event);
+          if (warning) io.out(JSON.stringify({ systemMessage: warning }) + "\n");
+          return 0;
+        }
         loadEnvFallbacks(projectRoot); // desktop-app hooks get no shell profile
         const cfg = loadConfig(projectRoot);
+        if (cfg.enabled === false) return 0; // switched off for this project in jevmem.config.json
         const verbose = process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1";
         let out = null as Awaited<ReturnType<typeof runHook>> | null;
         const useDaemon = daemonEnabled(cfg) && hasJevKey();
@@ -304,7 +324,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
     }
     case "mcp": {
       // Clients without a project working directory (Claude Desktop) name the project with --root or JEVMEM_ROOT.
-      const mcpRoot = opt(args, "--root") ?? process.env.JEVMEM_ROOT ?? root;
+      // The Claude Code plugin's MCP server gets CLAUDE_PROJECT_DIR (set for stdio MCP servers).
+      const mcpRoot = opt(args, "--root") ?? process.env.JEVMEM_ROOT ?? process.env.CLAUDE_PROJECT_DIR ?? root;
       if (!fs.existsSync(mcpRoot)) return fail(`--root ${mcpRoot} does not exist`);
       await serveMcp(mcpRoot);
       return -1; // keep running
@@ -506,6 +527,39 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
     default:
       return fail(`unknown command: ${cmd}\n\n${HELP}`);
   }
+}
+
+/**
+ * The plugin's hook in a project that also has `jevmem init` hooks: do nothing (the init hooks do the work), log it
+ * once a day, and return a warning for the user once per session (shown on UserPromptSubmit).
+ */
+function standDown(root: string, input: HookInput, event: string): string | null {
+  const stateFile = path.join(root, ".jevmem", "state.json");
+  let state: Record<string, unknown> = {};
+  try {
+    state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+  } catch {
+    /* none yet */
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const next = { ...state };
+  if (state.pluginStandDownLogged !== today) {
+    appendLog(root, { ts: new Date().toISOString(), label: "hook", event: "plugin-standdown", ok: true, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, detail: "the jevmem plugin and `jevmem init` hooks are both registered; the plugin's hooks stand down" });
+    next.pluginStandDownLogged = today;
+  }
+  let warning: string | null = null;
+  const session = input.session_id ?? "unknown";
+  if (event === "UserPromptSubmit" && state.pluginStandDownWarned !== session) {
+    warning = "jevmem: this project has both the jevmem plugin and `jevmem init` hooks. The plugin's hooks are standing down so nothing runs twice. To keep only the plugin, run `jevmem init --remove-hooks`; to keep only the init hooks, disable the plugin.";
+    next.pluginStandDownWarned = session;
+  }
+  try {
+    fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+    fs.writeFileSync(stateFile, JSON.stringify(next, null, 2));
+  } catch {
+    /* best effort */
+  }
+  return warning;
 }
 
 function cliFile(): string {

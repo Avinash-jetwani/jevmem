@@ -24,14 +24,30 @@ https://github.com/user-attachments/assets/ed77849e-db1c-4c05-9ad8-4cab0b3968a2
 
 ## Install (60 seconds)
 
+You need a [TypeSafe AI](https://typesafe.ai) key for Jev (an OpenAI or Anthropic key is optional). Hooks do not read your shell profile reliably, so the simplest place for it is `~/.jevmem/env`:
+
+```bash
+mkdir -p ~/.jevmem && echo 'TYPESAFE_API_KEY=...' >> ~/.jevmem/env
+```
+
+**As a Claude Code plugin** (hooks and the MCP server, no per-project setup):
+
+```bash
+claude plugin marketplace add Avinash-jetwani/jevmem
+claude plugin install jevmem@jevmem
+```
+
+It then works in every project you open in Claude Code; `JEVMEM.md` appears with the first saved line. For one project only, run `claude plugin install jevmem@jevmem --scope local` inside it. To switch jevmem off in a project, put `{ "enabled": false }` in its `jevmem.config.json`. The plugin's hooks run through a small POSIX `sh` launcher that finds Node 20+ (Homebrew, Volta, nvm, fnm, asdf, mise), so on Windows it needs Git for Windows' `sh` on PATH.
+
+**With npm** (also sets up Cursor and Codex):
+
 ```bash
 npm install -g jevmem
-export TYPESAFE_API_KEY=...        # https://typesafe.ai (an OpenAI or Anthropic key is optional)
 cd your-project
 jevmem init --tool claude
 ```
 
-`init` creates `JEVMEM.md`, `jevmem.config.json` and a gitignored `.jevmem/` folder, and registers two Claude Code hooks in `.claude/settings.local.json`, which it adds to `.gitignore` ([details](docs/hooks.md)).
+`init` creates `JEVMEM.md`, `jevmem.config.json` and a gitignored `.jevmem/` folder, and registers two Claude Code hooks in `.claude/settings.local.json`, which it adds to `.gitignore` ([details](docs/hooks.md)). If a project has both the plugin and `init` hooks, the plugin's hooks stand down (nothing runs twice) and say so once per session; `jevmem init --remove-hooks` keeps only the plugin.
 
 ## Works with
 
@@ -39,7 +55,7 @@ What is automatic and what depends on the agent:
 
 | Tool | Setup | Capture | Recall |
 |---|---|---|---|
-| **Claude Code** | `jevmem init --tool claude` | **Automatic**, every turn, via the `Stop` hook | **Automatic**, every prompt, via `UserPromptSubmit` |
+| **Claude Code** | the plugin, or `jevmem init --tool claude` | **Automatic**, every turn, via the `Stop` hook | **Automatic**, every prompt, via `UserPromptSubmit` |
 | **Codex** | `jevmem init --tool codex` | **Automatic while `jevmem watch` runs** (it tails Codex's session log for this project and runs the same decide → write path); otherwise agent-initiated via MCP `add_memory`, prompted by an `AGENTS.md` section | Agent-initiated: `search_memory` via MCP, prompted by `AGENTS.md` |
 | **Cursor** | `jevmem init --tool cursor` | Agent-initiated: a `.cursor/rules/jevmem.mdc` rule tells the agent to call MCP `add_memory` when you state a decision. Nothing is captured if it doesn't | Agent-initiated: the rule tells it to call `search_memory` before non-trivial tasks |
 | **Claude Desktop** | `jevmem init --tool claude-desktop` prints a config snippet to paste (one project per config, named with `--root`) | Manual: ask it to call `add_memory` (no hook, no rule file) | On request: `search_memory` |
@@ -100,6 +116,7 @@ Exactly what is sent, stored and scrubbed, and what the poisoning gate does not 
 
 ```text
 jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
+jevmem init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (plugin users)
 jevmem hook                                    Hook entrypoint; reads the Claude Code hook JSON on stdin
 jevmem daemon [status|start|stop]              Warm Jev client used by the hook (auto-started, exits when idle)
 jevmem watch [--replay] [--once]               Capture turns from Codex's session log for this project

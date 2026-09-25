@@ -15,6 +15,8 @@ export interface InitOptions {
 export interface InitResult {
   created: string[];
   skipped: string[];
+  /** Warnings to print (for example: the jevmem plugin is also enabled here). */
+  warnings: string[];
   /** The UserPromptSubmit command. */
   command: string;
   /** The Stop command (the detaching launcher on macOS/Linux). */
@@ -45,7 +47,7 @@ function hookPaths(cliPath?: string, nodePath: string = process.execPath): { nod
 
 /**
  * The Stop command. On macOS and Linux it runs the package's POSIX launcher with `--detach`
- * (`bin/jevmem-hook.sh`): the hook process exits within milliseconds and node carries on in its own process group,
+ * (`hooks/jevmem-hook.sh`): the hook process exits within milliseconds and node carries on in its own process group,
  * so the end of a session (which signals an async hook's process group) cannot cut the handoff short. On Windows, or
  * when the launcher is missing, it is the same node command as UserPromptSubmit (registered async either way).
  */
@@ -53,7 +55,7 @@ export function resolveStopCommand(root: string, cliPath?: string, nodePath: str
   const hookCmd = resolveHookCommand(root, cliPath, nodePath);
   if (platform === "win32") return hookCmd;
   const { node, cli } = hookPaths(cliPath, nodePath);
-  const launcher = path.join(path.dirname(path.dirname(cli)), "bin", "jevmem-hook.sh");
+  const launcher = path.join(path.dirname(path.dirname(cli)), "hooks", "jevmem-hook.sh");
   if (!fs.existsSync(launcher)) return hookCmd;
   return `sh "${launcher}" --node "${node}" --detach hook`;
 }
@@ -163,10 +165,46 @@ export function registerClaudeHooks(root: string, command: string, stopCommand: 
   return updated ? "updated" : added ? "added" : "present";
 }
 
+/** `jevmem init --remove-hooks`: take jevmem's hooks out of the project's Claude Code settings (other hooks stay). */
+export function unregisterClaudeHooks(root: string): string[] {
+  const removed: string[] = [];
+  for (const f of [HOOK_SETTINGS_FILE, "settings.json"]) {
+    const file = path.join(root, ".claude", f);
+    const s = readSettings(file);
+    if (s && removeJevmemHooks(s)) {
+      fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
+      removed.push(`.claude/${f}`);
+    }
+  }
+  return removed;
+}
+
+/** Does this project's `.claude/settings.local.json` or `.claude/settings.json` register a jevmem hook (from `init`)? */
+export function projectHasInitHooks(root: string): boolean {
+  for (const f of [HOOK_SETTINGS_FILE, "settings.json"]) {
+    const s = readSettings(path.join(root, ".claude", f));
+    for (const list of Object.values(s?.hooks ?? {})) {
+      if (!Array.isArray(list)) continue;
+      for (const g of list) for (const h of Array.isArray(g?.hooks) ? g.hooks : []) if (isJevmemHook(h) && !/--plugin\b/.test(String(h.command) + " " + JSON.stringify(h.args ?? []))) return true;
+    }
+  }
+  return false;
+}
+
+/** Does this project's settings enable the jevmem Claude Code plugin (project or local scope)? User scope lives in the home directory, which init does not read. */
+export function projectEnablesPlugin(root: string): boolean {
+  for (const f of [HOOK_SETTINGS_FILE, "settings.json"]) {
+    const s = readSettings(path.join(root, ".claude", f));
+    for (const [id, on] of Object.entries(s?.enabledPlugins ?? {})) if (on === true && /^jevmem@/.test(id)) return true;
+  }
+  return false;
+}
+
 export function init(opts: InitOptions): InitResult {
   const root = opts.root;
   const created: string[] = [];
   const skipped: string[] = [];
+  const warnings: string[] = [];
   const store = new MemoryStore(root);
   if (!store.exists()) {
     fs.writeFileSync(store.file, MEMORY_HEADER);
@@ -183,6 +221,8 @@ export function init(opts: InitOptions): InitResult {
   if (opts.hooks !== false) {
     const r = registerClaudeHooks(root, command, stopCommand);
     (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop (async) + UserPromptSubmit hooks${r === "updated" ? ", updated" : ""})`);
+    if (projectEnablesPlugin(root))
+      warnings.push("The jevmem Claude Code plugin is also enabled in this project. Its hooks stand down while these init hooks exist, so nothing runs twice. To use only the plugin, run `jevmem init --remove-hooks`.");
   }
-  return { created, skipped, command, stopCommand };
+  return { created, skipped, warnings, command, stopCommand };
 }

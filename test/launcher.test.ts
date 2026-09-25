@@ -1,5 +1,5 @@
 /**
- * The Stop hook launcher (bin/jevmem-hook.sh --detach) as Claude Code runs it: the hook process exits at once, and the
+ * The Stop hook launcher (hooks/jevmem-hook.sh --detach) as Claude Code runs it: the hook process exits at once, and the
  * turn is still saved, by the detached node process (daemon off) or by the daemon it hands the turn to.
  */
 import { execFileSync, spawn, spawnSync } from "node:child_process";
@@ -13,7 +13,7 @@ import { startFakeJev, type FakeJev } from "./fakejev.js";
 import { SAVE_DECISION } from "./helpers.js";
 
 const CLI = path.resolve("dist/cli.js");
-const LAUNCHER = path.resolve("bin/jevmem-hook.sh");
+const LAUNCHER = path.resolve("hooks/jevmem-hook.sh");
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-launch-"));
 beforeAll(() => {
   if (!fs.existsSync(CLI)) execFileSync("pnpm", ["build"], { stdio: "ignore" });
@@ -39,7 +39,7 @@ function runLauncher(root: string, env: Record<string, string>, payload: object,
   return { ...r, ms: performance.now() - t0 };
 }
 
-describe.skipIf(process.platform === "win32")("bin/jevmem-hook.sh --detach (the Stop hook)", () => {
+describe.skipIf(process.platform === "win32")("hooks/jevmem-hook.sh --detach (the Stop hook)", () => {
   it("exits at once and the detached node process saves the turn (daemon off)", async () => {
     const root = tmp();
     init({ root, hooks: false });

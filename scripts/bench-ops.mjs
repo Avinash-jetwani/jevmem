@@ -194,7 +194,7 @@ const daemonEnv = { JEVMEM_DAEMON: "1", JEVMEM_CACHE: "0" };
 await runCli(["daemon", "start"], { env: daemonEnv });
 for (let i = 0; i < 50 && !(await lib.daemonRequest(root, { type: "ping" })); i++) await new Promise((r) => setTimeout(r, 100));
 await runCli(["hook"], { stdin: stop(0), env: daemonEnv }); // first request through the daemon warms its client
-const LAUNCHER = path.resolve("bin/jevmem-hook.sh");
+const LAUNCHER = path.resolve("hooks/jevmem-hook.sh");
 const decisionsCount = () => {
   try {
     return fs.readFileSync(path.join(root, ".jevmem", "decisions.jsonl"), "utf8").split("\n").filter(Boolean).length;
@@ -249,7 +249,7 @@ const out = {
   machine: `${process.platform} ${process.arch}, node ${process.version}`,
   network_path: `direct HTTPS to ${process.env.TYPESAFE_BASE_URL ?? "the TypeSafe API default base URL"} (POST /v1/systemone)`,
   cost_method: "input tokens × $0.042 per million; output tokens free",
-  method: "Scratch project with the memories listed in `memories`. warm: one in-process client after one warm-up call, cache off; recall_gated_*: the poisoning gate with every line unverified (no cached verdicts, then cached) and with every line verified. cache_hit_decide: second identical decide call (fast mode) served from .jevmem/cache/. cold_process: wall time of a new `node dist/cli.js …` process per call (node start-up + TLS + Jev), daemon off, cache off. hook_via_warm_daemon: wall time of a new hook process with an already-warm daemon; for Stop (v0.5.0) `hook_stop_handoff` is `node dist/cli.js hook` (queue + hand off), `hook_stop_launcher_detach` is `sh bin/jevmem-hook.sh --detach hook` as init registers it, and `hook_stop_start_to_decided` runs from the launcher's start until the daemon has recorded the turn's decision.",
+  method: "Scratch project with the memories listed in `memories`. warm: one in-process client after one warm-up call, cache off; recall_gated_*: the poisoning gate with every line unverified (no cached verdicts, then cached) and with every line verified. cache_hit_decide: second identical decide call (fast mode) served from .jevmem/cache/. cold_process: wall time of a new `node dist/cli.js …` process per call (node start-up + TLS + Jev), daemon off, cache off. hook_via_warm_daemon: wall time of a new hook process with an already-warm daemon; for Stop (v0.5.0) `hook_stop_handoff` is `node dist/cli.js hook` (queue + hand off), `hook_stop_launcher_detach` is `sh hooks/jevmem-hook.sh --detach hook` as init registers it, and `hook_stop_start_to_decided` runs from the launcher's start until the daemon has recorded the turn's decision.",
   results,
 };
 fs.mkdirSync(path.dirname(OUT), { recursive: true });

@@ -50,6 +50,8 @@ export interface Thresholds {
 }
 
 export interface JevmemConfig {
+  /** `false` turns jevmem's hooks off in this project (for example with the plugin installed for every project). */
+  enabled?: boolean;
   memoryFile: string;
   thresholds: Thresholds;
   jev: {

@@ -106,6 +106,7 @@ export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<Ho
   const cfg = loadConfig(root);
   const store = new MemoryStore(root, cfg.memoryFile);
   const event = hookEvent(input);
+  if (cfg.enabled === false) return { event, action: "noop", detail: "jevmem is switched off for this project (jevmem.config.json: enabled false)" };
   // Desktop-app hooks get no shell profile: pull the key from .jevmem/.env, ~/.jevmem/env, or the user's profiles.
   if (!deps.jev && !hasJevKey()) loadEnvFallbacks(root, process.env, deps.env?.HOME);
   const jev =

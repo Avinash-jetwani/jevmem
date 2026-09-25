@@ -105,6 +105,8 @@ Hooks do not get your shell profile, so `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, `A
 
 `jevmem init` writes outside the project only when Codex is selected explicitly (`--tool codex` or `--tool all`): it then appends an `[mcp_servers.jevmem]` section to `~/.codex/config.toml` if that file exists and has no such section. It prints the path, the backup path, and the exact lines first, and writes a backup next to the file. Plain `jevmem init` detects tools from the project only (`.claude/`, `.cursor/`, `AGENTS.md`) and never edits `~/.codex`, even when Codex is installed (tested). For very deep project paths the daemon socket is created in the system temp directory. `jevmem watch` reads `~/.codex/sessions/**/rollout-*.jsonl` for sessions whose `cwd` is this project and writes nothing there.
 
+**The Claude Code plugin** installs into `~/.claude/plugins/` (Claude Code's own directory) and runs in every project where it is enabled: in a project without `JEVMEM.md`, the first saved line creates it. Its launcher writes one file outside the project, `${CLAUDE_PLUGIN_DATA}/node-path` (the node binary it found). Set `{ "enabled": false }` in a project's `jevmem.config.json`, or install with `--scope local`, to limit where it runs.
+
 ## Reporting a vulnerability
 
 Use GitHub's private vulnerability reporting for this repository: https://github.com/Avinash-jetwani/jevmem/security/advisories/new. Please do not open a public issue for a security problem. Expect an acknowledgement within a few days; this is a one-person project in its first weeks.

@@ -177,7 +177,7 @@ describe("hook command registration", () => {
     const ups = local.hooks.UserPromptSubmit[0].hooks[0];
     expect(stop.async).toBe(true);
     expect(stop.command).toBe(r.stopCommand);
-    expect(stop.command).toMatch(/^sh ".*[/\\]bin[/\\]jevmem-hook\.sh" --node ".*" --detach hook$/);
+    expect(stop.command).toMatch(/^sh ".*[/\\]hooks[/\\]jevmem-hook\.sh" --node ".*" --detach hook$/);
     expect(ups.async).toBeUndefined();
     expect(ups.command).toMatch(/^".*node.*" ".*[/\\]dist[/\\]cli\.js" hook$/);
     // Windows has no POSIX launcher: the node command, still async.
