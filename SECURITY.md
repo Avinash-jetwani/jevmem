@@ -110,6 +110,10 @@ Hooks do not get your shell profile, so `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, `A
 
 **The Claude Code plugin** installs into `~/.claude/plugins/` (Claude Code's own directory) and runs in every project where it is enabled: in a project without `JEVMEM.md`, the first saved line creates it. Its launcher writes one file outside the project, `${CLAUDE_PLUGIN_DATA}/node-path` (the node binary it found). Set `{ "enabled": false }` in a project's `jevmem.config.json`, or install with `--scope local`, to limit where it runs.
 
+## Releases
+
+`.github/workflows/release.yml` publishes a version tag to npm from GitHub Actions through npm trusted publishing (OIDC), which attaches a provenance attestation linking the package to the commit and workflow run that built it (`npm audit signatures` checks it). It is switched off until trusted publishing is configured on npmjs.com; v0.5.0 is published by hand, without provenance. Dependabot opens weekly update pull requests for npm dependencies and GitHub Actions.
+
 ## Reporting a vulnerability
 
 Use GitHub's private vulnerability reporting for this repository: https://github.com/Avinash-jetwani/jevmem/security/advisories/new. Please do not open a public issue for a security problem. Expect an acknowledgement within a few days; this is a one-person project in its first weeks.

@@ -36,6 +36,12 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 - **The same turn is not evaluated twice.** A SHA-1 of the merged turn is stored in `.jevmem/state.json`; Stop can fire more than once per turn.
 - **Simulation fields.** The hook accepts `user_message`, `assistant_message`, and `recent_context` in the stdin JSON in addition to the real `transcript_path`. That is what the tests and `DEMO.md` use, and it makes the hook scriptable from other tools.
 
+## v0.5.0: signed releases
+
+- **Trusted publishing first, a token as fallback.** npm's docs (https://docs.npmjs.com/trusted-publishers, read 2026-09-25) require npm 11.5.1+, Node 22.14+, a GitHub-hosted runner and `id-token: write`, and attach provenance automatically. The workflow upgrades npm, runs on Node 24, and also passes `NODE_AUTH_TOKEN` from an optional `NPM_TOKEN` secret with `--provenance`, so the same job works if OIDC cannot be set up.
+- **Off by default.** The publish job runs only when the repository variable `NPM_PUBLISH` is `true`, so pushing the v0.5.0 tag verifies the release without publishing it (the brief: do not publish from it now). The `npm` environment is where required reviewers can be added.
+- **The tag must match three files.** `package.json`, `.claude-plugin/plugin.json` and the npm source in `.claude-plugin/marketplace.json` all carry the version; the plugin installs from npm, so a mismatch would point users at a version that does not exist.
+
 ## v0.5.0: import
 
 - **Statements, not files.** A `CLAUDE.md` mixes facts, rules, prose and code. Each list item and each prose sentence is one candidate, and each goes through `decide` like a turn, so the same thresholds decide what is memory-worthy; what `CLAUDE.md` says in passing ("Welcome to the repo") is skipped the same way small talk is. It costs one Jev call per statement (about $0.0001 each at the measured decide cost).
