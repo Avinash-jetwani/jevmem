@@ -7,7 +7,8 @@
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
 # not logged in, so authentication comes from CLAUDE_CODE_OAUTH_TOKEN (run `claude setup-token` once) or
-# ANTHROPIC_API_KEY, per https://code.claude.com/docs/en/authentication. The harness refuses to run without one.
+# ANTHROPIC_API_KEY, per https://code.claude.com/docs/en/authentication; the token can also be kept in
+# ~/.jevmem/e2e-oauth-token (E2E_TOKEN_FILE). The harness refuses to run without one.
 #
 # Scenarios (default: all = linkguard + handwrite, each run does both; full = all five):
 #   linkguard  five turns in a small project: save, decision, reversal (supersede), thanks, injection
@@ -45,9 +46,15 @@ if [ -z "${CLAUDE_BIN:-}" ]; then
   [ -n "$CLAUDE_BIN" ] || CLAUDE_BIN="$(command -v claude)"
 fi
 [ -x "$CLAUDE_BIN" ] || { echo "no claude binary (set CLAUDE_BIN)"; exit 2; }
+# The token may also live in a file (default ~/.jevmem/e2e-oauth-token, one line, chmod 600), so it never has to be
+# pasted into a shell or a chat.
+TOKEN_FILE="${E2E_TOKEN_FILE:-$HOME/.jevmem/e2e-oauth-token}"
+if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -s "$TOKEN_FILE" ]; then
+  CLAUDE_CODE_OAUTH_TOKEN="$(tr -d '[:space:]' < "$TOKEN_FILE")"
+fi
 if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   echo "e2e runs Claude Code in a temporary CLAUDE_CONFIG_DIR (never ~/.claude), which is not logged in."
-  echo "Set CLAUDE_CODE_OAUTH_TOKEN (create one with \`claude setup-token\`) or ANTHROPIC_API_KEY and run again."
+  echo "Set CLAUDE_CODE_OAUTH_TOKEN (create one with \`claude setup-token\`), put it in $TOKEN_FILE, or set ANTHROPIC_API_KEY."
   exit 2
 fi
 E2E_CONFIG_DIR="$(mktemp -d /tmp/jevmem-e2e-config.XXXXXX)"
