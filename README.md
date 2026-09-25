@@ -70,7 +70,7 @@ Tiers, questions, policy, contradictions, recall and audit: [docs/how-it-works.m
 | Grok 4.7 | 90.9% | 90.9% | 4/5 | 3,320 ms | $0.004602 |
 | **jevmem `auto`** | **98.5%** | **95.5%** | **5/5** | **300 ms** | $0.000127 |
 
-The 0.30 s is the Jev API decision; through a real `Stop` hook process, Node start-up included, it is 0.6 s end to end ([cost and latency](docs/cost.md)).
+The 0.30 s is the Jev API decision. Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 13–15 ms, and the daemon records the decision 0.2–0.4 s after the hook starts ([cost and latency](docs/cost.md)).
 
 On 66 held-out turns, jevmem's median decision took 0.30 s, against 2.8–4.3 s for six current LLMs.
 Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 95.5% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%) and Claude Opus 5.5 (97.0%) were more accurate on save+kind; Claude Fable 5.1 tied; GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
