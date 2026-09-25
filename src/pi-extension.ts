@@ -1,6 +1,6 @@
-import type { AgentEndEvent, ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { AgentEndEvent, ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { loadConfig } from "./config.js";
-import { runHook } from "./hook.js";
+import { runHook, type HookOutcome } from "./hook.js";
 import { MemoryStore } from "./store.js";
 
 type PiMessage = AgentEndEvent["messages"][number];
@@ -45,15 +45,38 @@ function initialized(root: string): boolean {
   return new MemoryStore(root, loadConfig(root).memoryFile).exists();
 }
 
+function preview(text: string): string {
+  const line = text.replace(/\s+/g, " ").trim();
+  return line.length > 120 ? `${line.slice(0, 119).trimEnd()}…` : line;
+}
+
+function recallNotice(context: string): string {
+  const lines = context.split("\n").filter((line) => line.startsWith("- ["));
+  const first = lines[0]?.slice(2).replace(/ \(id:[^)]*\)$/, "");
+  if (!first) return "jevmem: recalled relevant project memory";
+  return `jevmem: recalled ${preview(first)}${lines.length > 1 ? ` (+${lines.length - 1} more)` : ""}`;
+}
+
 /**
  * Register automatic recall and capture for projects initialized with jevmem.
  * Pi's event messages are adapted to the existing Claude hook decision pipeline.
  */
 export default function jevmemExtension(pi: ExtensionAPI): void {
+  let missingKeyNotified = false;
+  const notifyMissingKey = (outcome: HookOutcome, ctx: ExtensionContext): void => {
+    if (missingKeyNotified || outcome.action !== "noop" || !outcome.detail.startsWith("TYPESAFE_API_KEY not set")) return;
+    missingKeyNotified = true;
+    ctx.ui.notify("jevmem: TYPESAFE_API_KEY missing; recall and capture disabled", "warning");
+  };
+
   pi.on("before_agent_start", async (event, ctx) => {
     if (!initialized(ctx.cwd) || !event.prompt.trim()) return;
     const outcome = await runHook({ hook_event_name: "UserPromptSubmit", cwd: ctx.cwd, prompt: event.prompt }, { root: ctx.cwd });
+    notifyMissingKey(outcome, ctx);
+    if (outcome.action === "error") ctx.ui.notify(`jevmem: recall failed — ${preview(outcome.detail)}`, "warning");
+    if (outcome.action === "noop" && outcome.detail === "no relevant memories") ctx.ui.notify("jevmem: no relevant memory for this prompt", "info");
     if (!outcome.additionalContext) return;
+    ctx.ui.notify(recallNotice(outcome.additionalContext), "info");
     return { message: { customType: "jevmem-recall", content: outcome.additionalContext, display: false } };
   });
 
@@ -66,6 +89,12 @@ export default function jevmemExtension(pi: ExtensionAPI): void {
       .map((entry) => entry.message);
     const branchTurn = lastPiTurn(branchMessages);
     const previous = branchTurn?.user === turn.user && branchTurn.assistant === turn.assistant ? branchTurn.previous : turn.previous;
-    await runHook({ hook_event_name: "Stop", cwd: ctx.cwd, user_message: turn.user, assistant_message: turn.assistant, recent_context: previous }, { root: ctx.cwd });
+    const outcome = await runHook({ hook_event_name: "Stop", cwd: ctx.cwd, user_message: turn.user, assistant_message: turn.assistant, recent_context: previous }, { root: ctx.cwd });
+    notifyMissingKey(outcome, ctx);
+    if (outcome.action === "saved") {
+      const saved = outcome.detail.replace(/ id:[a-z0-9]+/, "").replace(/ via \S+$/, "");
+      ctx.ui.notify(`jevmem: saved ${preview(saved)}`, "info");
+    } else if (outcome.action === "skipped") ctx.ui.notify(`jevmem: no memory saved — ${preview(outcome.detail)}`, "info");
+    else if (outcome.action === "error") ctx.ui.notify(`jevmem: capture failed — ${preview(outcome.detail)}`, "warning");
   });
 }

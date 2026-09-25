@@ -13,7 +13,11 @@ const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-pi-"));
 const user = (text: string) => ({ role: "user", content: [{ type: "text", text }] });
 const assistant = (text: string, stopReason = "stop") => ({ role: "assistant", content: [{ type: "text", text }, { type: "thinking", thinking: "private" }], stopReason });
 const messages = (...items: unknown[]) => items as AgentEndEvent["messages"];
-const ctx = (cwd: string, branchMessages: AgentEndEvent["messages"] = []) => ({ cwd, sessionManager: { getBranch: () => branchMessages.map((message) => ({ type: "message", message })) } });
+const ctx = (cwd: string, branchMessages: AgentEndEvent["messages"] = [], notices: { message: string; type: string | undefined }[] = []) => ({
+  cwd,
+  sessionManager: { getBranch: () => branchMessages.map((message) => ({ type: "message", message })) },
+  ui: { notify: (message: string, type?: string) => notices.push({ message, type }) },
+});
 
 function handlers() {
   const events: Record<string, (event: any, ctx: any) => Promise<any>> = {};
@@ -55,14 +59,54 @@ describe("Pi lifecycle", () => {
     const root = tmp();
     init({ root, hooks: false });
     const events = handlers();
-    vi.mocked(runHook).mockResolvedValueOnce({ event: "UserPromptSubmit", action: "injected", detail: "one", additionalContext: "<jevmem-memory>Use Postgres</jevmem-memory>" })
-      .mockResolvedValueOnce({ event: "Stop", action: "saved", detail: "saved" });
-    expect(await events.before_agent_start!({ prompt: "Which database?" }, ctx(root))).toEqual({
-      message: { customType: "jevmem-recall", content: "<jevmem-memory>Use Postgres</jevmem-memory>", display: false },
+    const notices: { message: string; type: string | undefined }[] = [];
+    const injection = "<jevmem-memory>\n- [decision] Use Postgres for the primary database (id:abc123, p=0.95)\n- [constraint] Require migrations (id:def456, p=0.70)\n</jevmem-memory>";
+    vi.mocked(runHook).mockResolvedValueOnce({ event: "UserPromptSubmit", action: "injected", detail: "two", additionalContext: injection })
+      .mockResolvedValueOnce({ event: "Stop", action: "saved", detail: "[decision] Use Postgres for the primary database id:abc123 via deterministic" });
+    expect(await events.before_agent_start!({ prompt: "Which database?" }, ctx(root, [], notices))).toEqual({
+      message: { customType: "jevmem-recall", content: injection, display: false },
     });
-    await events.agent_end!({ messages: messages(user("Which database?"), assistant("Postgres")) }, ctx(root, messages(user("Use pnpm"), assistant("Okay"), user("Which database?"), assistant("Postgres"))));
+    await events.agent_end!({ messages: messages(user("Which database?"), assistant("Postgres")) }, ctx(root, messages(user("Use pnpm"), assistant("Okay"), user("Which database?"), assistant("Postgres")), notices));
     expect(runHook).toHaveBeenNthCalledWith(1, { hook_event_name: "UserPromptSubmit", cwd: root, prompt: "Which database?" }, { root });
     expect(runHook).toHaveBeenNthCalledWith(2, { hook_event_name: "Stop", cwd: root, user_message: "Which database?", assistant_message: "Postgres", recent_context: "user: Use pnpm\nassistant: Okay" }, { root });
+    expect(notices).toEqual([
+      { message: "jevmem: recalled [decision] Use Postgres for the primary database (+1 more)", type: "info" },
+      { message: "jevmem: saved [decision] Use Postgres for the primary database", type: "info" },
+    ]);
+  });
+
+  it("reports no relevant memories, skipped captures, and failures without changing model context", async () => {
+    const root = tmp();
+    init({ root, hooks: false });
+    const events = handlers();
+    const notices: { message: string; type: string | undefined }[] = [];
+    const context = ctx(root, [], notices);
+    vi.mocked(runHook).mockResolvedValueOnce({ event: "UserPromptSubmit", action: "noop", detail: "no relevant memories" })
+      .mockResolvedValueOnce({ event: "Stop", action: "skipped", detail: "chit-chat" })
+      .mockResolvedValueOnce({ event: "UserPromptSubmit", action: "error", detail: "API timeout" })
+      .mockResolvedValueOnce({ event: "Stop", action: "error", detail: "writer unavailable" });
+    expect(await events.before_agent_start!({ prompt: "What changed?" }, context)).toBeUndefined();
+    await events.agent_end!({ messages: messages(user("Thanks"), assistant("You're welcome")) }, context);
+    expect(await events.before_agent_start!({ prompt: "What changed?" }, context)).toBeUndefined();
+    await events.agent_end!({ messages: messages(user("Use SQLite"), assistant("Okay")) }, context);
+    expect(notices).toEqual([
+      { message: "jevmem: no relevant memory for this prompt", type: "info" },
+      { message: "jevmem: no memory saved — chit-chat", type: "info" },
+      { message: "jevmem: recall failed — API timeout", type: "warning" },
+      { message: "jevmem: capture failed — writer unavailable", type: "warning" },
+    ]);
+  });
+
+  it("warns once when the TypeSafe key is missing", async () => {
+    const root = tmp();
+    init({ root, hooks: false });
+    const events = handlers();
+    const notices: { message: string; type: string | undefined }[] = [];
+    const context = ctx(root, [], notices);
+    vi.mocked(runHook).mockResolvedValue({ event: "Stop", action: "noop", detail: "TYPESAFE_API_KEY not set (checked env)" });
+    await events.before_agent_start!({ prompt: "Hello" }, context);
+    await events.agent_end!({ messages: messages(user("Hello"), assistant("Hi")) }, context);
+    expect(notices).toEqual([{ message: "jevmem: TYPESAFE_API_KEY missing; recall and capture disabled", type: "warning" }]);
   });
 
   it("does not evaluate an aborted agent run", async () => {
