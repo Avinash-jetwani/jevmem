@@ -16,6 +16,9 @@ The plugin moved to `plugin/`, runs the installed CLI, and takes the key via use
 - CI: `scripts/check-plugin.mjs` fails when a file in `plugin/` is 256 KiB or larger, `plugin/` contains `dist/`, or a file looks minified; `scripts/check-versions.mjs` compares `package.json` with `plugin/.claude-plugin/plugin.json`.
 - `scripts/e2e.sh --scenario nocli`: the plugin with no CLI installed, whose hooks must stay silent; the dormant and published scenarios also check that recall uses the saved line on the next prompt.
 
+### Verified
+- `claude plugin validate --strict plugin` passes. `scripts/e2e.sh --runs 3 --scenario full`: all 18 runs passed; the plugin installed from GitHub at `plugin/` with the CLI npm-installed stayed dormant (0 requests to Jev, no files) until `jevmem enable`, then saved one line and recalled it on the next prompt; with no CLI installed its hooks printed nothing and wrote nothing (`results/e2e-2026-09-25-v053.txt`). Every run used a temporary `CLAUDE_CONFIG_DIR`; `~/.claude` was the same before and after. A separate run with the key set only through `userConfig` (and an invalid `TYPESAFE_API_KEY` in the environment) saved its line, so the option took precedence.
+
 ## [0.5.2] - 2026-09-25
 
 Publish this version: it contains everything in 0.5.1 (the plugin is now opt-in per project) plus one fix. Neither 0.5.0 nor 0.5.1 was published to npm.

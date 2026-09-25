@@ -470,7 +470,7 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant outage)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli outage)
 status=0
 for m in "${modes[@]}"; do
   for r in $(seq 1 "$RUNS"); do
