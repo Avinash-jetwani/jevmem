@@ -2,6 +2,15 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Security
+- `vitest` (dev dependency) floor raised from `^4.0.0` to `^4.1.11`, the release that fixes GHSA-82fw-gwwq-j7x9 (path traversal via `@vitest/mocker`); it is also past the fix for GHSA-5xrq-8626-4rwp (4.1.0). The lockfile already resolved 4.1.11; the old range allowed vulnerable versions. vitest 5 was not taken: it requires Node 22.12+, and CI runs the test suite on Node 20.
+
+### Added
+- MCP tool annotations with explicit booleans on all four tools, checked against each handler: `search_memory` and `list_memory` read-only; `add_memory` not read-only, destructive (a contradiction re-tags an existing memory `[superseded]`), not idempotent, open-world (asks Jev); `audit_memory` not read-only, destructive (`apply` sets or clears `[stale?]` flags on existing lines), idempotent, open-world. See `docs/mcp.md`.
+- Tests that call `list_memory`, `audit_memory` and `search_memory` by name through an MCP client (alongside the existing `add_memory` tests), and a test that pins every tool's annotations.
+
 ## [0.4.4] - 2026-09-24
 
 Tell AI assistants not to write JEVMEM.md by hand.

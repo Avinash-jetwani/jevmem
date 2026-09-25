@@ -4,12 +4,14 @@
 
 `jevmem mcp` starts a stdio MCP server with four tools:
 
-| Tool | Args | Jev calls |
-|---|---|---|
-| `search_memory` | `query`, `limit?` | 1 (choice over ids + noul per candidate) |
-| `add_memory` | `text`, `kind` | 1, or 2 on a borderline line (the hook's decide: scrub, then refuse injection / small talk / duplicates; Jev may correct the kind; a contradiction supersedes the old line) |
-| `list_memory` | `include_superseded?` | 0 |
-| `audit_memory` | `apply?` | ⌈memories / 60⌉ |
+| Tool | Args | Jev calls | Annotations (readOnly / destructive / idempotent / openWorld) |
+|---|---|---|---|
+| `search_memory` | `query`, `limit?` | 1 (choice over ids + noul per candidate) | true / false / true / true |
+| `add_memory` | `text`, `kind` | 1, or 2 on a borderline line (the hook's decide: scrub, then refuse injection / small talk / duplicates; Jev may correct the kind; a contradiction supersedes the old line) | false / true / false / true |
+| `list_memory` | `include_superseded?` | 0 | true / false / true / false |
+| `audit_memory` | `apply?` | ⌈memories / 60⌉ | false / true / true / true |
+
+Both writing tools are marked destructive because they can change existing lines, not only add new ones: `add_memory` re-tags a contradicted memory `[superseded]`, which takes it out of what is served (the line stays in the file), and `audit_memory` with `apply: true` sets or clears `[stale?]` flags on existing lines (flagged lines keep their text and stay live).
 
 ### Cursor
 
