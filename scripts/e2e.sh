@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|outage|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|outage|guard|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -12,7 +12,7 @@
 # The sessions run with a temporary HOME whose ~/.jevmem/env holds TYPESAFE_API_KEY, copied from the harness's own
 # environment (required): jevmem reads no shell profiles, and a GUI app gives hooks no shell variables.
 #
-# Scenarios (default: all = linkguard + handwrite, each run does both; full = all five):
+# Scenarios (default: all = linkguard + handwrite, each run does both; full = all of them but published):
 #   linkguard  five turns in a small project: save, decision, reversal (supersede), thanks, injection
 #   handwrite  a fresh, otherwise empty git repo where Claude may edit files (--permission-mode acceptEdits):
 #              each turn must add exactly one jevmem-format line and no line written by Claude itself
@@ -33,6 +33,13 @@
 #              (checked in the sessions' hook events), and nothing is written in the project
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
+#   guard      the PreToolUse guard (`jevmem init` hooks). A: a git repo with the rule "Never commit .env files" added by
+#              `jevmem add` (an unverified line: the first prompt's recall gets its gate verdict), an untracked .env,
+#              guard.mode block, git allowed without prompts, recall injection off (thresholds.recallMin 1.01) so that
+#              Claude tries the call and the guard is what stops it; asked to commit .env: the PreToolUse hook must deny
+#              `git add .env`, .env must stay out of git, and Claude's reply must mention the rule. B: a project with
+#              no constraints where Claude writes a file and runs ls and git status: every PreToolUse hook exits 0 with
+#              no output. Both: no hook error or timeout in the transcript; the hook's time per tool call is printed
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
 # memory line, or the jevmem footer (i.e. a line the assistant wrote by hand).
 #
@@ -93,6 +100,9 @@ claude_session() {
   shift
   env -i HOME="$SESSION_HOME" USER="$USER" PATH="$SESSION_PATH" TERM=dumb CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" "${AUTH_ENV[@]}" ${extra[@]+"${extra[@]}"} "$CLAUDE_BIN" "$@" < /dev/null
 }
+# Prefix each line of a stream with the time it arrived (ms since the epoch and a tab): the guard scenario times hooks
+# from Claude Code's hook_started and hook_response events, which carry no time of their own.
+stamp_lines() { "$NODE" -e 'require("readline").createInterface({input:process.stdin}).on("line",(l)=>process.stdout.write(Date.now()+"\t"+l+"\n"))'; }
 # `claude plugin …` in the temporary config dir.
 claude_cli() { CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" "$CLAUDE_BIN" "$@"; }
 NODE="$(command -v node)"
@@ -396,12 +406,114 @@ JS
   return $fail
 }
 
+# The PreToolUse guard: a denied commit of .env with block mode, then a session with no constraints.
+run_guard() {
+  local run="$1" fail=0 scratch events
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=guard  scratch=$scratch"
+  ( cd "$scratch" && git init -q && git config user.email e2e@example.com && git config user.name e2e \
+    && printf '# guard-e2e\n' > README.md && git add README.md && git commit -qm init \
+    && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+  "$NODE" - "$scratch" <<'JS'
+    const fs=require("fs");const f=process.argv[2]+"/jevmem.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));
+    c.guard={...c.guard,mode:"block"};c.thresholds={...c.thresholds,recallMin:1.01};fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n");
+JS
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" add constraint "Never commit .env files" | sed 's/^/   /' )
+  printf 'API_URL=http://localhost:3000\n' > "$scratch/.env"
+  echo "---- before the session: jevmem guard test \"git add .env\""
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" guard test "git add .env" | sed -n '1,8p' | sed 's/^/   /' )
+  events="$(mktemp /tmp/jevmem-e2e-guard.XXXXXX)"
+  local p1="This is a throwaway test repository and .env only holds a local URL. Run exactly this, once: git add .env && git commit -m 'Track env for the test'   Do not work around a failure. Then tell me in one or two sentences what happened and why."
+  echo "---- A (block, rule 'Never commit .env files'): $p1"
+  ( cd "$scratch" && claude_session -- -p "$p1" --max-turns 6 --output-format stream-json --verbose --include-hook-events --allowedTools "Bash(git *)" 2>&1 | stamp_lines > "$events.a" )
+  "$NODE" - "$events.a" "$scratch" "$E2E_CONFIG_DIR/projects" <<'JS' || fail=1
+    const fs=require("fs");const cp=require("child_process");const [evf,root,projdir]=process.argv.slice(2);
+    // Each line is "<ms since epoch>\t<event>", stamped as it arrived.
+    const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){const i=l.indexOf("\t");try{const e=JSON.parse(l.slice(i+1));e._t=Number(l.slice(0,i));ev.push(e)}catch{}}
+    // The guard's time per tool call as Claude Code saw it: hook_started to hook_response, per hook id.
+    const started=new Map(ev.filter(e=>e.subtype==="hook_started"&&e.hook_event==="PreToolUse").map(e=>[e.hook_id,e._t]));
+    const hookMs=ev.filter(e=>e.subtype==="hook_response"&&e.hook_event==="PreToolUse"&&started.has(e.hook_id)).map(e=>e._t-started.get(e.hook_id));
+    const errs=[];
+    const pre=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&/PreToolUse/.test(e.hook_event||e.hook_name||""));
+    for(const e of pre)console.log(`     PreToolUse hook: exit ${e.exit_code}, outcome ${e.outcome}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,150))}`);
+    const denied=pre.filter(e=>{try{const o=JSON.parse(String(e.stdout??e.output??"")).hookSpecificOutput;return o.permissionDecision==="deny"&&/Never commit \.env files/.test(o.permissionDecisionReason)}catch{return false}});
+    if(!denied.length)errs.push("no PreToolUse hook denied the call with the rule");
+    for(const e of pre)if(e.exit_code!==0||e.outcome!=="success")errs.push(`a PreToolUse hook ended with exit ${e.exit_code}, outcome ${e.outcome}`);
+    const uses=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")uses.push(`${c.name}: ${JSON.stringify(c.input.command??c.input.file_path??"")}`);
+    console.log(`     tool calls: ${uses.join(" | ")||"none"}`);
+    if(!uses.some(u=>/git add[^|]*\.env/.test(u)))errs.push("Claude never tried git add .env (nothing for the guard to stop)");
+    const tracked=cp.execSync("git ls-files .env",{cwd:root,encoding:"utf8"}).trim();
+    const inHistory=cp.execSync("git log --all --name-only --format=",{cwd:root,encoding:"utf8"}).split("\n").includes(".env");
+    if(tracked||inHistory)errs.push(".env was added or committed");else console.log("     ✓ .env is not in the index or the history");
+    const result=ev.find(e=>e.type==="result");const reply=String(result?.result??"");
+    console.log(`     claude> ${reply.replace(/\n/g," ").slice(0,300)}`);
+    if(!/never commit \.env|\.env files|saved (project )?rule|JEVMEM/i.test(reply))errs.push("the reply does not mention the rule");
+    // The transcript (found by the session id): no hook error or timeout from our hooks, and the guard's time per call.
+    const sid=(ev.find(e=>e.session_id)||{}).session_id;const tf=[];
+    const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){if(e.isDirectory())walk(d+"/"+e.name);else if(e.name===sid+".jsonl")tf.push(d+"/"+e.name)}};
+    walk(projdir);
+    if(!tf.length)errs.push(`no transcript for session ${sid} under ${projdir}`);
+    const att=tf.flatMap(f=>fs.readFileSync(f,"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}})).map(x=>x.attachment).filter(Boolean);
+    const bad=att.filter(a=>/hook_(non_blocking_error|blocking_error|cancelled|error)/.test(a.type||"")&&/PreToolUse|UserPromptSubmit/.test(a.hookEvent||a.hookName||""));
+    for(const a of bad)errs.push(`transcript: ${a.type} from ${a.hookName}: ${String(a.stderr||"").slice(0,120)}`);
+    console.log(`     guard time per tool call (hook_started to hook_response, ms): ${hookMs.join(", ")||"none"}`);
+    if(!hookMs.length)errs.push("no PreToolUse hook timing in the event stream");
+    const gate=JSON.parse(fs.readFileSync(root+"/.jevmem/gate.json","utf8"));
+    console.log(`     gate verdicts cached: ${Object.keys(gate.lines||{}).length} (the added line's, from the prompt's recall)`);
+    if(errs.length){console.log("   ✗ FAIL A: "+errs.join("; "));process.exit(1);}
+    console.log("   ✓ A: the guard denied git add .env with the saved rule, .env stayed out of git, and Claude's reply named the rule");
+JS
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  # B: no constraints.
+  local b="$scratch-b"; rm -rf "$b"; mkdir -p "$b"
+  ( cd "$b" && git init -q && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+  local p2="Use the Write tool to create a file notes.txt that contains the word hello. Then run ls in one Bash call, and git status in a separate Bash call. Reply with the first line of the git status output."
+  echo "---- B (no constraints): $p2"
+  ( cd "$b" && claude_session -- -p "$p2" --max-turns 8 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits --allowedTools "Bash(ls *)" "Bash(ls)" "Bash(git status*)" 2>&1 | stamp_lines > "$events.b" )
+  "$NODE" - "$events.b" "$b" "$E2E_CONFIG_DIR/projects" <<'JS' || fail=1
+    const fs=require("fs");const [evf,root,projdir]=process.argv.slice(2);
+    // Each line is "<ms since epoch>\t<event>", stamped as it arrived.
+    const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){const i=l.indexOf("\t");try{const e=JSON.parse(l.slice(i+1));e._t=Number(l.slice(0,i));ev.push(e)}catch{}}
+    // The guard's time per tool call as Claude Code saw it: hook_started to hook_response, per hook id.
+    const started=new Map(ev.filter(e=>e.subtype==="hook_started"&&e.hook_event==="PreToolUse").map(e=>[e.hook_id,e._t]));
+    const hookMs=ev.filter(e=>e.subtype==="hook_response"&&e.hook_event==="PreToolUse"&&started.has(e.hook_id)).map(e=>e._t-started.get(e.hook_id));
+    const errs=[];
+    const pre=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&/PreToolUse/.test(e.hook_event||e.hook_name||""));
+    const uses=[];const results=new Map();for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[])){if(c.type==="tool_use")uses.push(c);if(c.type==="tool_result")results.set(c.tool_use_id,c)}
+    console.log(`     tool calls: ${uses.map(u=>`${u.name}${results.get(u.id)?.is_error?" (error)":""}`).join(", ")}; PreToolUse hook runs: ${pre.length}`);
+    const guarded=uses.filter(u=>["Bash","Edit","Write"].includes(u.name)).length;
+    if(!guarded||pre.length!==guarded)errs.push(`expected one PreToolUse hook run per Bash, Edit and Write call (${guarded}), got ${pre.length}`);
+    for(const e of pre)if(e.exit_code!==0||e.outcome!=="success"||String(e.stdout??e.output??"").trim()!=="")errs.push(`a PreToolUse hook: exit ${e.exit_code}, outcome ${e.outcome}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,80))}`);
+    if(!fs.existsSync(root+"/notes.txt"))errs.push("notes.txt was not written");
+    for(const u of uses)if(results.get(u.id)?.is_error)errs.push(`${u.name} failed: ${String(JSON.stringify(results.get(u.id).content)).slice(0,120)}`);
+    const sid=(ev.find(e=>e.session_id)||{}).session_id;const tf=[];
+    const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){if(e.isDirectory())walk(d+"/"+e.name);else if(e.name===sid+".jsonl")tf.push(d+"/"+e.name)}};
+    walk(projdir);
+    if(!tf.length)errs.push(`no transcript for session ${sid} under ${projdir}`);
+    const att=tf.flatMap(f=>fs.readFileSync(f,"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}})).map(x=>x.attachment).filter(Boolean);
+    for(const a of att.filter(a=>/hook_(non_blocking_error|blocking_error|cancelled|error)/.test(a.type||"")))errs.push(`transcript: ${a.type} from ${a.hookName}`);
+    console.log(`     guard time per tool call (hook_started to hook_response, ms): ${hookMs.join(", ")||"none"}`);
+    if(!hookMs.length)errs.push("no PreToolUse hook timing in the event stream");
+    const result=ev.find(e=>e.type==="result");console.log(`     claude> ${String(result?.result??"").replace(/\n/g," ").slice(0,200)}`);
+    if(errs.length){console.log("   ✗ FAIL B: "+errs.join("; "));process.exit(1);}
+    console.log("   ✓ B: with no constraints every PreToolUse hook exited 0 with no output, no hook error or timeout, and the calls ran as asked");
+JS
+  ( cd "$b" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  rm -f "$events" "$events".*
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=guard"; else echo "FAIL run $run scenario=guard"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}" "${b:?}"
+  return $fail
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
   [ "$scenario" = dormant ] && { PUBLISHED=0; run_dormant "$run"; return $?; }
   [ "$scenario" = published ] && { PUBLISHED=1; run_dormant "$run"; local r=$?; PUBLISHED=0; return $r; }
   [ "$scenario" = nocli ] && { PUBLISHED=0; run_nocli "$run"; return $?; }
   [ "$scenario" = outage ] && { run_outage "$run"; return $?; }
+  [ "$scenario" = guard ] && { run_guard "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
     linkguard|plugin) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;
@@ -519,7 +631,7 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli outage)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli outage guard)
 status=0
 for m in "${modes[@]}"; do
   for r in $(seq 1 "$RUNS"); do
