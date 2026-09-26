@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { CONFIG_FILE, writeDefaultConfig } from "./config.js";
+import { CONFIG_FILE, isJevmemHookCommand, writeDefaultConfig } from "./config.js";
+import { GUARD_HOOK_TIMEOUT_S, GUARD_MATCHER } from "./guardrail.js";
 import { MEMORY_HEADER, MemoryStore } from "./store.js";
 
 export interface InitOptions {
@@ -21,6 +22,9 @@ export interface InitResult {
   command: string;
   /** The Stop command (the detaching launcher on macOS/Linux). */
   stopCommand: string;
+  /** The PreToolUse command (the guard; the launcher without --detach on macOS/Linux) and its matcher. */
+  guardCommand: string;
+  guardMatcher: string;
 }
 
 /**
@@ -61,6 +65,20 @@ export function resolveStopCommand(root: string, cliPath?: string, nodePath: str
 }
 
 /**
+ * The PreToolUse command (the guard). On macOS and Linux it runs the same launcher as Stop, without `--detach`: the
+ * launcher's project check (a shell `[ -f jevmem.config.json ]`) is the first thing it does, so a project that is not
+ * enabled costs no Node start. On Windows, or when the launcher is missing, it is the node command.
+ */
+export function resolveGuardCommand(root: string, cliPath?: string, nodePath: string = process.execPath, platform: NodeJS.Platform = process.platform): string {
+  const hookCmd = resolveHookCommand(root, cliPath, nodePath);
+  if (platform === "win32") return hookCmd;
+  const { node, cli } = hookPaths(cliPath, nodePath);
+  const launcher = path.join(path.dirname(path.dirname(cli)), "hooks", "jevmem-hook.sh");
+  if (!fs.existsSync(launcher)) return hookCmd;
+  return `sh "${launcher}" --node "${node}" hook`;
+}
+
+/**
  * Add jevmem's per-machine paths to the project `.gitignore`: `.jevmem/` (local state) and, when hooks are
  * registered, `.claude/settings.local.json` (it holds absolute paths to this machine's node and CLI). A missing
  * `.gitignore` is created only when the folder is a git repository.
@@ -87,11 +105,9 @@ function readSettings(file: string): any {
   }
 }
 
-const HOOK_EVENTS: Record<string, number> = { Stop: 20, UserPromptSubmit: 5 };
+const HOOK_EVENTS: Record<string, number> = { Stop: 20, UserPromptSubmit: 5, PreToolUse: GUARD_HOOK_TIMEOUT_S };
 
-export function isJevmemHook(h: any, command?: string): boolean {
-  return typeof h?.command === "string" && ((command !== undefined && h.command === command) || /jevmem[^ ]*\s+hook\b/.test(h.command) || /jevmem\S*[\\/]dist[\\/]cli\.js"? hook\b/.test(h.command) || /jevmem-hook\.sh"?\s/.test(h.command));
-}
+export const isJevmemHook = isJevmemHookCommand;
 
 /** Remove every jevmem hook from a settings object; returns true when something was removed. Empty groups and events are pruned. */
 function removeJevmemHooks(settings: any): boolean {
@@ -114,11 +130,11 @@ function removeJevmemHooks(settings: any): boolean {
 }
 
 /**
- * Register the Stop and UserPromptSubmit hooks in `.claude/settings.local.json`. The command holds absolute
- * machine paths (node binary, CLI), so it does not belong in the shared, committed `.claude/settings.json`;
- * a jevmem hook found there is moved out.
+ * Register the Stop, UserPromptSubmit and PreToolUse (guard, matcher `Bash|Edit|Write`) hooks in
+ * `.claude/settings.local.json`. The command holds absolute machine paths (node binary, CLI), so it does not belong in
+ * the shared, committed `.claude/settings.json`; a jevmem hook found there is moved out.
  */
-export function registerClaudeHooks(root: string, command: string, stopCommand: string = command): "added" | "updated" | "present" {
+export function registerClaudeHooks(root: string, command: string, stopCommand: string = command, guardCommand: string = command): "added" | "updated" | "present" {
   const dir = path.join(root, ".claude");
   fs.mkdirSync(dir, { recursive: true });
   const localFile = path.join(dir, HOOK_SETTINGS_FILE);
@@ -136,9 +152,10 @@ export function registerClaudeHooks(root: string, command: string, stopCommand: 
 
   local.hooks ??= {};
   for (const [event, timeout] of Object.entries(HOOK_EVENTS)) {
-    const cmd = event === "Stop" ? stopCommand : command;
+    const cmd = event === "Stop" ? stopCommand : event === "PreToolUse" ? guardCommand : command;
     // Stop is async (since v0.5.0): it only queues the turn, so Claude Code never waits for it.
     const isAsync = event === "Stop";
+    const matcher = event === "PreToolUse" ? GUARD_MATCHER : undefined;
     const list: any[] = (local.hooks[event] ??= []);
     let present = false;
     for (const g of list) {
@@ -155,10 +172,18 @@ export function registerClaudeHooks(root: string, command: string, stopCommand: 
           h.async = true;
           updated = true;
         }
+        if (matcher !== undefined && g.matcher !== matcher && g.hooks.length === 1) {
+          g.matcher = matcher;
+          updated = true;
+        }
+        if (event === "PreToolUse" && h.timeout !== timeout) {
+          h.timeout = timeout;
+          updated = true;
+        }
       }
     }
     if (present) continue;
-    list.push({ hooks: [{ type: "command", command: cmd, timeout, ...(isAsync ? { async: true } : {}) }] });
+    list.push({ ...(matcher !== undefined ? { matcher } : {}), hooks: [{ type: "command", command: cmd, timeout, ...(isAsync ? { async: true } : {}) }] });
     added = true;
   }
   if (added || updated) fs.writeFileSync(localFile, JSON.stringify(local, null, 2) + "\n");
@@ -217,14 +242,15 @@ export function init(opts: InitOptions): InitResult {
   created.push(".jevmem/");
   const command = opts.command ?? resolveHookCommand(root, opts.cliPath);
   const stopCommand = opts.command ?? resolveStopCommand(root, opts.cliPath);
+  const guardCommand = opts.command ?? resolveGuardCommand(root, opts.cliPath);
   ensureGitignore(root, opts.hooks !== false ? [".jevmem/", `.claude/${HOOK_SETTINGS_FILE}`] : [".jevmem/"], created);
   if (opts.hooks !== false) {
-    const r = registerClaudeHooks(root, command, stopCommand);
-    (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop (async) + UserPromptSubmit hooks${r === "updated" ? ", updated" : ""})`);
+    const r = registerClaudeHooks(root, command, stopCommand, guardCommand);
+    (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop (async), UserPromptSubmit and PreToolUse hooks${r === "updated" ? ", updated" : ""})`);
     if (projectEnablesPlugin(root))
       warnings.push("The jevmem Claude Code plugin is also enabled in this project. Its hooks stand down while these init hooks exist, so nothing runs twice. To use only the plugin, run `jevmem init --remove-hooks`.");
   }
-  return { created, skipped, warnings, command, stopCommand };
+  return { created, skipped, warnings, command, stopCommand, guardCommand, guardMatcher: GUARD_MATCHER };
 }
 
 const DISABLED_CONFIG = path.join(".jevmem", "jevmem.config.json.disabled");

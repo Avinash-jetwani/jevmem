@@ -1,5 +1,5 @@
 {
-  "description": "jevmem: queue each finished turn for Jev (Stop, async) and add the relevant project memories to each prompt (UserPromptSubmit). Runs the separate jevmem command-line tool; does nothing in a project until `jevmem enable`.",
+  "description": "jevmem: queue each finished turn for Jev (Stop, async), add the relevant project memories to each prompt (UserPromptSubmit), and check Bash, Edit and Write calls against the project's saved rules before they run (PreToolUse). Runs the separate jevmem command-line tool; does nothing in a project until `jevmem enable`.",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -20,6 +20,18 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh\" --detach hook --plugin",
             "async": true,
             "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh\" --guard hook --plugin",
+            "timeout": 3
           }
         ]
       }

@@ -2,7 +2,7 @@
 # jevmem Claude Code plugin launcher (POSIX sh). The plugin contains no jevmem code: it runs the `jevmem` command
 # already on this machine. This script fetches nothing and runs no package manager.
 #
-#   jevmem-hook.sh [--detach] <jevmem arguments...>
+#   jevmem-hook.sh [--detach] [--guard] <jevmem arguments...>
 #
 # 1. --detach (the Stop hook) ignores SIGTERM, SIGHUP and SIGINT first: when a session ends, Claude Code signals an
 #    async hook's process group, with `claude -p` as soon as the hook starts.
@@ -16,6 +16,9 @@
 # 5. Prints one warning line to stderr when the CLI is older than this plugin.
 # 6. Runs the CLI. With --detach it saves the hook JSON to a temp file, starts the CLI in its own process group and
 #    exits at once, so the Stop hook never makes Claude wait.
+# --guard marks the PreToolUse hook (the guard). A jevmem CLI from before the guard would read that event as a finished
+# turn, so the launcher runs it only when the CLI has the `guard` command (checked once per CLI file and cached);
+# otherwise it reads the input and exits 0 without output. It prints no warning for this hook.
 
 for a in "$@"; do
   if [ "$a" = "--detach" ]; then trap '' TERM HUP INT; fi
@@ -30,6 +33,8 @@ fi
 
 detach=0
 if [ "$1" = "--detach" ]; then detach=1; shift; fi
+guard=0
+if [ "$1" = "--guard" ]; then guard=1; shift; fi
 
 # Node versions under ~/.nvm, newest first (numeric major, minor, patch).
 nvm_versions() {
@@ -63,13 +68,14 @@ not_found() {
 readme="See the jevmem README to set it up: https://github.com/Avinash-jetwani/jevmem#readme"
 
 # 3. The CLI: on PATH, else the one cached below, else the first of a fixed list of common global bin directories,
-# else the newest nvm Node version that has it. The cache in CLAUDE_PLUGIN_DATA holds four lines: the CLI path, a
-# key (the CLI file's `ls -lL` line and this plugin's folder, which changes with each plugin version), the Node path
-# and the version warning, so a warm run reads one small file with shell builtins and starts no extra process.
+# else the newest nvm Node version that has it. The cache in CLAUDE_PLUGIN_DATA holds five lines: the CLI path, a
+# key (the CLI file's `ls -lL` line and this plugin's folder, which changes with each plugin version), the Node path,
+# the version warning, and whether the CLI has the guard (1 or 0), so a warm run reads one small file with shell
+# builtins and starts no extra process.
 cache="${CLAUDE_PLUGIN_DATA:-}/cli"
-c_cli=""; c_key=""; c_node=""; c_warning=""
+c_cli=""; c_key=""; c_node=""; c_warning=""; c_guard=""
 if [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ -f "$cache" ]; then
-  { IFS= read -r c_cli; IFS= read -r c_key; IFS= read -r c_node; IFS= read -r c_warning; } < "$cache"
+  { IFS= read -r c_cli; IFS= read -r c_key; IFS= read -r c_node; IFS= read -r c_warning; IFS= read -r c_guard; } < "$cache"
 fi
 cli="$(command -v jevmem 2>/dev/null)"
 if [ -z "$cli" ] && [ -n "$c_cli" ] && [ -x "$c_cli" ]; then cli="$c_cli"; fi
@@ -91,9 +97,10 @@ if [ -z "$cli" ]; then not_found "jevmem: CLI not found, so memory is off in thi
 key="$(ls -lL "$cli" 2>/dev/null)|${CLAUDE_PLUGIN_ROOT:-}"
 node=""
 warning=""
+has_guard=""
 cached=0
-if [ "$c_cli" = "$cli" ] && [ "$c_key" = "$key" ] && { [ -z "$c_node" ] || [ -x "$c_node" ]; }; then
-  node="$c_node"; warning="$c_warning"; cached=1
+if [ "$c_cli" = "$cli" ] && [ "$c_key" = "$key" ] && [ -n "$c_guard" ] && { [ -z "$c_node" ] || [ -x "$c_node" ]; }; then
+  node="$c_node"; warning="$c_warning"; has_guard="$c_guard"; cached=1
 fi
 
 # Run the CLI with the given arguments (through Node when it is a Node script); paths may contain spaces.
@@ -122,13 +129,19 @@ if [ "$cached" -eq 0 ]; then
   if [ -n "$cli_version" ] && [ -n "$plugin_version" ] && [ "$older" = "1" ]; then
     warning="jevmem: the jevmem CLI is $cli_version, older than this plugin ($plugin_version); update the jevmem CLI"
   fi
+  # Does this CLI have the guard? One that doesn't answers `guard --help` with "unknown command" and exit 1. Asked
+  # from / so that an older CLI does nothing in this project (such as showing a one-time notice nobody would see).
+  if (cd / && cli_run guard --help) </dev/null >/dev/null 2>&1; then has_guard=1; else has_guard=0; fi
   if [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ -n "$cli_version" ]; then
-    mkdir -p "$CLAUDE_PLUGIN_DATA" 2>/dev/null && printf '%s\n%s\n%s\n%s\n' "$cli" "$key" "$node" "$warning" > "$cache" 2>/dev/null
+    mkdir -p "$CLAUDE_PLUGIN_DATA" 2>/dev/null && printf '%s\n%s\n%s\n%s\n%s\n' "$cli" "$key" "$node" "$warning" "$has_guard" > "$cache" 2>/dev/null
   fi
 fi
 
-# 5. One warning line when the CLI is older than this plugin.
-if [ -n "$warning" ]; then echo "$warning" >&2; fi
+# The guard's hook with a CLI that has no guard: read the input and exit 0, with no output.
+if [ "$guard" -eq 1 ] && [ "$has_guard" != "1" ]; then cat > /dev/null 2>&1; exit 0; fi
+
+# 5. One warning line when the CLI is older than this plugin (not from the guard's hook, which runs on every tool call).
+if [ -n "$warning" ] && [ "$guard" -eq 0 ]; then echo "$warning" >&2; fi
 
 # 6. Run.
 if [ "$detach" -eq 1 ]; then

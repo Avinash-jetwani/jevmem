@@ -6,8 +6,8 @@ import { isVerified, readProvenance } from "./provenance.js";
 import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
-import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
-import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, readGuardConfig, type GuardInput } from "./guardrail.js";
+import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
+import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey } from "./env.js";
 import { resolveWriter } from "./llm/index.js";
 import { writerOptInNotice } from "./notice.js";
@@ -115,8 +115,10 @@ If a project has both, the plugin's hooks stand down and say so once per session
 `,
   hook: `jevmem hook
 
-Claude Code hook entrypoint. Reads the hook event JSON (Stop or UserPromptSubmit) from stdin and exits 0 on any failure.
-Registered by \`jevmem init\`; not meant to be run by hand. JEVMEM_VERBOSE=1 prints a summary, JEVMEM_DEBUG=1 logs payloads.
+Claude Code hook entrypoint. Reads the hook event JSON (Stop, UserPromptSubmit or PreToolUse) from stdin and exits 0 on
+any failure; other events do nothing. Registered by \`jevmem init\`; not meant to be run by hand. JEVMEM_VERBOSE=1 prints
+a summary for Stop and UserPromptSubmit, JEVMEM_DEBUG=1 logs payloads. PreToolUse (the guard) prints nothing but its
+decision.
 `,
   guard: `jevmem guard test "<command>"
 jevmem guard test --edit <path> [--old "<text>"] [--content "<new text>"]
@@ -236,7 +238,7 @@ function wantsHelp(args: string[]): boolean {
   return args.includes("--help") || args.includes("-h");
 }
 
-export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<number> {
+export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { stdin?: string } = {}): Promise<number> {
   io = ioArg;
   applyPluginOption(); // the Claude Code plugin's typesafe_api_key option comes first
   const args = [...argv];
@@ -327,7 +329,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
         notes.push(...res.notes);
       }
       io.out(`\nTools: ${tools.join(", ")}${toolArg ? "" : " (detected; use --tool to choose)"}\n`);
-      if (tools.includes("claude") && !noHooks) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n`);
+      if (tools.includes("claude") && !noHooks) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n  PreToolUse        ${r.guardCommand}  (matcher ${r.guardMatcher})\n`);
       for (const n of notes) io.out(`\n${n}\n`);
       for (const w of r.warnings) io.out(`\n! ${w}\n`);
       if (!resolveJevKey(root)) io.out(`\n! ${MISSING_KEY_HELP.replace(/\n/g, "\n  ")}\n`);
@@ -342,11 +344,19 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
         // --stdin-file: the launcher (hooks/jevmem-hook.sh --detach) saved the hook JSON to a temp file and detached us.
         const stdinFile = opt(args, "--stdin-file");
         const viaPlugin = flag(args, "--plugin");
-        const input = stdinFile ? readInputFile(stdinFile) : await readStdinJson();
+        const input = stdinFile ? readInputFile(stdinFile) : opts.stdin !== undefined ? parseHookInput(opts.stdin) : await readStdinJson();
         projectRoot = hookRoot(input);
         event = hookEvent(input);
         // Opt-in per project: without jevmem.config.json, do nothing at all (no key lookup, no log, no network).
         if (!isEnabled(projectRoot)) return 0;
+        // The guard (src/cli.ts sends PreToolUse there directly; this is the path for a saved input file).
+        if (event === "PreToolUse") {
+          const out = await runGuardHook(JSON.stringify(input), { viaPlugin });
+          if (out) io.out(out + "\n");
+          return 0;
+        }
+        // Only Stop and UserPromptSubmit do anything; any other event a hook entry sends is ignored.
+        if (event !== "Stop" && event !== "UserPromptSubmit") return 0;
         // Plugin and `jevmem init` hooks in the same project would both fire on every event: the plugin's stand down.
         if (viaPlugin && projectHasInitHooks(projectRoot)) {
           const warning = standDown(projectRoot, input, event);
@@ -609,7 +619,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       const forced = process.env.JEVMEM_WRITER?.trim().toLowerCase();
       if (forced && forced !== "none") io.out(`         JEVMEM_WRITER=${forced} is ignored: only "writer" in jevmem.config.json turns the LLM writer on\n`);
       if (configuredWriter(root) === "auto") io.out(`         jevmem.config.json has the pre-0.5.4 "writer": {"provider": "auto"}, which now means no LLM writer\n`);
-      const hooks = [projectEnablesPlugin(root) ? "plugin enabled in project settings" : null, projectHasInitHooks(root) ? "`jevmem init` hooks in .claude/settings.local.json" : null].filter(Boolean);
+      const hooks = [projectEnablesPlugin(root) ? "plugin enabled in project settings" : null, projectHasInitHooks(root) ? `\`jevmem init\` hooks in .claude/settings.local.json${projectHasInitGuardHook(root) ? " (with the PreToolUse guard)" : " (no PreToolUse guard: run `jevmem init` again to add it)"}` : null].filter(Boolean);
       io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no plugin setting or init hooks in this project (a plugin installed at user scope is not visible here)"}\n`);
       if (enabled) io.out(`guard    ${guardStatus(root)}\n`);
       return 0;

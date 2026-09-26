@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { envFileCandidates, loadEnvFallbacks, parseEnvFile, resolveJevKey } from "../src/env.js";
 import { hookEvent, hookRoot, runHook } from "../src/hook.js";
-import { init, resolveStopCommand, registerClaudeHooks, resolveHookCommand } from "../src/init.js";
+import { init, resolveGuardCommand, resolveStopCommand, registerClaudeHooks, resolveHookCommand, unregisterClaudeHooks } from "../src/init.js";
 import { readLog } from "../src/jev.js";
 import { clampLine } from "../src/llm/index.js";
 import { MemoryStore } from "../src/store.js";
@@ -207,6 +207,39 @@ describe("hook command registration", () => {
     expect(ups.command).toMatch(/^".*node.*" ".*[/\\]dist[/\\]cli\.js" hook$/);
     // Windows has no POSIX launcher: the node command, still async.
     expect(resolveStopCommand(root, path.resolve("dist/cli.js"), process.execPath, "win32")).toBe(r.command);
+  });
+
+  it("registers the PreToolUse guard through the same launcher (no --detach), matcher Bash|Edit|Write, timeout 3", () => {
+    const root = tmp();
+    const r = init({ root, cliPath: path.resolve("dist/cli.js") });
+    const local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
+    expect(local.hooks.PreToolUse).toEqual([{ matcher: "Bash|Edit|Write", hooks: [{ type: "command", command: r.guardCommand, timeout: 3 }] }]);
+    expect(r.guardCommand).toMatch(/^sh ".*[/\\]hooks[/\\]jevmem-hook\.sh" --node ".*" hook$/);
+    expect(r.guardMatcher).toBe("Bash|Edit|Write");
+    // Windows has no POSIX launcher: the node command.
+    expect(resolveGuardCommand(root, path.resolve("dist/cli.js"), process.execPath, "win32")).toBe(r.command);
+    expect(registerClaudeHooks(root, r.command, r.stopCommand, r.guardCommand)).toBe("present");
+  });
+
+  it("re-running init on a v0.5 project adds the guard hook, and fixes a stale matcher or timeout on it", () => {
+    const root = tmp();
+    fs.mkdirSync(path.join(root, ".claude"));
+    const cmd = '"/n/node" "/opt/jevmem/dist/cli.js" hook';
+    fs.writeFileSync(path.join(root, ".claude", "settings.local.json"), JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: cmd, timeout: 20, async: true }] }], UserPromptSubmit: [{ hooks: [{ type: "command", command: cmd, timeout: 5 }] }], PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "echo mine" }] }] } }));
+    expect(registerClaudeHooks(root, cmd, cmd, cmd)).toBe("added");
+    let local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
+    expect(local.hooks.PreToolUse).toEqual([{ matcher: "Bash", hooks: [{ type: "command", command: "echo mine" }] }, { matcher: "Bash|Edit|Write", hooks: [{ type: "command", command: cmd, timeout: 3 }] }]);
+    local.hooks.PreToolUse[1].matcher = "Bash|Edit|Write|MultiEdit";
+    local.hooks.PreToolUse[1].hooks[0].timeout = 600;
+    fs.writeFileSync(path.join(root, ".claude", "settings.local.json"), JSON.stringify(local));
+    expect(registerClaudeHooks(root, cmd, cmd, cmd)).toBe("updated");
+    local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
+    expect(local.hooks.PreToolUse[1]).toEqual({ matcher: "Bash|Edit|Write", hooks: [{ type: "command", command: cmd, timeout: 3 }] });
+    expect(local.hooks.PreToolUse[0]).toEqual({ matcher: "Bash", hooks: [{ type: "command", command: "echo mine" }] });
+    // --remove-hooks takes the guard out with the others, and leaves the user's own hook.
+    expect(unregisterClaudeHooks(root)).toEqual([".claude/settings.local.json"]);
+    local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
+    expect(local.hooks).toEqual({ PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "echo mine" }] }] });
   });
 
   it("re-running init on a v0.4 project makes its Stop hook async and switches it to the launcher", () => {

@@ -251,7 +251,12 @@ export function drainTurns(root: string, cfg: ReturnType<typeof loadConfig>, jev
 export async function readStdinJson(): Promise<HookInput> {
   const chunks: Buffer[] = [];
   for await (const c of process.stdin) chunks.push(c as Buffer);
-  const raw = Buffer.concat(chunks).toString("utf8").trim();
+  return parseHookInput(Buffer.concat(chunks).toString("utf8"));
+}
+
+/** A hook's stdin as a payload. Text that is not JSON is taken as a turn to simulate (`message`). */
+export function parseHookInput(text: string): HookInput {
+  const raw = text.trim();
   if (!raw) return {};
   try {
     return JSON.parse(raw) as HookInput;
