@@ -1,13 +1,16 @@
 /**
  * Every relative link in the public docs must resolve: the target file exists, and a `#fragment` matches a heading
  * in the target (GitHub's slug rules: lowercase, punctuation dropped, spaces to hyphens, `-1`, `-2` for repeats).
+ * HTML `src` and `srcset` count as links, and so do absolute links into this repository on GitHub
+ * (`https://github.com/Avinash-jetwani/jevmem#…`, `…/blob/main/<path>`, `…/tree/main/<path>`), which
+ * plugin/README.md uses because the plugin directory shows it outside the repository.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 function docFiles(): string[] {
-  const out = ["README.md", "DEMO.md", "SECURITY.md", "CONTRIBUTING.md", "DECISIONS.md", "results/README.md"].filter((f) => fs.existsSync(f));
+  const out = ["README.md", "DEMO.md", "SECURITY.md", "CONTRIBUTING.md", "DECISIONS.md", "results/README.md", "plugin/README.md", "brand/README.md"].filter((f) => fs.existsSync(f));
   const walk = (d: string) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
@@ -49,6 +52,11 @@ function links(markdown: string): string[] {
     if (inFence) continue;
     const noCode = line.replace(/`[^`]*`/g, "");
     for (const m of noCode.matchAll(/!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) out.push(m[1]!);
+    for (const m of noCode.matchAll(/\s(?:src|srcset)="([^"]+)"/g)) out.push(m[1]!);
+    for (const m of noCode.matchAll(/https:\/\/github\.com\/Avinash-jetwani\/jevmem(?:\/(?:blob|tree)\/main\/([^\s)#]*))?(#[\w-]+)?/g)) {
+      if (m[1] === undefined && !m[2]) continue; // the repository itself
+      out.push(`repo:${m[1] ?? "README.md"}${m[2] ?? ""}`);
+    }
   }
   return out;
 }
@@ -60,8 +68,9 @@ describe("relative links in README, docs/ and the other public docs", () => {
       const src = fs.readFileSync(file, "utf8");
       for (const link of links(src)) {
         if (/^(https?:|mailto:)/.test(link)) continue;
-        const [p, frag] = link.split("#") as [string, string | undefined];
-        const target = p ? path.normalize(path.join(path.dirname(file), decodeURIComponent(p))) : file;
+        const inRepo = link.startsWith("repo:");
+        const [p, frag] = (inRepo ? link.slice(5) : link).split("#") as [string, string | undefined];
+        const target = inRepo ? path.normalize(p.replace(/\/$/, "") || ".") : p ? path.normalize(path.join(path.dirname(file), decodeURIComponent(p))) : file;
         if (!fs.existsSync(target)) {
           broken.push(`${file}: ${link} (no file ${target})`);
           continue;

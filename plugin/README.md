@@ -10,20 +10,23 @@ Supported in Claude Code only: the terminal, the IDE extensions and the desktop 
 
 If you added jevmem from the Claude directory, skip the marketplace commands: install the CLI and run `jevmem enable`.
 
-This plugin contains no jevmem code. It runs the `jevmem` command-line tool, which you install separately from npm. Its source is in this repository: https://github.com/Avinash-jetwani/jevmem/tree/main/src
+This plugin contains no jevmem code. It runs the `jevmem` command-line tool, a separate package on the public npm registry (https://www.npmjs.com/package/jevmem), published with provenance by this repository's release workflow. Its source is in this repository: https://github.com/Avinash-jetwani/jevmem/tree/main/src
 
-```bash
-npm install -g jevmem
-claude plugin marketplace add Avinash-jetwani/jevmem
-claude plugin install jevmem@jevmem
-cd your-project && jevmem enable
-```
+1. Install the `jevmem` CLI. The command is in the main README: https://github.com/Avinash-jetwani/jevmem#install-60-seconds
+2. Add the plugin, unless you added it from the Claude directory:
+
+   ```bash
+   claude plugin marketplace add Avinash-jetwani/jevmem
+   claude plugin install jevmem@jevmem
+   ```
+
+3. Opt your project in: run `jevmem enable` in its folder.
 
 You need a TypeSafe AI key (https://typesafe.ai): enter it with `/plugin configure jevmem@jevmem` in Claude Code (see [Your API key](#your-api-key)). `jevmem doctor` checks the setup. `jevmem enable` creates `jevmem.config.json`, `JEVMEM.md` and `.jevmem/` in the project, and adds `.jevmem/` to `.gitignore`.
 
 ## What it runs
 
-- **Two hooks.** `UserPromptSubmit` adds relevant memory lines to your prompt. `Stop` runs asynchronously, so Claude doesn't wait for it, and hands the finished turn to jevmem. Both run `hooks/jevmem-hook.sh`, a short shell script in this folder. It looks for the installed `jevmem` CLI and Node 20+, then runs `jevmem hook --plugin`. The script contains no download or install step. If the CLI is older than the plugin, it prints one warning line.
+- **Two hooks.** `UserPromptSubmit` adds relevant memory lines to your prompt. `Stop` runs asynchronously, so Claude doesn't wait for it, and hands the finished turn to jevmem. Both run `hooks/jevmem-hook.sh`, a short shell script in this folder. It finds `jevmem` with `command -v jevmem`, or at the path it saved in the plugin's data folder the last time it found it there, and finds Node 20+ to run it with. Then it runs `jevmem hook --plugin`. The script downloads nothing and runs no package manager. If Claude Code gives hooks a PATH without `jevmem` (some desktop setups do), start Claude Code once from a terminal so the hooks can save the path. If the CLI is older than the plugin, it prints one warning line.
 - **One MCP server:** the command `jevmem mcp`, with the tools `search_memory`, `add_memory`, `list_memory` and `audit_memory`. It needs `jevmem` on the PATH Claude Code runs with. Without it, the server fails to start and `/mcp` shows the failure.
 
 ## Projects that aren't enabled

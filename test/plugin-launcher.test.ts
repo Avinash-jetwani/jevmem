@@ -1,7 +1,8 @@
 /**
- * plugin/hooks/jevmem-hook.sh: the plugin runs the jevmem CLI installed from npm. It finds the CLI on PATH or in the
- * usual global bin directories, stays silent when there is none, warns when the CLI is older than the plugin, and the
- * plugin's typesafe_api_key option (userConfig) wins over TYPESAFE_API_KEY without ever being written to a file.
+ * plugin/hooks/jevmem-hook.sh: the plugin runs the jevmem CLI already on the machine. It finds the CLI with
+ * `command -v jevmem`, else the path it cached the last time it found one; it runs no package manager, stays silent
+ * when there is no CLI, warns when the CLI is older than the plugin, and the plugin's typesafe_api_key option
+ * (userConfig) wins over TYPESAFE_API_KEY without ever being written to a file.
  */
 import { execFileSync, spawn, spawnSync, type SpawnOptions } from "node:child_process";
 import fs from "node:fs";
@@ -95,15 +96,39 @@ describe.skipIf(process.platform === "win32")("plugin/hooks/jevmem-hook.sh", () 
     expect(await waitFor(() => new MemoryStore(root).active().length === 1)).toBe(true);
   });
 
-  it("on a bare PATH (the desktop app), finds a global install under nvm and the node next to it", async () => {
+  it("on a bare PATH (the desktop app), uses the CLI path cached by an earlier run that found it on PATH", async () => {
+    fake = await startFakeJev(() => SAVE_DECISION);
+    const root = enabledProject();
+    const bin = npmBin();
+    const data = tmp();
+    const base = { HOME: tmp(), CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: data, TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0" };
+    // First run from a terminal-started session: jevmem is on PATH, and the launcher caches where.
+    expect(spawnSync("sh", [LAUNCHER, "hook", "--plugin"], { cwd: root, env: { ...base, PATH: `${bin}:/usr/bin:/bin` }, input: ups(root), encoding: "utf8" }).status).toBe(0);
+    expect(fs.readFileSync(path.join(data, "cli"), "utf8").split("\n")[0]).toBe(path.join(bin, "jevmem"));
+    // Then a bare PATH: the cached path is used.
+    const r = spawnSync("sh", [LAUNCHER, "--detach", "hook", "--plugin"], { cwd: root, env: { ...base, PATH: "/usr/bin:/bin" }, input: stop(root), encoding: "utf8" });
+    expect(r.status).toBe(0);
+    expect(await waitFor(() => new MemoryStore(root).active().length === 1)).toBe(true);
+  });
+
+  it("does not search other directories: a CLI under ~/.nvm is not used on a bare PATH without a cached path", async () => {
     fake = await startFakeJev(() => SAVE_DECISION);
     const root = enabledProject();
     const home = tmp();
     npmBin(path.join(home, ".nvm", "versions", "node", "v22.9.0", "bin"));
     const env = { PATH: "/usr/bin:/bin", HOME: home, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: tmp(), TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0" };
     const r = spawnSync("sh", [LAUNCHER, "--detach", "hook", "--plugin"], { cwd: root, env, input: stop(root), encoding: "utf8" });
-    expect(r.status).toBe(0);
-    expect(await waitFor(() => new MemoryStore(root).active().length === 1)).toBe(true);
+    expect([r.status, r.stdout, r.stderr]).toEqual([0, "", ""]);
+    await new Promise((res) => setTimeout(res, 1000));
+    expect(fake.requests).toHaveLength(0);
+  });
+
+  it("runs no package manager or installer, and names none (the directory reads such text as an install step)", () => {
+    for (const f of ["plugin/hooks/jevmem-hook.sh", "plugin/hooks/hooks.json"]) {
+      const text = fs.readFileSync(f, "utf8");
+      expect(text, f).not.toMatch(/\b(npm|npx|pnpm|yarn|bunx?|pip3?|pipx|uvx?|brew)\b/i);
+      expect(text, f).not.toMatch(/install/i);
+    }
   });
 
   it("warns once on stderr when the CLI is older than the plugin, keeps working, and checks the version once per CLI file", () => {
@@ -118,7 +143,7 @@ describe.skipIf(process.platform === "win32")("plugin/hooks/jevmem-hook.sh", () 
     const b = spawnSync("sh", [LAUNCHER, "hook", "--plugin"], { cwd: root, env, input: ups(root), encoding: "utf8" });
     for (const r of [a, b]) {
       expect(r.status).toBe(0);
-      expect(r.stderr).toBe(`jevmem: the installed CLI is 0.4.0, older than this plugin (${PLUGIN_VERSION}); update the jevmem package from npm\n`);
+      expect(r.stderr).toBe(`jevmem: the jevmem CLI is 0.4.0, older than this plugin (${PLUGIN_VERSION}); update the jevmem CLI\n`);
     }
     expect(fs.readFileSync(calls, "utf8").trim().split("\n")).toHaveLength(1); // cached in CLAUDE_PLUGIN_DATA
     // The same CLI version as the plugin: no warning.

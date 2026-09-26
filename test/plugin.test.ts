@@ -36,7 +36,7 @@ describe("plugin files", () => {
     expect(fs.existsSync("plugin/.mcp.json")).toBe(false);
   });
 
-  it("plugin/ contains only the manifest, the hooks, one launcher, the README and the licence: no code, nothing large", () => {
+  it("plugin/ contains only the manifest, the icon, the hooks, one launcher, the README and the licence: no code, nothing large", () => {
     const files: string[] = [];
     const walk = (d: string) => {
       for (const e of fs.readdirSync(d, { withFileTypes: true })) {
@@ -45,7 +45,9 @@ describe("plugin files", () => {
     }
     };
     walk("plugin");
-    expect(files.sort()).toEqual([".claude-plugin/plugin.json", "LICENSE", "README.md", "hooks/hooks.json", "hooks/jevmem-hook.sh"]);
+    expect(files.sort()).toEqual([".claude-plugin/icon.svg", ".claude-plugin/plugin.json", "LICENSE", "README.md", "hooks/hooks.json", "hooks/jevmem-hook.sh"]);
+    // The directory's icon is the brand kit's ink icon.
+    expect(fs.readFileSync("plugin/.claude-plugin/icon.svg", "utf8")).toBe(fs.readFileSync("brand/icon/svg/jevmem-icon-ink.svg", "utf8"));
     expect(fs.readFileSync("plugin/LICENSE", "utf8")).toBe(fs.readFileSync("LICENSE", "utf8"));
     for (const f of files) expect(fs.statSync(path.join("plugin", f)).size, f).toBeLessThan(256 * 1024);
   });

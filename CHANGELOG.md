@@ -2,6 +2,18 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.5] - 2026-09-26
+
+The plugin folder no longer contains an install command or any package-manager wording, and jevmem has its icon and brand files. No change to the CLI's behaviour.
+
+### Changed
+- **No install text in `plugin/`.** The directory's validation read an `npm install` in the plugin (most likely the `npm install -g jevmem` line in `plugin/README.md`) and held the repository's `package.json` and pnpm files as a possible custom registry. `plugin/README.md` now links to the install command in the main README and names the npm registry page (https://www.npmjs.com/package/jevmem, published with provenance). `scripts/check-plugin.mjs` fails CI on install or launcher text anywhere in `plugin/`.
+- **The plugin launcher finds the CLI with `command -v jevmem`, or the path it cached the last time it found one.** It no longer searches Homebrew, `/usr/local`, `~/.npm-global`, Volta, nvm, fnm, asdf, mise or n, and it names no package manager. If Claude Code gives hooks a PATH without `jevmem` (the desktop app can), start Claude Code once from a terminal so the launcher caches the path. As a process, the Stop launcher took 17 ms p50, against 14 ms for the `init` launcher in the same run ([results/ops-2026-09-26-v055.json](results/ops-2026-09-26-v055.json)).
+
+### Added
+- **Icon and brand files.** `plugin/.claude-plugin/icon.svg` is the plugin's icon in the directory. `brand/` holds the brand kit's SVGs (icon, lockup, mark, wordmark) and its README, and the README header is the horizontal lockup, with a dark-mode version.
+- The link check also follows HTML `src`/`srcset` and absolute links into this repository, and covers `plugin/README.md` and `brand/README.md`.
+
 ## [0.5.4] - 2026-09-26
 
 jevmem uses only the keys and services you chose: the LLM writer is opt-in per project, and shell profiles are no longer read.

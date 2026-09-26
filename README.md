@@ -1,4 +1,4 @@
-# jevmem
+<picture><source media="(prefers-color-scheme: dark)" srcset="brand/lockup/svg/jevmem-lockup-horizontal-dark.svg"><img alt="jevmem" src="brand/lockup/svg/jevmem-lockup-horizontal-light.svg" height="64"></picture>
 
 Automatic project memory for Claude Code. Also works with Cursor and Codex.
 
