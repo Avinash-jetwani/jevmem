@@ -1,10 +1,14 @@
 # jevmem plugin for Claude Code
 
-Automatic project memory for Claude Code. After each message, TypeSafe's Jev decides whether it is worth remembering and saves it as one line in `JEVMEM.md` in your repository; on each prompt, the relevant lines are added to Claude's context. Opt-in per project. Full documentation: https://github.com/Avinash-jetwani/jevmem
+Automatic project memory for Claude Code. After each message, TypeSafe's Jev decides whether it is worth remembering and saves it as one line in `JEVMEM.md` in your repository. On each prompt, the relevant lines are added to Claude's context. It is opt-in per project and does nothing until you run `jevmem enable` there. Full documentation: https://github.com/Avinash-jetwani/jevmem
 
-## Install
+## Where it works
 
-This plugin contains no jevmem code. It runs the `jevmem` command-line tool, which you install from npm first:
+Supported in Claude Code only: the terminal, the IDE extensions and the desktop app's Code tab. claude.ai chat ignores hooks and local MCP servers, so the plugin does nothing there. It is not supported or tested in Cowork.
+
+## Setup
+
+This plugin contains no jevmem code. It runs the `jevmem` command-line tool, which you install separately from npm. Its source is in this repository: https://github.com/Avinash-jetwani/jevmem/tree/main/src
 
 ```bash
 npm install -g jevmem
@@ -13,17 +17,44 @@ claude plugin install jevmem@jevmem
 cd your-project && jevmem enable
 ```
 
-When you enable the plugin, Claude Code asks for your TypeSafe API key (https://typesafe.ai) and keeps it in your system's secure credential store. You can leave it empty and use `TYPESAFE_API_KEY` from your environment, or `~/.jevmem/env`, instead.
+You need a TypeSafe AI key (https://typesafe.ai). `jevmem enable` creates `jevmem.config.json`, `JEVMEM.md` and `.jevmem/` in the project, and adds `.jevmem/` to `.gitignore`.
 
 ## What it runs
 
-- **Two hooks.** `UserPromptSubmit` adds relevant memory lines to your prompt; `Stop` (asynchronous, so Claude never waits for it) hands the finished turn to jevmem. Both run `hooks/jevmem-hook.sh`, a short shell script that looks for the installed `jevmem` CLI and Node, then runs `jevmem hook`. It downloads nothing.
-- **One MCP server:** `jevmem mcp`, with the tools `search_memory`, `add_memory`, `list_memory` and `audit_memory`. It needs `jevmem` on the PATH Claude Code runs with; if it is missing, the server fails to start and `/mcp` shows it, and `npm install -g jevmem` fixes it.
+- **Two hooks.** `UserPromptSubmit` adds relevant memory lines to your prompt. `Stop` runs asynchronously, so Claude doesn't wait for it, and hands the finished turn to jevmem. Both run `hooks/jevmem-hook.sh`, a short shell script in this folder. It looks for the installed `jevmem` CLI and Node 20+, then runs `jevmem hook --plugin`. The script contains no download or install step. If the CLI is older than the plugin, it prints one warning line.
+- **One MCP server:** the command `jevmem mcp`, with the tools `search_memory`, `add_memory`, `list_memory` and `audit_memory`. It needs `jevmem` on the PATH Claude Code runs with. Without it, the server fails to start and `/mcp` shows the failure.
 
-## What it does nothing about until you opt in
+## Projects that aren't enabled
 
-In a project without `jevmem.config.json` (created by `jevmem enable`), the hooks exit at once and the MCP tools only reply "jevmem isn't enabled in this project: run `jevmem enable`": no network calls, no files, no output. Without the `jevmem` CLI installed, the hooks also exit silently.
+In a project without `jevmem.config.json`, the hooks read their input and exit. The MCP tools reply only "jevmem isn't enabled in this project: run `jevmem enable`". There are no network calls, no files and no output (tested). Without the `jevmem` CLI installed, the hooks also exit silently.
 
-## What is sent where
+## What it sends, and where
 
-In an enabled project, jevmem sends the scrubbed text of each turn, your prompts and your memory lines to TypeSafe AI's API to be scored, and, only if you configure an OpenAI or Anthropic key, the text of a turn it decided to save to that provider to write the line. Common secrets are removed before anything is sent. No telemetry. Details: https://github.com/Avinash-jetwani/jevmem/blob/main/SECURITY.md
+Only in an enabled project. Before anything is sent, common secret shapes are replaced with `[REDACTED]`: API keys and tokens, passwords, credentials in connection strings, private keys, email addresses. This is best effort, so don't paste secrets into prompts.
+
+- **To TypeSafe AI, `https://api.typesafe.ai/v1/systemone`**, or the URL in `TYPESAFE_BASE_URL` if you set it:
+  - on each prompt: the prompt and up to 60 of your memory lines;
+  - after each turn: your message, the previous two turns (shortened), and up to 200 memory lines. Claude's reply is included only when your message reads as a question or a bug report, or has no text;
+  - from the MCP tools: the line to add (`add_memory`), your memory lines (`search_memory`, `list_memory`), and for `audit_memory` the file names to depth 3 (not their contents), `package.json` fields and the first 3,000 characters of your README.
+- **To OpenAI (`https://api.openai.com`) or Anthropic (`https://api.anthropic.com`)**, or the URL in `OPENAI_BASE_URL` or `ANTHROPIC_BASE_URL`, only if you set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`: the text of a turn Jev decided to save, to condense it into one line.
+
+There is no telemetry. Details: https://github.com/Avinash-jetwani/jevmem/blob/main/SECURITY.md
+
+## What it writes
+
+- `JEVMEM.md` in the project: the memory lines, meant to be committed.
+- `.jevmem/` in the project, which is gitignored: logs, the save queue, cached Jev answers, and recent decisions with the scrubbed turn text.
+- `${CLAUDE_PLUGIN_DATA}/cli`: the paths of the CLI and Node it found, so later runs start faster.
+- In the system temp directory: a file holding the `Stop` hook's input, deleted when jevmem reads it. For a very long project path, jevmem's local socket goes there too, instead of in `.jevmem/`.
+
+It writes nothing to `~/.jevmem/`. That folder is read only if you create `~/.jevmem/env` yourself.
+
+## Your API key
+
+Claude Code asks for your TypeSafe key when you enable the plugin. The option is marked sensitive, so the key is kept in your system's secure credential store. jevmem uses it for the hook or MCP process and doesn't write it to a file or a log.
+
+If you leave it empty, jevmem reads `TYPESAFE_API_KEY` from the environment. For any key not set there, it also reads `<project>/.jevmem/.env`, `~/.jevmem/env`, and `export NAME=...` lines in `~/.zshenv`, `~/.zprofile`, `~/.zshrc`, `~/.bash_profile`, `~/.bashrc` and `~/.profile`. That covers `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, the base URLs and the writer settings. Only those named variables are parsed; the files are not executed.
+
+## Switching it off
+
+`jevmem disable` in a project sets its config aside and leaves `JEVMEM.md` untouched. `claude plugin uninstall jevmem@jevmem` removes the plugin.

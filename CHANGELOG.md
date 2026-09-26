@@ -2,6 +2,17 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+Plugin folder and release process prepared for the Claude plugin directory's developer portal. No CLI change, so no npm release.
+
+### Changed
+- **Hook commands use the quoted `"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh"` form** that the directory's checklist asks for in a plugin that lives in a subfolder. A test checks the rule and runs both commands through a shell from a plugin path containing a space.
+- **`plugin/README.md` is the directory listing.** It covers where the plugin works (Claude Code only), what it runs, each host it sends to and what it sends, what it writes, and every place the key is read from.
+- **`plugin/LICENSE`**, and `.gitignore` plus `scripts/check-plugin.mjs` keep operating-system files (`.DS_Store`, `Thumbs.db`, `desktop.ini`, `__MACOSX`) out of `plugin/`.
+- **The directory follows the `directory` branch.** After `npm publish` succeeds, the release workflow fast-forwards it to the tagged commit, and the "Protect main" ruleset covers it. The release steps are in CONTRIBUTING.md, and each checklist row's result is in DECISIONS.md.
+- The launcher's messages no longer spell out an install command.
+
 ## [0.5.3] - 2026-09-25
 
 The plugin moved to `plugin/`, runs the installed CLI, and takes the key via userConfig.

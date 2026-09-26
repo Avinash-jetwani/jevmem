@@ -75,6 +75,59 @@ Design decisions made while building Jevmem v1, with the reasoning, so they can 
 - **Exactly once.** A drainer removes a turn only after it is decided and recorded. If it dies in between, the next drainer finds the turn's hash in `decisions.jsonl` and removes it without a second Jev call. Two lock files keep a hook process and the daemon from losing each other's queue edits (`queue.lock`, held for milliseconds) or evaluating the same turn twice (`drain.lock`, held while evaluating; a dead owner's lock is taken over).
 - **Caps: 24 hours, 200 turns.** A turn a day old is unlikely to be worth a line without its session around it, and an unbounded queue of scrubbed text is data nobody asked jevmem to keep.
 
+## Directory portal: the pre-submission checklist, row by row
+
+Submissions moved to the developer portal (claude.ai/directory/manage). Checked against https://claude.com/docs/plugins/pre-submission-checklist, https://claude.com/docs/plugins/submit and https://claude.com/docs/plugins/platform-support, read 2026-09-26, for the plugin folder `plugin/` (a subfolder of the repository). **Pass** means the rule is met; **Hold** means the portal will send the version to an Anthropic reviewer; **N/A** means the plugin has nothing the rule covers. No row is Blocks and no row is Warning.
+
+| # | Rule (checklist wording, shortened) | Result if broken | Our result |
+|---|---|---|---|
+| 1 | Submit a folder that contains `.claude-plugin/plugin.json` | Blocks | Pass: `plugin/.claude-plugin/plugin.json`; plugin path `plugin` |
+| 2 | One plugin per submission | Blocks | Pass: the marketplace lists one plugin |
+| 3 | Files a hook, MCP command or script uses are inside the plugin folder; `plugin.json` paths point inside it | Blocks for a `plugin.json` path outside | Pass: the only paths are `${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh`. The CLI the plugin runs is outside the folder by design; see rows 31 and 33 |
+| 4 | Regular files, no symbolic links, submodules or Git LFS pointers | Blocks where loaded | Pass: every file is mode 100644 or 100755; no `.gitmodules`, no LFS |
+| 5 | No `.DS_Store`, `Thumbs.db`, `desktop.ini`, `__MACOSX` in the plugin folder | Blocks | Pass: `.gitignore` ignores all four and `scripts/check-plugin.mjs` fails CI on any of them |
+| 6 | File names valid on Windows and macOS, no names differing only by case | Validation stops | Pass: none of the 165 tracked files has a colon, a trailing dot or space, a device name or a case twin |
+| 7 | Folder names on the plugin path use letters, digits, `.`, `-`, `_` | Validation stops | Pass: `plugin` |
+| 8 | No `export-ignore`/`export-subst`/`filter` in `.gitattributes` | Validation stops | Pass: the repository has no `.gitattributes` |
+| 9 | Repository under 50 MiB archived, 256 MiB unpacked, under 10,000 files; plugin files under 5 MiB | Validation stops | Pass: 0.56 MiB as `git archive` tar.gz, 4.43 MiB of tracked files, 165 files |
+| 10 | `name` lowercase letters, digits, hyphens, up to 64 characters | Blocks for non-ASCII, else Warning | Pass: `jevmem` |
+| 11 | Name is the project's own, not a reserved word or an official-looking name | Blocks / Hold | Pass: `jevmem` |
+| 12 | No other organization's plugin has the name | Blocks / Hold | Pass as far as we can check; only the portal's **Validate** can confirm it |
+| 13 | Name, `displayName`, `author.name` not confusable with another brand or publisher | Hold | Pass: no `displayName`; `author.name` is the author's own name |
+| 14 | A fork has its own name | Hold | N/A: not a fork |
+| 15 | `displayName` and `author.name` in one writing system, no look-alike or invisible characters | Blocks | Pass: ASCII |
+| 16 | Component keys spelled as in the plugins reference, not inside `experimental` | Blocks | Pass: `userConfig`, `mcpServers`; hooks load from `hooks/hooks.json` |
+| 17 | `description`, `author` and `version` are set | Warning | Pass |
+| 18 | README of at least 40 words in the plugin folder, words in code blocks not counted | Blocks | Pass: `plugin/README.md`, 741 words outside code blocks |
+| 19 | `LICENSE` file in the plugin folder or `license` in `plugin.json` | Blocks | Pass: both (`MIT`; `plugin/LICENSE` is a copy of the root `LICENSE`, checked in CI) |
+| 20 | Every non-image file under 256 KiB | Hold | Pass: the largest is `hooks/jevmem-hook.sh`, under 6 KB; checked in CI |
+| 21 | 512 files or fewer | Hold | Pass: 5 files |
+| 22 | Only text files, complete images and fonts | Hold | Pass: 5 text files |
+| 23 | Bundled images referenced only from the README | Hold | N/A: no images |
+| 24 | MCP servers declared with `command`/`args` or `url`, not `.mcpb`/`.dxt` | Hold / Blocks | Pass: `"command": "jevmem", "args": ["mcp"]` |
+| 25 | Package launchers (`npx`, `uvx`, …) pinned to an exact version | Blocks | N/A: no launcher; the plugin runs the CLI the user installed |
+| 26 | No registry-setting package-manager config next to a launcher or install | Blocks / Hold | N/A: no launcher, no install, no `.npmrc` |
+| 27 | No real credentials in any file; ask through a sensitive `userConfig` option | Blocks | Pass: no credential in `plugin/`; the key is the sensitive `typesafe_api_key` option, referenced as `${user_config.typesafe_api_key}` |
+| 28 | Don't read a credential already set on the user's machine and send it to a server | Hold (Blocks for an HTTP hook) | **Hold.** When the option is empty, the CLI reads `TYPESAFE_API_KEY` from the environment, then `<project>/.jevmem/.env`, `~/.jevmem/env` and `export` lines in shell profiles, and sends it to TypeSafe AI's API. Kept on purpose for people who set up jevmem before the plugin and for the npm path; `plugin/README.md` discloses it. Not Blocks: the plugin has no HTTP hook |
+| 29 | `.mcp.json` is valid JSON matching the MCP schema | Blocks | N/A: no `.mcp.json`; the server is in `plugin.json` |
+| 30 | Remote MCP servers use `https://`/`wss://` URLs | Blocks | N/A: the server is local |
+| 31 | A local MCP server runs a file in the plugin with plain arguments, not a shell or a package script | Hold | **Hold.** `jevmem mcp` runs the npm-installed CLI, which is not in the plugin folder. The alternative, bundling the CLI (1.5 MB built), breaks rows 20 and 36 and puts built code in the folder |
+| 32 | Hook and MCP commands write each path in full from `${CLAUDE_PLUGIN_ROOT}`, no other variable, command substitution, wildcard or inline program | Blocks in a subfolder plugin | Pass: `"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" hook --plugin` (and `--detach hook --plugin`), quoted as in Claude Code's plugin docs, and `jevmem mcp`. `test/plugin.test.ts` checks the rule and runs both commands through `/bin/sh` from a plugin path containing a space |
+| 33 | Scripts a hook runs have no launchers or installs; in a subfolder plugin also no shell variables other than `${CLAUDE_PLUGIN_ROOT}`, no command substitution, no calls to other files | Hold | **Hold.** The launcher has no launcher and no install (its messages no longer even spell out an install command), but it needs variables and command substitution to find the CLI and Node on a bare PATH, and it runs the CLI |
+| 34 | A pinned registry package is always reviewed | Hold | N/A: no launcher |
+| 35 | `package.json` plus a lockfile at the plugin root is always reviewed | Hold | N/A: no `package.json` in `plugin/` |
+| 36 | In a subfolder plugin, a hook running a non-shell file or a shell script that runs another file is always reviewed | Hold | **Hold**, the same finding as row 33 ("Scripts the validator couldn't follow") |
+| 37 | `hooks/hooks.json` valid, known events and types, `https://` on HTTP hooks | Blocks | Pass: `UserPromptSubmit` and `Stop`, type `command`; `claude plugin validate --strict plugin` passes |
+| 38 | `hooks/hooks.json` not listed in `plugin.json` `hooks` | Warning | Pass: no `hooks` field |
+| 39 | Valid YAML front matter in skills, commands and agents | Blocks / Warning | N/A: none |
+| 40 | Component folders and files spelled as Claude Code expects | Blocks | Pass: `hooks/hooks.json` |
+| 41 | Security scan: the README describes everything the plugin runs, sends or fetches; readable source, nothing compiled or minified | Rejected / Hold | Pass as far as we can check: `plugin/README.md` names the CLI (with a link to its source), each host, what is sent, what is written and where the key is read from; `plugin/` has only readable text, checked in CI. The scan's verdict comes only after submission |
+
+- **Three holds, all from one design choice.** The plugin runs a CLI installed from npm (v0.5.3). Holds are not rejections: a reviewer reads the version before it goes live, and the scan can raise the same holds on later versions.
+- **Why not move the plugin to the repository root to drop the subfolder rules.** At the root, the plugin folder is the whole repository: `results/` has files over 256 KiB (row 20), and the CLI would still come from npm (rows 28 and 31).
+- **Surfaces.** Per the platform-support page, claude.ai chat ignores hooks and local MCP servers, so the plugin does nothing there. Cowork loads hooks and local MCP servers only for sessions on the user's computer, and skips an MCP server whose `${user_config.*}` option has no default. jevmem is tested in Claude Code only, and the README says it is supported there only.
+- **The directory follows the `directory` branch.** The directory republishes each new commit on the branch it tracks. `main` can hold a plugin version whose CLI is not on npm yet, and a plugin that runs a missing CLI does nothing. The release workflow therefore fast-forwards `directory` to the tagged commit only after `npm publish` succeeds. It pushes without `--force`, so a tag that is not a descendant of `directory` fails the job. The "Protect main" ruleset covers `directory` too, blocking deletion and force pushes.
+
 ## v0.5.3: a thin plugin that runs the installed CLI
 
 - **Why the plugin moved.** The directory installs a plugin from the plugin folder in its repository (pre-submission checklist, https://claude.com/docs/plugins/pre-submission-checklist, read 2026-09-25: "People who install the plugin get only the plugin folder"). The v0.5 plugin was the repository root and ran `dist/cli.js`, which is built, bundled (1.5 MB, over the 256 KiB review limit) and not committed, so a directory install would have had nothing to run. `plugin/` now holds the manifest, `hooks/hooks.json`, one launcher and the README the directory requires ("a README of at least 40 words in the plugin folder": Blocks); `scripts/check-plugin.mjs` keeps it that way in CI.

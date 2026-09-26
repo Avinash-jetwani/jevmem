@@ -1,6 +1,6 @@
 #!/bin/sh
 # jevmem Claude Code plugin launcher (POSIX sh). The plugin contains no jevmem code: it runs the jevmem CLI you
-# installed from npm (`npm install -g jevmem`). Nothing is downloaded at run time.
+# installed yourself from npm (the jevmem package). This script downloads and installs nothing.
 #
 #   jevmem-hook.sh [--detach] <jevmem arguments...>
 #
@@ -46,7 +46,7 @@ if [ -z "$cli" ]; then
   for a in "$@"; do
     if [ "$a" = "hook" ]; then cat > /dev/null 2>&1; exit 0; fi
   done
-  echo "jevmem: the jevmem CLI is not installed; run: npm install -g jevmem" >&2
+  echo "jevmem: the jevmem CLI was not found; install the jevmem package from npm" >&2
   exit 0
 fi
 
@@ -95,7 +95,7 @@ if [ "$cached" -eq 0 ]; then
   plugin_version=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "${CLAUDE_PLUGIN_ROOT:-${0%/*}/..}/.claude-plugin/plugin.json" 2>/dev/null | head -n 1)
   older=$(printf '%s\n%s\n' "$cli_version" "$plugin_version" | awk -F. 'NR==1{split($0,a,".")} NR==2{split($0,b,"."); for(i=1;i<=3;i++){if(a[i]+0<b[i]+0){print 1; exit} if(a[i]+0>b[i]+0){exit}}}')
   if [ -n "$cli_version" ] && [ -n "$plugin_version" ] && [ "$older" = "1" ]; then
-    warning="jevmem: the installed CLI is $cli_version, older than this plugin ($plugin_version); run: npm install -g jevmem"
+    warning="jevmem: the installed CLI is $cli_version, older than this plugin ($plugin_version); update the jevmem package from npm"
   fi
   if [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ -n "$cli_version" ]; then
     mkdir -p "$CLAUDE_PLUGIN_DATA" 2>/dev/null && printf '%s\n%s\n%s\n' "$key" "$node" "$warning" > "$cache" 2>/dev/null

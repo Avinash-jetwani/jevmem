@@ -36,7 +36,7 @@ describe("plugin files", () => {
     expect(fs.existsSync("plugin/.mcp.json")).toBe(false);
   });
 
-  it("plugin/ contains only the manifest, the hooks, one launcher and the README: no code, nothing large", () => {
+  it("plugin/ contains only the manifest, the hooks, one launcher, the README and the licence: no code, nothing large", () => {
     const files: string[] = [];
     const walk = (d: string) => {
       for (const e of fs.readdirSync(d, { withFileTypes: true })) {
@@ -45,7 +45,8 @@ describe("plugin files", () => {
     }
     };
     walk("plugin");
-    expect(files.sort()).toEqual([".claude-plugin/plugin.json", "README.md", "hooks/hooks.json", "hooks/jevmem-hook.sh"]);
+    expect(files.sort()).toEqual([".claude-plugin/plugin.json", "LICENSE", "README.md", "hooks/hooks.json", "hooks/jevmem-hook.sh"]);
+    expect(fs.readFileSync("plugin/LICENSE", "utf8")).toBe(fs.readFileSync("LICENSE", "utf8"));
     for (const f of files) expect(fs.statSync(path.join("plugin", f)).size, f).toBeLessThan(256 * 1024);
   });
 
@@ -60,11 +61,39 @@ describe("plugin files", () => {
     const h = json("plugin/hooks/hooks.json").hooks;
     const stop = h.Stop[0].hooks[0];
     const ups = h.UserPromptSubmit[0].hooks[0];
-    expect(stop).toMatchObject({ type: "command", command: "sh", async: true });
-    expect(stop.args).toEqual(["${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh", "--detach", "hook", "--plugin"]);
+    expect(stop).toMatchObject({ type: "command", async: true, command: '"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" --detach hook --plugin' });
     expect(ups.async).toBeUndefined();
-    expect(ups.args).toEqual(["${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh", "hook", "--plugin"]);
-    expect(fs.existsSync("plugin/hooks/jevmem-hook.sh")).toBe(true);
+    expect(ups.command).toBe('"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" hook --plugin');
+    expect(fs.statSync("plugin/hooks/jevmem-hook.sh").mode & 0o111, "the launcher is executable").not.toBe(0);
+  });
+
+  // The directory's rule for a plugin in a subfolder: each path in a hook or MCP command is written in full from
+  // "${CLAUDE_PLUGIN_ROOT}", with no other variable, command substitution, wildcard or inline program.
+  it("every hook and MCP command names its paths from \"${CLAUDE_PLUGIN_ROOT}\" only", () => {
+    const h = json("plugin/hooks/hooks.json").hooks;
+    const commands: string[] = Object.values(h).flatMap((groups: any) => groups.flatMap((g: any) => g.hooks.map((x: any) => [x.command, ...(x.args ?? [])].join(" "))));
+    const m = json("plugin/.claude-plugin/plugin.json");
+    for (const s of Object.values(m.mcpServers) as any[]) commands.push([s.command, ...(s.args ?? [])].join(" "));
+    expect(commands).toHaveLength(3);
+    for (const c of commands) {
+      const rest = c.replace(/"\$\{CLAUDE_PLUGIN_ROOT\}\/[A-Za-z0-9._/-]+"/g, "");
+      expect(rest, c).toMatch(/^[A-Za-z0-9 ._-]*$/); // no other variable, $( ), backtick, wildcard, quote or -c
+      expect(c, c).not.toMatch(/(^|\s)-c(\s|$)/);
+    }
+  });
+
+  it("the hooks.json commands run through a shell from a plugin folder whose path has a space", () => {
+    const root = path.join(tmp(), "plugin cache dir");
+    fs.cpSync("plugin", root, { recursive: true });
+    const project = tmp(); // not enabled: the launcher reads its input and exits 0 silently
+    const h = json("plugin/hooks/hooks.json").hooks;
+    for (const cmd of [h.UserPromptSubmit[0].hooks[0].command, h.Stop[0].hooks[0].command]) {
+      const r = spawnSync("/bin/sh", ["-c", cmd], { cwd: project, env: { PATH: "/usr/bin:/bin", HOME: tmp(), CLAUDE_PLUGIN_ROOT: root, CLAUDE_PROJECT_DIR: project }, input: "{}", encoding: "utf8" });
+      expect([r.status, r.stdout, r.stderr], cmd).toEqual([0, "", ""]);
+    }
+    // And the path really is used: an enabled project with no CLI anywhere prints nothing either, but a broken path would fail.
+    const bad = spawnSync("/bin/sh", ["-c", h.UserPromptSubmit[0].hooks[0].command], { cwd: project, env: { PATH: "/usr/bin:/bin", CLAUDE_PLUGIN_ROOT: root + "-missing", CLAUDE_PROJECT_DIR: project }, input: "{}", encoding: "utf8" });
+    expect(bad.status).not.toBe(0);
   });
 });
 

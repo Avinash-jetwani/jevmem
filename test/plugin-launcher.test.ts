@@ -118,7 +118,7 @@ describe.skipIf(process.platform === "win32")("plugin/hooks/jevmem-hook.sh", () 
     const b = spawnSync("sh", [LAUNCHER, "hook", "--plugin"], { cwd: root, env, input: ups(root), encoding: "utf8" });
     for (const r of [a, b]) {
       expect(r.status).toBe(0);
-      expect(r.stderr).toBe(`jevmem: the installed CLI is 0.4.0, older than this plugin (${PLUGIN_VERSION}); run: npm install -g jevmem\n`);
+      expect(r.stderr).toBe(`jevmem: the installed CLI is 0.4.0, older than this plugin (${PLUGIN_VERSION}); update the jevmem package from npm\n`);
     }
     expect(fs.readFileSync(calls, "utf8").trim().split("\n")).toHaveLength(1); // cached in CLAUDE_PLUGIN_DATA
     // The same CLI version as the plugin: no warning.

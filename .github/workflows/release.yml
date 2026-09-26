@@ -11,6 +11,10 @@ name: release
 #   2. Fallback: an npm automation token in the repository secret NPM_TOKEN (used only if OIDC is not configured;
 #      --provenance still signs the build).
 # The `npm` environment lets you add required reviewers before anything is published.
+#
+# After npm publish succeeds, the `directory` job fast-forwards the `directory` branch to the tagged commit. The
+# Claude plugin directory follows that branch, so a plugin version reaches it only once its CLI is on npm. The push
+# has no --force: if the tag is not ahead of `directory`, the job fails instead.
 
 on:
   push:
@@ -69,3 +73,25 @@ jobs:
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  directory:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the directory branch (fast-forward only)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fast-forward the directory branch to the released commit
+        run: |
+          set -eu
+          git fetch origin main directory
+          # Only commits already on main are released to the directory.
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "$GITHUB_REF_NAME ($GITHUB_SHA) is not on main"; exit 1; }
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/directory; then
+            echo "directory already contains $GITHUB_SHA"; exit 0
+          fi
+          git merge-base --is-ancestor origin/directory "$GITHUB_SHA" || { echo "directory is not an ancestor of $GITHUB_SHA: not a fast-forward"; exit 1; }
+          git push origin "$GITHUB_SHA:refs/heads/directory"
+          echo "directory -> $GITHUB_SHA ($GITHUB_REF_NAME)"
