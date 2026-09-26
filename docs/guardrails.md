@@ -69,6 +69,8 @@ Added latency per tool call: the whole hook process as Claude Code starts it, 30
 | A candidate sent to Jev, from a new process | 349 / 436 ms | 347 / 389 ms |
 | A candidate whose answer is cached | 40 / 41 ms | 36 / 37 ms |
 
+With the real Claude Code (2.1.281, `scripts/e2e.sh --scenario guard`, 3/3 runs passed): in `block` mode, asked to commit an untracked `.env` under "Never commit .env files", the guard denied `git add .env`, `.env` stayed out of git, and Claude's reply named the rule; the guarded call took 323–389 ms as Claude Code saw it. In a project with no rules, every hook was silent at 42–65 ms per call ([results/e2e-2026-09-26-guard.txt](../results/e2e-2026-09-26-guard.txt)).
+
 ## Settings
 
 In `jevmem.config.json` (these are the defaults):
