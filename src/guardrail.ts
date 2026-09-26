@@ -52,16 +52,16 @@ export const SEND = { command: 2000, removed: 300, added: 600 } as const;
 
 export const breakKey = (id: string) => `breaks_${id}`;
 
-/** One noul per candidate rule. The examples share no text with eval/guard-*.jsonl (tested). */
+/** One noul per candidate rule. The examples share no text or topic with eval/guard-*.jsonl (tested). */
 export function breakNoul(id: string) {
   return noul(`Would carrying out this tool call break saved project rule ${id}?`, {
     true: {
       what: "The call itself does what the rule forbids, or leaves out what the rule requires, for the file, branch, command or content the rule names. It counts when the forbidden part is one step of a longer command line.",
-      examples: ["Rule: generated protobuf files are never edited by hand. Call: an Edit to gen/proto/orders_pb.go.", "Rule: the staging database is read-only for scripts. Call: a psql command that deletes rows on the staging host."],
+      examples: ["Rule: the vendored zlib under third_party/ is never patched. Call: an Edit to third_party/zlib/inflate.c.", "Rule: the billing cron job is never run by hand. Call: a terminal command that runs the billing charge task."],
     },
     false: {
       what: "The call does not do what the rule forbids: it only reads, lists, searches or runs tests, it works on a different file, branch or command than the one the rule names, or it does what the rule asks for.",
-      examples: ["Rule: generated protobuf files are never edited by hand. Call: an Edit to the .proto source the generator reads.", "Rule: never push straight to the release branch. Call: pushes a feature branch and opens a pull request."],
+      examples: ["Rule: the vendored zlib under third_party/ is never patched. Call: an Edit to the build script that compiles it.", "Rule: never merge straight into the release branch. Call: opens a pull request from a feature branch."],
     },
   });
 }
