@@ -1,0 +1,117 @@
+# jevmem 0.5.6 e2e gate, 2026-09-26, 2.1.281 (Claude Code), temporary CLAUDE_CONFIG_DIR; the top-level listing of ~/.claude (ls -la) was the same before and after each set.
+# 1. scripts/e2e.sh --runs 1 --scenario nocli, then --scenario dormant: working tree before the v0.5.6 commit (parent 90feb73), plugin from this checkout's ./plugin.
+#    In the dormant run, turn 2's queue took 30 s to drain with 3 requests to Jev, against 1-2 requests and 0.4-1.2 s in the v0.5.3 and v0.5.4 dormant runs.
+#    Its scratch project was not kept, so the log could not be read; the timing matches one retried Jev call (15 s backoff, then the daemon's 15 s tick).
+# 2. scripts/e2e.sh --runs 1 --scenario dormant --keep-scratch, the same tree: rerun to read the log. 1 request, drained in 251 ms; every Jev call in its .jevmem/log.jsonl succeeded on the first attempt.
+# 3. scripts/e2e.sh --runs 1 --scenario published: the plugin installed from GitHub (plugin/ on main at 6328100), jevmem not on the session PATH, the CLI linked into the session HOME's ~/.local/bin.
+# Paths replaced with <scratch> / <home>.
+#
+# ---- 1
+================ run 1  scenario=nocli  scratch=<scratch>
+   jevmem CLI 0.5.6: npm install -g of the packed checkout, in a temporary prefix
+   Adding marketplace…✔ Successfully added marketplace: jevmem (declared in user settings)
+   1 userConfig option not yet set — run /plugin configure jevmem@jevmem in Claude Code, or pass --config KEY=VALUE.
+     ❯ jevmem@jevmem
+       Version: 0.5.6
+       Scope: user
+---- turn 1 with the plugin installed and no jevmem CLI (PATH=/usr/bin:/bin:/usr/sbin:/sbin, empty HOME)
+---- turn 2 with the plugin installed and no jevmem CLI (PATH=/usr/bin:/bin:/usr/sbin:/sbin, empty HOME, --continue)
+---- turn 3 with the plugin installed and no jevmem CLI (PATH=/usr/bin:/bin:/usr/sbin:/sbin, empty HOME)
+     turn 1 hook UserPromptSubmit: exit 0, outcome success, stdout "{\"systemMessage\":\"jevmem: CLI not found, so memory is off in this proj", stderr ""
+     turn 1 hook Stop: exit 1, outcome cancelled, stdout "", stderr ""
+     turn 1 also in a system/informational event
+     turn 2 hook UserPromptSubmit: exit 0, outcome success, stdout "", stderr ""
+     turn 2 hook Stop: exit 1, outcome cancelled, stdout "", stderr ""
+     turn 3 hook UserPromptSubmit: exit 0, outcome success, stdout "{\"systemMessage\":\"jevmem: CLI not found, so memory is off in this proj", stderr ""
+     turn 3 hook Stop: exit 1, outcome cancelled, stdout "", stderr ""
+     turn 3 also in a system/informational event
+     sessions: a5b7219a, a5b7219a, 310bad7b; message shown: true, false, true
+   ✓ every hook exited 0 (the async Stop hook shows Claude Code's usual -p "cancelled"); the CLI-not-found message was shown on each session's first prompt only; Stop printed nothing
+   ✓ no file created in the project
+PASS run 1 scenario=nocli
+================ run 1  scenario=dormant  scratch=<scratch>
+   jevmem CLI 0.5.6: npm install -g of the packed checkout, in a temporary prefix
+   Adding marketplace…✔ Successfully added marketplace: jevmem (declared in user settings)
+   1 userConfig option not yet set — run /plugin configure jevmem@jevmem in Claude Code, or pass --config KEY=VALUE.
+     ❯ jevmem@jevmem
+       Version: 0.5.6
+       Scope: user
+   jevmem not on the session PATH (/usr/bin:/bin:/usr/sbin:/sbin); linked into the session HOME's ~/.local/bin
+---- turn 1 (project not enabled): Decision: invoices are archived as PDFs in S3, one file per invoice.
+   claude> Noted and saved: invoices are archived as individual PDFs in S3 (one file per invoice), for future reference in this project.
+   ✓ turn 1: 0 requests to Jev, no file created in the project (plugin jevmem@jevmem enabled at user scope)
+---- jevmem enable (the installed CLI)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+   
+   jevmem is enabled in this project. With the Claude Code plugin installed, it starts with your next prompt; without it, run `jevmem init` to register the hooks.
+---- turn 2 (project enabled): Decision: refunds go back to the original payment method only.
+   claude> Saved: refunds are only issued back to the original payment method.
+   queue drained 30476 ms after claude exited
+     - [decision] Refunds go back to the original payment method only.
+   ✓ turn 2: saved after jevmem enable (3 request(s) to Jev, all after enable)
+   ✓ the launcher found the CLI in ~/.local/bin and cached it (<home>/.local/bin/jevmem)
+---- turn 3 (recall): In one sentence, and from this project's memory only: where do refunds go?
+   claude> Refunds go back only to the original payment method.
+   ✓ turn 3: recall ran (1 recall call(s)) and the reply used the saved line
+PASS run 1 scenario=dormant
+# ---- 2
+================ run 1  scenario=dormant  scratch=<scratch>
+   jevmem CLI 0.5.6: npm install -g of the packed checkout, in a temporary prefix
+   Adding marketplace…✔ Successfully added marketplace: jevmem (declared in user settings)
+   1 userConfig option not yet set — run /plugin configure jevmem@jevmem in Claude Code, or pass --config KEY=VALUE.
+     ❯ jevmem@jevmem
+       Version: 0.5.6
+       Scope: user
+   jevmem not on the session PATH (/usr/bin:/bin:/usr/sbin:/sbin); linked into the session HOME's ~/.local/bin
+---- turn 1 (project not enabled): Decision: invoices are archived as PDFs in S3, one file per invoice.
+   claude> Noted — saved that invoices are archived as one PDF per invoice in S3, so I'll keep this in mind for any related design or implementation work.
+   ✓ turn 1: 0 requests to Jev, no file created in the project (plugin jevmem@jevmem enabled at user scope)
+---- jevmem enable (the installed CLI)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+   
+   jevmem is enabled in this project. With the Claude Code plugin installed, it starts with your next prompt; without it, run `jevmem init` to register the hooks.
+---- turn 2 (project enabled): Decision: refunds go back to the original payment method only.
+   claude> Noted — saved that refunds must go back to the original payment method only.
+   queue drained 251 ms after claude exited
+     - [decision] Refunds go back to the original payment method only.
+   ✓ turn 2: saved after jevmem enable (1 request(s) to Jev, all after enable)
+   ✓ the launcher found the CLI in ~/.local/bin and cached it (<home>/.local/bin/jevmem)
+---- turn 3 (recall): In one sentence, and from this project's memory only: where do refunds go?
+   claude> Refunds go back to the original payment method only.
+   ✓ turn 3: recall ran (1 recall call(s)) and the reply used the saved line
+PASS run 1 scenario=dormant
+# ---- 3
+================ run 1  scenario=published  scratch=<scratch>
+   jevmem CLI 0.5.6: npm install -g of the packed checkout, in a temporary prefix
+   ✔ Successfully added marketplace: jevmem (declared in user settings)
+   1 userConfig option not yet set — run /plugin configure jevmem@jevmem in Claude Code, or pass --config KEY=VALUE.
+     ❯ jevmem@jevmem
+       Version: 0.5.6
+       Scope: user
+   jevmem not on the session PATH (/usr/bin:/bin:/usr/sbin:/sbin); linked into the session HOME's ~/.local/bin
+---- turn 1 (project not enabled): Decision: invoices are archived as PDFs in S3, one file per invoice.
+   claude> Saved that as a project memory: invoices are archived as one PDF per invoice in S3. I'll apply this assumption going forward for any invoice storage/retrieval work.
+   ✓ turn 1: 0 requests to Jev, no file created in the project (plugin jevmem@jevmem enabled at user scope)
+---- jevmem enable (the installed CLI)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+   
+   jevmem is enabled in this project. With the Claude Code plugin installed, it starts with your next prompt; without it, run `jevmem init` to register the hooks.
+---- turn 2 (project enabled): Decision: refunds go back to the original payment method only.
+   claude> Saved: refunds go back to the original payment method only.
+   queue drained 677 ms after claude exited
+     - [decision] Refunds go back to the original payment method only.
+   ✓ turn 2: saved after jevmem enable (2 request(s) to Jev, all after enable)
+   ✓ the launcher found the CLI in ~/.local/bin and cached it (<home>/.local/bin/jevmem)
+---- turn 3 (recall): In one sentence, and from this project's memory only: where do refunds go?
+   claude> Refunds go back to the original payment method only.
+   ✓ turn 3: recall ran (1 recall call(s)) and the reply used the saved line
+PASS run 1 scenario=published
