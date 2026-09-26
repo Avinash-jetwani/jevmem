@@ -32,11 +32,14 @@ Nothing is sent from a project that has not opted in (no `jevmem.config.json`; s
 | `.jevmem/provenance.jsonl` | One line per memory jevmem wrote on this machine: its id, a 16-hex-character hash of its text, the time, and the path (hook, mcp, import). No text | No |
 | `.jevmem/gate.json` | The poisoning gate's verdict per line-text hash (probability, id, model, time), newest 2,000. No text | No |
 | `.jevmem/cache/` | Jev answers (`{model, answers, usage}`), in files named by a hash of (model, tier, state, questions); no turn text | No |
+| `.jevmem/guard-index.json` | The guard's index of the `[constraint]` lines it enforces and skips: ids, texts, the prefilter's features, and why a line is skipped | No |
+| `.jevmem/guard-cache.json` | The guard's answers (probability, rule id, model, time), keyed by a hash of the rule and the call as sent, newest 2,000. No call text | No |
+| `.jevmem/guard-log.jsonl` | One line per Bash, Edit or Write call the guard checked: time, tool, how it was decided (fast path, cache, Jev, a failure) and the decision; for an ask, a denial or a warning also the rules with Jev's scores, the tamper check's reason and a scrubbed summary of the command or edit, at most 160 characters. Moves to `guard-log.1.jsonl` past 1 MB. Never sent | No |
 | `.jevmem/hook-debug.log` | Raw hook payloads, only when `JEVMEM_DEBUG=1` | No |
 | `.jevmem/state.json`, `.jevmem/daemon.json`, `.jevmem/daemon.sock` | Last turn hash, daemon pid, local socket (mode 0600). For project paths long enough to exceed the Unix socket path limit, the socket is created in the system temp directory instead | No |
 | `.claude/settings.local.json` | The hook command with absolute paths to this machine's node and CLI | No: `jevmem init` adds it to the project `.gitignore` (and creates `.gitignore` if the folder is a git repository without one) |
 
-`.jevmem/decisions.jsonl` contains scrubbed turn text; `.jevmem/hook-debug.log` (when enabled) contains raw payloads. If a project is shared as a directory rather than through git, delete `.jevmem/` first.
+`.jevmem/decisions.jsonl` contains scrubbed turn text; `.jevmem/guard-log.jsonl` contains scrubbed summaries of the commands and edits the guard asked about or denied; `.jevmem/hook-debug.log` (when enabled) contains raw payloads. If a project is shared as a directory rather than through git, delete `.jevmem/` first.
 
 ## What is scrubbed
 
