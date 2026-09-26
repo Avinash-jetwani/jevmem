@@ -6,7 +6,13 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { describe, expect, it } from "vitest";
+import { callPayload, evaluateGuard, SEND } from "../src/guardrail.js";
+import { init } from "../src/init.js";
+import { recordProvenance } from "../src/provenance.js";
+import { MemoryStore } from "../src/store.js";
+import { mockJev } from "./helpers.js";
 
 function sources(dir = "src"): string[] {
   const out: string[] = [];
@@ -57,5 +63,39 @@ describe("network calls in src/", () => {
     }
     expect([...hosts]).toEqual(["https://api.typesafe.ai"]);
     expect(Object.keys(JSON.parse(read("package.json")).dependencies).sort()).toEqual(["@modelcontextprotocol/sdk", "@typesafe-ai/sdk", "zod"]);
+  });
+
+  it("every Jev request goes through the one TypeSafe client; the request sites are decide, recall, the poisoning gate, audit, the daemon's warm-up and the guard", () => {
+    const sites = sources().filter((f) => /\bjev\.call\(/.test(read(f)));
+    expect(sites).toEqual(["src/audit.ts", "src/daemon.ts", "src/decide.ts", "src/guard.ts", "src/guardrail.ts", "src/recall.ts"]);
+    expect(sources().filter((f) => /new TypeSafeClient\(/.test(read(f)))).toEqual(["src/jev.ts"]);
+  });
+
+  it("the guard (PreToolUse) sends only the call (the command, or the file path and a short scrubbed snippet) and the candidate rules; nothing without a candidate or with the guard off", async () => {
+    // The one request's state, as written in the source: the call and the rules' ids and texts.
+    const src = read("src/guardrail.ts");
+    expect([...src.matchAll(/\bjev\.call\(/g)]).toHaveLength(1);
+    expect(src).toContain("const state = { tool_call: payload, rules: ask.map((c) => ({ id: c.rule.id, rule: scrubSecrets(c.rule.text) })) };");
+    // What the call part holds, per tool.
+    expect(callPayload({ tool: "Bash", command: "git add .env" }, [])).toEqual({ tool: "Bash", command: "git add .env" });
+    const e = callPayload({ tool: "Edit", file: "src/a.ts", removed: "x".repeat(5000), added: "y".repeat(5000) }, []);
+    expect(Object.keys(e).sort()).toEqual(["added", "file", "removed", "tool"]);
+    expect(e.added!.length).toBeLessThanOrEqual(SEND.added + 2);
+    expect(e.removed!.length).toBeLessThanOrEqual(SEND.removed + 2);
+    const w = callPayload({ tool: "Write", file: "config/app.env", added: "DB_PASSWORD=hunter2hunter2 and more" }, []);
+    expect(Object.keys(w).sort()).toEqual(["content", "file", "tool"]);
+    expect(w.content).toBe("DB_PASSWORD=[REDACTED] and more");
+    // No candidate, or the guard off: no request at all.
+    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-net-")));
+    init({ root, hooks: false });
+    recordProvenance(root, new MemoryStore(root).add({ kind: "constraint", text: "Never commit .env files" }), "hook");
+    const jev = mockJev(() => ({}));
+    const pre = (command: string) => ({ hook_event_name: "PreToolUse", cwd: root, tool_name: "Bash", tool_input: { command } });
+    await evaluateGuard(pre("ls -la"), { jev });
+    expect(jev.calls).toHaveLength(0);
+    const cfg = JSON.parse(fs.readFileSync(path.join(root, "jevmem.config.json"), "utf8"));
+    fs.writeFileSync(path.join(root, "jevmem.config.json"), JSON.stringify({ ...cfg, guard: { ...cfg.guard, mode: "off" } }));
+    await evaluateGuard(pre("git add .env"), { jev });
+    expect(jev.calls).toHaveLength(0);
   });
 });
