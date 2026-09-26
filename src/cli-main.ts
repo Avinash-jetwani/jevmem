@@ -7,6 +7,7 @@ import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./
 import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
+import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, readGuardConfig, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey } from "./env.js";
 import { resolveWriter } from "./llm/index.js";
 import { writerOptInNotice } from "./notice.js";
@@ -39,6 +40,7 @@ Usage: jevmem <command> [options]
   mcp [--root <dir>]                      Start the stdio MCP server (search_memory, add_memory, list_memory, audit_memory)
   audit [--dry-run]                       Re-score every memory against the repo and flag [stale?] lines
   audit --security [--ci]                 List lines that read as instructions to an AI (--ci: exit 1 if any)
+  guard test "<command>" | --edit <path>  Dry run of the PreToolUse guard on a call: rules, prefilter, Jev's answer, hook output
   search <query> [--limit N]              Rank memories by relevance to a query (one Jev call)
   list [--all]                            Print memories (live by default; --all adds superseded lines and provenance)
   add <kind> <text>                       Append a memory line by hand (kinds: ${NEW_KINDS.join(", ")})
@@ -83,7 +85,7 @@ const stderrWrite = (s: string) => void process.stderr.write(s);
 const defaultIo: CliIo = { out: stdoutWrite, err: stderrWrite };
 let io: CliIo = defaultIo;
 
-export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "search", "list", "add", "import", "why", "right", "wrong", "missed", "fit", "stats", "doctor", "log", "watch"] as const;
+export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "guard", "search", "list", "add", "import", "why", "right", "wrong", "missed", "fit", "stats", "doctor", "log", "watch"] as const;
 
 export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
   enable: `jevmem enable
@@ -115,6 +117,16 @@ If a project has both, the plugin's hooks stand down and say so once per session
 
 Claude Code hook entrypoint. Reads the hook event JSON (Stop or UserPromptSubmit) from stdin and exits 0 on any failure.
 Registered by \`jevmem init\`; not meant to be run by hand. JEVMEM_VERBOSE=1 prints a summary, JEVMEM_DEBUG=1 logs payloads.
+`,
+  guard: `jevmem guard test "<command>"
+jevmem guard test --edit <path> [--old "<text>"] [--content "<new text>"]
+jevmem guard test --write <path> [--content "<text>"]
+
+Dry run of the PreToolUse guard on one Bash, Edit or Write call: the rules it enforces (live [constraint] lines that
+passed the poisoning gate) and the ones it skips (superseded, or no gate verdict yet), which rules the prefilter
+matched and why, Jev's answer and score for each, the tamper check, and the exact output the hook would print.
+Uses and fills the hook's answer cache (.jevmem/guard-cache.json); --no-cache asks Jev without reading or writing it.
+The mode and thresholds come from "guard" in jevmem.config.json (docs/guardrails.md).
 `,
   daemon: `jevmem daemon [status|start|stop]
 
@@ -206,6 +218,7 @@ Checks this project's setup and prints it. Never prints a key.
   writer    which one-line writer is active and why. The LLM writer runs only when jevmem.config.json sets
             "writer": "openai" or "anthropic" and that provider's key is set; otherwise jevmem writes the line itself
   hooks     the Claude Code plugin enabled in project settings, and hooks registered by \`jevmem init\`
+  guard     the PreToolUse guard's mode and how many [constraint] rules it enforces (docs/guardrails.md)
 `,
   log: `jevmem log
 
@@ -458,6 +471,27 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       printJevSummary(jev.log);
       return 0;
     }
+    case "guard": {
+      const sub = args.shift();
+      const usage = 'usage: jevmem guard test "<command>" | --edit <path> [--old "<text>"] [--content "<new text>"] | --write <path> [--content "<text>"] [--no-cache]';
+      if (sub !== "test") return fail(usage);
+      if (!isEnabled(root)) return fail(NOT_ENABLED_MESSAGE);
+      const edit = opt(args, "--edit");
+      const write = opt(args, "--write");
+      const content = opt(args, "--content") ?? "";
+      const old = opt(args, "--old") ?? "";
+      const noCache = flag(args, "--no-cache");
+      const command = args.join(" ").trim();
+      let input: GuardInput;
+      if (edit) input = { hook_event_name: "PreToolUse", cwd: root, tool_name: "Edit", tool_input: { file_path: path.resolve(root, edit), old_string: old, new_string: content } };
+      else if (write) input = { hook_event_name: "PreToolUse", cwd: root, tool_name: "Write", tool_input: { file_path: path.resolve(root, write), content } };
+      else if (command) input = { hook_event_name: "PreToolUse", cwd: root, tool_name: "Bash", tool_input: { command } };
+      else return fail(usage);
+      // The same evaluation as the hook, in this project; the decision is shown, not logged.
+      const trace = await evaluateGuard(input, { root, makeJev: defaultMakeJev, noCache, log: false });
+      io.out(formatGuardTrace(trace) + "\n");
+      return 0;
+    }
     case "search": {
       const limit = Number(opt(args, "--limit") ?? 10);
       const query = args.join(" ").trim();
@@ -544,6 +578,12 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
         io.out(`retry queue: ${q.queued} queued after a Jev failure, ${q.retried} retries, ${q.savedFromQueue} saved from the queue (${q.skippedFromQueue} skipped by Jev), ${q.dropped} dropped, ${q.pending} pending\n`);
         const withheld = new Set(allEntries.filter((e) => e.event === "withheld").map((e) => e.memoryId)).size;
         if (withheld) io.out(`poisoning gate: ${withheld} line(s) withheld from recall (see \`jevmem audit\`)\n`);
+        const guard = allEntries.filter((e) => e.label === "guard" && e.event === "guard" && /^(ask|deny|warn) /.test(e.detail ?? ""));
+        const guardCalls = entries.filter((e) => e.label === "guard");
+        if (guard.length || guardCalls.length) {
+          const n = (d: string) => guard.filter((e) => e.detail!.startsWith(`${d} `)).length;
+          io.out(`guard: ${n("ask")} asked, ${n("deny")} denied, ${n("warn")} warned (${guard.filter((e) => /\(tamper\)/.test(e.detail!)).length} tamper), ${guardCalls.length} Jev check(s), ${allEntries.filter((e) => e.label === "guard" && e.ok === false).length} failed or skipped (no decision)\n`);
+        }
         io.out(`decide tiers: ${s.decideTier1} tier-1, ${s.decideTier2} tier-2; escalation rate ${s.escalationRate === null ? "n/a (no tier-1 calls; mode=full?)" : (s.escalationRate * 100).toFixed(0) + "%"}\n`);
         const days = Object.entries(s.costPerDay).sort();
         if (days.length) {
@@ -571,6 +611,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo): Promise<nu
       if (configuredWriter(root) === "auto") io.out(`         jevmem.config.json has the pre-0.5.4 "writer": {"provider": "auto"}, which now means no LLM writer\n`);
       const hooks = [projectEnablesPlugin(root) ? "plugin enabled in project settings" : null, projectHasInitHooks(root) ? "`jevmem init` hooks in .claude/settings.local.json" : null].filter(Boolean);
       io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no plugin setting or init hooks in this project (a plugin installed at user scope is not visible here)"}\n`);
+      if (enabled) io.out(`guard    ${guardStatus(root)}\n`);
       return 0;
     }
     case "why": {
@@ -690,6 +731,25 @@ function standDown(root: string, input: HookInput, event: string): string | null
     /* best effort */
   }
   return warning;
+}
+
+/** `jevmem doctor`'s guard line: the mode and how many [constraint] lines are enforced. */
+function guardStatus(root: string): string {
+  const conf = readGuardConfig(root);
+  if (!conf.ok) return `makes no decision: ${conf.error}`;
+  const cfg = conf.cfg;
+  if (cfg.enabled === false) return 'off ("enabled": false in jevmem.config.json)';
+  let text = "";
+  try {
+    text = fs.readFileSync(path.join(root, cfg.memoryFile), "utf8");
+  } catch {
+    /* no JEVMEM.md yet */
+  }
+  const rules = loadRules(root, cfg, text);
+  const pending = rules.skipped.filter((r) => r.reason.startsWith("no gate verdict")).length;
+  const held = rules.skipped.filter((r) => r.reason.startsWith("withheld")).length;
+  const mode = cfg.guard.mode === "off" ? "off (the PreToolUse hook does nothing)" : cfg.guard.mode;
+  return `mode ${mode} (guard.mode); ${rules.enforced.length} active [constraint] rule(s) enforced${pending ? `, ${pending} not yet (no gate verdict: \`jevmem audit --security\` checks them now)` : ""}${held ? `, ${held} withheld by the poisoning gate` : ""}`;
 }
 
 /** Is version a older than b (x.y.z, numeric)? */
