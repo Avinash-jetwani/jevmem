@@ -26,11 +26,17 @@ function normalize(raw: any): any {
 export function loadConfig(root: string): JevmemConfig {
   const file = path.join(root, CONFIG_FILE);
   try {
-    const raw = normalize(JSON.parse(fs.readFileSync(file, "utf8")));
-    return deepMerge(structuredClone(DEFAULT_CONFIG), raw);
+    return parseConfig(fs.readFileSync(file, "utf8"));
   } catch {
     return structuredClone(DEFAULT_CONFIG);
   }
+}
+
+/** The text of a `jevmem.config.json` merged over defaults. Throws when it is not a JSON object. */
+export function parseConfig(text: string): JevmemConfig {
+  const raw = JSON.parse(text);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("jevmem.config.json is not a JSON object");
+  return deepMerge(structuredClone(DEFAULT_CONFIG), normalize(raw));
 }
 
 /**
@@ -60,6 +66,14 @@ export function writeDefaultConfig(root: string): boolean {
  */
 export function isEnabled(root: string): boolean {
   return fs.existsSync(path.join(root, CONFIG_FILE));
+}
+
+/**
+ * Is this Claude Code hook entry one of jevmem's? Matches the `jevmem hook` command, the built CLI's path, and either
+ * launcher (`jevmem-hook.sh`), with or without the plugin's `--plugin`.
+ */
+export function isJevmemHookCommand(h: any, command?: string): boolean {
+  return typeof h?.command === "string" && ((command !== undefined && h.command === command) || /jevmem[^ ]*\s+hook\b/.test(h.command) || /jevmem\S*[\\/]dist[\\/]cli\.js"? hook\b/.test(h.command) || /jevmem-hook\.sh"?\s/.test(h.command));
 }
 
 export const NOT_ENABLED_MESSAGE = "jevmem isn't enabled in this project: run `jevmem enable`";

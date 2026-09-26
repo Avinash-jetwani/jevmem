@@ -2,9 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { footerMeta, formatFooter } from "./labels.js";
-import { KINDS, type Kind, type Memory } from "./types.js";
+import { FOOTER_RE, parseMemoryFile, type MemoryFile } from "./memfile.js";
+import type { Kind, Memory } from "./types.js";
 
-const FOOTER_RE = /^<!--\s*jevmem:.*-->\s*$/;
+export { parseLine, parseMemoryFile, type MemoryFile } from "./memfile.js";
 
 export const MEMORY_HEADER = `# JEVMEM.md
 
@@ -38,46 +39,8 @@ export function upgradeLegacyHeader(file: MemoryFile): boolean {
   return true;
 }
 
-const LINE_RE =
-  /^- \[(?<kind>[a-z]+)\]\s+(?<text>.*?)\s*<!--\s*(?<meta>[^>]*?)\s*-->\s*$/;
-
 export function newId(): string {
   return crypto.randomBytes(4).toString("base64url").replace(/[^a-z0-9]/gi, "").slice(0, 6).toLowerCase().padEnd(6, "x");
-}
-
-export function parseLine(line: string): Memory | null {
-  const m = LINE_RE.exec(line);
-  if (!m?.groups) return null;
-  const kind = m.groups.kind as Kind;
-  if (!KINDS.includes(kind)) return null;
-  const meta: Record<string, string> = {};
-  for (const tok of m.groups.meta!.split(/\s+/)) {
-    const i = tok.indexOf(":");
-    if (i > 0) meta[tok.slice(0, i)] = tok.slice(i + 1);
-  }
-  if (!meta.id) return null;
-  let text = m.groups.text!.trim();
-  let supersededBy = meta.by;
-  const arrow = /\s*→\s*id:([a-z0-9]+)\s*$/i.exec(text);
-  if (arrow) {
-    supersededBy = supersededBy ?? arrow[1];
-    text = text.slice(0, arrow.index).trim();
-  }
-  let stale: number | undefined = meta.stale ? Number(meta.stale) : undefined;
-  if (text.startsWith("[stale?]")) {
-    text = text.slice("[stale?]".length).trim();
-    stale = stale ?? 0;
-  }
-  const mem: Memory = {
-    id: meta.id,
-    kind,
-    text,
-    ts: meta.ts ?? new Date(0).toISOString(),
-    conf: meta.conf ? Number(meta.conf) : 0,
-  };
-  if (supersededBy) mem.supersededBy = supersededBy;
-  if (stale !== undefined && !Number.isNaN(stale)) mem.stale = stale;
-  return mem;
 }
 
 export function formatLine(mem: Memory): string {
@@ -88,33 +51,6 @@ export function formatLine(mem: Memory): string {
   if (mem.supersededBy) meta.push(`by:${mem.supersededBy}`);
   if (mem.stale !== undefined) meta.push(`stale:${mem.stale.toFixed(2)}`);
   return `- [${mem.kind}] ${staleTag}${text}${arrow}  <!-- ${meta.join(" ")} -->`;
-}
-
-/** Parsed JEVMEM.md: memories plus the non-memory lines (so edits keep the user's prose intact). */
-export interface MemoryFile {
-  header: string[]; // lines before the first memory line
-  memories: Memory[];
-  trailer: string[]; // non-memory lines after the first memory line (rare; preserved verbatim)
-}
-
-export function parseMemoryFile(content: string): MemoryFile {
-  const lines = content.split(/\r?\n/);
-  const header: string[] = [];
-  const trailer: string[] = [];
-  const memories: Memory[] = [];
-  let seen = false;
-  for (const line of lines) {
-    const mem = parseLine(line);
-    if (mem) {
-      memories.push(mem);
-      seen = true;
-    } else if (!seen) {
-      header.push(line);
-    } else if (line.trim() !== "" && !FOOTER_RE.test(line)) {
-      trailer.push(line);
-    }
-  }
-  return { header, memories, trailer };
 }
 
 export function serializeMemoryFile(file: MemoryFile, footer?: string | null): string {

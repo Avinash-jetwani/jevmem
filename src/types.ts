@@ -92,6 +92,28 @@ export interface JevmemConfig {
   weights?: Record<string, { bias: number; w: Record<string, number> }>;
   /** Two-tier decide: tier 1 (9 broad nouls) every turn, tier 2 (30 atomic nouls) only on borderline turns. */
   tiers: TiersConfig;
+  /** The PreToolUse guard: checks Bash, Edit and Write calls against the project's saved `[constraint]` lines. */
+  guard: GuardConfig;
+}
+
+export const GUARD_MODES = ["ask", "block", "warn", "off"] as const;
+export type GuardMode = (typeof GUARD_MODES)[number];
+
+export interface GuardConfig {
+  /**
+   * What the guard does when Jev says a call may break a saved rule. `ask`: Claude Code asks the user, showing the
+   * rule. `block`: the call is denied at or above `blockMin` (Claude sees the rule), asked below it. `warn`: no
+   * permission decision; the rule is added to Claude's context as a fact. `off`: the hook does nothing.
+   */
+  mode: GuardMode;
+  /** Jev's "does this call break this rule?" probability at or above which the guard acts. */
+  askMin: number;
+  /** In `block` mode, deny at or above this; between `askMin` and `blockMin`, ask. */
+  blockMin: number;
+  /** The hook's own time budget in milliseconds. The Jev call gets what is left; no answer in time means no decision. */
+  budgetMs: number;
+  /** At most this many candidate rules per call are sent to Jev (the strongest prefilter matches). */
+  maxCandidates: number;
 }
 
 export interface BorderlineRule {
@@ -176,5 +198,12 @@ export const DEFAULT_CONFIG: JevmemConfig = {
       sureSkipChitChatMin: 0.9,
     },
     tier2ExamplesPerSide: 1,
+  },
+  guard: {
+    mode: "ask",
+    askMin: 0.5,
+    blockMin: 0.8,
+    budgetMs: 1000,
+    maxCandidates: 3,
   },
 };
