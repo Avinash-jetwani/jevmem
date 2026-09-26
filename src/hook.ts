@@ -5,6 +5,7 @@ import { loadConfig } from "./config.js";
 import { decide } from "./decide.js";
 import { loadEnvFallbacks } from "./env.js";
 import { appendLog, createJev, hasJevKey, summarizeLog, type JevCaller } from "./jev.js";
+import { gatePendingRules } from "./guardrail.js";
 import { recordDecision } from "./labels.js";
 import { recordProvenance } from "./provenance.js";
 import { formatInjection, recallGuarded } from "./recall.js";
@@ -242,10 +243,22 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
   return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}`, decision };
 }
 
-/** Evaluate the queue in order with `jev` (the hook's client, or the daemon's warm one). */
-export function drainTurns(root: string, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, deps: HookDeps = {}, opts: { deadlineMs?: number; ignoreBackoff?: boolean } = {}) {
+/**
+ * Evaluate the queue in order with `jev` (the hook's client, or the daemon's warm one). Then, still off any hot path,
+ * give the guard a gate verdict for [constraint] lines that have none (written by hand, merged from git, or added with
+ * `jevmem add`): the PreToolUse hook never asks the gate itself and does not enforce a line until it has one.
+ */
+export async function drainTurns(root: string, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, deps: HookDeps = {}, opts: { deadlineMs?: number; ignoreBackoff?: boolean } = {}) {
   const store = new MemoryStore(root, cfg.memoryFile);
-  return drainQueue<HookOutcome>(root, (t) => evaluateTurn(store, cfg, jev, t, deps), { now: deps.now, deadlineMs: opts.deadlineMs, ignoreBackoff: opts.ignoreBackoff });
+  const r = await drainQueue<HookOutcome>(root, (t) => evaluateTurn(store, cfg, jev, t, deps), { now: deps.now, deadlineMs: opts.deadlineMs, ignoreBackoff: opts.ignoreBackoff });
+  if (r.ran && cfg.guard?.mode !== "off") {
+    try {
+      await gatePendingRules(root, cfg, jev, store.active());
+    } catch (err) {
+      logHookProblem(root, "Stop", `gate check of new rules for the guard failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return r;
 }
 
 export async function readStdinJson(): Promise<HookInput> {
