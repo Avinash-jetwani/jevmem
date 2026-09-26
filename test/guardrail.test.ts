@@ -338,7 +338,7 @@ describe("tamper check (local, no Jev)", () => {
     expect(parse(t.stdout).permissionDecisionReason).toBe('jevmem: this changes jevmem\'s guard settings in jevmem.config.json (guard.mode "ask" → "off").');
     const lowered = JSON.parse(cur);
     lowered.guard.blockMin = 0.99;
-    expect(parse((await evaluateGuard(write(root, "jevmem.config.json", JSON.stringify(lowered)), { jev })).stdout).permissionDecisionReason).toMatch(/guard\.blockMin 0\.8 → 0\.99/);
+    expect(parse((await evaluateGuard(write(root, "jevmem.config.json", JSON.stringify(lowered)), { jev })).stdout).permissionDecisionReason).toMatch(/guard\.blockMin 0\.9 → 0\.99/);
     const off = JSON.parse(cur);
     off.enabled = false;
     expect(parse((await evaluateGuard(write(root, "jevmem.config.json", JSON.stringify(off)), { jev })).stdout).permissionDecisionReason).toMatch(/switches jevmem off/);

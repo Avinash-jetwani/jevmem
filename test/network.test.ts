@@ -41,6 +41,8 @@ describe("network calls in src/", () => {
   it("the global fetch is called only by the OpenAI and Anthropic writer, whose default hosts are api.openai.com and api.anthropic.com", () => {
     const uses = sources().filter((f) => {
       const text = read(f)
+        // Words inside plain string literals are data (the guard's list of git subcommands has "fetch"), not calls.
+        .replace(/"(?:[^"\\\n]|\\.)*"/g, '""')
         .replace(/typeof fetch\b/g, "")
         .replace(/\bfetch\??:/g, "")
         .replace(/\.fetch\b/g, "")

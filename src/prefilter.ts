@@ -63,10 +63,15 @@ export interface MatchOptions {
   minScore: number;
 }
 
-/** How much each kind of shared feature counts. Tuned on eval/guard-dev.jsonl only (results/README.md). */
-export const WEIGHTS = { path: 3, file: 3, pair: 3, command: 1, keyword: 1, keywordCap: 3 } as const;
+/**
+ * How much each kind of shared feature counts: a path or filename, or a `command subcommand` pair, is strong; a
+ * single command word is medium (weak for git and the like, which almost every session runs); a broad directory such
+ * as `src/` and each shared keyword are weak. A rule needs `minScore` to be a candidate, so one shared keyword alone
+ * is not enough. Tuned on eval/guard-dev.jsonl only (results/README.md).
+ */
+export const WEIGHTS = { path: 3, broadPath: 1, file: 3, pair: 3, command: 2, commonCommand: 1, keyword: 1, keywordCap: 3 } as const;
 
-export const DEFAULT_MATCH: MatchOptions = { max: 3, minScore: 1 };
+export const DEFAULT_MATCH: MatchOptions = { max: 3, minScore: 2 };
 
 // ---------------------------------------------------------------------------------------------
 // Words
@@ -85,7 +90,8 @@ neither both such same other others own more most less least much many few lot l
 made making keep keeps kept need needs needed want wants get gets got put puts let lets thing things way ways sure
 please ok okay yes good bad new old first last next one two three rule rules file files code project projects repo
 repository change changes changed work works working everything anything something nothing time times via etc e.g
-i.e like
+i.e like run runs ran instead directly stay stays out away through across around over above below between within
+upon about along behind beyond toward towards
 echo cd true false dev null tmp usr bin var opt home lib local private sbin sudo env`.split(/\s+/),
 );
 
@@ -138,11 +144,45 @@ aws gcloud az heroku vercel netlify flyctl fly wrangler firebase supabase prisma
 psql mysql mongo mongosh redis-cli sqlite3 rm rmdir mv cp chmod chown ln dd mkfs truncate shred kill pkill killall
 shutdown reboot systemctl service crontab curl wget ssh scp rsync sftp nc tar zip unzip sed awk perl tee make cmake
 brew apt apt-get yum dnf apk jest vitest mocha pytest playwright cypress eslint prettier tsc webpack vite next nuxt
-turbo nx lerna changeset semantic-release`.split(/\s+/),
+turbo nx lerna changeset semantic-release black ruff isort flake8 pylint mypy autopep8 yapf gofmt goimports
+golangci-lint rubocop biome oxlint stylelint fastlane pod`.split(/\s+/),
 );
+
+/**
+ * Tool names that are also everyday words ("applies go through CI", "Format Python with ruff"): in a rule's plain
+ * text they count only as part of a `command subcommand` pair; inside backticks they count on their own.
+ */
+const AMBIGUOUS_TOOLS = new Set(["go", "make", "node", "python", "python3", "bundle", "service", "next", "fly", "gem", "kill", "apt", "bun", "zip", "turbo", "tee", "java", "ruby", "php"]);
+
+/** Tools nearly every session runs: a rule naming only the tool itself is a weak match for them. */
+const COMMON_TOOLS = new Set(["git", "gh", "node", "python", "python3", "bash", "sh"]);
 
 /** Git and package-manager subcommands that make a `command subcommand` pair. */
 const PAIRED = new Set(["git", "gh", "npm", "pnpm", "yarn", "bun", "docker", "podman", "kubectl", "helm", "terraform", "tofu", "cargo", "go", "pip", "pip3", "poetry", "uv", "aws", "gcloud", "az", "heroku", "vercel", "flyctl", "fly", "wrangler", "firebase", "supabase", "prisma", "rails", "rake", "bundle", "composer", "dotnet", "mvn", "gradle", "make", "brew", "apt", "apt-get", "systemctl", "npx", "pnpx", "bunx"]);
+
+/**
+ * Subcommands that make a pair when a rule names a tool in plain text ("never git push", "no kubectl delete"): "git
+ * history" or "go through" is not a command. Tools not listed here (make, rake, cloud CLIs) take any word; inside
+ * backticks any word counts.
+ */
+const SUBCOMMANDS: Record<string, Set<string>> = Object.fromEntries(
+  Object.entries({
+    git: "add commit push pull fetch merge rebase reset checkout switch restore branch tag stash cherry-pick revert clean rm mv clone config am apply bisect submodule worktree gc filter-branch filter-repo log diff status show blame",
+    gh: "pr repo release issue workflow run api auth gist secret",
+    npm: "install i add remove rm uninstall publish unpublish run exec update upgrade audit ci link pack version init test start build deploy deprecate dist-tag",
+    docker: "run build push pull exec rm rmi compose system volume network login tag prune",
+    kubectl: "apply delete create edit patch scale rollout exec drain cordon uncordon port-forward replace set label annotate taint get describe logs",
+    helm: "install upgrade uninstall delete rollback template lint package push repo dependency",
+    terraform: "apply destroy plan import init state taint untaint workspace fmt validate refresh",
+    cargo: "publish build test run add install yank release update fmt clippy",
+    go: "build test run mod get install vet generate fmt work clean tool",
+    pip: "install uninstall download freeze",
+  }).flatMap(([tool, subs]) => {
+    const set = new Set(subs.split(" "));
+    const same: Record<string, string[]> = { npm: ["pnpm", "yarn", "bun"], docker: ["podman"], terraform: ["tofu"], pip: ["pip3", "uv", "poetry"] };
+    return [tool, ...(same[tool] ?? [])].map((t) => [t, set] as const);
+  }),
+);
 
 /** Words in front of a command that only change how it runs. */
 const PREFIX = new Set(["sudo", "env", "time", "nohup", "nice", "exec", "command", "builtin", "caffeinate", "stdbuf", "timeout", "xargs"]);
@@ -154,6 +194,10 @@ const FLAG_WORDS: Record<string, string[]> = { "-f": ["force"], "-rf": ["force",
 // Paths
 
 const KNOWN_FILES = new Set(["dockerfile", "makefile", "procfile", "gemfile", "jenkinsfile", "vagrantfile", "license", "licence", "codeowners", "id_rsa", "id_ed25519", "known_hosts", "authorized_keys", "brewfile", "rakefile", "justfile"]);
+/** Directory names that are paths even without a slash. */
+const KNOWN_DIRS = new Set(["node_modules", "__pycache__", ".venv", "venv", "vendor", "third_party"]);
+/** Top-level directories so common that naming one says little: a match on one alone is weak. */
+const BROAD_DIRS = new Set(["src", "lib", "app", "apps", "packages", "pkg", "internal", "cmd", "test", "tests", "spec", "specs", "docs", "doc", "scripts", "bin", "tools", "config", "configs", "public", "assets", "static", "web", "server", "client", "include", "examples", "e2e"]);
 // Two or more characters: "e.g." and "v1.2" are not filenames.
 const EXT = "(?:[a-z0-9]{2,8})";
 const FILE_RE = new RegExp(`^[A-Za-z0-9_@+-][A-Za-z0-9_.@+-]*\\.${EXT}$`, "i");
@@ -179,6 +223,7 @@ export function pathKind(token: string): "glob" | "path" | "file" | null {
   if (/\s/.test(s)) return null;
   if (/[*?]/.test(s) && /[A-Za-z0-9./]/.test(s.replace(/[*?]/g, ""))) return "glob";
   if (s.includes("/")) return "path";
+  if (KNOWN_DIRS.has(s.toLowerCase())) return "path";
   if (/^\.[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(s)) return "file"; // dotfiles and dot-directories: .env, .github, .npmrc
   if (FILE_RE.test(s) && /[a-z]/.test(s.split(".").pop() ?? "")) return "file";
   if (KNOWN_FILES.has(s.toLowerCase())) return "file";
@@ -207,41 +252,80 @@ export function globToRegExp(glob: string): RegExp {
 // ---------------------------------------------------------------------------------------------
 // Rules
 
-/** Features of one saved rule. */
+/** A rule's clauses: split at ; and at the end of a sentence, at commas and at "but". */
+function clauses(text: string): string[] {
+  return text.split(/;|[.!?](?=\s|$)|,\s+|\s+but\s+/i).map((c) => c.trim()).filter(Boolean);
+}
+const NEGATION = /\b(?:never|not|no|nor|don'?t|do not|doesn'?t|mustn'?t|must not|shouldn'?t|should not|isn'?t|aren'?t|won'?t|can'?t|cannot|avoid|without)\b/i;
+
+/**
+ * Features of one saved rule. In a rule that both forbids and prefers ("Use pnpm; never run npm", "Format with ruff,
+ * not black"), command words and keywords come only from the clauses that forbid: calls using the preferred tool are
+ * not about the rule. Paths and filenames count from every clause ("Everything in docs/api/ is generated; never edit
+ * it" is about docs/api/).
+ */
 export function ruleFeatures(text: string): Features {
   const paths = new Set<string>();
   const files = new Set<string>();
   const commands = new Set<string>();
+  const pathWords = new Set<string>();
   const addPath = (tok: string) => {
     const kind = pathKind(tok);
-    if (!kind) return;
+    if (!kind) return false;
     const s = normPath(tok);
     if (kind === "file") files.add(s.toLowerCase());
     else paths.add(s.replace(/\/+$/, "/"));
+    for (const w of words(s)) pathWords.add(w.toLowerCase());
+    return true;
   };
-  // Code spans first: `git push --force`, `db/migrations/`.
-  const spans = [...text.matchAll(/`([^`]+)`/g)].map((m) => m[1]!);
-  for (const span of spans) {
-    const w = shellWords(span).words;
-    const cmd = w.find((x) => !/=/.test(x) && !PREFIX.has(x));
-    if (cmd && (TOOLS.has(cmd.toLowerCase()) || w.length > 1) && !pathKind(cmd)) {
-      commands.add(cmd.toLowerCase());
-      const sub = w[w.indexOf(cmd) + 1];
-      if (sub && PAIRED.has(cmd.toLowerCase()) && /^[a-z][a-z0-9:-]*$/i.test(sub)) commands.add(`${cmd.toLowerCase()} ${sub.toLowerCase()}`);
+  const parts = clauses(text);
+  const forbidding = parts.filter((c) => NEGATION.test(c));
+  const scoped = forbidding.length > 0 && forbidding.length < parts.length ? forbidding : parts;
+  // Paths and filenames, from every clause (code spans included).
+  for (const span of [...text.matchAll(/`([^`]+)`/g)].map((m) => m[1]!)) for (const x of shellWords(span).words) addPath(x);
+  for (const tok of text.replace(/`[^`]*`/g, " ").split(/[\s,;()]+/)) addPath(tok);
+  // Command words and keywords, from the clauses in scope.
+  const kwText: string[] = [];
+  for (const clause of scoped) {
+    for (const span of [...clause.matchAll(/`([^`]+)`/g)].map((m) => m[1]!)) {
+      const w = shellWords(span).words;
+      const cmd = w.find((x) => !/=/.test(x) && !PREFIX.has(x));
+      if (cmd && (TOOLS.has(cmd.toLowerCase()) || w.length > 1) && !pathKind(cmd)) {
+        commands.add(cmd.toLowerCase());
+        const sub = w[w.indexOf(cmd) + 1];
+        if (sub && PAIRED.has(cmd.toLowerCase()) && /^[a-z][a-z0-9:-]*$/i.test(sub)) commands.add(`${cmd.toLowerCase()} ${sub.toLowerCase()}`);
+      }
+      kwText.push(w.filter((x) => !pathKind(x)).join(" "));
     }
-    for (const x of w) addPath(x);
+    const plainText = clause.replace(/`[^`]*`/g, " ");
+    // Command words are read from the text around paths and filenames: "go.mod" is not `go mod`.
+    const plain = words(plainText.split(/[\s,;()]+/).filter((t) => !pathKind(t)).join(" ")).map((w) => w.toLowerCase());
+    for (const w of plain) if (TOOLS.has(w) && !AMBIGUOUS_TOOLS.has(w)) commands.add(w);
+    // "git push" / "npm publish" written without backticks.
+    for (let i = 0; i + 1 < plain.length; i++) {
+      const [tool, sub] = [plain[i]!, plain[i + 1]!];
+      if (!PAIRED.has(tool) || !TOOLS.has(tool) || !/^[a-z][a-z-]{1,}$/.test(sub) || STOP.has(sub)) continue;
+      if (SUBCOMMANDS[tool] ? SUBCOMMANDS[tool]!.has(sub) : true) commands.add(`${tool} ${sub}`);
+    }
+    // "force-push", "force push" and "push --force" all name a forced git push.
+    if (/\bforce[- ]?push/i.test(clause)) commands.add("git push");
+    kwText.push(plainText.split(/[\s,;()]+/).filter((t) => !pathKind(t)).join(" "));
   }
-  for (const tok of text.replace(/`[^`]*`/g, " ").split(/[\s,;()]+/)) {
-    addPath(tok);
-    const lower = tok.toLowerCase().replace(/[^a-z0-9._-]/g, "");
-    if (TOOLS.has(lower)) commands.add(lower);
-  }
-  // "git push" / "npm publish" written without backticks.
-  const plain = words(text.replace(/`[^`]*`/g, " ")).map((w) => w.toLowerCase());
-  for (let i = 0; i + 1 < plain.length; i++) if (PAIRED.has(plain[i]!) && TOOLS.has(plain[i]!) && /^[a-z]{3,}$/.test(plain[i + 1]!) && !STOP.has(plain[i + 1]!)) commands.add(`${plain[i]} ${plain[i + 1]}`);
-  // "force-push", "force push" and "push --force" all name a forced git push.
-  if (/\bforce[- ]?push/i.test(text)) commands.add("git push");
-  return { paths: [...paths], files: [...files], commands: [...commands], keywords: keywords(text) };
+  // A pair names the command more precisely than the tool alone: `kubectl delete` replaces `kubectl`.
+  for (const c of [...commands]) if (c.includes(" ")) commands.delete(c.split(" ")[0]!);
+  // Keywords: not the words of a path (the path itself is the feature) and not tool names (commands are).
+  const kw = keywords(kwText.join(" ")).filter((k) => !TOOLS.has(k) && ![...pathWords].some((w) => stem(w) === k && !plainOutsidePaths(text, w)));
+  return { paths: [...paths], files: [...files], commands: [...commands], keywords: kw };
+}
+
+/** Does `word` appear in `text` outside a path or filename token? */
+function plainOutsidePaths(text: string, word: string): boolean {
+  const lower = word.toLowerCase();
+  return text
+    .replace(/`[^`]*`/g, " ")
+    .split(/[\s,;()]+/)
+    .filter((t) => !pathKind(t))
+    .some((t) => words(t).some((w) => stem(w.toLowerCase()) === stem(lower)));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -461,6 +545,7 @@ export function actionFeatures(action: GuardAction, root?: string): Features & {
       if (cmd) {
         commands.add(cmd);
         if (sub) commands.add(`${cmd} ${sub}`);
+        for (const k of keywords(cmd)) kw.add(k);
       }
       for (const a of args) {
         if (FLAG_WORDS[a]) for (const x of FLAG_WORDS[a]!) kw.add(stem(x));
@@ -531,7 +616,7 @@ export function matchRules(rules: IndexedRule[], call: Features, opts: MatchOpti
       const glob = /[*?]/.test(p) ? globToRegExp(p) : null;
       const hit = call.paths.find((c) => (glob ? glob.test(c) : pathMatches(p, c)));
       if (hit) {
-        score += WEIGHTS.path;
+        score += BROAD_DIRS.has(p.replace(/\/+$/, "").toLowerCase()) ? WEIGHTS.broadPath : WEIGHTS.path;
         reasons.push(`path ${p} ~ ${hit}`);
         terms.add(hit.split("/").pop() ?? hit);
       }
@@ -544,13 +629,21 @@ export function matchRules(rules: IndexedRule[], call: Features, opts: MatchOpti
         terms.add(hit);
       }
     }
+    let kwScore = 0;
     for (const c of f.commands) {
-      if (!callCmds.has(c)) continue;
-      score += c.includes(" ") ? WEIGHTS.pair : WEIGHTS.command;
+      if (!callCmds.has(c)) {
+        // A tool the rule names, mentioned in the call without being run (an `eslint-disable` comment): a keyword.
+        if (!c.includes(" ") && callKw.has(stem(c))) {
+          kwScore += WEIGHTS.keyword;
+          reasons.push(`keyword ${c}`);
+          terms.add(c);
+        }
+        continue;
+      }
+      score += c.includes(" ") ? WEIGHTS.pair : COMMON_TOOLS.has(c) ? WEIGHTS.commonCommand : WEIGHTS.command;
       reasons.push(`command ${c}`);
       terms.add(c.split(" ").pop()!);
     }
-    let kwScore = 0;
     for (const k of f.keywords) {
       if (!callKw.has(k)) continue;
       kwScore += WEIGHTS.keyword;

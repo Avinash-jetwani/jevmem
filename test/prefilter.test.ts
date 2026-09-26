@@ -44,12 +44,31 @@ describe("words and stems", () => {
 describe("rule features", () => {
   it("reads filenames, paths, globs, command words and keywords from a rule", () => {
     expect(ruleFeatures("Never commit .env files")).toEqual({ paths: [], files: [".env"], commands: [], keywords: ["commit"] });
-    expect(ruleFeatures("Use pnpm, never npm").commands.sort()).toEqual(["npm", "pnpm"]);
+    expect(ruleFeatures("Never use npm in this repo").commands).toEqual(["npm"]);
     expect(ruleFeatures("Don't force-push to main").commands).toContain("git push");
     expect(ruleFeatures("Migrations in db/migrations are never edited").paths).toEqual(["db/migrations"]);
     expect(ruleFeatures("Keys matching *.pem stay out of the repository").paths).toEqual(["*.pem"]);
-    const code = ruleFeatures("Run `npm publish --access public` only from CI, never `git push --tags` by hand");
-    expect(code.commands).toEqual(expect.arrayContaining(["npm", "npm publish", "git", "git push"]));
+    const code = ruleFeatures("Never run `npm publish --access public` or `git push --tags` by hand");
+    expect(code.commands.sort()).toEqual(["git push", "npm publish"]); // a pair replaces the bare tool
+  });
+
+  it("in a rule that both prefers and forbids, commands and keywords come from the forbidding clauses; paths from all", () => {
+    expect(ruleFeatures("Use pnpm for everything; never run npm or yarn").commands.sort()).toEqual(["npm", "yarn"]);
+    expect(ruleFeatures("Format Python with ruff, not black")).toMatchObject({ commands: ["black"], keywords: [] });
+    const gen = ruleFeatures("Everything in docs/api/ is generated from openapi.yaml; never edit it directly");
+    expect(gen.paths).toEqual(["docs/api/"]);
+    expect(gen.files).toEqual(["openapi.yaml"]);
+    expect(gen.keywords).toEqual(["edit"]);
+    // A rule with no negation at all keeps everything.
+    expect(ruleFeatures("Only the release job runs cargo publish").commands).toEqual(["cargo publish"]);
+  });
+
+  it("tool names that are everyday words count only in pairs or code spans; path words are not keywords", () => {
+    expect(ruleFeatures("Applies go through the CI pipeline and never through make").commands).toEqual([]);
+    expect(ruleFeatures("Never run `go build` with cgo on").commands).toEqual(["go build"]);
+    expect(ruleFeatures("Never run make release by hand").commands).toEqual(["make release"]);
+    expect(ruleFeatures("Don't hand-edit files in internal/pb/").keywords).not.toContain("intern");
+    expect(ruleFeatures("node_modules must never be committed").paths).toEqual(["node_modules"]);
   });
 });
 
@@ -127,8 +146,22 @@ describe("matching", () => {
     const many = Array.from({ length: 8 }, (_, i) => rule(`r${i}`, `Deploys to region${i} go through the deploy pipeline`));
     const got = matchRules(many, actionFeatures(bash("./scripts/deploy.sh --pipeline")), { max: 3, minScore: 1 });
     expect(got).toHaveLength(3);
-    expect(matchRules(RULES, actionFeatures(bash("pnpm test")), { max: 3, minScore: 1 }).map((c) => c.rule.id)).toEqual(["pnpmrl"]);
-    expect(matchRules(RULES, actionFeatures(bash("pnpm test")), { max: 3, minScore: 3 })).toEqual([]);
+    expect(matchRules(RULES, actionFeatures(bash("npm test")), { max: 3, minScore: 2 }).map((c) => c.rule.id)).toEqual(["pnpmrl"]);
+    expect(matchRules(RULES, actionFeatures(bash("npm test")), { max: 3, minScore: 3 })).toEqual([]);
+    // The preferred tool is not a candidate.
+    expect(matchRules(RULES, actionFeatures(bash("pnpm test")), { max: 3, minScore: 1 })).toEqual([]);
+  });
+
+  it("weights: a broad directory and a common tool are weak; a call's own command word matches a rule keyword", () => {
+    const src = [rule("srcrul", "No console.log calls in committed source under src/")];
+    const plainEdit = matchRules(src, actionFeatures({ tool: "Edit", file: "src/checkout/total.ts", removed: "a", added: "b" }), { max: 3, minScore: 1 });
+    expect(plainEdit.map((c) => c.score)).toEqual([1]);
+    expect(matchRules(src, actionFeatures({ tool: "Edit", file: "src/checkout/total.ts", removed: "a", added: "b" }), { max: 3, minScore: 2 })).toEqual([]);
+    const gitRule = [rule("gitrul", "Never rewrite git history")];
+    expect(matchRules(gitRule, actionFeatures(bash("git status")), { max: 3, minScore: 1 }).map((c) => c.score)).toEqual([1]);
+    const fmt = [rule("fmtrul", "Format Python with ruff, not black")];
+    expect(matchRules(fmt, actionFeatures(bash("black .")), { max: 3, minScore: 2 }).map((c) => c.rule.id)).toEqual(["fmtrul"]);
+    expect(matchRules(fmt, actionFeatures(bash("ruff format .")), { max: 3, minScore: 1 })).toEqual([]);
   });
 });
 

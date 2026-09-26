@@ -202,7 +202,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
   guard: {
     mode: "ask",
     askMin: 0.5,
-    blockMin: 0.8,
+    blockMin: 0.9,
     budgetMs: 1000,
     maxCandidates: 3,
   },
