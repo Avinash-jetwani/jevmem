@@ -3,6 +3,7 @@ import path from "node:path";
 import { applyAudit, auditMemories, formatAuditTable, formatSecurityTable, securityAudit } from "./audit.js";
 import { knownWithheld, planGate } from "./guard.js";
 import { formatGuardLog, formatGuardStats, guardLogStats, readGuardLog } from "./guardlog.js";
+import { checkCli, initHookClis, pluginLauncherCli, userEnablesPlugin } from "./hookcli.js";
 import { isVerified, readProvenance } from "./provenance.js";
 import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { PACKAGE_VERSION } from "./version.js";
@@ -229,8 +230,13 @@ Checks this project's setup and prints it. Never prints a key.
             ~/.jevmem/env, and where to put it when none is found
   writer    which one-line writer is active and why. The LLM writer runs only when jevmem.config.json sets
             "writer": "openai" or "anthropic" and that provider's key is set; otherwise jevmem writes the line itself
-  hooks     the Claude Code plugin enabled in project settings, and hooks registered by \`jevmem init\`
+  hooks     the Claude Code plugin enabled in project or user settings, and hooks registered by \`jevmem init\`
   guard     the PreToolUse guard's mode and how many [constraint] rules it enforces (docs/guardrails.md)
+  cli       the jevmem each hook runs (the path \`jevmem init\` registered, or the \`jevmem\` the plugin finds with this
+            PATH), its version, whether it has the guard (asked \`guard --help\` from /, as the plugin does), and
+            whether the jevmem and Node a hook names still exist. A jevmem too old for the guard makes the plugin skip
+            its PreToolUse hook, and under a PreToolUse hook from \`jevmem init\` it would read every Bash, Edit and
+            Write call as a finished turn
 `,
   log: `jevmem log
 
@@ -631,9 +637,12 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const forced = process.env.JEVMEM_WRITER?.trim().toLowerCase();
       if (forced && forced !== "none") io.out(`         JEVMEM_WRITER=${forced} is ignored: only "writer" in jevmem.config.json turns the LLM writer on\n`);
       if (configuredWriter(root) === "auto") io.out(`         jevmem.config.json has the pre-0.5.4 "writer": {"provider": "auto"}, which now means no LLM writer\n`);
-      const hooks = [projectEnablesPlugin(root) ? "plugin enabled in project settings" : null, projectHasInitHooks(root) ? `\`jevmem init\` hooks in .claude/settings.local.json${projectHasInitGuardHook(root) ? " (with the PreToolUse guard)" : " (no PreToolUse guard: run `jevmem init` again to add it)"}` : null].filter(Boolean);
-      io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no plugin setting or init hooks in this project (a plugin installed at user scope is not visible here)"}\n`);
+      const userPlugin = userEnablesPlugin();
+      const plugin = projectEnablesPlugin(root) || Boolean(userPlugin);
+      const hooks = [projectEnablesPlugin(root) ? "plugin enabled in project settings" : null, userPlugin ? `plugin enabled in ${userPlugin}` : null, projectHasInitHooks(root) ? `\`jevmem init\` hooks in .claude/settings.local.json${projectHasInitGuardHook(root) ? " (with the PreToolUse guard)" : " (no PreToolUse guard: `jevmem init` with a jevmem that has the guard adds it)"}` : null].filter(Boolean);
+      io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no jevmem plugin in the project or user settings, and no init hooks in this project"}\n`);
       if (enabled) io.out(`guard    ${guardStatus(root)}\n`);
+      for (const line of hookCliLines(root, plugin)) io.out(line + "\n");
       return 0;
     }
     case "why": {
@@ -772,6 +781,50 @@ function guardStatus(root: string): string {
   const held = rules.skipped.filter((r) => r.reason.startsWith("withheld")).length;
   const mode = cfg.guard.mode === "off" ? "off (the PreToolUse hook does nothing)" : cfg.guard.mode;
   return `mode ${mode} (guard.mode); ${rules.enforced.length} active [constraint] rule(s) enforced${pending ? `, ${pending} not yet (no gate verdict: \`jevmem audit --security\` checks them now)` : ""}${held ? `, ${held} withheld by the poisoning gate` : ""}`;
+}
+
+/**
+ * `jevmem doctor`'s cli lines: the jevmem each hook runs and whether it has the guard. It need not be the one running
+ * doctor: `jevmem init` registered absolute paths, and the plugin runs the `jevmem` its launcher finds.
+ */
+function hookCliLines(root: string, plugin: boolean): string[] {
+  const self = (() => {
+    try {
+      return fs.realpathSync(process.argv[1] ?? "");
+    } catch {
+      return null;
+    }
+  })();
+  const describe = (c: ReturnType<typeof checkCli>) => {
+    if (!c.real) return `${c.path}, which does not exist`;
+    const name = `${c.path}${c.real !== c.path ? ` (→ ${c.real})` : ""}${c.real === self ? ", this jevmem" : ""}`;
+    const version = c.version ? `jevmem ${c.version}` : "a jevmem of unknown version";
+    return `${name}: ${version}, ${c.hasGuard === null ? "which failed `guard --help` for another reason, so it could not be checked" : c.hasGuard ? "with the guard" : "too old for the guard"}`;
+  };
+  const out: string[] = [];
+  const tag = () => (out.length ? "         " : "cli      ");
+  for (const h of initHookClis(root)) {
+    if (!h.cli) {
+      out.push(`${tag()}\`jevmem init\` hooks (${h.events.join(", ")}) run a command jevmem did not write (${h.command}): not checked`);
+      continue;
+    }
+    const c = checkCli(h.cli, h.node);
+    out.push(`${tag()}\`jevmem init\` hooks (${h.events.join(", ")}) run ${describe(c)}`);
+    if (!c.real) out.push("         ! these hooks fail on every event: run `jevmem init` again to point them at a jevmem that exists");
+    else if (h.direct && h.node && !fs.existsSync(h.node)) out.push(`         ! these hooks run ${h.node}, which does not exist, so they fail on every event: run \`jevmem init\` again`);
+    else if (c.hasGuard === false && h.events.includes("PreToolUse"))
+      out.push("         ! that jevmem reads every Bash, Edit and Write call as a finished turn: run `jevmem init --remove-hooks`, then `jevmem init` with the jevmem the hooks should run");
+  }
+  if (plugin) {
+    // The launcher's search with this shell's PATH; the desktop app's bare PATH can find another one, or its cached path.
+    const found = pluginLauncherCli();
+    if (!found) out.push(`${tag()}with this PATH the plugin finds no jevmem, on PATH or in its list of directories (it may have one cached from an earlier session)`);
+    else {
+      const c = checkCli(found);
+      out.push(`${tag()}with this PATH the plugin runs ${describe(c)}${c.hasGuard === false ? ", so it skips its PreToolUse hook: no guard in plugin sessions" : ""}`);
+    }
+  }
+  return out;
 }
 
 /** Is version a older than b (x.y.z, numeric)? */
