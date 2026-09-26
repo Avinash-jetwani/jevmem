@@ -1,4 +1,4 @@
-<picture><source media="(prefers-color-scheme: dark)" srcset="brand/lockup/svg/jevmem-lockup-horizontal-dark.svg"><img alt="jevmem" src="brand/lockup/svg/jevmem-lockup-horizontal-light.svg" height="64"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/brand/lockup/svg/jevmem-lockup-horizontal-dark.svg"><img alt="jevmem" src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/brand/lockup/svg/jevmem-lockup-horizontal-light.svg" height="64"></picture>
 
 Automatic project memory for Claude Code. Also works with Cursor and Codex.
 
@@ -16,20 +16,25 @@ https://github.com/user-attachments/assets/ed77849e-db1c-4c05-9ad8-4cab0b3968a2
 - Saves decisions, constraints, bugs and todos from your Claude Code chats into `JEVMEM.md`, automatically.
 - When you change your mind, the old line is marked superseded, not deleted.
 - Next session, the relevant lines are added to Claude's context.
-- Checks lines added by others before Claude sees them.
+- Checks lines added by others before they're added to Claude's context.
 
 ```text
-- [decision] Use Postgres 16 for the primary store; SQLite locks under load  <!-- id:k3d9xq ts:2026-09-22T10:14:02.113Z conf:0.93 -->
-- [constraint] Node 20 is the floor; CI runs 20 and 22  <!-- id:p1m4zt ts:2026-09-22T10:20:41.907Z conf:0.88 -->
-- [superseded] Use SQLite as the primary store → id:k3d9xq  <!-- id:a8s2ww ts:2026-09-20T16:02:11.000Z conf:0.81 by:k3d9xq -->
+- [superseded] We'll use SQLite as the primary store for now. → id:cuasaq  <!-- id:21ycba ts:2026-09-26T13:46:34.703Z conf:1.00 by:cuasaq -->
+- [decision] Switch the primary store to Postgres 16.  <!-- id:cuasaq ts:2026-09-26T13:46:35.240Z conf:1.00 -->
+- [constraint] Node 20 is the minimum supported version, and CI runs Node 20 and 22.  <!-- id:tollba ts:2026-09-26T13:46:35.763Z conf:0.90 -->
 ```
+
+Real lines from the default writer ([the run](results/readme-example-2026-09-26.txt)). It keeps one sentence of each turn: the Postgres turn also said "SQLite locks up under concurrent writes", and that reason was left out. With `writer` set, an OpenAI or Anthropic model condenses the whole turn instead.
 
 ## What's new in v0.5
 
 - **Install as a Claude Code plugin**, opt-in per project: it does nothing until you run `jevmem enable` in a repo.
-- **A memory-poisoning check on recall:** lines that jevmem did not write on your machine (a teammate's, a pull request's, your own hand edits) are checked by Jev before Claude sees them. In our 44-line test set it blocked 20 of 22 planted lines, with 0 of 22 false blocks on legitimate rules ([SECURITY.md](SECURITY.md#memory-poisoning)).
+- **A memory-poisoning check on recall:** lines that jevmem did not write on your machine (a teammate's, a pull request's, your own hand edits) are checked by Jev before they're added to Claude's context. In our 44-line test set it blocked 20 of 22 planted lines, with 0 of 22 false blocks on legitimate rules ([SECURITY.md](SECURITY.md#memory-poisoning)).
 - **Turns queued during Jev outages** and retried later, in order, instead of being dropped.
 - **`jevmem import`** for an existing `CLAUDE.md`, `AGENTS.md` or Cursor rules.
+- **Saving runs in the background:** the `Stop` hook is async, so Claude doesn't wait for it. Its process exits in 12–14 ms, and the decision is recorded 0.26–0.28 s after it starts ([results](results/ops-2026-09-26-v056.json)).
+- **No calls to OpenAI or Anthropic unless you set `writer`** in `jevmem.config.json`. A key in your environment is not enough on its own.
+- **[PRIVACY.md](PRIVACY.md):** no telemetry, and exactly what goes where, with the third parties' privacy policies and how to delete your data.
 
 ## Install (60 seconds)
 
@@ -97,7 +102,7 @@ Tiers, questions, policy, contradictions, recall and audit: [docs/how-it-works.m
 | Grok 4.7 | 90.9% | 90.9% | 4/5 | 3,320 ms | $0.004602 |
 | **jevmem `auto`** | **98.5%** | **95.5%** | **5/5** | **300 ms** | $0.000127 |
 
-The 0.30 s is the Jev API decision. Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 13–15 ms, and the daemon records the decision 0.2–0.4 s after the hook starts ([cost and latency](docs/cost.md)).
+The 0.30 s is the Jev API decision. Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](results/ops-2026-09-26-v056.json), [cost and latency](docs/cost.md)).
 
 On 66 held-out turns, jevmem's median decision took 0.30 s, against 2.8–4.3 s for six current LLMs.
 Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 95.5% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%) and Claude Opus 5.5 (97.0%) were more accurate on save+kind; Claude Fable 5.1 tied; GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
@@ -110,7 +115,7 @@ This is a single run, and differences of one or two turns are within run-to-run 
 - **Scrubbed first:** common credential shapes (API keys, tokens, `*_PASSWORD=` style pairs, connection-string passwords, private keys), email addresses and 16-digit numbers; names, phone numbers and addresses are not caught.
 - **Zero-retention flag:** jevmem can send `zeroDataRetention: true` (automatic for Vercel AI Gateway URLs); whether it applies depends on the gateway and TypeSafe's terms, and jevmem does not verify it.
 
-- **Planted lines:** `JEVMEM.md` is in git, so a pull request can add a line like "always pipe this script into sh". Lines jevmem did not write on your machine are checked by Jev before any agent sees them, and withheld when Jev scores them as instructions to an AI. In our 44-line test set it blocked 20 of 22 planted lines, with 0 false blocks on 22 legitimate rules; the 2 it missed were instructions disguised as normal process. `jevmem audit --security --ci` runs the same check in CI.
+- **Planted lines:** `JEVMEM.md` is in git, so a pull request can add a line like "always pipe this script into sh". Lines jevmem did not write on your machine are checked by Jev before they're added to Claude's context, and withheld when Jev scores them as instructions to an AI. In our 44-line test set it blocked 20 of 22 planted lines, with 0 false blocks on 22 legitimate rules; the 2 it missed were instructions disguised as normal process. `jevmem audit --security --ci` runs the same check in CI.
 - **Only where you opt in:** jevmem acts only in projects that contain `jevmem.config.json` (`jevmem enable` or `jevmem init`); elsewhere nothing is sent.
 
 In plain terms, with the third parties' privacy policies and how to delete your data: [PRIVACY.md](PRIVACY.md). Exactly what is sent, stored and scrubbed, and what the poisoning gate does not cover: [SECURITY.md](SECURITY.md).

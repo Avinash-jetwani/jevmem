@@ -2,8 +2,9 @@
  * Every relative link in the public docs must resolve: the target file exists, and a `#fragment` matches a heading
  * in the target (GitHub's slug rules: lowercase, punctuation dropped, spaces to hyphens, `-1`, `-2` for repeats).
  * HTML `src` and `srcset` count as links, and so do absolute links into this repository on GitHub
- * (`https://github.com/Avinash-jetwani/jevmem#…`, `…/blob/main/<path>`, `…/tree/main/<path>`), which
- * plugin/README.md uses because the plugin directory shows it outside the repository.
+ * (`https://github.com/Avinash-jetwani/jevmem#…`, `…/blob/main/<path>`, `…/tree/main/<path>`, and
+ * `https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/<path>`), which plugin/README.md and the README's
+ * header use because the plugin directory and npm show them outside the repository.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -53,6 +54,7 @@ function links(markdown: string): string[] {
     const noCode = line.replace(/`[^`]*`/g, "");
     for (const m of noCode.matchAll(/!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) out.push(m[1]!);
     for (const m of noCode.matchAll(/\s(?:src|srcset)="([^"]+)"/g)) out.push(m[1]!);
+    for (const m of noCode.matchAll(/https:\/\/raw\.githubusercontent\.com\/Avinash-jetwani\/jevmem\/main\/([^\s)"#]+)/g)) out.push(`repo:${m[1]}`);
     for (const m of noCode.matchAll(/https:\/\/github\.com\/Avinash-jetwani\/jevmem(?:\/(?:blob|tree)\/main\/([^\s)#]*))?(#[\w-]+)?/g)) {
       if (m[1] === undefined && !m[2]) continue; // the repository itself
       out.push(`repo:${m[1] ?? "README.md"}${m[2] ?? ""}`);
