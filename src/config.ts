@@ -16,14 +16,34 @@ function deepMerge<T>(base: T, patch: unknown): T {
   return out;
 }
 
+/** `"writer": "openai"` is shorthand for `"writer": { "provider": "openai" }`. */
+function normalize(raw: any): any {
+  if (raw && typeof raw === "object" && typeof raw.writer === "string") return { ...raw, writer: { provider: raw.writer } };
+  return raw;
+}
+
 /** Load `jevmem.config.json` from `root`, merged over defaults. Missing or invalid files yield defaults. */
 export function loadConfig(root: string): JevmemConfig {
   const file = path.join(root, CONFIG_FILE);
   try {
-    const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    const raw = normalize(JSON.parse(fs.readFileSync(file, "utf8")));
     return deepMerge(structuredClone(DEFAULT_CONFIG), raw);
   } catch {
     return structuredClone(DEFAULT_CONFIG);
+  }
+}
+
+/**
+ * The writer provider exactly as jevmem.config.json states it (`undefined` when the file or the field is missing).
+ * Projects set up before 0.5.4 have `"auto"`, which used whichever OpenAI or Anthropic key it found.
+ */
+export function configuredWriter(root: string): string | undefined {
+  try {
+    const raw = normalize(JSON.parse(fs.readFileSync(path.join(root, CONFIG_FILE), "utf8")));
+    const p = raw?.writer?.provider;
+    return typeof p === "string" ? p : undefined;
+  } catch {
+    return undefined;
   }
 }
 

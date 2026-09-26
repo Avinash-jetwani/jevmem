@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { envFileCandidates, loadEnvFallbacks, parseEnvFile } from "../src/env.js";
+import { envFileCandidates, loadEnvFallbacks, parseEnvFile, resolveJevKey } from "../src/env.js";
 import { hookEvent, hookRoot, runHook } from "../src/hook.js";
 import { init, resolveStopCommand, registerClaudeHooks, resolveHookCommand } from "../src/init.js";
 import { readLog } from "../src/jev.js";
@@ -124,27 +124,52 @@ describe("real Claude Code payloads", () => {
 });
 
 describe("env fallbacks (no login shell in desktop hooks)", () => {
-  it("parses export lines from shell profiles and env files, only for the wanted names", () => {
+  it("parses KEY=value and export lines from an env file, only for the wanted names", () => {
     const home = tmp();
-    fs.writeFileSync(path.join(home, ".zshenv"), '# comment\nexport PATH="$HOME/bin:$PATH"\nexport TYPESAFE_API_KEY=apikey_abc123\nexport SECRET_OTHER=nope\nOPENAI_API_KEY="sk-test-xyz"\n');
-    const got = parseEnvFile(path.join(home, ".zshenv"));
-    expect(got).toEqual({ TYPESAFE_API_KEY: "apikey_abc123", OPENAI_API_KEY: "sk-test-xyz" });
+    fs.mkdirSync(path.join(home, ".jevmem"));
+    const f = path.join(home, ".jevmem", "env");
+    fs.writeFileSync(f, '# comment\nexport PATH="$HOME/bin:$PATH"\nexport TYPESAFE_API_KEY=apikey_abc123\nexport SECRET_OTHER=nope\nOPENAI_API_KEY="sk-test-xyz"\n');
+    expect(parseEnvFile(f)).toEqual({ TYPESAFE_API_KEY: "apikey_abc123", OPENAI_API_KEY: "sk-test-xyz" });
     expect(parseEnvFile(path.join(home, "missing"))).toEqual({});
   });
-  it("fills only missing variables, project .jevmem/.env first, and reports where each came from", () => {
+  it("fills only missing variables, project .jevmem/.env first, then ~/.jevmem/env, and reports where each came from", () => {
     const home = tmp();
     const root = tmp();
     fs.mkdirSync(path.join(root, ".jevmem"));
+    fs.mkdirSync(path.join(home, ".jevmem"));
     fs.writeFileSync(path.join(root, ".jevmem", ".env"), "TYPESAFE_API_KEY=from-project\n");
-    fs.writeFileSync(path.join(home, ".zprofile"), "export TYPESAFE_API_KEY=from-home\nexport ANTHROPIC_API_KEY=anth-home\n");
+    fs.writeFileSync(path.join(home, ".jevmem", "env"), "TYPESAFE_API_KEY=from-home\nANTHROPIC_API_KEY=anth-home\n");
     const e: NodeJS.ProcessEnv = { OPENAI_API_KEY: "already" };
     const loaded = loadEnvFallbacks(root, e, home);
     expect(e.TYPESAFE_API_KEY).toBe("from-project");
     expect(e.ANTHROPIC_API_KEY).toBe("anth-home");
     expect(e.OPENAI_API_KEY).toBe("already");
     expect(loaded.map((l) => l.name)).toEqual(["TYPESAFE_API_KEY", "ANTHROPIC_API_KEY"]);
-    expect(loaded[1]!.from).toBe("~/.zprofile");
-    expect(envFileCandidates(root, home)[0]).toBe(path.join(root, ".jevmem", ".env"));
+    expect(loaded[1]!.from).toBe("~/.jevmem/env");
+    expect(envFileCandidates(root, home)).toEqual([path.join(root, ".jevmem", ".env"), path.join(home, ".jevmem", "env")]);
+  });
+  it("never reads shell profiles: keys only in ~/.zshrc and the other profiles are not used", () => {
+    const home = tmp();
+    const root = tmp();
+    for (const f of [".zshenv", ".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile"]) {
+      fs.writeFileSync(path.join(home, f), "export TYPESAFE_API_KEY=from-profile\nexport OPENAI_API_KEY=sk-profile\nANTHROPIC_API_KEY=anth-profile\n");
+    }
+    const e: NodeJS.ProcessEnv = {};
+    expect(loadEnvFallbacks(root, e, home)).toEqual([]);
+    expect(e).toEqual({});
+    expect(resolveJevKey(root, e, home)).toBeNull();
+  });
+  it("reports where the TypeSafe key came from, by name only", () => {
+    const home = tmp();
+    const root = tmp();
+    fs.mkdirSync(path.join(home, ".jevmem"));
+    fs.writeFileSync(path.join(home, ".jevmem", "env"), "TYPESAFE_API_KEY=from-home\n");
+    expect(resolveJevKey(root, {}, home)).toBe("~/.jevmem/env");
+    expect(resolveJevKey(root, { TYPESAFE_API_KEY: "x" }, home)).toBe("environment");
+    expect(resolveJevKey(root, { TYPESAFE_API_KEY: "x", CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "p" }, home)).toBe("plugin setting");
+    fs.mkdirSync(path.join(root, ".jevmem"));
+    fs.writeFileSync(path.join(root, ".jevmem", ".env"), "TYPESAFE_API_KEY=from-project\n");
+    expect(resolveJevKey(root, {}, home)).toBe("<project>/.jevmem/.env");
   });
 });
 

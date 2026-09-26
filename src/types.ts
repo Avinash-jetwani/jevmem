@@ -70,6 +70,11 @@ export interface JevmemConfig {
     zeroDataRetention: boolean | "auto";
   };
   writer: {
+    /**
+     * The one-line writer. `"openai"` or `"anthropic"` sends the text of a turn Jev decided to save to that provider
+     * to condense it (using OPENAI_API_KEY or ANTHROPIC_API_KEY). `"none"`, the default, writes the line locally.
+     * `"auto"` is the pre-0.5.4 value and now means `"none"`. `"writer": "openai"` is shorthand for the provider.
+     */
     provider: "auto" | "openai" | "anthropic" | "none";
     model?: string;
     maxChars: number;
@@ -147,7 +152,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     zeroDataRetention: "auto",
   },
   writer: {
-    provider: "auto",
+    provider: "none",
     maxChars: 200,
     timeoutMs: 8000,
   },

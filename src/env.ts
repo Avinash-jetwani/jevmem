@@ -1,9 +1,9 @@
 /**
  * Key discovery for processes that don't get a login shell (Claude Code desktop hooks, Cursor/Codex MCP servers).
  * Order: the Claude Code plugin's `typesafe_api_key` option (`CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY`, see
- * `applyPluginOption`) → process env → `<project>/.jevmem/.env` → `~/.jevmem/env` → `export VAR=…` lines in the
- * user's shell profiles. Only the named variables are read; nothing else in those files is touched. The key is never
- * logged.
+ * `applyPluginOption`) → process env → `<project>/.jevmem/.env` → `~/.jevmem/env`. The last two are jevmem's own
+ * files, which the user creates. Shell profiles are not read (since 0.5.4). Only the named variables are read, and
+ * the key is never logged or printed.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -37,12 +37,6 @@ export function envFileCandidates(root: string, home = os.homedir()): string[] {
   return [
     path.join(root, ".jevmem", ".env"),
     path.join(home, ".jevmem", "env"),
-    path.join(home, ".zshenv"),
-    path.join(home, ".zprofile"),
-    path.join(home, ".zshrc"),
-    path.join(home, ".bash_profile"),
-    path.join(home, ".bashrc"),
-    path.join(home, ".profile"),
   ];
 }
 
@@ -79,3 +73,26 @@ export function applyPluginOption(env: NodeJS.ProcessEnv = process.env): boolean
   env.TYPESAFE_API_KEY = v;
   return true;
 }
+
+/** Where the TypeSafe key comes from, by name only (never the value). */
+export type KeySource = "plugin setting" | "environment" | "<project>/.jevmem/.env" | "~/.jevmem/env" | null;
+
+/**
+ * Apply the plugin option and the fallback files (as every command does), and say where TYPESAFE_API_KEY came from.
+ * Call it before anything else loads keys, or the answer is "environment".
+ */
+export function resolveJevKey(root: string, env: NodeJS.ProcessEnv = process.env, home: string = os.homedir()): KeySource {
+  if (applyPluginOption(env)) return "plugin setting";
+  if (env.TYPESAFE_API_KEY?.trim()) return "environment";
+  const loaded = loadEnvFallbacks(root, env, home).find((l) => l.name === "TYPESAFE_API_KEY");
+  if (!loaded) return null;
+  return loaded.from.startsWith("~") ? "~/.jevmem/env" : "<project>/.jevmem/.env";
+}
+
+/** What to do when no TypeSafe key is found. Names the two places to put it; never prints a key. */
+export const MISSING_KEY_HELP = [
+  "No TypeSafe API key found, so jevmem does nothing yet. Put it in one of:",
+  "  - the plugin setting: in Claude Code, run `/plugin configure jevmem@jevmem` (or open jevmem in `/plugin`) and enter the key (kept in your system's credential store)",
+  "  - ~/.jevmem/env: a line TYPESAFE_API_KEY=... (then `chmod 600 ~/.jevmem/env`)",
+  "Get a key at https://typesafe.ai",
+].join("\n");

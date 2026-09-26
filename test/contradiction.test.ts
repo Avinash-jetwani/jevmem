@@ -80,7 +80,7 @@ describe("filler stripping", () => {
     const none = { writer: { ...DEFAULT_CONFIG.writer, provider: "none" as const }, env: {} as any };
     expect((await composeLine("Decision: the extension ships as a sideload zip only, no Chrome Web Store yet.", "decision", none)).line).toBe("The extension ships as a sideload zip only, no Chrome Web Store yet.");
     const fetchImpl: typeof fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: "Actually, use Postgres 16 as the primary store." } }] }), { status: 200 });
-    const r = await composeLine("whatever", "decision", { writer: DEFAULT_CONFIG.writer, env: { OPENAI_API_KEY: "t", JEVMEM_WRITER: "openai" } as any, fetchImpl });
+    const r = await composeLine("whatever", "decision", { writer: { ...DEFAULT_CONFIG.writer, provider: "openai" }, env: { OPENAI_API_KEY: "t" } as any, fetchImpl });
     expect(r.line).toBe("Use Postgres 16 as the primary store.");
   });
 });
@@ -107,8 +107,8 @@ describe("writer", () => {
       seen.push({ url, body: JSON.parse(String(init?.body)) });
       return new Response(JSON.stringify({ choices: [{ message: { content: "  Use Postgres 16 as the primary store; SQLite locked under load.\nextra line" } }] }), { status: 200 });
     };
-    const env = { OPENAI_API_KEY: "test", JEVMEM_WRITER: "openai" } as any;
-    const { line, writerUsed } = await composeLine("USER: switch to Postgres 16. Key sk-proj-abcdefghijklmnopqrstuvwxyz0123456789", "decision", { writer: DEFAULT_CONFIG.writer, env, fetchImpl });
+    const env = { OPENAI_API_KEY: "test" } as any;
+    const { line, writerUsed } = await composeLine("USER: switch to Postgres 16. Key sk-proj-abcdefghijklmnopqrstuvwxyz0123456789", "decision", { writer: { ...DEFAULT_CONFIG.writer, provider: "openai" }, env, fetchImpl });
     expect(writerUsed).toBe("openai");
     expect(line).toBe("Use Postgres 16 as the primary store; SQLite locked under load.");
     expect(seen[0].url).toBe("https://api.openai.com/v1/chat/completions");
@@ -116,13 +116,14 @@ describe("writer", () => {
     expect(JSON.stringify(seen[0].body)).not.toContain("sk-proj-abcdefghijklmnop");
   });
 
-  it("uses Anthropic when only that key is present, and falls back on HTTP errors", async () => {
+  it("uses Anthropic when the config chooses it, and falls back on HTTP errors", async () => {
     const ok: typeof fetch = async () => new Response(JSON.stringify({ content: [{ type: "text", text: "Ship the cron job as a queue worker before launch." }] }), { status: 200 });
     const env = { ANTHROPIC_API_KEY: "test" } as any;
-    const a = await composeLine("USER: move the cron job to a queue before launch", "todo", { writer: DEFAULT_CONFIG.writer, env, fetchImpl: ok });
+    const anthropic = { ...DEFAULT_CONFIG.writer, provider: "anthropic" as const };
+    const a = await composeLine("USER: move the cron job to a queue before launch", "todo", { writer: anthropic, env, fetchImpl: ok });
     expect(a.writerUsed).toBe("anthropic");
     const bad: typeof fetch = async () => new Response("nope", { status: 500 });
-    const b = await composeLine("USER: move the cron job to a queue before launch", "todo", { writer: DEFAULT_CONFIG.writer, env, fetchImpl: bad });
+    const b = await composeLine("USER: move the cron job to a queue before launch", "todo", { writer: anthropic, env, fetchImpl: bad });
     expect(b.writerUsed).toBe("fallback");
   });
 });

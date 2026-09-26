@@ -10,7 +10,6 @@ This file has two prompt sets. The **SQLite → Postgres demo** below (three liv
 mkdir jevmem-demo && cd jevmem-demo && git init
 echo '{"name":"demo-app"}' > package.json
 export TYPESAFE_API_KEY=...        # required
-export OPENAI_API_KEY=...          # optional, makes the lines prettier
 export JEVMEM_VERBOSE=1            # prints latency + cost after every hook run
 jevmem init --tool claude
 ```
@@ -33,7 +32,7 @@ When Claude finishes, the `Stop` hook fires, and `JEVMEM.md` gains a line such a
 - [decision] We are going with SQLite as the primary store.  <!-- id:pddiow ts:… conf:0.9x -->
 ```
 
-(That is the no-LLM-key line from the captured run below; with `OPENAI_API_KEY` set the writer condenses the whole turn instead.) Since v0.5.0 the `Stop` hook runs in the background: Claude Code does not wait for it, and the line appears a moment after the answer. The first turn also starts the warm daemon that evaluates the turns.
+(That is the line jevmem writes itself, from the captured run below. With `"writer": "openai"` in `jevmem.config.json` and `OPENAI_API_KEY` set, OpenAI condenses the whole turn instead.) Since v0.5.0 the `Stop` hook runs in the background: Claude Code does not wait for it, and the line appears a moment after the answer. The first turn also starts the warm daemon that evaluates the turns.
 
 ### 2. Contradiction (0:20–0:40)
 

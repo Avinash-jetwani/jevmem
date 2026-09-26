@@ -9,6 +9,8 @@
 # not logged in, so authentication comes from CLAUDE_CODE_OAUTH_TOKEN (run `claude setup-token` once) or
 # ANTHROPIC_API_KEY, per https://code.claude.com/docs/en/authentication; the token can also be kept in
 # ~/.jevmem/e2e-oauth-token (E2E_TOKEN_FILE). The harness refuses to run without one.
+# The sessions run with a temporary HOME whose ~/.jevmem/env holds TYPESAFE_API_KEY, copied from the harness's own
+# environment (required): jevmem reads no shell profiles, and a GUI app gives hooks no shell variables.
 #
 # Scenarios (default: all = linkguard + handwrite, each run does both; full = all five):
 #   linkguard  five turns in a small project: save, decision, reversal (supersede), thanks, injection
@@ -61,15 +63,26 @@ if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; the
   echo "Set CLAUDE_CODE_OAUTH_TOKEN (create one with \`claude setup-token\`), put it in $TOKEN_FILE, or set ANTHROPIC_API_KEY."
   exit 2
 fi
+if [ -z "${TYPESAFE_API_KEY:-}" ]; then
+  echo "Set TYPESAFE_API_KEY in the environment that runs e2e: it goes into the sessions' ~/.jevmem/env."
+  exit 2
+fi
 E2E_CONFIG_DIR="$(mktemp -d /tmp/jevmem-e2e-config.XXXXXX)"
 E2E_NPM=""
-trap 'rm -rf "${E2E_CONFIG_DIR:?}"; [ -n "$E2E_NPM" ] && rm -rf "${E2E_NPM:?}"' EXIT
+# The sessions' HOME: a temporary one whose ~/.jevmem/env holds the TypeSafe key. A GUI app gives hooks no shell
+# variables and jevmem reads no shell profiles, so this is the only place the key comes from. ~/.nvm is linked so the
+# hooks find Node as they would on this machine.
+E2E_HOME="$(mktemp -d /tmp/jevmem-e2e-home.XXXXXX)"
+trap 'rm -rf "${E2E_CONFIG_DIR:?}" "${E2E_HOME:?}"; [ -n "$E2E_NPM" ] && rm -rf "${E2E_NPM:?}"' EXIT
+mkdir -m 700 "$E2E_HOME/.jevmem"
+( umask 077; printf 'TYPESAFE_API_KEY=%s\n' "$TYPESAFE_API_KEY" > "$E2E_HOME/.jevmem/env" )
+[ -d "$HOME/.nvm" ] && ln -s "$HOME/.nvm" "$E2E_HOME/.nvm"
 AUTH_ENV=()
 [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && AUTH_ENV+=("CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN")
 [ -n "${ANTHROPIC_API_KEY:-}" ] && AUTH_ENV+=("ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
 # A Claude Code session as the desktop app runs it (bare PATH, no shell variables), in the temporary config dir.
 # Extra NAME=value arguments before `--` go into its environment.
-SESSION_PATH="/usr/bin:/bin:/usr/sbin:/sbin"; SESSION_HOME="$HOME" # the session defaults: the desktop app's bare PATH
+SESSION_PATH="/usr/bin:/bin:/usr/sbin:/sbin"; SESSION_HOME="$E2E_HOME" # the session defaults: the desktop app's bare PATH
 claude_session() {
   local extra=()
   while [ $# -gt 0 ] && [ "$1" != "--" ]; do extra+=("$1"); shift; done
@@ -139,7 +152,7 @@ run_outage() {
   proxy_pid=$!
   for _ in $(seq 1 50); do [ -s "$scratch/.jevmem/proxy.url" ] && break; sleep 0.1; done
   proxy_url="$(cat "$scratch/.jevmem/proxy.url")"
-  # Hooks and the daemon read TYPESAFE_BASE_URL from the project's .jevmem/.env (the key still comes from the profile).
+  # Hooks and the daemon read TYPESAFE_BASE_URL from the project's .jevmem/.env (the key still comes from ~/.jevmem/env).
   printf 'TYPESAFE_BASE_URL=%s\n' "$proxy_url" > "$scratch/.jevmem/.env"
   echo "   proxy $proxy_url (answering 529)"
   local p1="Decision: invoices are stored as PDF files in S3 under invoices/<year>/, one file per invoice."

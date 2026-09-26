@@ -18,7 +18,7 @@
   },
   "jev": { "model": "jev-latest", "timeoutMs": 2000, "maxIdsPerCall": 200, "maxRecallCandidates": 60,
            "usdPerMillionTokens": 0.042, "cache": true, "zeroDataRetention": "auto" },
-  "writer": { "provider": "auto", "maxChars": 200, "timeoutMs": 8000 },
+  "writer": { "provider": "none", "maxChars": 200, "timeoutMs": 8000 },
   "daemon": { "enabled": true, "idleMinutes": 30 },
   "tiers": {
     "mode": "auto",
@@ -32,15 +32,19 @@
 }
 ```
 
+### The one-line writer
+
+`writer.provider` is `"none"` by default: jevmem writes each line itself from the turn, and no text goes to OpenAI or Anthropic. Set `"openai"` or `"anthropic"` (or the shorthand `"writer": "openai"`) to have that provider condense the turn into the line; it then also needs `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Nothing else turns the LLM writer on: a key in your environment is not enough, and `JEVMEM_WRITER` can only turn it off. Projects set up before v0.5.4 have `"provider": "auto"`, which now means `"none"`; jevmem says so once. `jevmem doctor` and `jevmem stats` show the active writer and why.
+
 `usdPerMillionTokens` is applied to input tokens only. `injectionMax` gates two things: a turn is not saved when its injection family reaches it, and an unverified memory line is not served to an agent when the poisoning gate's noul reaches it ([SECURITY.md](../SECURITY.md#memory-poisoning)).
 
 Environment:
 
 | Variable | Purpose |
 |---|---|
-| `TYPESAFE_API_KEY` | Jev. Required for decisions, recall, search, audit and MCP `add_memory`. |
-| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | The one-line writer. Auto-detected; first one present wins. |
-| `JEVMEM_WRITER` | `openai`, `anthropic`, or `none` to force a provider. |
+| `TYPESAFE_API_KEY` | Jev. Required for decisions, recall, search, audit and MCP `add_memory`. Also read from `<project>/.jevmem/.env` and `~/.jevmem/env`; the plugin's key setting comes first. |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Used only when `writer` in `jevmem.config.json` is `"openai"` or `"anthropic"`. |
+| `JEVMEM_WRITER` | `none` turns the LLM writer off. Other values are ignored: only the config turns it on. |
 | `JEVMEM_WRITER_MODEL` | Override the model (defaults: `gpt-5-mini` with minimal reasoning, `claude-haiku-4-5-20251001`). |
 | `OPENAI_BASE_URL` | Any OpenAI-compatible endpoint (Ollama, Groq, OpenRouter…). |
 | `JEVMEM_VERBOSE` | `1` prints the Jev latency/cost line after each hook run. |

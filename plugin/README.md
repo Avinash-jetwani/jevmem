@@ -8,6 +8,8 @@ Supported in Claude Code only: the terminal, the IDE extensions and the desktop 
 
 ## Setup
 
+If you added jevmem from the Claude directory, skip the marketplace commands: install the CLI and run `jevmem enable`.
+
 This plugin contains no jevmem code. It runs the `jevmem` command-line tool, which you install separately from npm. Its source is in this repository: https://github.com/Avinash-jetwani/jevmem/tree/main/src
 
 ```bash
@@ -17,7 +19,7 @@ claude plugin install jevmem@jevmem
 cd your-project && jevmem enable
 ```
 
-You need a TypeSafe AI key (https://typesafe.ai). `jevmem enable` creates `jevmem.config.json`, `JEVMEM.md` and `.jevmem/` in the project, and adds `.jevmem/` to `.gitignore`.
+You need a TypeSafe AI key (https://typesafe.ai): enter it with `/plugin configure jevmem@jevmem` in Claude Code (see [Your API key](#your-api-key)). `jevmem doctor` checks the setup. `jevmem enable` creates `jevmem.config.json`, `JEVMEM.md` and `.jevmem/` in the project, and adds `.jevmem/` to `.gitignore`.
 
 ## What it runs
 
@@ -36,7 +38,7 @@ Only in an enabled project. Before anything is sent, common secret shapes are re
   - on each prompt: the prompt and up to 60 of your memory lines;
   - after each turn: your message, the previous two turns (shortened), and up to 200 memory lines. Claude's reply is included only when your message reads as a question or a bug report, or has no text;
   - from the MCP tools: the line to add (`add_memory`), your memory lines (`search_memory`, `list_memory`), and for `audit_memory` the file names to depth 3 (not their contents), `package.json` fields and the first 3,000 characters of your README.
-- **To OpenAI (`https://api.openai.com`) or Anthropic (`https://api.anthropic.com`)**, or the URL in `OPENAI_BASE_URL` or `ANTHROPIC_BASE_URL`, only if you set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`: the text of a turn Jev decided to save, to condense it into one line.
+- **To OpenAI (`https://api.openai.com`) or Anthropic (`https://api.anthropic.com`)**, or the URL in `OPENAI_BASE_URL` or `ANTHROPIC_BASE_URL`, only when you set `"writer": "openai"` or `"anthropic"` in the project's `jevmem.config.json` (and that provider's key): the text of a turn Jev decided to save, to condense it into one line. An OpenAI or Anthropic key in your environment is not enough on its own. By default jevmem writes the line itself and sends nothing to either.
 
 There is no telemetry. Details: https://github.com/Avinash-jetwani/jevmem/blob/main/SECURITY.md
 
@@ -51,9 +53,9 @@ It writes nothing to `~/.jevmem/`. That folder is read only if you create `~/.je
 
 ## Your API key
 
-Claude Code asks for your TypeSafe key when you enable the plugin. The option is marked sensitive, so the key is kept in your system's secure credential store. jevmem uses it for the hook or MCP process and doesn't write it to a file or a log.
+Enter your TypeSafe key in the plugin's settings: in Claude Code, run `/plugin configure jevmem@jevmem` (or open jevmem in `/plugin`). The `claude plugin install` shell command doesn't ask for it. The option is marked sensitive, so Claude Code keeps the key in your system's secure credential store. jevmem uses it for the hook or MCP process and doesn't write it to a file or a log.
 
-If you leave it empty, jevmem reads `TYPESAFE_API_KEY` from the environment. For any key not set there, it also reads `<project>/.jevmem/.env`, `~/.jevmem/env`, and `export NAME=...` lines in `~/.zshenv`, `~/.zprofile`, `~/.zshrc`, `~/.bash_profile`, `~/.bashrc` and `~/.profile`. That covers `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, the base URLs and the writer settings. Only those named variables are parsed; the files are not executed.
+If you leave it empty, jevmem looks for `TYPESAFE_API_KEY` in this order: the environment, `<project>/.jevmem/.env`, then `~/.jevmem/env`. The last two are jevmem's own files, which you create (a line `TYPESAFE_API_KEY=...`). The same files can hold `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`, which are used only when `writer` in `jevmem.config.json` chooses that provider. Only those named variables are parsed, and the files are not executed. jevmem doesn't read shell profiles such as `~/.zshrc`. `jevmem doctor` says where the key was found, without printing it.
 
 ## Switching it off
 

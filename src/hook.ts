@@ -107,7 +107,7 @@ export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<Ho
   const store = new MemoryStore(root, cfg.memoryFile);
   const event = hookEvent(input);
   if (cfg.enabled === false) return { event, action: "noop", detail: "jevmem is switched off for this project (jevmem.config.json: enabled false)" };
-  // Desktop-app hooks get no shell profile: pull the key from .jevmem/.env, ~/.jevmem/env, or the user's profiles.
+  // Desktop-app hooks get no shell environment: pull the key from .jevmem/.env or ~/.jevmem/env.
   if (!deps.jev && !hasJevKey()) loadEnvFallbacks(root, process.env, deps.env?.HOME);
   const jev =
     deps.jev ??
@@ -115,7 +115,7 @@ export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<Ho
       ? createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention })
       : null);
   if (!jev) {
-    const detail = "TYPESAFE_API_KEY not set (checked env, .jevmem/.env, ~/.jevmem/env, shell profiles); jevmem skipped";
+    const detail = "TYPESAFE_API_KEY not set (checked the plugin setting, env, .jevmem/.env, ~/.jevmem/env); jevmem skipped";
     logHookProblem(root, event, detail);
     return { event, action: "noop", detail };
   }

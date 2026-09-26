@@ -94,7 +94,7 @@ save          = kind != none AND (content >= contentMin (0.5) OR reversal) AND r
 contradiction = save AND reversal
 ```
 
-On `save`, the writer produces one line (≤ 200 chars, cut at a word boundary, not inside a URL, with leading filler such as "Decision:", "Actually,", "So," or "OK," stripped). On `contradiction`, the old line is re-tagged `[superseded]` and gets `→ id:new`. Every decision, saved or skipped, is recorded in `.jevmem/decisions.jsonl` with both tiers' answers and which writer produced the line, so `jevmem why <id>` shows tier 1, and tier 2 if it ran, and which borderline condition caused the escalation.
+On `save`, the writer produces one line (≤ 200 chars, cut at a word boundary, not inside a URL, with leading filler such as "Decision:", "Actually,", "So," or "OK," stripped). By default jevmem writes it locally from the most relevant sentence; an OpenAI or Anthropic model condenses the turn instead only when `writer` in `jevmem.config.json` says so. On `contradiction`, the old line is re-tagged `[superseded]` and gets `→ id:new`. Every decision, saved or skipped, is recorded in `.jevmem/decisions.jsonl` with both tiers' answers and which writer produced the line, so `jevmem why <id>` shows tier 1, and tier 2 if it ran, and which borderline condition caused the escalation.
 
 ### Contradictions
 

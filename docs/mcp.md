@@ -60,7 +60,7 @@ args = ["-y", "jevmem", "mcp"]
 env = { TYPESAFE_API_KEY = "your-key" }
 ```
 
-`jevmem init --tool codex` writes this section without the `env` line; the server then reads the key from `~/.jevmem/env` or your shell profile. Or from the CLI: `codex mcp add jevmem -- npx -y jevmem mcp`.
+`jevmem init --tool codex` writes this section without the `env` line; the server then reads the key from `~/.jevmem/env` (jevmem does not read shell profiles). Or from the CLI: `codex mcp add jevmem -- npx -y jevmem mcp`.
 
 ### Claude Code plugin
 

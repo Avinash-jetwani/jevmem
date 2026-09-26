@@ -2,16 +2,26 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.5.4] - 2026-09-26
 
-Plugin folder and release process prepared for the Claude plugin directory's developer portal. No CLI change, so no npm release.
+jevmem uses only the keys and services you chose: the LLM writer is opt-in per project, and shell profiles are no longer read.
 
 ### Changed
-- **Hook commands use the quoted `"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh"` form** that the directory's checklist asks for in a plugin that lives in a subfolder. A test checks the rule and runs both commands through a shell from a plugin path containing a space.
-- **`plugin/README.md` is the directory listing.** It covers where the plugin works (Claude Code only), what it runs, each host it sends to and what it sends, what it writes, and every place the key is read from.
-- **`plugin/LICENSE`**, and `.gitignore` plus `scripts/check-plugin.mjs` keep operating-system files (`.DS_Store`, `Thumbs.db`, `desktop.ini`, `__MACOSX`) out of `plugin/`.
-- **The directory follows the `directory` branch.** After `npm publish` succeeds, the release workflow fast-forwards it to the tagged commit, and the "Protect main" ruleset covers it. The release steps are in CONTRIBUTING.md, and each checklist row's result is in DECISIONS.md.
-- The launcher's messages no longer spell out an install command.
+- **LLM writer is now opt-in: set writer in jevmem.config.json.** Until now, an `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` found anywhere jevmem looked sent the text of each saved turn to that provider. Now the LLM writer runs only when the project's `jevmem.config.json` sets `"writer": "openai"` or `"anthropic"` (or `"writer": { "provider": "openai" }`) and that provider's key is set. By default jevmem writes the line itself. A key alone, or `JEVMEM_WRITER=openai`, doesn't turn it on (tested with a fake OpenAI and Anthropic server: zero requests); `JEVMEM_WRITER=none` still turns it off. The pre-0.5.4 value `"provider": "auto"` now means no LLM writer. If you relied on the old behaviour, jevmem prints one line saying so, once per project, and you can add `"writer": "openai"` or `"anthropic"` to keep it.
+- **What the default costs in line quality.** The local writer's code is unchanged. On the 37 save-labelled turns of `eval/transcript.jsonl`, it passes the 5 existing `expectLine` checks and keeps every line within 200 characters. On 16 of the 37 turns, though, its line leaves out a later sentence, such as the reason for a decision ([results/writer-2026-09-26-none.json](results/writer-2026-09-26-none.json)). The LLM writer was not measured in this release (no OpenAI or Anthropic key was available); `node scripts/eval-writer.mjs --writer openai` runs the same comparison with one.
+- **Shell profiles are no longer read.** Keys come from the plugin setting, `TYPESAFE_API_KEY` in the environment, `<project>/.jevmem/.env`, then `~/.jevmem/env`. A key only in `~/.zshrc` (or `~/.zshenv`, `~/.zprofile`, `~/.bash_profile`, `~/.bashrc`, `~/.profile`) is not used (tested). If your hooks found the key there, move it to `~/.jevmem/env` or the plugin setting.
+- **When no key is found**, `jevmem init`, `jevmem enable` and the new `jevmem doctor` say where to put one (the plugin setting via `/plugin configure jevmem@jevmem`, or `~/.jevmem/env`) and never print a key.
+- **Plugin install docs.** `claude plugin install` doesn't ask for the key, so the READMEs now say to enter it with `/plugin configure jevmem@jevmem`. `plugin/README.md` also tells people who added jevmem from the Claude directory to skip the marketplace commands.
+- Hook commands use the quoted `"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh"` form that the Claude plugin directory's checklist asks for in a plugin that lives in a subfolder. The launcher's messages no longer spell out an install command.
+- `plugin/README.md` is the directory listing. It covers where the plugin works (Claude Code only), what it runs, each host it sends to and what it sends, what it writes, and where the key is read from. `plugin/LICENSE` was added, and `.gitignore` plus `scripts/check-plugin.mjs` keep operating-system files out of `plugin/`.
+
+### Added
+- **`jevmem doctor`:** whether the project is enabled, where the TypeSafe key comes from (by name only), which writer is active and why, and which hooks are registered. `jevmem stats` also shows the writer.
+- **The `directory` branch,** which the Claude plugin directory follows. After `npm publish` succeeds, the release workflow fast-forwards it to the tagged commit. It never force-pushes, and a ruleset blocks force pushes and deletion. The release steps are in CONTRIBUTING.md.
+- `scripts/eval-writer.mjs` scores the one-line writer on the eval set.
+
+### Verified
+- `scripts/e2e.sh --runs 3 --scenario full`: 18 of 18 runs passed ([results/e2e-2026-09-26-v054.txt](results/e2e-2026-09-26-v054.txt)). The Claude Code sessions had no shell variables and a temporary HOME whose `~/.jevmem/env` held the key. An earlier full run, before the final build, passed 17 of 18: one `handwrite` turn's queue did not drain within 60 s, and it did not recur in three reruns ([results/e2e-2026-09-26-v054-first-run.txt](results/e2e-2026-09-26-v054-first-run.txt)).
 
 ## [0.5.3] - 2026-09-25
 

@@ -3,6 +3,10 @@ import { scrubSecrets } from "../scrub.js";
 export type WriterProvider = "openai" | "anthropic" | "none";
 
 export interface WriterConfig {
+  /**
+   * `"openai"` or `"anthropic"` turns the LLM writer on for this project. `"none"` (the default) and the legacy
+   * `"auto"` leave it off: jevmem writes the line itself.
+   */
   provider: "auto" | WriterProvider;
   model?: string;
   timeoutMs: number;
@@ -11,6 +15,8 @@ export interface WriterConfig {
 export interface ResolvedWriter {
   provider: WriterProvider;
   model: string;
+  /** Why this writer, in one sentence, for `jevmem doctor` and `jevmem stats`. */
+  reason: string;
 }
 
 export const DEFAULT_MODELS: Record<Exclude<WriterProvider, "none">, string> = {
@@ -18,15 +24,21 @@ export const DEFAULT_MODELS: Record<Exclude<WriterProvider, "none">, string> = {
   anthropic: "claude-haiku-4-5-20251001",
 };
 
-/** Pick the writer from `JEVMEM_WRITER`, then config, then whichever key is present. */
+const KEY_OF: Record<Exclude<WriterProvider, "none">, string> = { openai: "OPENAI_API_KEY", anthropic: "ANTHROPIC_API_KEY" };
+
+/**
+ * The LLM writer is opt-in per project: it runs only when `writer.provider` in jevmem.config.json is `"openai"` or
+ * `"anthropic"` and that provider's key is set. A key being present is never enough, and `JEVMEM_WRITER` can only
+ * turn the writer off (`none`). Otherwise jevmem writes the line itself (the deterministic extract).
+ */
 export function resolveWriter(cfg: WriterConfig, env: NodeJS.ProcessEnv = process.env): ResolvedWriter {
-  const forced = (env.JEVMEM_WRITER?.trim().toLowerCase() || cfg.provider) as WriterConfig["provider"];
   const model = env.JEVMEM_WRITER_MODEL?.trim() || cfg.model;
-  const pick = (p: WriterProvider): ResolvedWriter => ({ provider: p, model: model ?? (p === "none" ? "" : DEFAULT_MODELS[p]) });
-  if (forced === "openai" || forced === "anthropic" || forced === "none") return pick(forced);
-  if (env.OPENAI_API_KEY?.trim()) return pick("openai");
-  if (env.ANTHROPIC_API_KEY?.trim()) return pick("anthropic");
-  return pick("none");
+  const self = (reason: string): ResolvedWriter => ({ provider: "none", model: "", reason });
+  if (env.JEVMEM_WRITER?.trim().toLowerCase() === "none") return self("JEVMEM_WRITER=none: jevmem writes the line itself");
+  const p = cfg.provider;
+  if (p !== "openai" && p !== "anthropic") return self("no LLM writer set in jevmem.config.json (the default): jevmem writes the line itself");
+  if (!env[KEY_OF[p]]?.trim()) return self(`writer is "${p}" in jevmem.config.json, but ${KEY_OF[p]} is not set: jevmem writes the line itself`);
+  return { provider: p, model: model ?? DEFAULT_MODELS[p], reason: `writer is "${p}" in jevmem.config.json and ${KEY_OF[p]} is set` };
 }
 
 export function systemPrompt(maxChars: number): string {

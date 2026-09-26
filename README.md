@@ -33,7 +33,7 @@ https://github.com/user-attachments/assets/ed77849e-db1c-4c05-9ad8-4cab0b3968a2
 
 ## Install (60 seconds)
 
-You need a [TypeSafe AI](https://typesafe.ai) key for Jev (an OpenAI or Anthropic key is optional).
+You need a [TypeSafe AI](https://typesafe.ai) key for Jev. jevmem writes each line itself; an OpenAI or Anthropic writer is optional and off unless you set `writer` in `jevmem.config.json` ([configuration](docs/configuration.md#the-one-line-writer)).
 
 **Option 1: Claude Code plugin (recommended)**
 
@@ -46,7 +46,7 @@ claude plugin install jevmem@jevmem
 cd your-project && jevmem enable
 ```
 
-The plugin runs the `jevmem` CLI from npm, so install that first: without it the hooks stay silent and the MCP server fails to start (`/mcp` shows it as failed). Claude Code asks for your key when you enable the plugin and keeps it in your system's secure credential store. The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](docs/hooks.md#the-claude-code-plugin).
+The plugin runs the `jevmem` CLI from npm, so install that first: without it the hooks stay silent and the MCP server fails to start (`/mcp` shows it as failed). Then enter your TypeSafe key in Claude Code with `/plugin configure jevmem@jevmem` (the `claude plugin install` shell command doesn't ask for it); Claude Code keeps it in your system's secure credential store. The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](docs/hooks.md#the-claude-code-plugin).
 
 **Option 2: npm** (also sets up Cursor and Codex)
 
@@ -56,7 +56,7 @@ cd your-project
 jevmem init --tool claude
 ```
 
-`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the two Claude Code hooks ([details](docs/hooks.md#what-init-sets-up)). Hooks do not read your shell profile reliably, so put the key in `~/.jevmem/env` (`TYPESAFE_API_KEY=...`).
+`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the two Claude Code hooks ([details](docs/hooks.md#what-init-sets-up)). Hooks don't get your shell's variables and jevmem doesn't read shell profiles, so put the key in `~/.jevmem/env` (`TYPESAFE_API_KEY=...`). `jevmem doctor` checks the setup.
 
 **Already have a `CLAUDE.md`?** `jevmem import` splits `CLAUDE.md`, `AGENTS.md` and `.cursor/rules/*` into statements, puts each through the same gate as a turn, and prints what it would add; `--apply` writes them. `--from claude-auto-memory` also reads Claude Code's own auto memory for the project. The source files are only read.
 
@@ -78,7 +78,7 @@ MCP `add_memory` goes through the same gate as the hook. Client configs: [docs/m
 1. **Scrub.** Common secret shapes, email addresses and card-shaped numbers are removed from the turn before it leaves your machine.
 2. **Ask Jev typed questions.** [Jev by TypeSafe AI](https://typesafe.ai) answers a fixed set of small questions with probabilities: is there a decision, a rule, a bug? is it small talk or an injection attempt? which existing line does it change?
 3. **Apply thresholds in code.** Plain rules over those probabilities decide save or skip; they live in `jevmem.config.json`, not in a prompt.
-4. **Write one line.** On save, a small LLM (or a deterministic extract, with no LLM key) writes one line of at most 200 characters.
+4. **Write one line.** On save, jevmem writes one line of at most 200 characters from the turn itself, or, if you set `writer` in `jevmem.config.json`, a small OpenAI or Anthropic model condenses the turn.
 5. **Supersede the old line.** If the turn replaces an existing memory, that line is tagged `[superseded] … → id:new` and stays in the file.
 
 Tiers, questions, policy, contradictions, recall and audit: [docs/how-it-works.md](docs/how-it-works.md).
@@ -106,7 +106,7 @@ This is a single run, and differences of one or two turns are within run-to-run 
 
 ## Privacy
 
-- **Sent to TypeSafe AI:** the user message of each turn (and the assistant reply for questions and bug reports), the previous two turns, and your memory lines, to be scored. No telemetry. If you set an OpenAI or Anthropic key, the text of a saved turn also goes to that provider to write the line.
+- **Sent to TypeSafe AI:** the user message of each turn (and the assistant reply for questions and bug reports), the previous two turns, and your memory lines, to be scored. No telemetry. Only if you set `"writer": "openai"` or `"anthropic"` in `jevmem.config.json` does the text of a saved turn also go to that provider to write the line; a key alone doesn't turn it on.
 - **Scrubbed first:** common credential shapes (API keys, tokens, `*_PASSWORD=` style pairs, connection-string passwords, private keys), email addresses and 16-digit numbers; names, phone numbers and addresses are not caught.
 - **Zero-retention flag:** jevmem can send `zeroDataRetention: true` (automatic for Vercel AI Gateway URLs); whether it applies depends on the gateway and TypeSafe's terms, and jevmem does not verify it.
 
