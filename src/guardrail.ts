@@ -26,6 +26,7 @@ import { noul, type Questions } from "@typesafe-ai/sdk";
 import { CONFIG_FILE, isJevmemHookCommand, parseConfig } from "./config.js";
 import { applyPluginOption, loadEnvFallbacks } from "./env.js";
 import { gateLines, planGate, settleGate } from "./guard.js";
+import { actionSummary, recordGuardCall, shorten, type GuardLogEntry, type GuardRoute } from "./guardlog.js";
 import { appendLog, type JevCaller } from "./jev.js";
 import { actionFeatures, DEFAULT_MATCH, matchRules, ruleFeatures, shellWords, snippetAround, splitCommand, type Candidate, type GuardAction, type GuardTool, type IndexedRule, type MatchOptions } from "./prefilter.js";
 import { lineSha } from "./provenance.js";
@@ -414,6 +415,8 @@ export interface GuardTrace {
   payload: Record<string, string> | null;
   checks: RuleCheck[];
   tamper: string | null;
+  /** How the call was decided (src/guardlog.ts); null when the guard did not check it (not enabled, off, another tool). */
+  route: GuardRoute | null;
   decision: GuardDecision;
   /** Exactly what the hook prints: "" (no decision) or one JSON object. */
   stdout: string;
@@ -433,7 +436,7 @@ export interface GuardDeps {
   match?: Partial<MatchOptions>;
   /** Skip the answer cache (read and write). */
   noCache?: boolean;
-  /** Log decisions and failures to `.jevmem/log.jsonl` (default true). */
+  /** Log decisions and failures to `.jevmem/log.jsonl`, and each checked call to `.jevmem/guard-log.jsonl` (default true). */
   log?: boolean;
 }
 
@@ -502,10 +505,18 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   const env = deps.env ?? process.env;
   const root = deps.root ?? guardRoot(input, env);
   const log = deps.log !== false;
-  const trace: GuardTrace = { root, mode: null, thresholds: null, tool: input.tool_name ?? null, action: null, rules: null, candidates: [], payload: null, checks: [], tamper: null, decision: "none", stdout: "", notes: [], jevMs: null, totalMs: 0 };
+  const trace: GuardTrace = { root, mode: null, thresholds: null, tool: input.tool_name ?? null, action: null, rules: null, candidates: [], payload: null, checks: [], tamper: null, route: null, decision: "none", stdout: "", notes: [], jevMs: null, totalMs: 0 };
+  const startedAt = new Date().toISOString();
+  const guarded = GUARDED_TOOLS.includes(input.tool_name as GuardTool);
   const done = () => {
     trace.totalMs = Math.round(performance.now() - t0);
     return trace;
+  };
+  // A call the guard checked but could not decide on (bad config, malformed input) still counts as seen.
+  const failedCall = () => {
+    trace.route = "error";
+    if (log && guarded) recordGuardCall(root, { ts: startedAt, tool: input.tool_name!, route: "error", decision: "none" });
+    return done();
   };
   if (!fs.existsSync(path.join(root, CONFIG_FILE))) {
     trace.notes.push("jevmem is not enabled in this project (no jevmem.config.json)");
@@ -515,7 +526,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   if (!conf.ok) {
     trace.notes.push(conf.error);
     logGuard(root, log, { ok: false, error: conf.error });
-    return done();
+    return failedCall();
   }
   const cfg = conf.cfg;
   trace.mode = cfg.guard.mode;
@@ -531,9 +542,10 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   const action = toAction(input, root);
   trace.action = action;
   if (!action) {
-    trace.notes.push(GUARDED_TOOLS.includes(input.tool_name as GuardTool) ? "the tool input has no command or file_path" : `not a checked tool (${input.tool_name ?? "none"}; the guard checks ${GUARDED_TOOLS.join(", ")})`);
-    if (GUARDED_TOOLS.includes(input.tool_name as GuardTool)) logGuard(root, log, { ok: false, error: `malformed ${input.tool_name} input` });
-    return done();
+    trace.notes.push(guarded ? "the tool input has no command or file_path" : `not a checked tool (${input.tool_name ?? "none"}; the guard checks ${GUARDED_TOOLS.join(", ")})`);
+    if (!guarded) return done();
+    logGuard(root, log, { ok: false, error: `malformed ${input.tool_name} input` });
+    return failedCall();
   }
 
   const mem = readMemoryText(root, cfg);
@@ -548,14 +560,25 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     const d = decideGuard(cfg.guard.mode, cfg.guard.askMin, cfg.guard.blockMin, checks, trace.tamper);
     trace.decision = d.decision;
     trace.stdout = d.stdout;
-    if (d.decision !== "none") {
-      const hits = checks.filter((c) => c.p !== null && c.p >= cfg.guard.askMin).map((c) => `${c.id} p=${c.p!.toFixed(2)}${c.cached ? " (cached)" : ""}`);
-      logGuard(root, log, { ok: true, latencyMs: Math.round(performance.now() - t0), detail: `${d.decision} ${action.tool}${trace.tamper ? " (tamper)" : ""}${hits.length ? `: ${hits.join(", ")}` : ""}` });
+    const hits = checks.filter((c) => c.p !== null && c.p >= cfg.guard.askMin).sort((a, b) => b.p! - a.p!);
+    if (d.decision !== "none") logGuard(root, log, { ok: true, latencyMs: Math.round(performance.now() - t0), detail: `${d.decision} ${action.tool}${trace.tamper ? " (tamper)" : ""}${hits.length ? `: ${hits.map((c) => `${c.id} p=${c.p!.toFixed(2)}${c.cached ? " (cached)" : ""}`).join(", ")}` : ""}` });
+    if (log) {
+      const entry: GuardLogEntry = { ts: startedAt, tool: action.tool, route: trace.route ?? "error", decision: d.decision };
+      if (d.decision !== "none") {
+        entry.mode = cfg.guard.mode;
+        if (hits.length) entry.rules = hits.map((c) => ({ id: c.id, p: Math.round(c.p! * 1000) / 1000, text: shorten(scrubSecrets(c.text), 200) }));
+        if (trace.tamper) entry.tamper = scrubSecrets(trace.tamper);
+        entry.action = actionSummary(action, trace.payload);
+      }
+      recordGuardCall(root, entry);
     }
     return done();
   };
 
-  if (mem.text === null) return finish([]);
+  if (mem.text === null) {
+    trace.route = "error";
+    return finish([]);
+  }
   let rules: LoadedRules;
   try {
     rules = loadRules(root, cfg, mem.text);
@@ -563,11 +586,13 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     const e = `could not load the rules: ${err instanceof Error ? err.message : String(err)}`;
     trace.notes.push(e);
     logGuard(root, log, { ok: false, error: e });
+    trace.route = "error";
     return finish([]);
   }
   trace.rules = rules;
   if (!rules.enforced.length) {
     if (!trace.tamper) trace.notes.push("no enforced rules");
+    trace.route = "no-rules";
     return finish([]);
   }
 
@@ -576,6 +601,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   trace.candidates = candidates;
   if (!candidates.length) {
     if (!trace.tamper) trace.notes.push("no candidate: the call shares nothing with any rule, so nothing is sent to Jev");
+    trace.route = "no-candidate";
     return finish([]);
   }
 
@@ -588,13 +614,17 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     return { id: c.rule.id, text: c.rule.text, p: hit ? hit.p : null, cached: Boolean(hit) };
   });
   const ask = candidates.filter((_, i) => checks[i]!.p === null);
-  if (!ask.length) return finish(checks);
+  if (!ask.length) {
+    trace.route = "cache";
+    return finish(checks);
+  }
 
   const remaining = cfg.guard.budgetMs - (performance.now() - t0) - 40;
   if (remaining < 150) {
     const e = `no time left for Jev (${Math.round(remaining)} ms of guard.budgetMs ${cfg.guard.budgetMs})`;
     trace.notes.push(e);
     logGuard(root, log, { ok: false, error: e });
+    trace.route = "no-time";
     return finish(checks);
   }
   let jev: JevCaller | null | undefined = deps.jev;
@@ -603,6 +633,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     const e = "no TypeSafe API key (checked the plugin setting, env, .jevmem/.env, ~/.jevmem/env): no decision";
     trace.notes.push(e);
     logGuard(root, log, { ok: false, error: e });
+    trace.route = "no-key";
     return finish(checks);
   }
   const questions: Questions = {};
@@ -629,7 +660,9 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
       if (p !== null) updates[answerKey(c.rule, hash)] = { p, ts, rule: c.rule.id, model: res.model };
     }
     if (!deps.noCache) writeAnswers(root, updates);
+    trace.route = "jev";
   } catch (err) {
+    trace.route = "jev-failed";
     trace.jevMs = Math.round(performance.now() - tj);
     const e = `Jev check failed, no decision: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`;
     trace.notes.push(e);

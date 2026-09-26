@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { applyAudit, auditMemories, formatAuditTable, formatSecurityTable, securityAudit } from "./audit.js";
 import { knownWithheld, planGate } from "./guard.js";
+import { formatGuardLog, formatGuardStats, guardLogStats, readGuardLog } from "./guardlog.js";
 import { isVerified, readProvenance } from "./provenance.js";
 import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { PACKAGE_VERSION } from "./version.js";
@@ -41,6 +42,7 @@ Usage: jevmem <command> [options]
   audit [--dry-run]                       Re-score every memory against the repo and flag [stale?] lines
   audit --security [--ci]                 List lines that read as instructions to an AI (--ci: exit 1 if any)
   guard test "<command>" | --edit <path>  Dry run of the PreToolUse guard on a call: rules, prefilter, Jev's answer, hook output
+  guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
   search <query> [--limit N]              Rank memories by relevance to a query (one Jev call)
   list [--all]                            Print memories (live by default; --all adds superseded lines and provenance)
   add <kind> <text>                       Append a memory line by hand (kinds: ${NEW_KINDS.join(", ")})
@@ -123,11 +125,16 @@ decision.
   guard: `jevmem guard test "<command>"
 jevmem guard test --edit <path> [--old "<text>"] [--content "<new text>"]
 jevmem guard test --write <path> [--content "<text>"]
+jevmem guard log [-n 20]
 
-Dry run of the PreToolUse guard on one Bash, Edit or Write call: the rules it enforces (live [constraint] lines that
-passed the poisoning gate) and the ones it skips (superseded, or no gate verdict yet), which rules the prefilter
-matched and why, Jev's answer and score for each, the tamper check, and the exact output the hook would print.
-Uses and fills the hook's answer cache (.jevmem/guard-cache.json); --no-cache asks Jev without reading or writing it.
+test  Dry run of the PreToolUse guard on one Bash, Edit or Write call: the rules it enforces (live [constraint] lines
+      that passed the poisoning gate) and the ones it skips (superseded, or no gate verdict yet), which rules the
+      prefilter matched and why, Jev's answer and score for each, the tamper check, and the exact output the hook would
+      print. Uses and fills the hook's answer cache (.jevmem/guard-cache.json); --no-cache asks Jev without reading or
+      writing it. Nothing is logged.
+log   The hook's most recent asks, denials and warnings in this project, newest first (default 20): the time, the
+      tool, a short scrubbed summary of the command or edit, and each rule with Jev's score, or the tamper check's
+      reason. Read from .jevmem/guard-log.jsonl, which stays on this machine; \`jevmem stats\` counts it.
 The mode and thresholds come from "guard" in jevmem.config.json (docs/guardrails.md).
 `,
   daemon: `jevmem daemon [status|start|stop]
@@ -210,6 +217,9 @@ Writes to jevmem.config.json and prints a reliability table. --dry-run only prin
 The active one-line writer and why, latency p50/p95, cost per day, cache hit rate, tier-1/tier-2 counts and escalation rate, labels and last fit.
 Retry queue: turns queued after a Jev failure (timeout, 5xx, 529), retries, turns saved from the queue, turns dropped
 (older than 24 h or past 200 entries), and turns pending in .jevmem/queue.jsonl.
+Guard (from .jevmem/guard-log.jsonl): Bash, Edit and Write calls the PreToolUse hook checked, how many took the fast
+path (no candidate rule, nothing sent), were answered from the cache or were sent to Jev, and how many were asked
+(tamper asks among them), denied or warned.
 `,
   doctor: `jevmem doctor
 
@@ -483,9 +493,15 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
     }
     case "guard": {
       const sub = args.shift();
-      const usage = 'usage: jevmem guard test "<command>" | --edit <path> [--old "<text>"] [--content "<new text>"] | --write <path> [--content "<text>"] [--no-cache]';
-      if (sub !== "test") return fail(usage);
+      const usage = 'usage: jevmem guard test "<command>" | --edit <path> [--old "<text>"] [--content "<new text>"] | --write <path> [--content "<text>"] [--no-cache]\n       jevmem guard log [-n 20]';
+      if (sub !== "test" && sub !== "log") return fail(usage);
       if (!isEnabled(root)) return fail(NOT_ENABLED_MESSAGE);
+      if (sub === "log") {
+        const n = Number(opt(args, "-n") ?? 20);
+        if (!Number.isInteger(n) || n < 1 || args.length) return fail(usage);
+        io.out(formatGuardLog(readGuardLog(root), n) + "\n");
+        return 0;
+      }
       const edit = opt(args, "--edit");
       const write = opt(args, "--write");
       const content = opt(args, "--content") ?? "";
@@ -588,12 +604,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         io.out(`retry queue: ${q.queued} queued after a Jev failure, ${q.retried} retries, ${q.savedFromQueue} saved from the queue (${q.skippedFromQueue} skipped by Jev), ${q.dropped} dropped, ${q.pending} pending\n`);
         const withheld = new Set(allEntries.filter((e) => e.event === "withheld").map((e) => e.memoryId)).size;
         if (withheld) io.out(`poisoning gate: ${withheld} line(s) withheld from recall (see \`jevmem audit\`)\n`);
-        const guard = allEntries.filter((e) => e.label === "guard" && e.event === "guard" && /^(ask|deny|warn) /.test(e.detail ?? ""));
-        const guardCalls = entries.filter((e) => e.label === "guard");
-        if (guard.length || guardCalls.length) {
-          const n = (d: string) => guard.filter((e) => e.detail!.startsWith(`${d} `)).length;
-          io.out(`guard: ${n("ask")} asked, ${n("deny")} denied, ${n("warn")} warned (${guard.filter((e) => /\(tamper\)/.test(e.detail!)).length} tamper), ${guardCalls.length} Jev check(s), ${allEntries.filter((e) => e.label === "guard" && e.ok === false).length} failed or skipped (no decision)\n`);
-        }
+        const guard = formatGuardStats(guardLogStats(readGuardLog(root)));
+        if (guard) io.out(guard + "\n");
         io.out(`decide tiers: ${s.decideTier1} tier-1, ${s.decideTier2} tier-2; escalation rate ${s.escalationRate === null ? "n/a (no tier-1 calls; mode=full?)" : (s.escalationRate * 100).toFixed(0) + "%"}\n`);
         const days = Object.entries(s.costPerDay).sort();
         if (days.length) {
