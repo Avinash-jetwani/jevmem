@@ -49,6 +49,10 @@ Only in an enabled project. Before anything is sent, common secret shapes are re
 
 There is no telemetry. Details: https://github.com/Avinash-jetwani/jevmem/blob/main/SECURITY.md
 
+## Privacy
+
+[Privacy](https://github.com/Avinash-jetwani/jevmem/blob/main/PRIVACY.md): what jevmem reads, stores and sends, the services it sends data to and their privacy policies, and how to delete it.
+
 ## What it writes
 
 - `JEVMEM.md` in the project: the memory lines, meant to be committed.

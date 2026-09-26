@@ -2,6 +2,18 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.7] - 2026-09-26
+
+A privacy page for the directory listing. No change to the CLI's or the plugin's behaviour.
+
+### Added
+- **`PRIVACY.md`.** Who makes jevmem (no server, nothing sent to the author, no telemetry), what leaves the machine and where (TypeSafe AI's `https://api.typesafe.ai/v1/systemone`; OpenAI or Anthropic only when `writer` in `jevmem.config.json` chooses them), the best-effort secret scrubbing, links to TypeSafe's, OpenAI's and Anthropic's privacy policies and terms, what is stored where, how to delete it, and how to get in touch. The directory portal warned "No privacy policy URL found".
+- `plugin/README.md` has a "Privacy" link to it; the main README and SECURITY.md link to it too. The link check and check-claims now cover `PRIVACY.md`, and the npm package includes it.
+- `test/network.test.ts` checks the source for any network call other than the TypeSafe client and the OpenAI or Anthropic writer: no HTTP, socket or fetch library, `node:net` only for the daemon's local socket, the global `fetch` only in the writer, the MCP server on stdio only, and a TypeSafe SDK that names only `https://api.typesafe.ai`.
+
+### Not added
+- **`privacyPolicyUrl` in `plugin.json`.** `claude plugin validate --strict plugin` with Claude Code 2.1.274 rejects it ("Unknown field 'privacyPolicyUrl'"). Claude Code 2.1.281 accepts it, and also `supportUrl`, `documentationUrl` and `termsOfServiceUrl`, which the manifest reference doesn't list yet. The README link is the portal's other accepted form.
+
 ## [0.5.6] - 2026-09-26
 
 The plugin finds the jevmem CLI in the usual places again, and in an enabled project it tells you when it can't. No change to the CLI's behaviour.

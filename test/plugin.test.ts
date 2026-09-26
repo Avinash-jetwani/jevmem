@@ -54,6 +54,12 @@ describe("plugin files", () => {
     for (const f of files) expect(fs.statSync(path.join("plugin", f)).size, f).toBeLessThan(256 * 1024);
   });
 
+  it("plugin/README.md links to PRIVACY.md with a \"Privacy\" link (what the directory portal looks for), and PRIVACY.md is dated", () => {
+    expect(fs.readFileSync("plugin/README.md", "utf8")).toContain("[Privacy](https://github.com/Avinash-jetwani/jevmem/blob/main/PRIVACY.md)");
+    expect(fs.readFileSync("PRIVACY.md", "utf8")).toMatch(/^# Privacy\n\nLast updated: \d{4}-\d{2}-\d{2}\n/);
+    expect(json("package.json").files).toContain("PRIVACY.md");
+  });
+
   it("the API key is a sensitive userConfig option that reaches the MCP server by reference, never as a literal", () => {
     const m = json("plugin/.claude-plugin/plugin.json");
     expect(m.userConfig.typesafe_api_key).toMatchObject({ type: "string", sensitive: true });

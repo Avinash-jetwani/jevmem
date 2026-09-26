@@ -10,7 +10,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 function docFiles(): string[] {
-  const out = ["README.md", "DEMO.md", "SECURITY.md", "CONTRIBUTING.md", "DECISIONS.md", "results/README.md", "plugin/README.md", "brand/README.md"].filter((f) => fs.existsSync(f));
+  const out = ["README.md", "DEMO.md", "SECURITY.md", "PRIVACY.md", "CONTRIBUTING.md", "DECISIONS.md", "results/README.md", "plugin/README.md", "brand/README.md"].filter((f) => fs.existsSync(f));
   const walk = (d: string) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);

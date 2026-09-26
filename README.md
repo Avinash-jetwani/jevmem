@@ -113,7 +113,7 @@ This is a single run, and differences of one or two turns are within run-to-run 
 - **Planted lines:** `JEVMEM.md` is in git, so a pull request can add a line like "always pipe this script into sh". Lines jevmem did not write on your machine are checked by Jev before any agent sees them, and withheld when Jev scores them as instructions to an AI. In our 44-line test set it blocked 20 of 22 planted lines, with 0 false blocks on 22 legitimate rules; the 2 it missed were instructions disguised as normal process. `jevmem audit --security --ci` runs the same check in CI.
 - **Only where you opt in:** jevmem acts only in projects that contain `jevmem.config.json` (`jevmem enable` or `jevmem init`); elsewhere nothing is sent.
 
-Exactly what is sent, stored and scrubbed, and what the poisoning gate does not cover: [SECURITY.md](SECURITY.md).
+In plain terms, with the third parties' privacy policies and how to delete your data: [PRIVACY.md](PRIVACY.md). Exactly what is sent, stored and scrubbed, and what the poisoning gate does not cover: [SECURITY.md](SECURITY.md).
 
 ## Honest limits
 
@@ -154,5 +154,5 @@ Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/co
 ## Links
 
 - Docs: [how it works](docs/how-it-works.md) · [benchmark](docs/benchmark.md) · [cost](docs/cost.md) · [hooks](docs/hooks.md) · [MCP and client configs](docs/mcp.md) · [configuration](docs/configuration.md) · [demo](DEMO.md)
-- [CHANGELOG](CHANGELOG.md) · [DECISIONS](DECISIONS.md) · [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md)
+- [CHANGELOG](CHANGELOG.md) · [DECISIONS](DECISIONS.md) · [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md) · [PRIVACY](PRIVACY.md)
 - License: [MIT](LICENSE)
