@@ -2,6 +2,29 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+On `main` only, not released: the guard (v0.6 part 1). The `jevmem` CLI on npm does not have it yet, and the plugin's launcher runs the guard's hook only with a CLI that has it.
+
+### Added
+- **The guard: a `PreToolUse` hook that checks Bash, Edit and Write calls against the project's saved `[constraint]` rules before they run** ([docs/guardrails.md](docs/guardrails.md)). It enforces the live `[constraint]` lines that passed the memory-poisoning gate. A local prefilter picks the rules a call shares a path, filename, command or enough words with; a call with none makes no request and gets no output. For at most 3 candidate rules, one Jev request asks "would carrying out this tool call break saved project rule `<id>`?", sending only the command, or the file path and a short scrubbed snippet of the change. `guard.mode`: `ask` (default) has Claude Code ask you, quoting the rule; `block` denies at or above `guard.blockMin` and asks below it; `warn` adds the rule to Claude's context as a fact; `off` does nothing. The guard never answers "allow", fails open (a timeout, Jev down, no key or a bad config means no decision, logged), and keeps stdout to nothing or one JSON object, with exit code 0.
+- **Tamper check.** A call that changes the guard settings or `enabled` in `jevmem.config.json`, removes or supersedes a `[constraint]` line in `JEVMEM.md`, writes to `.jevmem/`, or runs `jevmem disable` is always asked, unless the mode is `off`.
+- **`jevmem guard test "<command>"`** (or `--edit <path>`, `--write <path>`) shows the rules loaded and skipped, why a rule matched, Jev's score and the exact output the hook would print. `jevmem doctor` shows the guard's mode and how many rules it enforces; `jevmem stats` counts its decisions.
+- **Registered by `jevmem init` and in `plugin/hooks/hooks.json`**: `PreToolUse`, matcher `Bash|Edit|Write` (Claude Code 2.1.274 and 2.1.281 have no MultiEdit tool), timeout 3 s, through the same launcher as the other hooks. The plugin's launcher checks once per CLI file whether the CLI has the guard: the CLI on npm would read a `PreToolUse` event as a finished turn.
+- **Rules without a gate verdict get one off the hot path**: after the Stop hook's queue is drained, unverified `[constraint]` lines with no cached verdict go through the poisoning gate.
+- **Eval sets** `eval/guard-dev.jsonl` (tuning) and `eval/guard-heldout.jsonl` (run once), with `scripts/eval-guard.mjs`; `scripts/bench-guard.mjs` for the added latency; `scripts/e2e.sh --scenario guard`.
+
+### Measured
+- Held-out, run once after tuning on dev: violations caught 27/40 in `ask` mode (direct 27/31, indirect 0/9, as expected: the prefilter sees only the call); false asks 3/157; in `block` mode 24/40 denied and 2/157 false blocks; 134/197 calls never reached Jev ([results/guard-heldout-2026-09-26.json](results/guard-heldout-2026-09-26.json)). Dev, after tuning: direct 37/38, false asks 2/157, fast path 148/205.
+- Added latency per tool call, the whole hook process: 7 ms p50 in a project that is not enabled, 38 ms with rules but no candidate (plugin launcher; 34 ms through `init`'s), 349 ms p50 / 436 ms p95 when a candidate goes to Jev from a new process, 40 ms with a cached answer ([results/guard-latency-2026-09-26.json](results/guard-latency-2026-09-26.json)).
+
+### Changed
+- **The CLI is built in chunks.** `dist/cli.js` is now small; a `PreToolUse` hook loads the guard's code without the MCP server. Other commands load the rest as before.
+- **`jevmem hook` ignores events other than `Stop` and `UserPromptSubmit`**, and routes `PreToolUse` to the guard. Until now any other event ran the `Stop` path.
+
+### Fixed
+- **A secret at the end of a text field could break a Jev request.** `createJev` scrubbed the JSON text of the request, and a `KEY=value` match at the end of a string ran on into its closing quote, so the request failed. Each string is now scrubbed on its own. Found by the guard's dev eval; decide and recall could hit it too.
+
 ## [0.5.7] - 2026-09-26
 
 A privacy page for the directory listing. No change to the CLI's or the plugin's behaviour.

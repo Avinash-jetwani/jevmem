@@ -28,9 +28,12 @@
     "tier2ExamplesPerSide": 1,
     "tier1Thresholds": { "...": "written by `jevmem fit` from tier-1 labels; omit to use `thresholds`" }
   },
-  "weights": { "...": "written by `jevmem fit`; omit to use the hand-set defaults" }
+  "weights": { "...": "written by `jevmem fit`; omit to use the hand-set defaults" },
+  "guard": { "mode": "ask", "askMin": 0.5, "blockMin": 0.9, "budgetMs": 1000, "maxCandidates": 3 }
 }
 ```
+
+`guard` (on `main`, not yet released) sets the PreToolUse guard: `mode` is `ask`, `block`, `warn` or `off`; Jev's score must reach `askMin` for the guard to act and `blockMin` to deny in `block` mode; `budgetMs` is the hook's own time budget; `maxCandidates` caps the rules asked about per call. An unknown mode or an out-of-range value makes the guard stand aside (no decision, logged). See [Guardrails](guardrails.md).
 
 ### The one-line writer
 

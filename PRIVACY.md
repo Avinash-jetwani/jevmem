@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-26
 
-jevmem reads your prompts and parts of your Claude Code conversations, stores some of that text on your machine, and sends it to the services listed below. Prompts can contain personal data, so this page says what goes where. [SECURITY.md](SECURITY.md) has the full detail.
+jevmem reads your prompts, parts of your Claude Code conversations and, for the guard, the shell commands and file edits Claude is about to make. It stores some of that text on your machine and sends it to the services listed below. Prompts can contain personal data, so this page says what goes where. [SECURITY.md](SECURITY.md) has the full detail.
 
 ## Who
 
@@ -18,6 +18,7 @@ Before anything is sent, common secret shapes are replaced with `[REDACTED]`: AP
 
 - After each turn (in Claude Code, or in Codex while `jevmem watch` runs): your message, the previous two turns (shortened) and up to 200 of your memory lines. Claude's reply is included only when a broad keyword check reads your message as a question or a bug report, or when it has no text.
 - On each prompt: the prompt and up to 60 of your memory lines.
+- Before a Bash, Edit or Write call, from the guard ([docs/guardrails.md](docs/guardrails.md); on `main`, not yet in the npm release): only for a call that shares a path, filename, command or enough words with one of the project's saved `[constraint]` rules. It sends the command, or the file path plus a short scrubbed snippet of the change (at most 600 characters of the new text and 300 of the replaced text), and those rules. Nothing is sent for a call that shares nothing with a rule, when the answer is already cached, or when `guard.mode` is `off`.
 - When you or the agent use the MCP tools or `jevmem` commands: a line to add, your memory lines, statements from `CLAUDE.md`, `AGENTS.md` and Cursor rules (`jevmem import`), and for `jevmem audit` the project's file names to depth 3 (not their contents), `package.json` fields and the first 3,000 characters of the README.
 
 **To OpenAI** (`https://api.openai.com`) **or Anthropic** (`https://api.anthropic.com`), or the URL in `OPENAI_BASE_URL` or `ANTHROPIC_BASE_URL`, only when the project's `jevmem.config.json` sets `"writer": "openai"` or `"anthropic"` and that provider's key is set. Then, for each turn Jev decides to save, the text of that turn, to condense it into one line. A key in your environment is not enough on its own (tested). By default jevmem writes the line itself and sends nothing to either.
@@ -39,7 +40,7 @@ jevmem can ask for zero data retention on each TypeSafe request (`"jev": { "zero
 All of it on your machine:
 
 - **`JEVMEM.md`**, in the project: the memory lines. It is meant to be committed, so everyone with access to the repository can read it.
-- **`.jevmem/`**, in the project, local and gitignored: a copy of the memory lines, a log of each Jev call and of any line the poisoning check withheld, the save queue and recent decisions with the scrubbed turn text, your `right` and `wrong` labels, cached Jev answers, and hashes of the lines jevmem wrote. With `JEVMEM_DEBUG=1`, also the raw hook input.
+- **`.jevmem/`**, in the project, local and gitignored: a copy of the memory lines, a log of each Jev call and of any line the poisoning check withheld, the save queue and recent decisions with the scrubbed turn text, your `right` and `wrong` labels, cached Jev answers, hashes of the lines jevmem wrote, and the guard's index of your rules and its cached answers (kept by hashes of the rule and the call, not the call's text). With `JEVMEM_DEBUG=1`, also the raw hook input.
 - **The plugin's data folder** (`~/.claude/plugins/data/…`): the paths of the jevmem CLI and Node it found and, in an enabled project without the CLI, the ids of the sessions it has shown the "CLI not found" message.
 - **The system temp folder**: the `Stop` hook's input, until jevmem reads and deletes it.
 - **Your TypeSafe API key**: entered in the plugin's settings (`/plugin configure jevmem@jevmem`), Claude Code keeps it in your system's secure credential store, and jevmem doesn't write it to a file or a log (tested). If you put it in `~/.jevmem/env` or `<project>/.jevmem/.env` instead, it is in that file.
