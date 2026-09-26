@@ -46,7 +46,7 @@ claude plugin install jevmem@jevmem
 cd your-project && jevmem enable
 ```
 
-The plugin runs the `jevmem` CLI from npm, so install that first: without it the hooks stay silent and the MCP server fails to start (`/mcp` shows it as failed). Then enter your TypeSafe key in Claude Code with `/plugin configure jevmem@jevmem` (the `claude plugin install` shell command doesn't ask for it); Claude Code keeps it in your system's secure credential store. The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](docs/hooks.md#the-claude-code-plugin).
+The plugin runs the `jevmem` CLI from npm, so install that first. The hooks find it on the PATH Claude Code gives them or, when that PATH lacks it (the desktop app's can), in `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `~/.volta/bin` or the newest Node version under `~/.nvm`. Without it, an enabled project shows "jevmem: CLI not found, so memory is off in this project" on the first prompt of each session, and the MCP server fails to start (`/mcp` shows it as failed). Then enter your TypeSafe key in Claude Code with `/plugin configure jevmem@jevmem` (the `claude plugin install` shell command doesn't ask for it); Claude Code keeps it in your system's secure credential store. The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](docs/hooks.md#the-claude-code-plugin).
 
 **Option 2: npm** (also sets up Cursor and Codex)
 

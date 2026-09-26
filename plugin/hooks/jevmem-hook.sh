@@ -9,8 +9,10 @@
 # 2. Opt-in per project: a hook in a project without jevmem.config.json reads its input and exits 0. No network,
 #    no files, no output.
 # 3. Finds the jevmem CLI: `command -v jevmem`, else the path this launcher cached in CLAUDE_PLUGIN_DATA the last time
-#    it found one (Claude Code's desktop app can run hooks with a bare PATH). No CLI: exits 0 silently.
-# 4. Finds Node 20+ to run it with, since `#!/usr/bin/env node` fails on a bare PATH.
+#    it found one, else a fixed list of common global bin directories (Claude Code's desktop app can run hooks with a
+#    PATH that lacks them). No CLI in an enabled project: the UserPromptSubmit hook shows the user one message per
+#    session; the Stop hook stays silent. Both exit 0.
+# 4. Finds Node 20+ to run it with, since `#!/usr/bin/env node` fails on a bare PATH. No Node: as for no CLI.
 # 5. Prints one warning line to stderr when the CLI is older than this plugin.
 # 6. Runs the CLI. With --detach it saves the hook JSON to a temp file, starts the CLI in its own process group and
 #    exits at once, so the Stop hook never makes Claude wait.
@@ -29,7 +31,39 @@ fi
 detach=0
 if [ "$1" = "--detach" ]; then detach=1; shift; fi
 
-# 3. The CLI: on PATH, else the one cached below. The cache in CLAUDE_PLUGIN_DATA holds four lines: the CLI path, a
+# Node versions under ~/.nvm, newest first (numeric major, minor, patch).
+nvm_versions() {
+  ls "$HOME/.nvm/versions/node" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$/\1/p' | sort -t . -k 1,1nr -k 2,2nr -k 3,3nr
+}
+
+# No CLI, or no Node to run it: a hook reads its input and exits 0. The UserPromptSubmit hook (not --detach) prints
+# $1 as a systemMessage, which Claude Code shows the user, once per session: the session ids already told are listed
+# in CLAUDE_PLUGIN_DATA/notified. The Stop hook stays silent. Outside a hook, $1 goes to stderr.
+not_found() {
+  msg="$1"; shift
+  for a in "$@"; do
+    if [ "$a" = "hook" ]; then
+      input="$(cat 2>/dev/null)"
+      [ "$detach" -eq 0 ] || exit 0
+      printf '%s\n' "$input" | grep -q '"hook_event_name" *: *"UserPromptSubmit"' || exit 0
+      sid="$(printf '%s\n' "$input" | sed -n 's/.*"session_id" *: *"\([A-Za-z0-9_-]*\)".*/\1/p' | head -n 1)"
+      [ -n "$sid" ] || sid=unknown
+      if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+        seen="$CLAUDE_PLUGIN_DATA/notified"
+        if [ -f "$seen" ] && grep -qxF "$sid" "$seen" 2>/dev/null; then exit 0; fi
+        mkdir -p "$CLAUDE_PLUGIN_DATA" 2>/dev/null && printf '%s\n' "$sid" >> "$seen" 2>/dev/null
+      fi
+      printf '{"systemMessage":"%s"}\n' "$msg"
+      exit 0
+    fi
+  done
+  echo "$msg" >&2
+  exit 0
+}
+readme="See the jevmem README to set it up: https://github.com/Avinash-jetwani/jevmem#readme"
+
+# 3. The CLI: on PATH, else the one cached below, else the first of a fixed list of common global bin directories,
+# else the newest nvm Node version that has it. The cache in CLAUDE_PLUGIN_DATA holds four lines: the CLI path, a
 # key (the CLI file's `ls -lL` line and this plugin's folder, which changes with each plugin version), the Node path
 # and the version warning, so a warm run reads one small file with shell builtins and starts no extra process.
 cache="${CLAUDE_PLUGIN_DATA:-}/cli"
@@ -40,12 +74,18 @@ fi
 cli="$(command -v jevmem 2>/dev/null)"
 if [ -z "$cli" ] && [ -n "$c_cli" ] && [ -x "$c_cli" ]; then cli="$c_cli"; fi
 if [ -z "$cli" ]; then
-  for a in "$@"; do
-    if [ "$a" = "hook" ]; then cat > /dev/null 2>&1; exit 0; fi
+  for d in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.volta/bin"; do
+    if [ -f "$d/jevmem" ] && [ -x "$d/jevmem" ]; then cli="$d/jevmem"; break; fi
   done
-  echo "jevmem: the jevmem command was not found on PATH" >&2
-  exit 0
 fi
+if [ -z "$cli" ]; then
+  for v in $(nvm_versions); do
+    if [ -f "$HOME/.nvm/versions/node/v$v/bin/jevmem" ] && [ -x "$HOME/.nvm/versions/node/v$v/bin/jevmem" ]; then
+      cli="$HOME/.nvm/versions/node/v$v/bin/jevmem"; break
+    fi
+  done
+fi
+if [ -z "$cli" ]; then not_found "jevmem: CLI not found, so memory is off in this project. $readme" "$@"; fi
 
 # 4 and 5, from the cache when it is for this CLI file and this plugin version.
 key="$(ls -lL "$cli" 2>/dev/null)|${CLAUDE_PLUGIN_ROOT:-}"
@@ -68,17 +108,11 @@ if [ "$cached" -eq 0 ]; then
         if node_ok "$n"; then node="$n"; break; fi
       done
       if [ -z "$node" ]; then
-        for n in $(ls -d "$HOME"/.nvm/versions/node/v*/bin/node 2>/dev/null | sort -t v -k 2 -n -r); do
-          if node_ok "$n"; then node="$n"; break; fi
+        for v in $(nvm_versions); do
+          if node_ok "$HOME/.nvm/versions/node/v$v/bin/node"; then node="$HOME/.nvm/versions/node/v$v/bin/node"; break; fi
         done
       fi
-      if [ -z "$node" ]; then
-        for a in "$@"; do
-          if [ "$a" = "hook" ]; then cat > /dev/null 2>&1; exit 0; fi
-        done
-        echo "jevmem: Node.js 20 or newer was not found" >&2
-        exit 0
-      fi
+      if [ -z "$node" ]; then not_found "jevmem: Node.js 20 or newer not found, so memory is off in this project. $readme" "$@"; fi
       ;;
   esac
   # 5. Compare the CLI's version with this plugin's.

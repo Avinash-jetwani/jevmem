@@ -23,6 +23,8 @@ describe("plugin files", () => {
     const manifest = json("plugin/.claude-plugin/plugin.json");
     const market = json(".claude-plugin/marketplace.json");
     expect(manifest.name).toBe("jevmem");
+    expect(manifest.displayName).toBe("jevmem"); // the brand is lowercase; the directory shows displayName
+    expect(manifest.homepage).toBe("https://github.com/Avinash-jetwani/jevmem#readme"); // the manifest's documentation URL
     expect(manifest.version).toBe(pkg.version);
     expect(manifest.mcpServers.jevmem.env.JEVMEM_PLUGIN_VERSION).toBe(pkg.version);
     expect(market.plugins.find((p: any) => p.name === "jevmem").source).toBe("./plugin");
@@ -93,7 +95,7 @@ describe("plugin files", () => {
       const r = spawnSync("/bin/sh", ["-c", cmd], { cwd: project, env: { PATH: "/usr/bin:/bin", HOME: tmp(), CLAUDE_PLUGIN_ROOT: root, CLAUDE_PROJECT_DIR: project }, input: "{}", encoding: "utf8" });
       expect([r.status, r.stdout, r.stderr], cmd).toEqual([0, "", ""]);
     }
-    // And the path really is used: an enabled project with no CLI anywhere prints nothing either, but a broken path would fail.
+    // And the path really is used: the same project prints nothing through the real path, but a broken path fails.
     const bad = spawnSync("/bin/sh", ["-c", h.UserPromptSubmit[0].hooks[0].command], { cwd: project, env: { PATH: "/usr/bin:/bin", CLAUDE_PLUGIN_ROOT: root + "-missing", CLAUDE_PROJECT_DIR: project }, input: "{}", encoding: "utf8" });
     expect(bad.status).not.toBe(0);
   });

@@ -242,6 +242,19 @@ await runPluginLauncher(stop(399), daemonEnv); // first run: the version check f
 const pluginRows = [];
 for (let i = 0; i < nProc; i++) pluginRows.push(await runPluginLauncher(stop(400 + i), daemonEnv));
 if (pluginRows.some((r) => r.code !== 0)) throw new Error("plugin launcher: non-zero exit");
+// v0.5.6: the desktop app's case. A bare PATH without jevmem, the CLI in ~/.local/bin of a temporary HOME: the first
+// run finds it in the launcher's directory list and caches the path, later runs use the cached path.
+const phome = fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-ops-home-"));
+fs.mkdirSync(path.join(phome, ".local", "bin"), { recursive: true });
+fs.symlinkSync(CLI, path.join(phome, ".local", "bin", "jevmem"));
+fs.symlinkSync(process.execPath, path.join(phome, ".local", "bin", "node"));
+const pdataBare = fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-ops-data-"));
+const bareEnv = { ...daemonEnv, PATH: "/usr/bin:/bin", HOME: phome, CLAUDE_PLUGIN_DATA: pdataBare };
+await runPluginLauncher(stop(499), bareEnv);
+if (fs.readFileSync(path.join(pdataBare, "cli"), "utf8").split("\n")[0] !== path.join(phome, ".local", "bin", "jevmem")) throw new Error("bare PATH: the CLI in ~/.local/bin was not found and cached");
+const bareRows = [];
+for (let i = 0; i < nProc; i++) bareRows.push(await runPluginLauncher(stop(500 + i), bareEnv));
+if (bareRows.some((r) => r.code !== 0)) throw new Error("plugin launcher (bare PATH): non-zero exit");
 if (launcherRows.some((r) => r.code !== 0)) throw new Error("launcher: non-zero exit");
 results.hook_via_warm_daemon = {
   // v0.5.0: `node dist/cli.js hook` for Stop only queues the turn and hands it to the daemon (no Jev wait).
@@ -253,6 +266,9 @@ results.hook_via_warm_daemon = {
   // v0.5.3: the Stop hook as the plugin registers it (plugin/hooks/jevmem-hook.sh --detach, the installed CLI).
   hook_stop_plugin_launcher_detach: summary(pluginRows),
   hook_stop_plugin_start_to_decided: summary(pluginRows.map((r) => ({ ms: r.decidedMs }))),
+  // v0.5.6: the same on a bare PATH, the CLI found once in ~/.local/bin and then read from the cache.
+  hook_stop_plugin_launcher_bare_path_detach: summary(bareRows),
+  hook_stop_plugin_bare_path_start_to_decided: summary(bareRows.map((r) => ({ ms: r.decidedMs }))),
   hook_prompt_recall: await procSeries("ups-daemon", (i, env) => runCli(["hook"], { stdin: ups(i + 3), env }), daemonEnv),
 };
 // Were the hook runs really served by the daemon? It counts the requests it handled.
@@ -276,7 +292,7 @@ const out = {
   machine: `${process.platform} ${process.arch}, node ${process.version}`,
   network_path: `direct HTTPS to ${process.env.TYPESAFE_BASE_URL ?? "the TypeSafe API default base URL"} (POST /v1/systemone)`,
   cost_method: "input tokens × $0.042 per million; output tokens free",
-  method: "Scratch project with the memories listed in `memories`. warm: one in-process client after one warm-up call, cache off; recall_gated_*: the poisoning gate with every line unverified (no cached verdicts, then cached) and with every line verified. cache_hit_decide: second identical decide call (fast mode) served from .jevmem/cache/. cold_process: wall time of a new `node dist/cli.js …` process per call (node start-up + TLS + Jev), daemon off, cache off. hook_via_warm_daemon: wall time of a new hook process with an already-warm daemon; for Stop (v0.5.0) `hook_stop_handoff` is `node dist/cli.js hook` (queue + hand off), `hook_stop_launcher_detach` is `sh hooks/jevmem-hook.sh --detach hook` as init registers it, and `hook_stop_start_to_decided` runs from the launcher's start until the daemon has recorded the turn's decision.",
+  method: "Scratch project with the memories listed in `memories`. warm: one in-process client after one warm-up call, cache off; recall_gated_*: the poisoning gate with every line unverified (no cached verdicts, then cached) and with every line verified. cache_hit_decide: second identical decide call (fast mode) served from .jevmem/cache/. cold_process: wall time of a new `node dist/cli.js …` process per call (node start-up + TLS + Jev), daemon off, cache off. hook_via_warm_daemon: wall time of a new hook process with an already-warm daemon; for Stop (v0.5.0) `hook_stop_handoff` is `node dist/cli.js hook` (queue + hand off), `hook_stop_launcher_detach` is `sh hooks/jevmem-hook.sh --detach hook` as init registers it, and `hook_stop_start_to_decided` runs from the launcher's start until the daemon has recorded the turn's decision. `hook_stop_plugin_*` is `sh plugin/hooks/jevmem-hook.sh --detach hook --plugin` with the CLI on PATH (v0.5.3); `hook_stop_plugin_*bare_path*` is the same with PATH=/usr/bin:/bin and the CLI in ~/.local/bin of a temporary HOME, found there once and then read from the launcher's cache (v0.5.6).",
   results,
 };
 fs.mkdirSync(path.dirname(OUT), { recursive: true });

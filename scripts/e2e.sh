@@ -20,13 +20,17 @@
 #              (`claude plugin marketplace add <repo>`, plugin in ./plugin) installed at user scope in the temporary config,
 #              the CLI installed with `npm install -g` from an `npm pack` of this checkout into a temporary prefix, and the
 #              project opted in with `jevmem enable`
-#   dormant    the plugin installed as above, one session in a project that has not run `jevmem enable`: no request may
-#              reach Jev (a counting proxy sits in front of it) and no file may appear in the project; then
-#              `jevmem enable`, a session whose line must be saved, and a third prompt where recall must use it
+#   dormant    the plugin installed as above, with the CLI not on the session PATH but linked into the session HOME's
+#              ~/.local/bin (the launcher's directory list, as in the desktop app); one session in a project that has not
+#              run `jevmem enable`: no request may reach Jev (a counting proxy sits in front of it) and no file may appear
+#              in the project; then `jevmem enable`, a session whose line must be saved (the launcher must have cached
+#              the ~/.local/bin path), and a third prompt where recall must use it
 #   published  the dormant scenario, with the plugin installed from GitHub (`claude plugin marketplace add
 #              Avinash-jetwani/jevmem`, the plugin at plugin/ on main) as the directory and users install it
-#   nocli      the plugin installed, no jevmem CLI anywhere, an enabled project: every jevmem hook exits 0 silently
-#              (checked in the session's hook events) and nothing is written
+#   nocli      the plugin installed, no jevmem CLI anywhere, an enabled project: every jevmem hook exits 0; the
+#              UserPromptSubmit hook prints the "CLI not found" systemMessage on a session's first prompt only (a second
+#              prompt with --continue prints nothing, a new session prints it again), the Stop hook prints nothing
+#              (checked in the sessions' hook events), and nothing is written in the project
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
@@ -243,9 +247,10 @@ uninstall_plugin() {
 }
 
 # The plugin installed but no jevmem CLI anywhere (no PATH entry, and a HOME with no version managers), in a project
-# that is enabled: every jevmem hook must exit 0 with no output, and nothing may be written.
+# that is enabled: every jevmem hook exits 0, the UserPromptSubmit hook shows the "CLI not found" systemMessage once
+# per session, the Stop hook prints nothing, and nothing is written in the project.
 run_nocli() {
-  local run="$1" scratch events home fail=0
+  local run="$1" scratch events home fail=0 t
   scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
   scratch="$(cd "$scratch" && pwd -P)"
   rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
@@ -256,28 +261,52 @@ run_nocli() {
   ( cd "$scratch" && eval "$listing" ) > "$scratch.before"
   events="$(mktemp /tmp/jevmem-e2e-events.XXXXXX)"
   home="$(mktemp -d /tmp/jevmem-e2e-home.XXXXXX)"
-  echo "---- a turn with the plugin installed and no jevmem CLI (PATH=$STRIP_PATH, empty HOME)"
-  ( cd "$scratch" && SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" claude_session -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "Decision: invoices are archived as PDFs in S3." > "$events" 2>&1 )
+  # Turn 1 starts a session, turn 2 continues it (--continue), turn 3 starts a new one.
+  local prompts=("Decision: invoices are archived as PDFs in S3." "Constraint: invoice numbers are never reused." "Decision: refunds go back to the original payment method.")
+  local flags=("" "--continue" "")
+  for t in 0 1 2; do
+    echo "---- turn $((t+1)) with the plugin installed and no jevmem CLI (PATH=$STRIP_PATH, empty HOME${flags[$t]:+, ${flags[$t]}})"
+    ( cd "$scratch" && SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" claude_session -- -p ${flags[$t]} --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[$t]}" > "$events.$t" 2>&1 )
+  done
   sleep 3
   ( cd "$scratch" && eval "$listing" ) > "$scratch.after"
   "$NODE" - "$events" <<'JS' || fail=1
-    const fs=require("fs");const lines=fs.readFileSync(process.argv[2],"utf8").split("\n").filter(Boolean);
-    const ev=[];for(const l of lines){try{ev.push(JSON.parse(l))}catch{}}
-    const hooks=ev.filter(e=>e.type==="system"&&/hook/.test(e.subtype||""));
-    const responses=hooks.filter(e=>e.subtype==="hook_response");
-    const ours=responses.filter(e=>/jevmem/.test(JSON.stringify(e))||/UserPromptSubmit|Stop/.test(e.hook_event||e.hook_event_name||""));
-    // Claude Code reports every async Stop hook in a -p session as exit 1, "cancelled" (the session ends while it is
-    // registered), even one that runs `true`; measured with such a hook. Only its output can show a jevmem error.
-    const asyncStop=e=>(e.hook_event||"")==="Stop"&&e.exit_code===1&&e.outcome==="cancelled";
-    const bad=ours.filter(e=>(!asyncStop(e)&&((e.exit_code!==undefined&&e.exit_code!==0)||(e.outcome&&e.outcome!=="success")))||(e.stderr&&e.stderr.trim())||(e.stdout&&String(e.stdout).trim())||(e.output&&String(e.output).trim()));
-    for(const e of ours)console.log("     hook "+(e.hook_event||e.hook_name||"?")+": exit "+(e.exit_code??"?")+", outcome "+(e.outcome??"?")+", stdout "+JSON.stringify(String(e.stdout??e.output??"").slice(0,60))+", stderr "+JSON.stringify(String(e.stderr??"").slice(0,80)));
-    if(ours.length===0){console.log("   ✗ FAIL: no hook events in the stream: "+JSON.stringify(hooks.map(h=>h.subtype)).slice(0,300));process.exit(1);}
-    if(bad.length){console.log("   ✗ FAIL: a hook failed or printed something");process.exit(1);}
-    console.log(`   ✓ ${ours.length} hook run(s), no output and no error (UserPromptSubmit exit 0; the async Stop hook shows Claude Code's usual -p "cancelled")`);
+    const fs=require("fs");const base=process.argv[2];
+    const MESSAGE="jevmem: CLI not found, so memory is off in this project. See the jevmem README to set it up: https://github.com/Avinash-jetwani/jevmem#readme";
+    const errs=[];const sessions=[];const shown=[];
+    for(const t of [0,1,2]){
+      const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      sessions.push((ev.find(e=>e.session_id)||{}).session_id);
+      const responses=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response");
+      const ours=responses.filter(e=>/UserPromptSubmit|Stop/.test(e.hook_event||e.hook_event_name||""));
+      // Claude Code reports every async Stop hook in a -p session as exit 1, "cancelled" (the session ends while it is
+      // registered), even one that runs `true`; measured with such a hook. Only its output can show a jevmem error.
+      const asyncStop=e=>(e.hook_event||"")==="Stop"&&e.exit_code===1&&e.outcome==="cancelled";
+      for(const e of ours)console.log(`     turn ${t+1} hook ${e.hook_event||e.hook_name||"?"}: exit ${e.exit_code??"?"}, outcome ${e.outcome??"?"}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,70))}, stderr ${JSON.stringify(String(e.stderr??"").slice(0,80))}`);
+      const ups=ours.filter(e=>/UserPromptSubmit/.test(e.hook_event||e.hook_name||""));
+      const stops=ours.filter(e=>/Stop/.test(e.hook_event||e.hook_name||""));
+      if(ups.length!==1)errs.push(`turn ${t+1}: ${ups.length} UserPromptSubmit hook responses, expected 1`);
+      for(const e of ours){
+        if(!asyncStop(e)&&((e.exit_code!==undefined&&e.exit_code!==0)||(e.outcome&&e.outcome!=="success")))errs.push(`turn ${t+1}: ${e.hook_event} exit ${e.exit_code} outcome ${e.outcome}`);
+        if(e.stderr&&e.stderr.trim())errs.push(`turn ${t+1}: ${e.hook_event} wrote to stderr`);
+      }
+      for(const e of stops)if(String(e.stdout??e.output??"").trim())errs.push(`turn ${t+1}: the Stop hook printed something`);
+      const out=ups.map(e=>String(e.stdout??e.output??"").trim()).join("");
+      shown.push(out!=="");
+      if(out!==""){let m;try{m=JSON.parse(out).systemMessage}catch{}if(m!==MESSAGE)errs.push(`turn ${t+1}: unexpected UserPromptSubmit output ${JSON.stringify(out).slice(0,120)}`);}
+      // Where Claude Code surfaced it outside the hook event (informational only).
+      for(const e of ev)if(!(e.type==="system"&&e.subtype==="hook_response")&&JSON.stringify(e).includes("CLI not found"))console.log(`     turn ${t+1} also in a ${e.type}/${e.subtype??"-"} event`);
+    }
+    console.log(`     sessions: ${sessions.map(s=>String(s).slice(0,8)).join(", ")}; message shown: ${shown.join(", ")}`);
+    if(sessions[0]!==sessions[1])errs.push("turn 2 (--continue) ran in a different session from turn 1");
+    if(sessions[2]===sessions[0])errs.push("turn 3 ran in the same session as turn 1");
+    if(shown.join()!=="true,false,true")errs.push(`message shown ${shown.join(",")}, expected true,false,true (once per session)`);
+    if(errs.length){console.log("   ✗ FAIL: "+errs.join("; "));process.exit(1);}
+    console.log("   ✓ every hook exited 0 (the async Stop hook shows Claude Code's usual -p \"cancelled\"); the CLI-not-found message was shown on each session's first prompt only; Stop printed nothing");
 JS
   if ! diff -q "$scratch.before" "$scratch.after" >/dev/null; then echo "   ✗ FAIL: files appeared in the project:"; diff "$scratch.before" "$scratch.after" | sed 's/^/     /'; fail=1; else echo "   ✓ no file created in the project"; fi
   uninstall_plugin "$scratch"
-  rm -f "$events" "$scratch.before" "$scratch.after"
+  rm -f "$events" "$events".* "$scratch.before" "$scratch.after"
   rm -rf "${home:?}"
   if [ $fail -eq 0 ]; then echo "PASS run $run scenario=nocli"; else echo "FAIL run $run scenario=nocli"; fi
   [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
@@ -293,7 +322,11 @@ run_dormant() {
   echo "================ run $run  scenario=$([ "$PUBLISHED" -eq 1 ] && echo published || echo dormant)  scratch=$scratch"
   ( cd "$scratch" && git init -q && printf '{"name":"client-app","private":true}\n' > package.json && printf '# client-app\n' > README.md )
   install_plugin "$scratch" || { uninstall_plugin "$scratch"; return 1; }
-  local SESSION_PATH="$E2E_NPM/prefix/bin:$STRIP_PATH"
+  # The desktop app's case: jevmem is not on the session PATH; the launcher must find it in ~/.local/bin (its directory
+  # list) and cache that path.
+  local SESSION_PATH="$STRIP_PATH"
+  mkdir -p "$E2E_HOME/.local/bin" && ln -sf "$E2E_NPM/prefix/bin/jevmem" "$E2E_HOME/.local/bin/jevmem"
+  echo "   jevmem not on the session PATH ($SESSION_PATH); linked into the session HOME's ~/.local/bin"
   # A pass-through proxy in front of the real Jev API that logs every request (its flag file never exists).
   plog="$(mktemp /tmp/jevmem-e2e-proxy.XXXXXX)"
   "$NODE" "$ROOT/scripts/jev-outage-proxy.mjs" --flag "$plog.never" > "$plog.url" 2> "$plog" &
@@ -332,6 +365,9 @@ run_dormant() {
       if(errs.length){console.log("   ✗ FAIL turn 2: "+errs.join("; "));process.exit(1);}
       console.log(`   ✓ turn 2: saved after jevmem enable (${n} request(s) to Jev, all after enable)`);
 JS
+    local cached; cached="$(head -n 1 "$E2E_CONFIG_DIR"/plugins/data/*/cli 2>/dev/null)"
+    if [ "$cached" = "$E2E_HOME/.local/bin/jevmem" ]; then echo "   ✓ the launcher found the CLI in ~/.local/bin and cached it ($cached)"
+    else echo "   ✗ FAIL: the launcher's cached CLI path is '$cached', expected $E2E_HOME/.local/bin/jevmem"; fail=1; fi
   fi
   if [ $fail -eq 0 ]; then
     # Recall on the next prompt: the UserPromptSubmit hook asks Jev for the relevant lines and injects them.
@@ -353,7 +389,7 @@ JS
   ( cd "$scratch" && cli daemon stop >/dev/null 2>&1 )
   { kill "$proxy_pid"; wait "$proxy_pid"; } 2>/dev/null
   uninstall_plugin "$scratch"
-  rm -f "$plog" "$plog".*
+  rm -f "$plog" "$plog".* "$E2E_HOME/.local/bin/jevmem"
   local name=dormant; [ "$PUBLISHED" -eq 1 ] && name=published
   if [ $fail -eq 0 ]; then echo "PASS run $run scenario=$name"; else echo "FAIL run $run scenario=$name"; fi
   [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"

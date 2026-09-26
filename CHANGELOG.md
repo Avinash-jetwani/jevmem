@@ -2,6 +2,19 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.6] - 2026-09-26
+
+The plugin finds the jevmem CLI in the usual places again, and in an enabled project it tells you when it can't. No change to the CLI's behaviour.
+
+### Fixed
+- **The CLI is found in the usual places again.** v0.5.5 found the CLI only with `command -v jevmem` or its cached path, so a desktop-app session whose PATH lacked `jevmem` did nothing and said nothing. The launcher now looks, in order: `command -v jevmem`, the cached path, `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `~/.volta/bin`, then the newest Node version under `~/.nvm/versions/node` that has `jevmem`. It caches what it finds and still runs no package manager. `~/.bun/bin` is left out: its name reads as a package manager to `scripts/check-plugin.mjs`. Choosing the newest nvm version now compares version numbers (v22 above v9); the old text sort, also used to find Node, did not.
+- **A message instead of silence.** In an enabled project with no CLI, the `UserPromptSubmit` hook shows "jevmem: CLI not found, so memory is off in this project. See the jevmem README to set it up" (a `systemMessage`, with a link), once per session. The `Stop` hook stays silent. A CLI with no Node 20+ to run it gets the same, with "Node.js 20 or newer not found". A project that isn't enabled still gets no output at all (tested).
+
+### Changed
+- As a process, the plugin's Stop launcher took 14 ms p50 against 12 ms for the `init` launcher in the same run, and 15 ms on a bare PATH with the CLI found in `~/.local/bin` and then cached ([results/ops-2026-09-26-v056.json](results/ops-2026-09-26-v056.json)).
+- `plugin.json` sets `displayName` to `jevmem`, so the directory shows the lowercase name. The manifest has no field for support, issues or privacy links; `homepage` (the manifest's documentation URL) already points at the README.
+- The READMEs and docs/hooks.md no longer say to start Claude Code once from a terminal, and say what happens when the CLI is missing.
+
 ## [0.5.5] - 2026-09-26
 
 The plugin folder no longer contains an install command or any package-manager wording, and jevmem has its icon and brand files. No change to the CLI's behaviour.

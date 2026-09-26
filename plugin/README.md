@@ -26,12 +26,16 @@ You need a TypeSafe AI key (https://typesafe.ai): enter it with `/plugin configu
 
 ## What it runs
 
-- **Two hooks.** `UserPromptSubmit` adds relevant memory lines to your prompt. `Stop` runs asynchronously, so Claude doesn't wait for it, and hands the finished turn to jevmem. Both run `hooks/jevmem-hook.sh`, a short shell script in this folder. It finds `jevmem` with `command -v jevmem`, or at the path it saved in the plugin's data folder the last time it found it there, and finds Node 20+ to run it with. Then it runs `jevmem hook --plugin`. The script downloads nothing and runs no package manager. If Claude Code gives hooks a PATH without `jevmem` (some desktop setups do), start Claude Code once from a terminal so the hooks can save the path. If the CLI is older than the plugin, it prints one warning line.
+- **Two hooks.** `UserPromptSubmit` adds relevant memory lines to your prompt. `Stop` runs asynchronously, so Claude doesn't wait for it, and hands the finished turn to jevmem. Both run `hooks/jevmem-hook.sh`, a short shell script in this folder. It looks for `jevmem` with `command -v jevmem`, then at the path it saved in the plugin's data folder the last time it found it, then in `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin` and `~/.volta/bin`, then in the newest Node version under `~/.nvm` that has it, so it also finds the CLI when Claude Code gives hooks a PATH without it (the desktop app can). It finds Node 20+ to run it with, then runs `jevmem hook --plugin`. The script downloads nothing and runs no package manager. If the CLI is older than the plugin, it prints one warning line.
 - **One MCP server:** the command `jevmem mcp`, with the tools `search_memory`, `add_memory`, `list_memory` and `audit_memory`. It needs `jevmem` on the PATH Claude Code runs with. Without it, the server fails to start and `/mcp` shows the failure.
 
 ## Projects that aren't enabled
 
-In a project without `jevmem.config.json`, the hooks read their input and exit. The MCP tools reply only "jevmem isn't enabled in this project: run `jevmem enable`". There are no network calls, no files and no output (tested). Without the `jevmem` CLI installed, the hooks also exit silently.
+In a project without `jevmem.config.json`, the hooks read their input and exit. The MCP tools reply only "jevmem isn't enabled in this project: run `jevmem enable`". There are no network calls, no files and no output (tested).
+
+## When the CLI is missing
+
+In an enabled project where the hooks can't find the `jevmem` CLI, memory is off, and the first prompt of each session shows one line: "jevmem: CLI not found, so memory is off in this project. See the jevmem README to set it up", followed by a link to the README. When the CLI is found but Node 20+ isn't, the line says "Node.js 20 or newer not found" instead. The line is shown once per session and the `Stop` hook stays silent (tested). To fix it, put `jevmem` on the PATH Claude Code runs with or in one of the directories above. The MCP server also needs `jevmem` on the PATH Claude Code runs with; without it, `/mcp` shows the server as failed.
 
 ## What it sends, and where
 
@@ -50,6 +54,7 @@ There is no telemetry. Details: https://github.com/Avinash-jetwani/jevmem/blob/m
 - `JEVMEM.md` in the project: the memory lines, meant to be committed.
 - `.jevmem/` in the project, which is gitignored: logs, the save queue, cached Jev answers, and recent decisions with the scrubbed turn text.
 - `${CLAUDE_PLUGIN_DATA}/cli`: the paths of the CLI and Node it found, so later runs start faster.
+- `${CLAUDE_PLUGIN_DATA}/notified`: in an enabled project without the CLI, the ids of the sessions already shown the "CLI not found" line, so it is shown once per session.
 - In the system temp directory: a file holding the `Stop` hook's input, deleted when jevmem reads it. For a very long project path, jevmem's local socket goes there too, instead of in `.jevmem/`.
 
 It writes nothing to `~/.jevmem/`. That folder is read only if you create `~/.jevmem/env` yourself.
