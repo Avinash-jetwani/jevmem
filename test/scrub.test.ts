@@ -76,3 +76,16 @@ describe("documented limits (SECURITY.md 'Not caught')", () => {
     expect(scrubSecrets("api_key: 'abc'")).toBe("api_key=[REDACTED]");
   });
 });
+
+describe("scrubbing a Jev request's state", () => {
+  it("scrubs each string, so a KEY=value at the end of a string cannot eat its closing quote", async () => {
+    const { scrubState } = await import("../src/jev.js");
+    const state = { tool_call: { content: "timeout: 30s\nmaps_api_key: AIzaSyD4k9ZqQ7w2Xc8vB1nM3lK5jH6gF0dS9aP" }, list: ["DB_PASSWORD=hunter2", 3, null], n: 1 };
+    const out = scrubState(state) as any;
+    expect(out).toEqual({ tool_call: { content: "timeout: 30s\nmaps_api_key=[REDACTED]" }, list: ["DB_PASSWORD=[REDACTED]", 3, null], n: 1 });
+    // The old way (scrubbing the JSON text) broke exactly this state.
+    expect(() => JSON.parse(scrubSecrets(JSON.stringify(state)))).toThrow();
+    expect(scrubState("token: abcdefgh12345678")).toBe("token=[REDACTED]");
+    expect(scrubState(null)).toBeNull();
+  });
+});

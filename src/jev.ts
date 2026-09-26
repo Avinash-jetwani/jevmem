@@ -70,10 +70,18 @@ export function hasJevKey(): boolean {
   return Boolean(process.env.TYPESAFE_API_KEY?.trim());
 }
 
-function scrubState(state: EntryType): EntryType {
-  if (state === null) return null;
-  if (typeof state === "string") return scrubSecrets(state);
-  return JSON.parse(scrubSecrets(JSON.stringify(state)));
+/**
+ * Scrub every string in the state (object keys included). Scrubbing the JSON text instead could run a `KEY=value`
+ * match on into the string's closing quote and leave JSON that no longer parses.
+ */
+export function scrubState(state: EntryType): EntryType {
+  const walk = (v: unknown): unknown => {
+    if (typeof v === "string") return scrubSecrets(v);
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [scrubSecrets(k), walk(x)]));
+    return v;
+  };
+  return walk(state) as EntryType;
 }
 
 export function appendLog(root: string, entry: JevLogEntry): void {
