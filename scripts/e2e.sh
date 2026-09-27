@@ -33,10 +33,11 @@
 #              (checked in the sessions' hook events), and nothing is written in the project
 #   nokey      an enabled project with no TypeSafe key anywhere (a session HOME without ~/.jevmem/env, no key variable), once
 #              with the hooks `jevmem init` registers and once with the plugin: the first prompt's UserPromptSubmit hook
-#              shows the missing-key message (what is missing, where jevmem looks, the command that fixes it), the next
-#              prompt (--continue) shows nothing, the Stop hooks print nothing and nothing is saved; then `jevmem key`
-#              with the key piped in (into the session HOME; the plugin's own fix, /plugin configure, is interactive), and
-#              the next turn is saved without a message and the one after it gets the line back from recall
+#              shows the missing-key message, word for word as built (what is missing, where jevmem looks, the command
+#              that fixes it), the next prompt (--continue) shows nothing, the Stop hooks print nothing and nothing is
+#              saved. Then the harness does what the message says, as written: it takes the command from the message,
+#              runs it in a terminal (a pseudo-terminal, with the session's HOME and `jevmem` on PATH) and pastes the key
+#              at its hidden prompt. The next turn is saved without a message and the one after gets the line back
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 #   guard      the PreToolUse guard (`jevmem init` hooks). A: a git repo with the rule "Never commit .env files" added by
@@ -104,13 +105,14 @@ claude_session() {
   local extra=()
   while [ $# -gt 0 ] && [ "$1" != "--" ]; do extra+=("$1"); shift; done
   shift
-  env -i HOME="$SESSION_HOME" USER="$USER" PATH="$SESSION_PATH" TERM=dumb CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" "${AUTH_ENV[@]}" ${extra[@]+"${extra[@]}"} "$CLAUDE_BIN" "$@" < /dev/null
+  env -i HOME="$SESSION_HOME" USER="$USER" PATH="$SESSION_PATH" TERM=dumb CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" DISABLE_AUTOUPDATER=1 "${AUTH_ENV[@]}" ${extra[@]+"${extra[@]}"} "$CLAUDE_BIN" "$@" < /dev/null
 }
 # Prefix each line of a stream with the time it arrived (ms since the epoch and a tab): the guard scenario times hooks
 # from Claude Code's hook_started and hook_response events, which carry no time of their own.
 stamp_lines() { "$NODE" -e 'require("readline").createInterface({input:process.stdin}).on("line",(l)=>process.stdout.write(Date.now()+"\t"+l+"\n"))'; }
 # `claude plugin …` in the temporary config dir.
-claude_cli() { CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" "$CLAUDE_BIN" "$@"; }
+# DISABLE_AUTOUPDATER: the harness must never update the Claude Code it runs, or the one on this machine's PATH.
+claude_cli() { CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" DISABLE_AUTOUPDATER=1 "$CLAUDE_BIN" "$@"; }
 NODE="$(command -v node)"
 STRIP_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 
@@ -342,6 +344,53 @@ JS
   return $fail
 }
 
+# Run a command in a pseudo-terminal, as a user in a terminal: HOME=$1, PATH=$2, the command line $3 (split on spaces),
+# wait for the prompt $4, then paste $E2E_PASTE (from the environment, not the command line) and press Enter. Prints
+# what the terminal showed (the pasted text must not be shown; that is checked) and fails unless the command exits 0.
+in_terminal() {
+  python3 - "$@" <<'PY'
+import json, os, pty, select, sys, time
+home, path, cmd, prompt = sys.argv[1:5]
+paste = os.environ.pop("E2E_PASTE")
+argv = cmd.split()
+env = {"HOME": home, "PATH": path, "TERM": "xterm", "USER": os.environ.get("USER", "")}
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvpe(argv[0], argv, env)
+out = b""
+def pump(t):
+    global out
+    r, _, _ = select.select([fd], [], [], t)
+    if not r:
+        return True
+    try:
+        d = os.read(fd, 4096)
+    except OSError:
+        return False
+    if not d:
+        return False
+    out += d
+    return True
+end = time.time() + 20
+while prompt.encode() not in out and time.time() < end and pump(0.1):
+    pass
+if prompt.encode() in out:
+    os.write(fd, (paste + "\r").encode())
+end = time.time() + 20
+while time.time() < end and pump(0.1):
+    pass
+_, status = os.waitpid(pid, 0)
+code = os.waitstatus_to_exitcode(status)
+text = out.decode("utf-8", "replace").replace("\r", "")
+for line in text.split("\n"):
+    if line.strip():
+        print("   term> " + line)
+ok = code == 0 and prompt in text and paste not in text
+print("   " + ("✓" if ok else "✗ FAIL:") + f" the command asked for the key at its hidden prompt, exited {code}, and the pasted key was {'not ' if paste not in text else ''}shown on the terminal")
+sys.exit(0 if ok else 1)
+PY
+}
+
 # No TypeSafe key anywhere, in an enabled project (see the header), through one set of hooks ($2: init or plugin): the
 # missing-key message on the first prompt only; then `jevmem key`, a saved turn and a recall.
 run_nokey_variant() {
@@ -354,15 +403,16 @@ run_nokey_variant() {
   # The sessions' HOME: no ~/.jevmem/env, and no session gets a key variable. ~/.nvm is linked so hooks find Node.
   home="$(mktemp -d /tmp/jevmem-e2e-home.XXXXXX)"
   [ -d "$HOME/.nvm" ] && ln -s "$HOME/.nvm" "$home/.nvm"
-  local SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" keycli
+  # The terminal the user types in: the session's HOME, and a PATH with `jevmem` (as an npm install gives) and Node.
+  local SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" termbin
   if [ "$variant" = plugin ]; then
     install_plugin "$scratch" || { uninstall_plugin "$scratch"; rm -rf "${home:?}"; return 1; }
     SESSION_PATH="$E2E_NPM/prefix/bin:$STRIP_PATH"
     ( cd "$scratch" && env HOME="$home" "$E2E_NPM/prefix/bin/jevmem" enable >/dev/null ) || { echo "enable failed"; return 1; }
-    keycli=("$E2E_NPM/prefix/bin/jevmem")
+    termbin="$E2E_NPM/prefix/bin"
   else
     ( cd "$scratch" && env HOME="$home" "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
-    keycli=("$NODE" "$JEVMEM_CLI")
+    termbin="$home/.local/bin"; mkdir -p "$termbin" && ln -sf "$JEVMEM_CLI" "$termbin/jevmem"
   fi
   events="$(mktemp /tmp/jevmem-e2e-events.XXXXXX)"
   local prompts=("Decision: invoices are archived as PDFs in S3." "Constraint: invoice numbers are never reused." "Decision: refunds go back to the original payment method only." "In one sentence, and from this project's memory only: where do refunds go?")
@@ -372,9 +422,10 @@ run_nokey_variant() {
     ( cd "$scratch" && claude_session -- -p $flag --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[$t]}" > "$events.$t" 2>&1 )
   done
   sleep 3 # any detached Stop hook has finished by now
-  "$NODE" - "$events" "$scratch" "$variant" <<'JS' || fail=1
-    const fs=require("fs");const [base,root,variant]=process.argv.slice(2);
+  "$NODE" - "$events" "$scratch" "$variant" "$ROOT/dist/index.js" <<'JS' || fail=1
+    const fs=require("fs");const [base,root,variant,lib]=process.argv.slice(2);
     const errs=[];const shown=[];const sessions=[];
+    const built=require(lib);const expected=variant==="plugin"?built.MISSING_KEY_NOTICE_PLUGIN:built.MISSING_KEY_NOTICE_INIT;
     for(const t of [0,1]){
       const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
       sessions.push((ev.find(e=>e.session_id)||{}).session_id);
@@ -393,9 +444,8 @@ run_nokey_variant() {
       shown.push(out!=="");
       if(out){
         let m;try{m=JSON.parse(out).systemMessage}catch{}
-        const fix=variant==="plugin"?"/plugin configure jevmem@jevmem":"run jevmem key";
-        if(typeof m!=="string"||!m.startsWith("jevmem: no TypeSafe API key found, so memory is off in this project.")||!m.includes("~/.jevmem/env")||!m.includes(fix))errs.push(`turn ${t+1}: unexpected UserPromptSubmit output ${JSON.stringify(out).slice(0,160)}`);
-        else console.log(`     the message, as the hook printed it: ${m}`);
+        if(m!==expected)errs.push(`turn ${t+1}: the message is not the built one: ${JSON.stringify(out).slice(0,200)}`);
+        else{console.log(`     the message, as the hook printed it: ${m}`);fs.writeFileSync(`${base}.message`,m)}
       }
       for(const e of ev)if(!(e.type==="system"&&e.subtype==="hook_response")&&JSON.stringify(e).includes("no TypeSafe API key found"))console.log(`     turn ${t+1}: also in a ${e.type}/${e.subtype??"-"} event`);
     }
@@ -409,8 +459,15 @@ run_nokey_variant() {
     console.log("   ✓ turns 1-2: the message on the first prompt only, nothing on the second, the Stop hooks silent, nothing saved");
 JS
   if [ $fail -eq 0 ]; then
-    echo "---- jevmem key, the key piped in, into the sessions' HOME"
-    printf '%s\n' "$TYPESAFE_API_KEY" | env HOME="$home" "${keycli[@]}" key | sed 's/^/   /'
+    # What the message tells the user to do, taken from the message itself: "run <command> in a terminal and paste your key".
+    local cmd; cmd="$(sed -n 's/.*To fix it, run \(.*\) in a terminal and paste your key.*/\1/p' "$events.message")"
+    if [ -z "$cmd" ]; then echo "   ✗ FAIL: the message has no 'run … in a terminal and paste your key'"; fail=1
+    else
+      echo "---- as the message says: run $cmd in a terminal (HOME=<session home>, $([ "$variant" = plugin ] && echo "the npm-installed jevmem" || echo "jevmem linked into ~/.local/bin") on PATH) and paste the key"
+      E2E_PASTE="$TYPESAFE_API_KEY" in_terminal "$home" "$termbin:$(dirname "$NODE"):/usr/bin:/bin" "$cmd" "TypeSafe API key (input hidden): " || fail=1
+    fi
+  fi
+  if [ $fail -eq 0 ]; then
     before=$(decisions "$scratch")
     echo "---- turn 3 (--continue): ${prompts[2]}"
     ( cd "$scratch" && claude_session -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[2]}" > "$events.2" 2>&1 )
