@@ -9,8 +9,10 @@
 // checkout's package (dist/, hooks/, plugin/, package.json; run `pnpm build` first). Each launch is one Stop hook as
 // Claude Code starts it: the launcher in a process group of its own, the hook JSON on stdin, a turn of its own. As soon
 // as the launcher exits, the script checks whether anything is left in the hook's process group, then sends SIGTERM
-// and SIGKILL to that group, as a session end can. The CLI runs with the daemon off, so the detached CLI itself must
-// evaluate the turn (against a stand-in Jev on 127.0.0.1): the turn is finished when its decision is in
+// and SIGKILL to that group: harsher than a session end, which sends SIGTERM and SIGKILL only a few seconds later. That is
+// a fair test of the macOS path (no `setsid`: job control puts the CLI in its own group before the shell goes on); on
+// Linux, `setsid` moves the CLI a moment after the launcher exits. The CLI runs with the daemon off, so the detached
+// CLI itself must evaluate the turn (against a stand-in Jev on 127.0.0.1): the turn is finished when its decision is in
 // .jevmem/decisions.jsonl. A preload (NODE_OPTIONS --require) records the CLI's pid and process group when it starts,
 // and its exit code.
 //

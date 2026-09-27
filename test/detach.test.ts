@@ -1,10 +1,12 @@
 /**
  * The Stop hook's detached CLI, through both launchers (the plugin's and the one `jevmem init` registers):
- * - it runs in a process group of its own, so ending the hook's group when the hook exits (what a session end can do
- *   to an async hook) does not reach it, and it finishes the turn. With job control the shell and the child both put
- *   the child in its new group; the one that comes second can fail, and bash then prints "child setpgid (…):
- *   Operation not permitted" (1 launch in about 700 here). The child is in its new group either way, so the launchers
- *   send that message to /dev/null;
+ * - it runs in a process group of its own, so ending the hook's group when the hook exits does not reach it, and it
+ *   finishes the turn. On macOS (no `setsid`) the launcher uses job control: the shell and the child both put the child
+ *   in its new group before the shell goes on, so nothing is left in the hook's group when it exits, and the group can
+ *   be killed at once. When the second of the two calls fails, bash prints "child setpgid (…): Operation not
+ *   permitted"; the child is in its new group either way, so the launchers send that message to /dev/null. Elsewhere
+ *   `setsid` moves the child a moment later, in the child, so the test does what a session end does: SIGTERM at once
+ *   (ignored until then), SIGKILL later;
  * - since nothing it prints reaches anyone, its errors must land in .jevmem/log.jsonl: a Jev error it handles, and a
  *   failure before its own error handling runs (here, its main module missing, as after an upgrade).
  */
@@ -73,7 +75,7 @@ function stopHook(l: ReturnType<typeof launcher>, root: string, text: string): P
 }
 
 describe.skipIf(process.platform === "win32").each(["plugin", "init"] as const)("the detached Stop CLI, through the %s launcher", (kind) => {
-  it("is outside the hook's process group: ending that group as soon as the hook exits loses no turn", async () => {
+  it("is outside the hook's process group: ending that group when the hook exits loses no turn", async () => {
     fake = await startFakeJev(() => T1_QUIET);
     const root = tmp();
     init({ root, hooks: false });
@@ -82,20 +84,21 @@ describe.skipIf(process.platform === "win32").each(["plugin", "init"] as const)(
     for (let i = 0; i < N; i++) {
       const r = await stopHook(l, root, `Decision ${i}: turn ${i} of the process group test.`);
       expect([r.code, r.stdout, r.stderr]).toEqual([0, "", ""]);
-      // Nothing may be left in the hook's group; end it anyway, as a session end can.
-      let left = true;
-      try {
-        process.kill(-r.child.pid!, 0);
-      } catch {
-        left = false;
-      }
-      expect(left).toBe(false);
-      for (const sig of ["SIGTERM", "SIGKILL"] as const) {
+      const kill = (sig: NodeJS.Signals | 0) => {
         try {
           process.kill(-r.child.pid!, sig);
+          return true;
         } catch {
-          /* no such group */
+          return false; // no such group
         }
+      };
+      if (process.platform === "darwin") {
+        expect(kill(0)).toBe(false); // nothing left in the hook's group
+        kill("SIGTERM");
+        kill("SIGKILL");
+      } else {
+        kill("SIGTERM");
+        setTimeout(() => kill("SIGKILL"), 500);
       }
       expect(await waitFor(() => decisions(root).includes(`turn ${i} of the process group test`))).toBe(true);
     }
