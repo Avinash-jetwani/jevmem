@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|deadend|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -47,6 +47,13 @@
 #              `git add .env`, .env must stay out of git, and Claude's reply must mention the rule. B: a project with
 #              no constraints where Claude writes a file and runs ls and git status: every PreToolUse hook exits 0 with
 #              no output. Both: no hook error or timeout in the transcript; the hook's time per tool call is printed
+#   deadend    dead ends (docs/dead-ends.md), `jevmem init` hooks, a small TypeScript project whose src/app.ts uses an enum,
+#              which Node's type stripping cannot run, with two hand-added lines, and `node` on the session PATH. Session 1:
+#              Claude is asked to try running src/app.ts directly with node --experimental-strip-types and to drop the idea
+#              if it fails: exactly one new line, a [dead-end] line that says what was tried and why it failed. Session 2, a
+#              new session with a related prompt: the UserPromptSubmit hook's context has "Already tried: <that line>"; what
+#              Claude then did (its tool calls and reply) is printed. Session 3, a new session with an unrelated prompt: no
+#              dead end in the context
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
 # memory line, or the jevmem footer (i.e. a line the assistant wrote by hand).
 #
@@ -198,7 +205,7 @@ run_outage() {
   "$NODE" - "$scratch" 1 <<'JS' || fail=1
     const fs=require("fs");const [root]=process.argv.slice(2);
     const raw=fs.existsSync(root+"/JEVMEM.md")?fs.readFileSync(root+"/JEVMEM.md","utf8"):"";
-    const lines=raw.split("\n").filter(l=>/^- \[[a-z]+\] .*<!-- id:\w+/.test(l));
+    const lines=raw.split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
     const q=fs.existsSync(root+"/.jevmem/queue.jsonl")?fs.readFileSync(root+"/.jevmem/queue.jsonl","utf8").trim().split("\n").filter(Boolean).map(JSON.parse):[];
     const log=fs.readFileSync(root+"/.jevmem/log.jsonl","utf8");
     const errs=[];
@@ -221,7 +228,7 @@ JS
     "$NODE" - "$scratch" <<'JS' || fail=1
       const fs=require("fs");const [root]=process.argv.slice(2);
       const raw=fs.readFileSync(root+"/JEVMEM.md","utf8");
-      const lines=raw.split("\n").filter(l=>/^- \[[a-z]+\] .*<!-- id:\w+/.test(l));
+      const lines=raw.split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
       const dec=fs.readFileSync(root+"/.jevmem/decisions.jsonl","utf8").trim().split("\n").map(JSON.parse);
       const errs=[];
       for(const l of lines)console.log("     "+l.replace(/\s*<!--.*-->/,""));
@@ -451,7 +458,7 @@ run_nokey_variant() {
     }
     if(sessions[0]!==sessions[1])errs.push("turn 2 (--continue) ran in a different session from turn 1");
     if(shown.join()!=="true,false")errs.push(`message shown ${shown.join(",")}, expected true,false (once)`);
-    const lines=(fs.existsSync(root+"/JEVMEM.md")?fs.readFileSync(root+"/JEVMEM.md","utf8"):"").split("\n").filter(l=>/^- \[[a-z]+\] .*<!-- id:\w+/.test(l));
+    const lines=(fs.existsSync(root+"/JEVMEM.md")?fs.readFileSync(root+"/JEVMEM.md","utf8"):"").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
     if(lines.length)errs.push(`${lines.length} line(s) saved without a key`);
     const log=(fs.existsSync(root+"/.jevmem/log.jsonl")?fs.readFileSync(root+"/.jevmem/log.jsonl","utf8"):"").split("\n").filter(Boolean).map(l=>JSON.parse(l));
     console.log(`     .jevmem/log.jsonl: ${log.filter(e=>/TYPESAFE_API_KEY not set/.test(e.error||"")).length} "no key" line(s) from the hooks`);
@@ -485,7 +492,7 @@ JS
         for(const e of ups){let m;try{m=JSON.parse(String(e.stdout??"")).systemMessage}catch{}if(m)errs.push(`turn ${t+1}: a message after the key was saved: ${m.slice(0,80)}`)}
         if(t===3){const r=String((ev.find(e=>e.type==="result")||{}).result??"");console.log(`     claude> ${r.replace(/\n/g," ").slice(0,200)}`);if(!/original payment method/i.test(r))errs.push("turn 4: the reply does not use the saved line")}
       }
-      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+\] .*<!-- id:\w+/.test(l));
+      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
       for(const l of lines)console.log("     "+l.replace(/\s*<!--.*-->/,""));
       if(lines.length!==1||!/refund/i.test(lines[0]||""))errs.push(`expected turn 3's line only, got ${lines.length} line(s)`);
       const log=fs.readFileSync(root+"/.jevmem/log.jsonl","utf8").split("\n").filter(Boolean).map(l=>JSON.parse(l));
@@ -555,7 +562,7 @@ run_dormant() {
     n=$(wc -l < "$plog" | tr -d ' ')
     "$NODE" - "$scratch" "$n" <<'JS' || fail=1
       const fs=require("fs");const [root,n]=process.argv.slice(2);
-      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+\] .*<!-- id:\w+/.test(l));
+      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
       for(const l of lines)console.log("     "+l.replace(/\s*<!--.*-->/,""));
       const errs=[];
       if(lines.length!==1)errs.push(`expected 1 line, got ${lines.length}`);
@@ -702,6 +709,134 @@ JS
   return $fail
 }
 
+# Dead ends: session 1 tries an approach that fails and drops it; session 2 (new) asks something related; session 3
+# (new) asks something unrelated. See the header.
+run_deadend() {
+  local run="$1" fail=0 scratch events before
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=deadend  scratch=$scratch"
+  mkdir -p "$scratch/src"
+  printf '{"name":"stopwatch","private":true,"type":"module","scripts":{"build":"tsc","start":"node dist/app.js"},"devDependencies":{"typescript":"^5.9.0"}}\n' > "$scratch/package.json"
+  printf '{"compilerOptions":{"outDir":"dist","target":"es2022","module":"nodenext","strict":true},"include":["src"]}\n' > "$scratch/tsconfig.json"
+  printf '# stopwatch\n\nFormats durations for the command line. Build with `npm run build` (tsc), run with `npm start`.\n' > "$scratch/README.md"
+  cat > "$scratch/src/app.ts" <<'TS'
+enum Unit {
+  Seconds = "s",
+  Minutes = "min",
+}
+
+export function format(ms: number, unit: Unit): string {
+  return unit === Unit.Seconds ? `${(ms / 1000).toFixed(1)} s` : `${(ms / 60000).toFixed(1)} min`;
+}
+
+console.log(format(125000, Unit.Minutes));
+TS
+  ( cd "$scratch" && git init -q && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null \
+    && "$NODE" "$JEVMEM_CLI" add decision "The CLI is compiled with tsc into dist/ and started with node dist/app.js" >/dev/null \
+    && "$NODE" "$JEVMEM_CLI" add preference "Durations are printed with one decimal place" >/dev/null ) || { echo "init failed"; return 1; }
+  echo "   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:"
+  grep -E '^- \[' "$scratch/JEVMEM.md" | sed 's/  <!--.*//; s/^/     /'
+  local app_sum; app_sum="$(shasum "$scratch/src/app.ts" | cut -d' ' -f1)"
+  # Claude's Bash tool needs node on the session PATH (the hooks find it on their own).
+  local SESSION_PATH; SESSION_PATH="$(dirname "$NODE"):$STRIP_PATH"
+  events="$(mktemp /tmp/jevmem-e2e-deadend.XXXXXX)"
+  local p1="Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed."
+  local p2="The tsc compile step slows down my edit-run loop. Can we run src/app.ts directly with node and skip it? Do what you think is best, then answer in two or three sentences."
+  local p3="Add a .gitignore that ignores node_modules and dist. Reply in one sentence."
+  echo "---- session 1 (an approach that fails): $p1"
+  before=$(decisions "$scratch")
+  ( cd "$scratch" && claude_session -- -p "$p1" --max-turns 8 --output-format stream-json --verbose --include-hook-events --allowedTools "Bash(node *)" > "$events.1" 2>&1 )
+  wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; tail -c 1500 "$events.1" | sed 's/^/     session> /'; fail=1; }
+  if [ $fail -eq 0 ]; then
+    "$NODE" - "$events.1" "$scratch" "$app_sum" <<'JS' || fail=1
+      const fs=require("fs");const cp=require("child_process");const [evf,root,appSum]=process.argv.slice(2);
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      const uses=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")uses.push(`${c.name}: ${JSON.stringify(c.input.command??c.input.file_path??"")}`);
+      console.log(`     tool calls: ${uses.join(" | ")||"none"}`);
+      console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,400)}`);
+      const errs=[];
+      const raw=fs.readFileSync(root+"/JEVMEM.md","utf8");
+      const lines=raw.split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
+      const FORMAT=/^- \[(decision|constraint|preference|bug|architecture|todo|dead-end|superseded)\] .+  <!-- id:[a-z0-9]+ ts:\S+ conf:\d\.\d\d( by:[a-z0-9]+)?( stale:[\d.]+)? -->$/;
+      for(const l of lines)if(!FORMAT.test(l))errs.push(`not a jevmem line: ${l.slice(0,100)}`);
+      const added=lines.slice(2);
+      console.log("     JEVMEM.md after session 1:");for(const l of lines)console.log("       "+l.replace(/\s*<!--.*-->/,""));
+      if(lines.length<2||!/compiled with tsc/.test(lines[0])||!/one decimal place/.test(lines[1]))errs.push("the two hand-added lines are not the first two lines");
+      if(added.length!==1)errs.push(`expected exactly 1 new line, got ${added.length}`);
+      else{
+        const m=/^- \[([a-z-]+)\] (.*?)\s*<!-- id:(\w+)/.exec(added[0]);
+        fs.writeFileSync(root+"/.jevmem/e2e-deadend.json",JSON.stringify({id:m[3],text:m[2],kind:m[1]}));
+        console.log(`     the saved line, as written: ${added[0]}`);
+        if(m[1]!=="dead-end")errs.push(`the new line is [${m[1]}], not [dead-end]`);
+        if(!/strip-types|type[- ]strip|directly with node|without (compiling|tsc)/i.test(m[2]))errs.push("the line does not say what was tried (running app.ts with node's type stripping)");
+        if(!/enum|ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX|strip-only|not supported|unsupported/i.test(m[2]))errs.push("the line does not say why it failed (the enum, which strip-only mode can't run)");
+      }
+      const dec=fs.readFileSync(root+"/.jevmem/decisions.jsonl","utf8").trim().split("\n").map(JSON.parse).at(-1);
+      console.log(`     decision: ${dec.decision.reason}; source ${dec.decision.source}; writer ${dec.writer??"-"}`);
+      const sum=cp.execSync(`shasum "${root}/src/app.ts"`,{encoding:"utf8"}).split(" ")[0];
+      console.log(`     src/app.ts ${sum===appSum?"unchanged":"CHANGED by Claude"}`);
+      if(errs.length){console.log("   ✗ FAIL session 1: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed");
+JS
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- session 2 (new session, a related prompt): $p2"
+    before=$(decisions "$scratch")
+    ( cd "$scratch" && claude_session -- -p "$p2" --max-turns 10 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits --allowedTools "Bash(node *)" > "$events.2" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   (session 2's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
+    "$NODE" - "$events.2" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [evf,root]=process.argv.slice(2);
+      const de=JSON.parse(fs.readFileSync(root+"/.jevmem/e2e-deadend.json","utf8"));
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      const errs=[];
+      const ups=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="UserPromptSubmit");
+      if(ups.length!==1)errs.push(`${ups.length} UserPromptSubmit hook responses, expected 1`);
+      let ctx="";try{ctx=JSON.parse(String(ups[0]?.stdout??"")).hookSpecificOutput.additionalContext}catch{}
+      console.log("     injected context (the memory lines):");for(const l of ctx.split("\n").filter(l=>/^- /.test(l)))console.log("       "+l);
+      if(!ctx.includes(`- Already tried: ${de.text} (id:${de.id}`))errs.push("the context has no 'Already tried: <the dead-end line>'");
+      const calls=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")calls.push({name:c.name,arg:String(c.input.command??c.input.file_path??c.input.pattern??"")});
+      console.log(`     what Claude then did: tool calls: ${calls.map(c=>`${c.name}: ${JSON.stringify(c.arg)}`).join(" | ")||"none"}`);
+      // The dead end repeated: running app.ts with type stripping before anything changed app.ts.
+      const firstRun=calls.findIndex(c=>c.name==="Bash"&&/strip-types|node\b[^|]*src\/app\.ts/.test(c.arg));
+      const firstEdit=calls.findIndex(c=>["Edit","Write","MultiEdit"].includes(c.name)&&/src\/app\.ts$/.test(c.arg));
+      console.log(`     ran the failed attempt again, unchanged: ${firstRun>=0&&(firstEdit<0||firstRun<firstEdit)?"yes":"no"}${firstRun>=0&&firstEdit>=0&&firstEdit<firstRun?" (it ran app.ts with type stripping after changing app.ts)":""}`);
+      console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,500)}`);
+      if(errs.length){console.log("   ✗ FAIL session 2: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ session 2: the related prompt's context has \"Already tried: <the dead-end line>\"");
+JS
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- session 3 (new session, an unrelated prompt): $p3"
+    before=$(decisions "$scratch")
+    ( cd "$scratch" && claude_session -- -p "$p3" --max-turns 6 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits > "$events.3" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   (session 3's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
+    "$NODE" - "$events.3" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [evf,root]=process.argv.slice(2);
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      const errs=[];
+      const ups=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="UserPromptSubmit");
+      if(ups.length!==1)errs.push(`${ups.length} UserPromptSubmit hook responses, expected 1`);
+      const out=String(ups[0]?.stdout??"").trim();
+      let ctx="";if(out){try{ctx=JSON.parse(out).hookSpecificOutput.additionalContext}catch{errs.push("the hook printed something that is not JSON")}}
+      const mem=ctx.split("\n").filter(l=>/^- /.test(l));
+      console.log(`     injected context: ${mem.length?"":"nothing"}`);for(const l of mem)console.log("       "+l);
+      if(ctx.includes("Already tried"))errs.push("a dead end was injected for an unrelated prompt");
+      const log=fs.readFileSync(root+"/.jevmem/log.jsonl","utf8").trim().split("\n").map(l=>JSON.parse(l)).filter(e=>e.label==="recall"&&!e.event);
+      if(!log.length||!log.at(-1).ok)errs.push("the last recall call did not succeed, so the check proves nothing");
+      console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,200)}`);
+      if(errs.length){console.log("   ✗ FAIL session 3: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ session 3: the unrelated prompt got no dead end");
+JS
+  fi
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  rm -f "$events" "$events".*
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=deadend"; else echo "FAIL run $run scenario=deadend"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
+  return $fail
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
   [ "$scenario" = dormant ] && { PUBLISHED=0; run_dormant "$run"; return $?; }
@@ -710,6 +845,7 @@ run_once() {
   [ "$scenario" = nokey ] && { PUBLISHED=0; run_nokey "$run"; return $?; }
   [ "$scenario" = outage ] && { run_outage "$run"; return $?; }
   [ "$scenario" = guard ] && { run_guard "$run"; return $?; }
+  [ "$scenario" = deadend ] && { run_deadend "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
     linkguard|plugin) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;
@@ -762,15 +898,15 @@ run_once() {
       const fs=require("fs");const [root,exp,turn]=process.argv.slice(2);
       const [wantTotal,wantSup,wantKind,wantPrevSup]=exp.split(" ");
       const raw=fs.existsSync(root+"/JEVMEM.md")?fs.readFileSync(root+"/JEVMEM.md","utf8"):"";
-      const lines=raw.split("\n").filter(l=>/^- \[[a-z]+\] .*<!-- id:\w+/.test(l));
-      const parsed=lines.map(l=>{const m=/^- \[([a-z]+)\] (.*?)\s*<!-- id:(\w+)/.exec(l);return {kind:m[1],text:m[2],id:m[3],raw:l}});
+      const lines=raw.split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
+      const parsed=lines.map(l=>{const m=/^- \[([a-z]+(?:-[a-z]+)*)\] (.*?)\s*<!-- id:(\w+)/.exec(l);return {kind:m[1],text:m[2],id:m[3],raw:l}});
       const live=parsed.filter(p=>p.kind!=="superseded");const sup=parsed.filter(p=>p.kind==="superseded");
       const prev=JSON.parse(fs.existsSync(root+"/.jevmem/e2e-prev.json")?fs.readFileSync(root+"/.jevmem/e2e-prev.json","utf8"):"[]");
       const newLines=parsed.filter(p=>!prev.some(q=>q.id===p.id));
       const errs=[];
       // Hand-written lines: anything that is not the init header, a jevmem-format memory line, or the footer.
       const header=new Set(JSON.parse(fs.readFileSync(root+"/.jevmem/e2e-header.json","utf8")));
-      const FORMAT=/^- \[(decision|constraint|preference|bug|architecture|todo|superseded)\] .+  <!-- id:[a-z0-9]+ ts:\S+ conf:\d\.\d\d( by:[a-z0-9]+)?( stale:[\d.]+)? -->$/;
+      const FORMAT=/^- \[(decision|constraint|preference|bug|architecture|todo|dead-end|superseded)\] .+  <!-- id:[a-z0-9]+ ts:\S+ conf:\d\.\d\d( by:[a-z0-9]+)?( stale:[\d.]+)? -->$/;
       const FOOTER=/^<!--\s*jevmem:.*-->\s*$/;
       const handWritten=raw.split("\n").filter(l=>l.trim()!==""&&!header.has(l)&&!FORMAT.test(l)&&!FOOTER.test(l));
       if(handWritten.length)errs.push(`hand-written line(s) in JEVMEM.md: ${handWritten.map(l=>JSON.stringify(l.slice(0,90))).join(" | ")}`);
@@ -827,7 +963,7 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard deadend)
 # Every failed scenario is recorded with its whole output in test-results/e2e-failures.log (JEVMEM_TEST_RESULTS names
 # another folder), as the unit tests' failures are in test-results/failures.jsonl.
 RESULTS="${JEVMEM_TEST_RESULTS:-$ROOT/test-results}"
