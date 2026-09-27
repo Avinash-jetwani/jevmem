@@ -8,7 +8,7 @@ import { decide, type Decision } from "./decide.js";
 import type { JevCaller } from "./jev.js";
 import { recordDecision } from "./labels.js";
 import { recordProvenance } from "./provenance.js";
-import { clampLine } from "./llm/index.js";
+import { clampLine, combineRetest } from "./llm/index.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
 import type { Kind, Memory } from "./types.js";
@@ -23,8 +23,10 @@ export type GatedAddResult =
  * - refused when the injection family is at or above `thresholds.injectionMax`,
  * - refused when the chit-chat family is at or above `thresholds.chitChatMax`,
  * - refused when it duplicates a live memory.
- * The kind is Jev's when Jev names one, else the caller's. A contradiction supersedes the old line, as in the hook.
- * Importance is not a gate here: the agent was asked (by the rule or the user) to record this line.
+ * - refused when it is a retry of a live dead end that failed again for the reason that line gives (docs/dead-ends.md).
+ * The kind is Jev's when Jev names one, else the caller's. A contradiction supersedes the old line, as in the hook; a retry
+ * that failed for a new reason is saved as one line with both reasons (the old line's, then the agent's), which replaces
+ * the old one. Importance is not a gate here: the agent was asked (by the rule or the user) to record this line.
  */
 export async function gatedAdd(jev: JevCaller, store: MemoryStore, cfg: ReturnType<typeof loadConfig>, text: string, callerKind: Kind): Promise<GatedAddResult> {
   const clean = clampLine(scrubSecrets(text).replace(/\s+/g, " ").trim(), cfg.writer.maxChars);
@@ -57,9 +59,14 @@ export async function gatedAdd(jev: JevCaller, store: MemoryStore, cfg: ReturnTy
     kind = callerKind;
     kindFrom = "caller";
   }
-  const saved = store.add({ kind, text: clean, conf: decision.confidence });
+  // A retry of a live dead end that failed again: the same reason adds nothing; a new reason is one line with both.
+  const retest = decision.retest;
+  if (retest?.id && retest.same && (kind === "dead-end" || kind === "bug")) return refuse(`refused: ${retest.id} already says this approach failed, for this reason (a retry that failed again adds nothing)`);
+  const earlier = kind === "dead-end" && retest?.id && !retest.same ? existing.find((m) => m.id === retest.id) : undefined;
+  const saved = store.add({ kind, text: earlier ? combineRetest(earlier.text, clean, cfg.writer.maxChars) : clean, conf: decision.confidence });
   recordProvenance(store.root, saved, "mcp");
-  const superseded = decision.contradiction && decision.touchesMemoryId ? store.supersede(decision.touchesMemoryId, saved.id) : null;
+  const target = earlier ? earlier.id : decision.contradiction ? decision.touchesMemoryId : null;
+  const superseded = target ? store.supersede(target, saved.id) : null;
   recordDecision(store.root, { hash, memoryId: saved.id, message: clean, decision: { ...decision, save: true, kind } });
   return { ok: true, saved, superseded, kind, kindFrom, redacted: clean !== clampLine(text.replace(/\s+/g, " ").trim(), cfg.writer.maxChars), decision };
 }

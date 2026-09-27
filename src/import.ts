@@ -18,7 +18,7 @@ import { decide, type Decision } from "./decide.js";
 import { gateLines, hiddenTextReason } from "./guard.js";
 import type { JevCaller } from "./jev.js";
 import { recordDecision } from "./labels.js";
-import { clampLine, stripFiller } from "./llm/index.js";
+import { clampLine, combineRetest, stripFiller } from "./llm/index.js";
 import { recordProvenance } from "./provenance.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
@@ -291,8 +291,14 @@ export async function runImport(jev: JevCaller, store: MemoryStore, cfg: ReturnT
     row.kind = d.kind as Kind;
     row.reason = d.reason;
     if (d.contradiction && d.touchesMemoryId) row.supersedes = d.touchesMemoryId;
+    // A retry of a live dead end that failed for a new reason: one line with both reasons, which replaces the old one.
+    const earlier = row.kind === "dead-end" && d.retest?.id && !d.retest.same ? live.find((m) => m.id === d.retest!.id) : undefined;
+    if (earlier) {
+      row.text = combineRetest(earlier.text, text, cfg.writer.maxChars);
+      row.supersedes = earlier.id;
+    }
     // Later candidates are decided against this one too (a pending id stands in for the line not yet written).
-    const pending = { id: `imp${rows.length}`, kind: row.kind, text };
+    const pending = { id: `imp${rows.length}`, kind: row.kind, text: row.text };
     if (row.supersedes) {
       const i = live.findIndex((m) => m.id === row.supersedes);
       if (i >= 0) live.splice(i, 1);

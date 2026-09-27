@@ -8,12 +8,17 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 import { main } from "../src/cli-main.js";
 import { evaluatePolicy, supersedeTarget } from "../src/combine.js";
 import { decide, NEW_REASON_MIN } from "../src/decide.js";
 import { runHook } from "../src/hook.js";
+import { runImport } from "../src/import.js";
 import { init } from "../src/init.js";
+import { loadConfig } from "../src/config.js";
+import { buildMcpServer } from "../src/mcp.js";
 import { combineRetest, extractDeadEnd } from "../src/llm/index.js";
 import { buildDecideQuestions, buildTier1Questions, NEW_REASON_NOUL, RETEST_CHOICE, RETEST_NOUL, SOURCE_QUESTION, WORKS_NOW_CHOICE, WORKS_NOW_NOUL } from "../src/questions.js";
 import { MemoryStore } from "../src/store.js";
@@ -135,6 +140,46 @@ describe("a listed dead end tried again that fails again", () => {
     const r = await composeLine("I tried Brotli with passthrough on; old Safari failed to decode the tiles.", "dead-end", { writer: { provider: "openai", model: "gpt-4o-mini", maxChars: 200, timeoutMs: 2000 }, env: { OPENAI_API_KEY: "sk-test" }, fetchImpl: f }, { retestOf: GZIP });
     expect(r.writerUsed).toBe("openai");
     expect(body.messages[1].content).toBe(`Memory kind: dead-end (${RETEST_WRITER_NOTE})\n\nEarlier line: ${GZIP}\n\nMessage:\nI tried Brotli with passthrough on; old Safari failed to decode the tiles.`);
+  });
+});
+
+describe("the retry rule on the other paths that ask Jev: MCP add_memory and jevmem import", () => {
+  const SAME: AnswerOverrides = { ...DEAD_END, [NEW_REASON_NOUL]: 0.1 };
+  const NEW: AnswerOverrides = { ...DEAD_END, [NEW_REASON_NOUL]: 0.9 };
+  const retry = (id: string, a: AnswerOverrides): AnswerOverrides => ({ ...a, [RETEST_NOUL]: 0.95, [RETEST_CHOICE]: id });
+  const LINE = "Brotli for the tile responses: the CDN re-compressed them and edge CPU doubled; retried: Safari 15 on older iPads failed to decode them";
+
+  it("MCP add_memory refuses a retry for the same reason, and saves one for a new reason as one line with both that supersedes the old one", async () => {
+    const { root, store } = project();
+    const de = store.add({ kind: "dead-end", text: GZIP });
+    const add = async (answers: AnswerOverrides, text: string) => {
+      const server = buildMcpServer(root, { jev: mockJev(() => answers) });
+      const [a, b] = InMemoryTransport.createLinkedPair();
+      await server.connect(a);
+      const client = new Client({ name: "test", version: "0" });
+      await client.connect(b);
+      const r: any = await client.callTool({ name: "add_memory", arguments: { text, kind: "dead-end" } });
+      return { isError: Boolean(r.isError), body: JSON.parse(r.content[0].text) };
+    };
+    const same = await add(retry(de.id, SAME), "Tried Brotli on the tiles again: the CDN still re-compressed them and edge CPU doubled.");
+    expect([same.isError, same.body.refused]).toEqual([true, `refused: ${de.id} already says this approach failed, for this reason (a retry that failed again adds nothing)`]);
+    expect(new MemoryStore(root).active().map((m) => m.id)).toEqual([de.id]);
+    const fresh = await add(retry(de.id, NEW), "Tried Brotli with passthrough on. The CDN left the tiles alone, but Safari 15 on older iPads failed to decode them.");
+    expect(fresh.isError).toBe(false);
+    expect([fresh.body.added.text, fresh.body.superseded]).toEqual([LINE, de.id]);
+    expect(new MemoryStore(root).active().map((m) => m.text)).toEqual([LINE]);
+  });
+
+  it("jevmem import skips a retry for the same reason and writes one for a new reason with both reasons, superseding the old line", async () => {
+    const { root, store } = project();
+    const de = store.add({ kind: "dead-end", text: GZIP });
+    const c = (text: string, line: number) => ({ text, file: "CLAUDE.md", line, source: "claude-md" as const });
+    const same = await runImport(mockJev(() => retry(de.id, SAME)), store, loadConfig(root), [c("Brotli on the tiles was tried again; the CDN still re-compressed them.", 3)], { apply: true });
+    expect(same[0]!.outcome).toBe("skip");
+    expect(same[0]!.reason).toMatch(/retest of \w+: failed again for the reason it gives/);
+    const fresh = await runImport(mockJev(() => retry(de.id, NEW)), store, loadConfig(root), [c("Tried Brotli with passthrough on. The CDN left the tiles alone, but Safari 15 on older iPads failed to decode them.", 4)], { apply: true });
+    expect([fresh[0]!.outcome, fresh[0]!.text, fresh[0]!.supersedes]).toEqual(["add", LINE, de.id]);
+    expect(new MemoryStore(root).active().map((m) => m.text)).toEqual([LINE]);
   });
 });
 
