@@ -34,7 +34,7 @@ See [DEMO.md](DEMO.md) for a scripted 60-second demo, [DECISIONS.md](DECISIONS.m
 
 ## Changes that affect numbers
 
-Every measured number in the README and `docs/` must come from a file in `results/` listed in `results/CURRENT.json`; `node scripts/check-claims.mjs` enforces it in CI. If your change moves a number, re-run the script that produces it, commit the new results file, and update the docs. Do not tune against `eval/heldout.jsonl` or `eval/memory-injection.jsonl`: they are final exams. Tune on `eval/contradictions-dev.jsonl`, `eval/memory-injection-dev.jsonl` or a new dev set.
+Every measured number in the README and `docs/` must come from a file in `results/` listed in `results/CURRENT.json`; `node scripts/check-claims.mjs` enforces it in CI. If your change moves a number, re-run the script that produces it, commit the new results file, and update the docs. Do not tune against `eval/heldout.jsonl`, `eval/memory-injection.jsonl`, `eval/guard-heldout.jsonl` or the dead-end held-out sets (`eval/dead-ends-heldout.jsonl`, `eval/dead-ends-heldout-v2.jsonl`, `eval/dead-ends-gate-heldout-v2.jsonl`): they are final exams, and a changed decide path, writer or gate needs a new held-out set. Tune on `eval/contradictions-dev.jsonl`, `eval/memory-injection-dev.jsonl`, the dead-end dev sets or a new dev set.
 
 ## Pull requests
 
@@ -43,15 +43,16 @@ Keep them focused, add a test for behaviour changes, and run `pnpm build && pnpm
 ## Releasing
 
 1. Bump the version in `package.json` and `plugin/.claude-plugin/plugin.json` (its `version` and `mcpServers.jevmem.env.JEVMEM_PLUGIN_VERSION`) together, in the same commit, and add a CHANGELOG entry. Claude Code updates an installed plugin only when `plugin.json`'s `version` changes, so a release that bumps only `package.json` never reaches plugin users. `node scripts/check-versions.mjs` (run in CI) and `test/plugin.test.ts` fail when they differ. Bump both for a plugin-only change too: the directory and Claude Code both key updates on that `version`.
-2. `pnpm build && pnpm lint && pnpm test && node scripts/check-claims.mjs`, `node scripts/check-plugin.mjs`, `claude plugin validate --strict plugin`, and `scripts/e2e.sh --runs 3 --scenario full` for anything that touches the hooks, keys or `plugin/`. e2e needs `TYPESAFE_API_KEY` in its own environment, which it copies into the sessions' temporary `~/.jevmem/env`, and a Claude Code token (see the script's header).
-3. Push to `main` and wait for CI to pass.
-4. Tag `vX.Y.Z` on that commit and push the tag. **Tags are permanent: never move, delete or re-use a pushed tag.** The release workflow publishes whatever a version tag points at, so a moved tag can publish different code under a version people already installed. If something is wrong after tagging, fix it in a new commit and release the next patch version.
-5. `.github/workflows/release.yml` then runs three jobs in order:
+2. **Restate the README's benchmark for the version that ships, or date it.** The README's benchmark table and the sentences under it (save/skip, save+kind, contradictions, p50 and $/decision for jevmem) are v0.4.2's, measured 2026-09-23. Rerun the 66-turn benchmark with the build being released (`node scripts/eval.mjs --set heldout`) and restate jevmem's row and those sentences from it, or label them clearly as v0.4.2's figures. They have moved on `main`: in `auto`, save+kind 62/66 at $0.000145 per decision after v0.6 part 2 ([results/eval-heldout-2026-09-27-after.json](results/eval-heldout-2026-09-27-after.json)), and 60/66 at $0.000143 after part 2b ([results/eval-heldout-2026-09-27-2b.json](results/eval-heldout-2026-09-27-2b.json)). The LLM rows need `scripts/bench-llm.mjs` only if they are restated too.
+3. `pnpm build && pnpm lint && pnpm test && node scripts/check-claims.mjs`, `node scripts/check-plugin.mjs`, `claude plugin validate --strict plugin`, and `scripts/e2e.sh --runs 3 --scenario full` for anything that touches the hooks, keys or `plugin/`. e2e needs `TYPESAFE_API_KEY` in its own environment, which it copies into the sessions' temporary `~/.jevmem/env`, and a Claude Code token (see the script's header).
+4. Push to `main` and wait for CI to pass.
+5. Tag `vX.Y.Z` on that commit and push the tag. **Tags are permanent: never move, delete or re-use a pushed tag.** The release workflow publishes whatever a version tag points at, so a moved tag can publish different code under a version people already installed. If something is wrong after tagging, fix it in a new commit and release the next patch version.
+6. `.github/workflows/release.yml` then runs three jobs in order:
    - `verify`: build, lint, tests, check-claims, matching versions, check-plugin, and the packed tarball runs without `node_modules`.
    - `publish` (only when the repository variable `NPM_PUBLISH` is `true`): `npm publish` with provenance through npm trusted publishing (OIDC).
    - `directory` (only after `publish` succeeds): fast-forwards the `directory` branch to the tagged commit. It never force-pushes, and it fails if the tagged commit isn't on `main` or isn't ahead of `directory`.
-6. Create the GitHub release for the tag.
-7. The Claude plugin directory follows `directory`, not `main`, and picks up the new commit on its own (on a schedule, or through the push webhook if it is set up). To have it look at once, select **Check for new commits** on the plugin's page at claude.ai/directory/manage. Depending on the plugin's publish setting, select **Publish** there once the version passes.
+7. Create the GitHub release for the tag.
+8. The Claude plugin directory follows `directory`, not `main`, and picks up the new commit on its own (on a schedule, or through the push webhook if it is set up). To have it look at once, select **Check for new commits** on the plugin's page at claude.ai/directory/manage. Depending on the plugin's publish setting, select **Publish** there once the version passes.
 
 Never push to `directory` by hand, except to fast-forward it to a released tag if the `directory` job failed. The "Protect main" ruleset blocks deleting or force-pushing `main` and `directory`. With `NPM_PUBLISH` unset, publish by hand with `npm publish`, then fast-forward `directory` yourself: `git push origin vX.Y.Z^{commit}:refs/heads/directory` (no `--force`).
 
