@@ -126,7 +126,7 @@ describe.skipIf(process.platform === "win32")("plugin/hooks/jevmem-hook.sh", () 
     fake = await startFakeJev(() => SAVE_DECISION);
     const root = enabledProject();
     const bin = npmBin();
-    const env = { PATH: `${bin}:/usr/bin:/bin`, HOME: tmp(), CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: tmp(), TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0" };
+    const env = { PATH: `${bin}:/usr/bin:/bin`, HOME: tmp(), TMPDIR: tmp(), CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: tmp(), TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0" };
     const r = spawnSync("sh", [LAUNCHER, "--detach", "hook", "--plugin"], { cwd: root, env, input: stop(root), encoding: "utf8" });
     expect(r.status).toBe(0);
     expect(r.stderr).toBe("");
@@ -138,7 +138,7 @@ describe.skipIf(process.platform === "win32")("plugin/hooks/jevmem-hook.sh", () 
     const root = enabledProject();
     const bin = npmBin();
     const data = tmp();
-    const base = { HOME: tmp(), CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: data, TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0" };
+    const base = { HOME: tmp(), TMPDIR: tmp(), CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: data, TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0" };
     // First run from a terminal-started session: jevmem is on PATH, and the launcher caches where.
     expect(spawnSync("sh", [LAUNCHER, "hook", "--plugin"], { cwd: root, env: { ...base, PATH: `${bin}:/usr/bin:/bin` }, input: ups(root), encoding: "utf8" }).status).toBe(0);
     expect(fs.readFileSync(path.join(data, "cli"), "utf8").split("\n")[0]).toBe(path.join(bin, "jevmem"));
@@ -156,7 +156,7 @@ describe.skipIf(process.platform === "win32")("plugin/hooks/jevmem-hook.sh", () 
     const home = tmp();
     const bin = npmBin(path.join(home, ".local", "bin"));
     const data = tmp();
-    const env = { PATH: "/usr/bin:/bin", HOME: home, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: data, TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0" };
+    const env = { PATH: "/usr/bin:/bin", HOME: home, TMPDIR: tmp(), CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: data, TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0" };
     const r = spawnSync("sh", [LAUNCHER, "--detach", "hook", "--plugin"], { cwd: root, env, input: stop(root), encoding: "utf8" });
     expect([r.status, r.stdout, r.stderr]).toEqual([0, "", ""]);
     expect(await waitFor(() => new MemoryStore(root).active().length === 1)).toBe(true);

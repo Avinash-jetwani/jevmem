@@ -106,7 +106,7 @@ describe("plugin files", () => {
       expect([r.status, r.stdout, r.stderr], cmd).toEqual([0, "", ""]);
     }
     // And the path really is used: the same project prints nothing through the real path, but a broken path fails.
-    const bad = spawnSync("/bin/sh", ["-c", h.UserPromptSubmit[0].hooks[0].command], { cwd: project, env: { PATH: "/usr/bin:/bin", CLAUDE_PLUGIN_ROOT: root + "-missing", CLAUDE_PROJECT_DIR: project }, input: "{}", encoding: "utf8" });
+    const bad = spawnSync("/bin/sh", ["-c", h.UserPromptSubmit[0].hooks[0].command], { cwd: project, env: { PATH: "/usr/bin:/bin", HOME: tmp(), CLAUDE_PLUGIN_ROOT: root + "-missing", CLAUDE_PROJECT_DIR: project }, input: "{}", encoding: "utf8" });
     expect(bad.status).not.toBe(0);
   });
 });
