@@ -14,37 +14,10 @@ import path from "node:path";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { startFakeJev, type FakeJev } from "./fakejev.js";
 import { SAVE_DECISION } from "./helpers.js";
+import { OLD_TAG, oldRelease } from "./oldrelease.js";
 
-const TAG = "v0.5.7";
+const TAG = OLD_TAG;
 const tmp = (p = "jevmem-oldcli-") => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), p)));
-
-/** The v0.5.7 release: its plugin folder, and its CLI built from the tag (or JEVMEM_OLD_CLI). Null without the tag. */
-function oldRelease(): { cli: string; plugin: string } | null {
-  let sha: string;
-  try {
-    sha = execFileSync("git", ["rev-parse", "--verify", "-q", `${TAG}^{commit}`], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-  } catch {
-    return null;
-  }
-  const dir = path.resolve("node_modules", ".cache", `jevmem-${TAG}-${sha.slice(0, 12)}`);
-  if (!fs.existsSync(path.join(dir, "dist", "cli.js"))) {
-    const work = `${dir}.${process.pid}.tmp`;
-    fs.rmSync(work, { recursive: true, force: true });
-    fs.mkdirSync(work, { recursive: true });
-    const tar = execFileSync("git", ["archive", "--format=tar", TAG, "src", "plugin", "hooks", "package.json", "tsconfig.json", "tsup.config.ts"], { maxBuffer: 1 << 28 });
-    execFileSync("tar", ["-x", "-C", work], { input: tar });
-    fs.symlinkSync(path.resolve("node_modules"), path.join(work, "node_modules"));
-    try {
-      execFileSync(path.resolve("node_modules", ".bin", "tsup"), [], { cwd: work, stdio: "pipe" });
-    } catch (err) {
-      throw new Error(`could not build jevmem ${TAG} from the tag (set JEVMEM_OLD_CLI to a ${TAG.slice(1)} dist/cli.js instead): ${String((err as { stderr?: unknown }).stderr ?? err).slice(0, 500)}`);
-    }
-    fs.rmSync(dir, { recursive: true, force: true });
-    fs.renameSync(work, dir);
-  }
-  return { cli: process.env.JEVMEM_OLD_CLI ? path.resolve(process.env.JEVMEM_OLD_CLI) : path.join(dir, "dist", "cli.js"), plugin: path.join(dir, "plugin") };
-}
-
 const release = process.platform === "win32" ? null : oldRelease();
 if (!release) console.warn(`old-cli-launcher.test.ts skipped: no ${TAG} tag in this checkout (git fetch --tags)`);
 
