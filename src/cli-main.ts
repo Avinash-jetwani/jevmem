@@ -14,7 +14,6 @@ import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, parseHook
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey, saveJevKey } from "./env.js";
 import { clampLine, isReasoningModel, resolveWriter } from "./llm/index.js";
-import { DEAD_END_NO_REASON } from "./write.js";
 import { keyFound, missingKeyNotice, writerOptInNotice } from "./notice.js";
 import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
 import { disableProject, enableProject, init, projectEnablesPlugin, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
@@ -22,7 +21,6 @@ import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong
 import { detectTools, setupClaudeDesktop, setupCodex, setupCursor, TOOLS, type Tool } from "./tools.js";
 import { watchCodex } from "./watch.js";
 import { mergeTurn } from "./transcript.js";
-import { decide } from "./decide.js";
 import { appendLog, createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
 import { serveMcp } from "./mcp.js";
 import { enqueueTurn, queueStats } from "./queue.js";
@@ -180,9 +178,9 @@ and whether the poisoning gate withheld it.
   add: `jevmem add <kind> <text>
 
 Append one memory line by hand. kind: decision | constraint | preference | bug | architecture | todo | dead-end.
-Secrets are scrubbed, and a line longer than the limit loses its trailing clauses. There is no Jev check (you typed
-it), except for a dead end: it must say what was tried and why it failed or was dropped, and Jev checks that it does,
-in one request (a TypeSafe key is needed; docs/dead-ends.md).
+Secrets are scrubbed, and a line longer than the limit loses its trailing clauses. There is no Jev call and no key is
+needed, for any kind (you typed it). For a dead end, say what was tried and why it failed or was dropped
+(docs/dead-ends.md). Like a hand edit, the line is unverified: the poisoning gate checks it before it is served.
 `,
   import: `jevmem import [--from claude-md,agents-md,cursor-rules,claude-auto-memory] [--apply] [--memory-dir <dir>]
 
@@ -586,17 +584,9 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       if (!kind || !(NEW_KINDS as readonly string[]).includes(kind) || !text) return fail(`usage: jevmem add <${NEW_KINDS.join("|")}> <text>`);
       const cfg = loadConfig(root);
       const store = new MemoryStore(root, cfg.memoryFile);
-      // Typed by a person, so no Jev check; secrets are still scrubbed because JEVMEM.md is committed. A dead end must say
-      // why it failed or was dropped, and Jev decides whether this line does: the dead-end noul, in one decide request.
-      const line = clampLine(scrubSecrets(text), cfg.writer.maxChars);
-      if (kind === "dead-end") {
-        requireKey();
-        const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
-        const d = await decide(jev, { userMessage: line, existingMemories: store.active() }, { thresholds: cfg.thresholds, weights: cfg.weights, tiers: cfg.tiers, maxIds: cfg.jev.maxIdsPerCall });
-        const why = d.families["dead-end"] ?? 0;
-        if (why < d.thresholds.deadEndMin) return fail(`${DEAD_END_NO_REASON} (dead-end ${why.toFixed(2)} < ${d.thresholds.deadEndMin}). Say what was tried and why, for example: jevmem add dead-end "Moving sessions to Redis added 40 ms per request from the EU region, so it was reverted"`);
-      }
-      const m = store.add({ kind, text: line, conf: 1 });
+      // Typed by a person, so no Jev call, for every kind (a dead end too, since v0.6 part 2c); secrets are still scrubbed
+      // because JEVMEM.md is committed. The line is unverified, so the poisoning gate checks it before recall serves it.
+      const m = store.add({ kind, text: clampLine(scrubSecrets(text), cfg.writer.maxChars), conf: 1 });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}\n`);
       return 0;
     }

@@ -19,7 +19,7 @@ import { init } from "../src/init.js";
 import { findDecision } from "../src/labels.js";
 import { extractDeadEnd, extractFirstSentence } from "../src/llm/index.js";
 import { buildMcpServer } from "../src/mcp.js";
-import { recordProvenance } from "../src/provenance.js";
+import { isVerified, readProvenance, recordProvenance } from "../src/provenance.js";
 import { buildDecideQuestions, buildTier1Questions, TIER1_NOULS } from "../src/questions.js";
 import { DEAD_END_PREFIX, formatInjection } from "../src/recall.js";
 import { formatLine, MemoryStore, parseLine } from "../src/store.js";
@@ -346,23 +346,23 @@ describe("MCP add_memory takes kind dead-end (Cursor, Codex)", () => {
 });
 
 describe("jevmem add, and the guard", () => {
-  it("jevmem add dead-end needs a reason, and Jev decides whether the line gives one (one request, stand-in Jev)", async () => {
+  it("jevmem add is offline for every kind, a dead end too: no request, no key, and the lines are unverified (a stand-in Jev counts requests)", async () => {
     const { root, store } = project();
     const out: string[] = [];
     const io = { out: (s: string) => void out.push(s), err: (s: string) => void out.push(s) };
-    const jev = await startFakeJev((_q, state) => ({ ...DEAD_END, contains_dead_end: /40 ms/.test(state.user_message) ? 0.93 : 0.18 }));
+    const jev = await startFakeJev(() => DEAD_END);
     const saved = { url: process.env.TYPESAFE_BASE_URL, key: process.env.TYPESAFE_API_KEY };
     process.env.TYPESAFE_BASE_URL = jev.url;
-    process.env.TYPESAFE_API_KEY = "ts-test-key-for-add";
+    delete process.env.TYPESAFE_API_KEY;
     try {
-      expect(await main(["add", "dead-end", "We tried Redis for sessions and dropped it"], { ...io, cwd: root } as any)).toBe(1);
-      expect(out.join("")).toMatch(/a dead end must say why it failed or was dropped, and Jev found no reason in this line \(dead-end 0\.18 < 0\.7\)/);
       expect(await main(["add", "dead-end", "Moving sessions to Redis added 40 ms per request, so it was reverted"], { ...io, cwd: root } as any)).toBe(0);
-      expect(store.active().map((m) => m.kind)).toEqual(["dead-end"]);
-      expect(jev.requests).toHaveLength(2);
-      // Other kinds are typed by a person and not checked: no request.
+      // Part 2b asked Jev whether a typed dead end gave a reason; a line you type yourself is not checked (part 2c).
+      expect(await main(["add", "dead-end", "We tried Redis for sessions and dropped it"], { ...io, cwd: root } as any)).toBe(0);
       expect(await main(["add", "decision", "Sessions stay in the database"], { ...io, cwd: root } as any)).toBe(0);
-      expect(jev.requests).toHaveLength(2);
+      expect(store.active().map((m) => m.kind)).toEqual(["dead-end", "dead-end", "decision"]);
+      expect(jev.requests).toHaveLength(0);
+      // Like a hand edit, the lines are unverified, so the poisoning gate checks them before recall serves them.
+      for (const m of store.active()) expect(isVerified(readProvenance(root), m)).toBe(false);
     } finally {
       await jev.close();
       for (const [k, v] of [["TYPESAFE_BASE_URL", saved.url], ["TYPESAFE_API_KEY", saved.key]] as const) if (v === undefined) delete process.env[k];
