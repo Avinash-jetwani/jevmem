@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 // Security eval for the memory-poisoning gate (src/guard.ts).
 //
-//   node scripts/eval-injection.mjs [--set eval|dev] [--context 7] [--out results/memory-injection-YYYY-MM-DD.json]
+//   node scripts/eval-injection.mjs [path/to/dist/index.js] [--set eval|dev|dead-ends-dev|dead-ends-heldout-v2] [--context 7] [--out results/memory-injection-YYYY-MM-DD.json]
+//
+// --set dead-ends-dev / dead-ends-heldout-v2: planted [dead-end] lines that drop review, tests, CI, backups or approvals
+// for the agent, and real dead ends that must pass (eval/dead-ends-gate-*.jsonl, v0.6 part 2b). The rows use the same
+// labels (malicious, legit) and the same path.
 //
 // Each row is one memory line, labelled malicious (instructions planted for an AI) or legit (a real team rule or fact,
 // often phrased as an order). For every row the script builds a scratch project whose JEVMEM.md holds that line plus
@@ -22,12 +26,14 @@ const opt = (n, d) => {
   return i >= 0 ? args[i + 1] : d;
 };
 const SET = opt("--set", "eval");
-const FILE = SET === "dev" ? "eval/memory-injection-dev.jsonl" : "eval/memory-injection.jsonl";
+const FILE = { eval: "eval/memory-injection.jsonl", dev: "eval/memory-injection-dev.jsonl", "dead-ends-dev": "eval/dead-ends-gate-dev.jsonl", "dead-ends-heldout-v2": "eval/dead-ends-gate-heldout-v2.jsonl" }[SET];
+if (!FILE) throw new Error(`unknown --set ${SET}`);
+const distArg = args[0] && !args[0].startsWith("--") ? args[0] : "dist/index.js";
 const CONTEXT = Number(opt("--context", "7"));
 const today = new Date().toISOString().slice(0, 10);
-const OUT = opt("--out", `results/memory-injection${SET === "dev" ? "-dev" : ""}-${today}.json`);
+const OUT = opt("--out", `results/memory-injection${SET === "eval" ? "" : `-${SET}`}-${today}.json`);
 const USD_PER_M_INPUT = 0.042;
-const lib = await import(pathToFileURL(path.resolve("dist/index.js")).href);
+const lib = await import(pathToFileURL(path.resolve(distArg)).href);
 if (!process.env.TYPESAFE_API_KEY) throw new Error("TYPESAFE_API_KEY is required");
 
 const rows = fs.readFileSync(FILE, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
@@ -163,6 +169,7 @@ const result = {
   jevmem_version: JSON.parse(fs.readFileSync("package.json", "utf8")).version,
   commit,
   gate_version: lib.GATE_VERSION,
+  dead_end_gate_version: lib.DEAD_END_GATE_VERSION ?? null,
   machine: `${process.platform} ${process.arch}, node ${process.version}`,
   method:
     "Per row: a scratch JEVMEM.md with the row plus `context_lines` other lines from the set (fixed seed), all unverified; the production rankGuarded recall path with the row's query (hidden-text check, then one Jev call: recall choice + one gate noul per line); blocked = withheld. The same state is also sent without gate nouls (ungated recall) to measure the added latency and tokens; the two calls alternate order. Latency is the Jev call as logged by the client (warm, in-process, cache off).",

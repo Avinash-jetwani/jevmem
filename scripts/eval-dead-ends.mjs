@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Dead ends (docs/dead-ends.md) on eval/dead-ends-dev.jsonl (tuning) or eval/dead-ends-heldout.jsonl (run once).
+// Dead ends (docs/dead-ends.md) on eval/dead-ends-dev.jsonl and eval/dead-ends-dev-v2.jsonl (tuning), or
+// eval/dead-ends-heldout.jsonl (held-out v1, run once in part 2) and eval/dead-ends-heldout-v2.jsonl (held-out v2, run
+// once at the end of part 2b).
 //
-//   node scripts/eval-dead-ends.mjs [path/to/dist/index.js] [--set dev|heldout] [--mode auto|fast|full] [--out results/…json]
-//   node scripts/eval-dead-ends.mjs --writer-only [--set dev|heldout] [--writer none|openai|anthropic] [--model <id>] [--out …]
+//   node scripts/eval-dead-ends.mjs [path/to/dist/index.js] [--set dev|dev2|heldout|heldout2] [--mode auto|fast|full] [--out results/…json]
+//   node scripts/eval-dead-ends.mjs --writer-only [--set dev|dev2|heldout|heldout2] [--writer none|openai|anthropic] [--model <id>] [--out …]
 //
 // Pipeline (the default): every turn goes through the hook's path with the real Jev: `decide` (warm in-process client,
 // no cache), then `writeMemory` with the local writer into a scratch JEVMEM.md that holds the turn's existing lines, so
@@ -10,13 +12,18 @@
 // saved as a dead end when a [dead-end] line was written), per tag; on the dead-end lines written, whether the line
 // keeps what was tried and why (the labelled keys, case-insensitive); the supersede cases (the dead end that now works,
 // the dead end that reverses a listed line, and near misses); ordinary turns against their labels; latency, tokens and
-// cost per decision (input tokens × $0.042/M).
+// cost per decision (input tokens × $0.042/M). Supersedes are scored three ways: correct (the labelled line), missed (a
+// labelled line not superseded, or another one instead), false (a line superseded where none should be, or the wrong
+// one), with the cases where a dead end now works (told by the user, or made to work by Claude) and the ones that must
+// never supersede (a dead end that keeps a listed line, near misses, Claude's reply contradicting a listed line, a
+// question with no content) counted on their own.
 // --writer-only: no Jev. Every labelled dead end is written with kind dead-end from the text the hook would give the
 // writer (the user message, the assistant reply, or both, per the label), with the local writer (none) or an LLM
 // writer. An LLM writer needs OPENAI_API_KEY / ANTHROPIC_API_KEY; with OPENROUTER_API_KEY and --writer openai it goes
-// through OpenRouter's OpenAI-compatible API (the same code path, callOpenAI, with OPENAI_BASE_URL set). jevmem sends
-// reasoning_effort "minimal" for gpt-5 and o-series models only to api.openai.com, so on this route the script adds it to
-// the request body for those models: the request is then the one api.openai.com would get.
+// through OpenRouter's OpenAI-compatible API (the same code path, callOpenAI, with OPENAI_BASE_URL set), and the request
+// is the one jevmem sends there. Before part 2b jevmem sent reasoning_effort "minimal" only to api.openai.com; the part 2
+// runs added it on this route (--add-effort does that again, for a build from before part 2b). Every response's content
+// length, finish reason and reasoning tokens are recorded, so empty lines are counted.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -30,7 +37,7 @@ const opt = (n, d) => {
 };
 const distArg = args[0] && !args[0].startsWith("--") ? args[0] : path.resolve("dist/index.js");
 const SET = opt("--set", "dev");
-const FILE = { dev: "eval/dead-ends-dev.jsonl", heldout: "eval/dead-ends-heldout.jsonl" }[SET];
+const FILE = { dev: "eval/dead-ends-dev.jsonl", heldout: "eval/dead-ends-heldout.jsonl", dev2: "eval/dead-ends-dev-v2.jsonl", heldout2: "eval/dead-ends-heldout-v2.jsonl" }[SET];
 if (!FILE) throw new Error(`unknown --set ${SET}`);
 const MODE = opt("--mode", "auto");
 const WRITER_ONLY = args.includes("--writer-only");
@@ -63,19 +70,30 @@ async function writerOnly() {
     if (!MODEL) throw new Error("--model is required through OpenRouter (for example openai/gpt-5-mini)");
   }
   const writer = { provider: WRITER, model: MODEL, maxChars: MAX, timeoutMs: 30000 };
-  // Through OpenRouter: add what callOpenAI sends api.openai.com for a reasoning model (isOpenAIReasoningModel).
+  // --add-effort (a build from before part 2b): add what that build sent api.openai.com for a reasoning model.
   const viaOpenRouter = env.OPENAI_BASE_URL === "https://openrouter.ai/api/v1";
-  const reasoning = viaOpenRouter && /^openai\/(gpt-5|o\d)/.test(MODEL ?? "");
-  if (reasoning) via += ', with reasoning_effort "minimal" added (as jevmem sends it to api.openai.com)';
+  const reasoning = args.includes("--add-effort") && viaOpenRouter && /^openai\/(gpt-5|o\d)/.test(MODEL ?? "");
+  if (reasoning) via += ', with reasoning_effort "minimal" added by the script (as that build sent it to api.openai.com only)';
+  else if (WRITER === "openai") via += ", the request exactly as this build sends it";
   // Each request's HTTP status, and up to two retries of a failed request (network error, 429, 5xx), so a line that fell
   // back to the local writer says whether the provider failed or the LLM's line gave no reason.
   let calls = [];
+  let replies = [];
   const fetchImpl = WRITER === "none" ? undefined : async (url, init) => {
     const body = reasoning ? JSON.stringify({ ...JSON.parse(init.body), reasoning_effort: "minimal" }) : init.body;
     for (let attempt = 0; ; attempt++) {
       try {
         const res = await fetch(url, { ...init, body });
         calls.push(res.status);
+        if (res.status === 200) {
+          try {
+            const j = await res.clone().json();
+            const content = j.choices?.[0]?.message?.content ?? j.content?.filter?.((c) => c.type === "text").map((c) => c.text).join("") ?? "";
+            replies.push({ sentEffort: JSON.parse(body).reasoning_effort ?? null, contentChars: String(content).trim().length, finishReason: j.choices?.[0]?.finish_reason ?? j.stop_reason ?? null, reasoningTokens: j.usage?.completion_tokens_details?.reasoning_tokens ?? null });
+          } catch {
+            replies.push({ sentEffort: null, contentChars: null, finishReason: "unreadable", reasoningTokens: null });
+          }
+        }
         if ((res.status === 429 || res.status >= 500) && attempt < 2) {
           await new Promise((r) => setTimeout(r, 3000));
           continue;
@@ -93,10 +111,11 @@ async function writerOnly() {
     const input = writerInput(r);
     const t0 = performance.now();
     calls = [];
-    const { line, writerUsed } = await lib.composeLine(input, "dead-end", { writer, env, fetchImpl });
+    replies = [];
+    const { line, writerUsed, note } = await lib.composeLine(input, "dead-end", { writer, env, fetchImpl });
     const http = calls.slice();
     const fellBack = WRITER !== "none" && writerUsed === "fallback" ? (http.at(-1) === 200 ? "the LLM's line gave no reason (or was empty)" : `the provider failed (${http.join(", ") || "no request"})`) : null;
-    out.push({ id: r.id, tag: r.tag, source: r.deadEnd.source, input, line, writerUsed, ...(WRITER === "none" ? {} : { http, fellBack }), ms: Math.round(performance.now() - t0), chars: line.length, triedKept: keeps(line, r.deadEnd.triedKeys), reasonKept: keeps(line, r.deadEnd.whyKeys), workedKept: r.deadEnd.worked ? keeps(line, r.deadEnd.workedKeys) : null, hasReason: lib.deadEndHasReason ? lib.deadEndHasReason(line) : null });
+    out.push({ id: r.id, tag: r.tag, source: r.deadEnd.source, input, line, writerUsed, ...(WRITER === "none" ? {} : { http, fellBack, replies: replies.slice(), emptyLine: replies.length > 0 && replies.at(-1).contentChars === 0, note: note ?? null }), ms: Math.round(performance.now() - t0), chars: line.length, triedKept: keeps(line, r.deadEnd.triedKeys), reasonKept: keeps(line, r.deadEnd.whyKeys), workedKept: r.deadEnd.worked ? keeps(line, r.deadEnd.workedKeys) : null, hasReason: lib.deadEndHasReason ? lib.deadEndHasReason(line) : null });
   }
   const n = out.length;
   const summary = {
@@ -105,10 +124,14 @@ async function writerOnly() {
     triedKept: out.filter((o) => o.triedKept).length, triedKeptRate: pct(out.filter((o) => o.triedKept).length, n),
     bothKept: out.filter((o) => o.reasonKept && o.triedKept).length, bothKeptRate: pct(out.filter((o) => o.reasonKept && o.triedKept).length, n),
     workedKept: `${out.filter((o) => o.workedKept).length}/${out.filter((o) => o.workedKept !== null).length}`,
-    passesReasonCheck: out.filter((o) => o.hasReason).length,
+    // The word check of part 2 (removed in part 2b): counted only for a build that still has it.
+    passesReasonCheck: lib.deadEndHasReason ? out.filter((o) => o.hasReason).length : null,
     fellBackToLocal: WRITER === "none" ? 0 : out.filter((o) => o.writerUsed === "fallback").length,
     fellBackProviderFailed: WRITER === "none" ? 0 : out.filter((o) => o.fellBack && o.fellBack.startsWith("the provider")).length,
     fellBackNoReason: WRITER === "none" ? 0 : out.filter((o) => o.fellBack && !o.fellBack.startsWith("the provider")).length,
+    // Lines the endpoint returned empty (HTTP 200, no content): the part 2 finding for gpt-5-mini on OpenRouter.
+    emptyLines: WRITER === "none" ? 0 : out.filter((o) => o.emptyLine).length,
+    endsInEllipsis: out.filter((o) => o.line.endsWith("…")).length,
     withinMaxChars: out.filter((o) => o.chars <= MAX).length,
     meanChars: Math.round(out.reduce((a, o) => a + o.chars, 0) / Math.max(1, n)),
   };
@@ -147,6 +170,7 @@ async function pipeline() {
       ms, inputTokens: d.usage.inputTokens, outputTokens: d.usage.outputTokens, escalated: Boolean(d.escalated), assistantIncluded: d.assistantIncluded, source: d.source,
       reason: d.reason,
       deadEndNoul: { tier1: d.tier1?.nouls?.contains_dead_end ?? null, tier2: d.tier2?.nouls?.tried_an_approach_that_failed_or_was_dropped ?? null },
+      worksNow: d.worksNow ?? null,
       kindChoice: d.kind, kindProbabilities: d.kindProbabilities,
       touches: d.touchesMemoryId, contradictionFamily: d.families?.contradiction ?? null,
       _want: want,
@@ -158,7 +182,8 @@ async function pipeline() {
   const isDE = (o) => o.got.kind === "dead-end";
   const labelled = out.filter((o) => rows.find((r) => r.id === o.id).deadEnd);
   const tp = labelled.filter(isDE).length;
-  const fp = out.filter((o) => isDE(o) && !rows.find((r) => r.id === o.id).deadEnd).length;
+  // A row without a labelled dead end whose accept list still takes one (a retest that failed again) counts neither way.
+  const fp = out.filter((o) => isDE(o) && !rows.find((r) => r.id === o.id).deadEnd && !o.want.accept.includes("dead-end")).length;
   const fn = labelled.length - tp;
   const saved = out.filter((o) => o.deadEnd);
   const byTag = {};
@@ -175,6 +200,16 @@ async function pipeline() {
   const nearMisses = out.filter((o) => o.tag === "supersede-near-miss");
   const allContra = out.filter((o) => o.want.contradicts);
   const falseSupersedes = out.filter((o) => !o.want.contradicts && o.got.superseded).length;
+  // Every supersede, scored once: correct, missed (not superseded, or another line instead), false (superseded where
+  // nothing should be, or the wrong line).
+  const supersedeScore = {
+    labelled: allContra.length,
+    correct: allContra.filter((o) => o.got.superseded === o.want.contradicts).length,
+    missed: allContra.filter((o) => o.got.superseded !== o.want.contradicts).length,
+    false: out.filter((o) => o.got.superseded && o.got.superseded !== o.want.contradicts).length,
+    falseByTag: out.filter((o) => o.got.superseded && o.got.superseded !== o.want.contradicts).reduce((a, o) => ((a[o.tag] = (a[o.tag] ?? 0) + 1), a), {}),
+  };
+  const never = (tag) => ({ cases: out.filter((o) => o.tag === tag).length, superseded: out.filter((o) => o.tag === tag && o.got.superseded).length, saved: out.filter((o) => o.tag === tag && o.got.save).length });
   const ordinary = out.filter((o) => o.tag === "ordinary");
   const lat = out.map((o) => o.ms).sort((a, b) => a - b);
   const p = (q) => lat[Math.min(lat.length - 1, Math.floor(q * lat.length))];
@@ -193,6 +228,10 @@ async function pipeline() {
     aFailedBWorked: { cases: byTag["a-failed-b-worked"]?.n ?? 0, savedAsDeadEnd: byTag["a-failed-b-worked"]?.savedAsDeadEnd ?? 0, kinds: Object.fromEntries(Object.entries(out.filter((o) => o.tag === "a-failed-b-worked").reduce((a, o) => ((a[o.got.save ? o.got.kind : "skip"] = (a[o.got.save ? o.got.kind : "skip"] ?? 0) + 1), a), {}))) },
     supersede: { ...sup("supersede"), nearMisses: nearMisses.length, nearMissFalseSupersedes: nearMisses.filter((o) => o.got.superseded).length },
     deadEndReversals: sup("dead-end-reversal"),
+    supersedeByReply: { ...sup("supersede-by-reply"), savedAsDeadEnd: out.filter((o) => o.tag === "supersede-by-reply" && isDE(o)).length },
+    worksNowSavedAsDeadEnd: `${out.filter((o) => ["supersede", "supersede-by-reply"].includes(o.tag) && isDE(o)).length}/${out.filter((o) => ["supersede", "supersede-by-reply"].includes(o.tag)).length}`,
+    supersedeScore,
+    mustNotSupersede: { deadEndAgrees: never("dead-end-agrees"), nearMisses: never("supersede-near-miss"), replyChatter: never("reply-chatter"), questionNoContent: never("question-no-content") },
     contradictionsFound: `${allContra.filter((o) => o.got.superseded === o.want.contradicts).length}/${allContra.length}`,
     falseSupersedes,
     ordinaryCorrect: `${ordinary.filter((o) => o.ok).length}/${ordinary.length}`, ordinaryAccuracy: pct(ordinary.filter((o) => o.ok).length, ordinary.length),
@@ -214,7 +253,8 @@ if (OUT) {
 const s = report.summary;
 if (WRITER_ONLY) {
   console.log(`${FILE}: ${s.via}`);
-  console.log(`reason kept ${s.reasonKept}/${s.deadEnds}, tried kept ${s.triedKept}/${s.deadEnds}, both ${s.bothKept}/${s.deadEnds}, worked kept ${s.workedKept}, passes the reason check ${s.passesReasonCheck}/${s.deadEnds}, fell back ${s.fellBackToLocal} (provider failed ${s.fellBackProviderFailed}, no reason ${s.fellBackNoReason}), mean ${s.meanChars} chars`);
+  if (WRITER !== "none") console.log(`empty lines from the endpoint: ${s.emptyLines}/${s.deadEnds}`);
+  console.log(`reason kept ${s.reasonKept}/${s.deadEnds}, tried kept ${s.triedKept}/${s.deadEnds}, both ${s.bothKept}/${s.deadEnds}, worked kept ${s.workedKept}, ${s.passesReasonCheck === null ? "" : `passes the reason check ${s.passesReasonCheck}/${s.deadEnds}, `}fell back ${s.fellBackToLocal} (provider failed ${s.fellBackProviderFailed}, no reason ${s.fellBackNoReason}), mean ${s.meanChars} chars`);
   for (const r of report.rows) console.log(`  ${r.reasonKept ? "✓" : "✗"}${r.triedKept ? "✓" : "✗"} ${r.id.padEnd(22)} ${r.line}`);
 } else {
   const f = (x) => (x === null ? "–" : (x * 100).toFixed(1) + "%");
@@ -222,6 +262,9 @@ if (WRITER_ONLY) {
   console.log(`dead ends: precision ${f(s.precision)} (${s.truePositives}/${s.truePositives + s.falsePositives}), recall ${f(s.recall)} (${s.deadEndsFound}); reason kept ${s.reasonKept}, tried kept ${s.triedKept}, worked kept ${s.workedKept}; refused for no reason ${s.refusedNoReason}`);
   console.log(`negatives saved as dead end ${s.negativesSavedAsDeadEnd}; A-failed-B-worked ${JSON.stringify(s.aFailedBWorked.kinds)}`);
   console.log(`supersede (dead end now works) ${s.supersede.found}/${s.supersede.cases} (wrong id ${s.supersede.wrongId}), near misses superseded ${s.supersede.nearMissFalseSupersedes}/${s.supersede.nearMisses}; dead ends reversing a line ${s.deadEndReversals.found}/${s.deadEndReversals.cases}; all contradictions ${s.contradictionsFound}, false supersedes ${s.falseSupersedes}`);
+  if (s.supersedeByReply.cases) console.log(`Claude made a dead end work: superseded ${s.supersedeByReply.found}/${s.supersedeByReply.cases} (wrong id ${s.supersedeByReply.wrongId}), saved as a second dead end ${s.supersedeByReply.savedAsDeadEnd}; works-now turns saved as a dead end ${s.worksNowSavedAsDeadEnd}`);
+  const ss = s.supersedeScore;
+  console.log(`supersedes: correct ${ss.correct}/${ss.labelled}, missed ${ss.missed}, false ${ss.false} ${JSON.stringify(ss.falseByTag)}; must not supersede: ${Object.entries(s.mustNotSupersede).map(([k, v]) => `${k} ${v.superseded}/${v.cases}${k === "questionNoContent" ? ` (saved ${v.saved})` : ""}`).join(", ")}`);
   console.log(`ordinary ${s.ordinaryCorrect}; all rows ${s.allCorrect}; p50 ${s.p50ms} ms, p95 ${s.p95ms} ms, ${s.avgInputTokens} input tokens, $${s.costPerDecision.toFixed(7)}/decision, escalated ${f(s.escalationRate)}, reply in state ${f(s.assistantIncludedRate)}`);
   for (const [t, v] of Object.entries(s.byTag)) console.log(`  ${t.padEnd(20)} n=${String(v.n).padStart(2)}  saved as dead end ${v.savedAsDeadEnd}  ok ${v.ok}`);
   for (const o of report.rows.filter((x) => !x.ok || (x.deadEnd && !x.deadEnd.reasonKept))) {
