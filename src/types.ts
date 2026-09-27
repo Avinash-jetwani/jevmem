@@ -37,6 +37,11 @@ export interface Thresholds {
   importanceMin: Importance;
   /** Minimum combined kind-family score (from the atomic nouls) for the turn to count as having memorable content. */
   contentMin: number;
+  /**
+   * A dead end must say why it failed or was dropped, and Jev decides whether the turn does: the dead-end noul, which
+   * asks for the reason, at or above this (docs/dead-ends.md). Replaces the word list of part 2.
+   */
+  deadEndMin: number;
   /** Skip when `is_only_chit_chat` is at or above this. */
   chitChatMax: number;
   /** Skip when the injection guard noul is at or above this. */
@@ -160,6 +165,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
   thresholds: {
     importanceMin: "useful",
     contentMin: 0.5,
+    deadEndMin: 0.7,
     chitChatMax: 0.5,
     injectionMax: 0.5,
     metaMax: 0.5,

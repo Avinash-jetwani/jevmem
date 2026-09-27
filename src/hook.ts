@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { loadConfig } from "./config.js";
-import { decide, type Decision } from "./decide.js";
+import { decide } from "./decide.js";
 import { loadEnvFallbacks } from "./env.js";
 import { appendLog, createJev, hasJevKey, summarizeLog, type JevCaller } from "./jev.js";
 import { gatePendingRules } from "./guardrail.js";
@@ -231,15 +231,9 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
   }
 
   const result = await writeMemory(store, decision.sourceText || message, decision, { writer: cfg.writer, env, fetchImpl: deps.fetchImpl });
-  if (!result.saved) {
-    // A dead-end line with no reason: not saved as a dead end (docs/dead-ends.md), and nothing else is written.
-    const skipped = { ...decision, save: false, reason: `skip: ${result.refused} [tier ${decision.tier}]` };
-    recordDecision(store.root, { hash, message, decision: skipped, writer: result.writerUsed });
-    return { event, action: "skipped", detail: `${result.refused}: ${result.line}`, decision: skipped };
-  }
-  // A reversal whose dead-end line gave no reason was saved as another kind: record the kind that was saved.
-  const recorded = result.rekinded ? { ...decision, kind: result.saved.kind as Decision["kind"], reason: `${decision.reason} (saved as ${result.rekinded.to}: ${result.rekinded.why})` } : decision;
-  recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision: recorded, writer: result.writerUsed });
+  // The LLM writer could not give its line (or needed its request changed): say so in the log, which doctor and stats read.
+  if (result.writerNote) appendLog(store.root, { ts: new Date().toISOString(), label: "writer", event: "writer-fallback", ok: result.writerUsed !== "fallback", latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, memoryId: result.saved.id, detail: result.writerNote });
+  recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision, writer: result.writerUsed });
   // Exact duplicate of a live memory: drop the new line again.
   const dup = existing.find((m) => m.text.toLowerCase() === result.line.toLowerCase());
   if (dup && !result.superseded) {
@@ -248,7 +242,7 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
   }
   recordProvenance(store.root, result.saved, "hook");
   const sup = result.superseded ? ` (supersedes ${result.superseded.id})` : "";
-  return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}${result.rekinded ? ` (not a dead end: ${result.rekinded.why})` : ""}`, decision: recorded };
+  return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}${result.writerNote ? ` (${result.writerNote})` : ""}`, decision };
 }
 
 /**

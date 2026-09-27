@@ -69,13 +69,24 @@ export interface PolicyInput {
   touchesMemoryId: string;
   /** Where the content comes from, when the assistant reply was in the state. Absent means the user message alone. */
   source?: string;
+  /** The kind of the memory `touchesMemoryId` names, when it is listed: a dead-end line is superseded only by `worksNowId`. */
+  touchesKind?: string;
+  /** A live dead-end line the turn shows now works (the works-now noul and choice, docs/dead-ends.md), or absent. */
+  worksNowId?: string;
 }
 
 /**
- * Kinds an assistant reply may produce on its own (only when the reply is in the state: the user asked a question, or
- * the reply reports an attempt). A dead end is usually found by the assistant while it works, like a root cause.
+ * Kinds an assistant reply may produce on its own (only when the reply is in the state: the user asked a question, the
+ * reply reports an attempt, or the turn is about a live dead end). A dead end is usually found by the assistant while it
+ * works, like a root cause.
  */
 export const ASSISTANT_KINDS = new Set(["bug", "architecture", "dead-end"]);
+
+/**
+ * Kinds a turn that makes a listed dead end work is saved as, from either side (docs/dead-ends.md): what works now, and
+ * what was changed to make it work. Never a second dead end.
+ */
+export const WORKS_NOW_KINDS = ["decision", "architecture", "bug"] as const;
 
 /** Jev's most likely kind other than dead-end (and none), for a turn that is not a dead end after all. */
 export function runnerUpKind(kindProbabilities: Record<string, number>): string {
@@ -83,33 +94,63 @@ export function runnerUpKind(kindProbabilities: Record<string, number>): string 
   return ranked[0]?.[0] ?? "decision";
 }
 
+/** Jev's most likely kind among WORKS_NOW_KINDS, for a turn that makes a listed dead end work. */
+export function worksNowKind(kindChoice: string, kindProbabilities: Record<string, number>): string {
+  if ((WORKS_NOW_KINDS as readonly string[]).includes(kindChoice)) return kindChoice;
+  const ranked = WORKS_NOW_KINDS.map((k) => [k, kindProbabilities[k] ?? 0] as const).sort((a, b) => b[1] - a[1]);
+  return ranked[0]![0];
+}
+
 /**
  * The kind a turn is judged as. A dead end must say why it failed, which the kind choice does not check: it reads "we
- * tried X and dropped it" as a dead end too. When the dead-end noul, which asks for the reason, is under `contentMin`,
- * the turn is not a dead end. If it reverses a listed line (the contradiction rule), it takes Jev's next most likely
- * kind, so the old line is still superseded ("X works now" is read as a dead end with no reason). Otherwise it stays
- * dead-end and the policy skips it: saved as its next kind, "we tried X and dropped it" came out as [architecture].
+ * tried X and dropped it" as a dead end too. Jev decides whether the turn says why, with the dead-end noul, which asks
+ * for the reason, in the same request (there is no word list): under `deadEndMin`, the turn is not a dead end. If it
+ * supersedes a listed line (`reverses`), it takes Jev's next most likely kind, so the old line is still superseded.
+ * Otherwise it stays dead-end and the policy skips it: saved as its next kind, "we tried X and dropped it" came out as
+ * [architecture]. A turn that makes a listed dead end work is never a dead end itself (`worksNow`).
  */
-export function resolveKind(kindChoice: string, kindProbabilities: Record<string, number>, families: Record<Family, number>, touchesMemoryId: string, t: Thresholds): { kind: string; note: string } {
+export function resolveKind(kindChoice: string, kindProbabilities: Record<string, number>, families: Record<Family, number>, reverses: boolean, t: Thresholds, worksNow = false): { kind: string; note: string } {
+  if (worksNow) {
+    const kind = worksNowKind(kindChoice, kindProbabilities);
+    return { kind, note: kind === kindChoice ? "" : ` (kind ${kindChoice}, but a listed dead end now works: judged as ${kind})` };
+  }
   const de = families["dead-end"] ?? 0;
-  if (kindChoice !== "dead-end" || de >= t.contentMin || touchesMemoryId === "none" || families.contradiction < t.contradictionMin) return { kind: kindChoice, note: "" };
+  if (kindChoice !== "dead-end" || de >= t.deadEndMin || !reverses) return { kind: kindChoice, note: "" };
   const kind = runnerUpKind(kindProbabilities);
-  return { kind, note: ` (kind dead-end, but dead-end=${de.toFixed(2)}<${t.contentMin}: no reason given; a reversal, judged as ${kind})` };
+  return { kind, note: ` (kind dead-end, but dead-end=${de.toFixed(2)}<${t.deadEndMin}: no reason given; a reversal, judged as ${kind})` };
 }
 
 export function importanceIndex(level: Importance): number {
   return IMPORTANCE_LEVELS.indexOf(level);
 }
 
+/**
+ * Which listed line a turn supersedes, if any (docs/dead-ends.md):
+ * - a live dead-end line only when the turn shows it now works (`worksNowId`, from the user message or the reply);
+ * - any other line when the user message reverses it (the contradiction family at `contradictionMin`), and not when
+ *   the memorable content is in the reply alone: Claude's reply never supersedes a decision, a rule or a fact.
+ */
+export function supersedeTarget(a: PolicyInput, t: Thresholds): string | null {
+  if (a.worksNowId) return a.worksNowId;
+  if (a.touchesMemoryId === "none" || a.families.contradiction < t.contradictionMin) return null;
+  if (a.touchesKind === "dead-end" || a.source === "assistant_reply") return null;
+  return a.touchesMemoryId;
+}
+
 /** The save/contradiction policy over the combined scores. Pure; used by `decide` and by `fit`. */
-export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; contradiction: boolean; reason: string; importance: Importance; content: number } {
+export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; contradiction: boolean; supersedes: string | null; reason: string; importance: Importance; content: number } {
   const levelIdx = Math.min(IMPORTANCE_LEVELS.length - 1, Math.max(0, Math.round(a.importanceScore)));
   const importance = IMPORTANCE_LEVELS[levelIdx]!;
   const content = Math.max(...KIND_FAMILIES.map((k) => a.families[k]));
   // A message that reverses a listed memory is memory-worthy by definition, even when it is too terse for the kind
   // nouls ("Money columns become Decimal."). Without this the old line stayed live while the reversal was skipped.
-  const reversal = a.touchesMemoryId !== "none" && a.families.contradiction >= t.contradictionMin;
+  // A dead end that now works is too.
+  const target = supersedeTarget(a, t);
+  const reversal = target !== null;
   const reasons: string[] = [];
+  // A turn with no content source (a question, or options with no decision) has nothing to remember on either side:
+  // never saved, so never superseding, whatever the kind choice says.
+  if (a.source === "none") reasons.push("source=none (nothing to remember in the user message or the reply)");
   if (a.kindChoice === "none") reasons.push("kind=none");
   if (content < t.contentMin && !reversal) reasons.push(`content=${content.toFixed(2)}<${t.contentMin}`);
   if (levelIdx < importanceIndex(t.importanceMin)) reasons.push(`importance=${importance}<${t.importanceMin}`);
@@ -117,19 +158,21 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
   if (a.families.injection >= t.injectionMax) reasons.push(`injection=${a.families.injection.toFixed(2)}`);
   // The meta gate only matters when the assistant reply is what would be saved; a user statement stays the memory.
   if (a.source === "assistant_reply" && (a.families.meta ?? 0) >= t.metaMax) reasons.push(`assistant_meta=${a.families.meta.toFixed(2)}`);
-  // A dead end also needs the dead-end noul, which asks why it failed: the kind choice alone reads "we tried X and
-  // dropped it", with no reason given, as a dead end (docs/dead-ends.md).
-  if (a.kindChoice === "dead-end" && (a.families["dead-end"] ?? 0) < t.contentMin) reasons.push(`dead-end=${(a.families["dead-end"] ?? 0).toFixed(2)}<${t.contentMin} (no reason given)`);
-  if (a.source === "assistant_reply" && !ASSISTANT_KINDS.has(a.kindChoice)) reasons.push(`source=assistant_reply kind=${a.kindChoice} (only bug, architecture and dead-end may come from the assistant)`);
+  // A dead end also needs the dead-end noul, which asks why it failed, at deadEndMin: the kind choice alone reads "we
+  // tried X and dropped it", with no reason given, as a dead end (docs/dead-ends.md).
+  if (a.kindChoice === "dead-end" && (a.families["dead-end"] ?? 0) < t.deadEndMin) reasons.push(`dead-end=${(a.families["dead-end"] ?? 0).toFixed(2)}<${t.deadEndMin} (no reason given)`);
+  if (a.source === "assistant_reply" && !(a.worksNowId ? (WORKS_NOW_KINDS as readonly string[]) : [...ASSISTANT_KINDS]).includes(a.kindChoice))
+    reasons.push(a.worksNowId ? `source=assistant_reply kind=${a.kindChoice} (a dead end that now works is saved as decision, architecture or bug)` : `source=assistant_reply kind=${a.kindChoice} (only bug, architecture and dead-end may come from the assistant)`);
   const save = reasons.length === 0;
-  const contradiction = save && a.families.contradiction >= t.contradictionMin && a.touchesMemoryId !== "none";
+  const supersedes = save ? target : null;
   return {
     save,
-    contradiction,
+    contradiction: supersedes !== null,
+    supersedes,
     importance,
     content,
     reason: save
-      ? `save kind=${a.kindChoice} content=${content.toFixed(2)}${content < t.contentMin ? " (reversal)" : ""} importance=${importance}${a.source && a.source !== "user_message" ? ` source=${a.source}` : ""}${contradiction ? ` supersedes=${a.touchesMemoryId}` : ""}`
+      ? `save kind=${a.kindChoice} content=${content.toFixed(2)}${content < t.contentMin ? " (reversal)" : ""} importance=${importance}${a.source && a.source !== "user_message" ? ` source=${a.source}` : ""}${supersedes ? ` supersedes=${supersedes}${a.worksNowId ? " (works now)" : ""}` : ""}`
       : `skip: ${reasons.join(", ")}`,
   };
 }

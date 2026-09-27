@@ -9,6 +9,8 @@
  *   project memory at all. createJev also logs the failed request itself; that line is not counted again.
  * - Guard failures: the guard's own failure lines (Jev failed or timed out, no key, a bad config or input): each is a
  *   Bash, Edit or Write call that ran unchecked. createJev's line for the same request is not counted again.
+ * - Writer fallbacks: the LLM writer set in jevmem.config.json gave no line (an error, an empty line) and the line was
+ *   written locally, or its request had to change (an OpenAI-compatible endpoint that rejected `reasoning_effort`).
  */
 import type { JevLogEntry } from "./jev.js";
 
@@ -24,6 +26,8 @@ export interface RecentFailures {
   dropped: FailureGroup;
   recall: FailureGroup;
   guard: FailureGroup;
+  /** The LLM writer's fallbacks: lines written locally instead, or requests sent again without `reasoning_effort`. */
+  writer: FailureGroup;
   /** Other hook problems (for example the Stop drain's gate check of new rules, or an event that could not be read). */
   other: FailureGroup;
 }
@@ -57,6 +61,7 @@ export function recentFailures(entries: JevLogEntry[], opts: { now?: number; day
   const dropped: { at: string; message: string }[] = [];
   const recall: { at: string; message: string }[] = [];
   const guard: { at: string; message: string }[] = [];
+  const writer: { at: string; message: string }[] = [];
   const other: { at: string; message: string }[] = [];
   // The queue's drops, to recognise the same drop logged again as the hook's error (`not retryable: <error>` / `<error>`).
   const queueDrops = recent.filter((e) => e.label === "queue" && e.event === "dropped").map((e) => ({ t: Date.parse(e.ts), m: one(e.detail ?? "") }));
@@ -73,15 +78,16 @@ export function recentFailures(entries: JevLogEntry[], opts: { now?: number; day
         (/^gate check of new rules/.test(m) ? other : dropped).push({ at: e.ts, message: m });
       } else other.push({ at: e.ts, message: err });
     } else if (e.label === "guard" && e.ok === false && !e.event && !(e.questions > 0)) guard.push({ at: e.ts, message: one((e.error ?? "").replace(/^Jev check failed, no decision: /, "")) });
+    else if (e.label === "writer" && e.event === "writer-fallback") writer.push({ at: e.ts, message: one(e.detail ?? "writer fallback") });
   }
-  return { days, since, dropped: group(dropped), recall: group(recall), guard: group(guard), other: group(other) };
+  return { days, since, dropped: group(dropped), recall: group(recall), guard: group(guard), writer: group(writer), other: group(other) };
 }
 
 /** Lines for doctor and stats, each starting with `indent` (the first with `head`). */
 export function formatFailures(f: RecentFailures, head: string, indent: string): string[] {
-  const total = f.dropped.count + f.recall.count + f.guard.count + f.other.count;
-  if (!total) return [`${head}none in the last ${f.days} days: no dropped turn, failed recall or failed guard check in .jevmem/log.jsonl`];
-  const out = [`${head}in the last ${f.days} days: ${f.dropped.count} dropped turn(s), ${f.recall.count} failed recall(s), ${f.guard.count} guard check(s) failed or timed out${f.other.count ? `, ${f.other.count} other hook problem(s)` : ""} (.jevmem/log.jsonl)`];
+  const total = f.dropped.count + f.recall.count + f.guard.count + f.writer.count + f.other.count;
+  if (!total) return [`${head}none in the last ${f.days} days: no dropped turn, failed recall, failed guard check or writer fallback in .jevmem/log.jsonl`];
+  const out = [`${head}in the last ${f.days} days: ${f.dropped.count} dropped turn(s), ${f.recall.count} failed recall(s), ${f.guard.count} guard check(s) failed or timed out${f.writer.count ? `, ${f.writer.count} writer fallback(s)` : ""}${f.other.count ? `, ${f.other.count} other hook problem(s)` : ""} (.jevmem/log.jsonl)`];
   const cut = (s: string) => (s.length > 150 ? s.slice(0, 149) + "…" : s);
   const section = (name: string, g: FailureGroup, note: string) => {
     if (!g.count) return;
@@ -92,6 +98,7 @@ export function formatFailures(f: RecentFailures, head: string, indent: string):
   section("dropped turns", f.dropped, ", never evaluated");
   section("failed recalls", f.recall, ", the prompt got no project memory");
   section("guard checks that failed or timed out", f.guard, ", the call ran unchecked");
+  section("writer fallbacks", f.writer, ", the LLM writer set in jevmem.config.json did not give the line as asked");
   section("other hook problems", f.other, "");
   return out;
 }

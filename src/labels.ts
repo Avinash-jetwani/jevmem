@@ -277,6 +277,8 @@ export function formatWhy(rec: DecisionRecord): string {
   out.push(`kind choice: ${d.kind} (confidence ${d.confidence.toFixed(2)})  [${kp}]  ${d.kind !== "none" ? "✓" : "✗ kind=none"}`);
   out.push(`importance: ${d.importanceScore.toFixed(2)} → ${d.importance}  min ${t.importanceMin} ${IMPORTANCE_LEVELS.indexOf(d.importance) >= IMPORTANCE_LEVELS.indexOf(t.importanceMin) ? "✓" : "✗"}`);
   out.push(`touches memory: ${d.touchesMemoryId ?? "none"}  contradiction: ${d.contradiction ? "yes" : "no"}`);
+  // Recorded from v0.6 part 2b on, when the state listed a live dead end.
+  if (d.worksNow) out.push(`a listed dead end works now: ${d.worksNow.noul.toFixed(2)} (min ${t.contradictionMin}), which: ${d.worksNow.choice}  ${d.worksNow.id ? `✓ supersedes ${d.worksNow.id}` : "✗"}`);
   out.push(`tokens: ${d.usage.inputTokens + d.usage.outputTokens}${d.cacheHit ? " (cache hit)" : ""}`);
   return out.join("\n");
 }

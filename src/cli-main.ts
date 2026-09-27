@@ -13,7 +13,7 @@ import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, 
 import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey, saveJevKey } from "./env.js";
-import { deadEndHasReason, resolveWriter } from "./llm/index.js";
+import { clampLine, isReasoningModel, resolveWriter } from "./llm/index.js";
 import { DEAD_END_NO_REASON } from "./write.js";
 import { keyFound, missingKeyNotice, writerOptInNotice } from "./notice.js";
 import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
@@ -22,6 +22,7 @@ import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong
 import { detectTools, setupClaudeDesktop, setupCodex, setupCursor, TOOLS, type Tool } from "./tools.js";
 import { watchCodex } from "./watch.js";
 import { mergeTurn } from "./transcript.js";
+import { decide } from "./decide.js";
 import { appendLog, createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
 import { serveMcp } from "./mcp.js";
 import { enqueueTurn, queueStats } from "./queue.js";
@@ -179,8 +180,9 @@ and whether the poisoning gate withheld it.
   add: `jevmem add <kind> <text>
 
 Append one memory line by hand. kind: decision | constraint | preference | bug | architecture | todo | dead-end.
-Secrets are scrubbed; there is no Jev check (you typed it). A dead-end line must say what was tried and why it failed
-or was dropped (docs/dead-ends.md).
+Secrets are scrubbed, and a line longer than the limit loses its trailing clauses. There is no Jev check (you typed
+it), except for a dead end: it must say what was tried and why it failed or was dropped, and Jev checks that it does,
+in one request (a TypeSafe key is needed; docs/dead-ends.md).
 `,
   import: `jevmem import [--from claude-md,agents-md,cursor-rules,claude-auto-memory] [--apply] [--memory-dir <dir>]
 
@@ -582,11 +584,19 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const kind = args.shift() as Kind | undefined;
       const text = args.join(" ").trim();
       if (!kind || !(NEW_KINDS as readonly string[]).includes(kind) || !text) return fail(`usage: jevmem add <${NEW_KINDS.join("|")}> <text>`);
-      if (kind === "dead-end" && !deadEndHasReason(text)) return fail(`${DEAD_END_NO_REASON}. Say what was tried and why, for example: jevmem add dead-end "Moving sessions to Redis added 40 ms per request from the EU region, so it was reverted"`);
       const cfg = loadConfig(root);
       const store = new MemoryStore(root, cfg.memoryFile);
-      // Typed by a person, so no Jev check; secrets are still scrubbed because JEVMEM.md is committed.
-      const m = store.add({ kind, text: scrubSecrets(text).slice(0, cfg.writer.maxChars), conf: 1 });
+      // Typed by a person, so no Jev check; secrets are still scrubbed because JEVMEM.md is committed. A dead end must say
+      // why it failed or was dropped, and Jev decides whether this line does: the dead-end noul, in one decide request.
+      const line = clampLine(scrubSecrets(text), cfg.writer.maxChars);
+      if (kind === "dead-end") {
+        requireKey();
+        const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+        const d = await decide(jev, { userMessage: line, existingMemories: store.active() }, { thresholds: cfg.thresholds, weights: cfg.weights, tiers: cfg.tiers, maxIds: cfg.jev.maxIdsPerCall });
+        const why = d.families["dead-end"] ?? 0;
+        if (why < d.thresholds.deadEndMin) return fail(`${DEAD_END_NO_REASON} (dead-end ${why.toFixed(2)} < ${d.thresholds.deadEndMin}). Say what was tried and why, for example: jevmem add dead-end "Moving sessions to Redis added 40 ms per request from the EU region, so it was reverted"`);
+      }
+      const m = store.add({ kind, text: line, conf: 1 });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}\n`);
       return 0;
     }
@@ -658,6 +668,9 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       loadEnvFallbacks(root); // the writer keys may live in .jevmem/.env or ~/.jevmem/env even when TYPESAFE_API_KEY doesn't
       const w = resolveWriter(loadConfig(root).writer);
       io.out(`writer   ${w.provider === "none" ? "jevmem (local, no LLM)" : `${w.provider} (${w.model})`}: ${w.reason}\n`);
+      const base = process.env.OPENAI_BASE_URL?.trim();
+      if (w.provider === "openai" && base)
+        io.out(`         endpoint ${base} (OPENAI_BASE_URL, OpenAI-compatible)${isReasoningModel(w.model) ? `: ${w.model} is asked for reasoning_effort minimal, and the request is sent again without it if the endpoint rejects it` : ""}; a line written locally instead is listed under failures\n`);
       const forced = process.env.JEVMEM_WRITER?.trim().toLowerCase();
       if (forced && forced !== "none") io.out(`         JEVMEM_WRITER=${forced} is ignored: only "writer" in jevmem.config.json turns the LLM writer on\n`);
       if (configuredWriter(root) === "auto") io.out(`         jevmem.config.json has the pre-0.5.4 "writer": {"provider": "auto"}, which now means no LLM writer\n`);
@@ -730,7 +743,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
       const { count, decision, label } = await labelMissed(jev, root, cfg, text.includes("USER:") ? text : mergeTurn(text, ""), kind, store.active());
       io.out(`labelled as missed (${label.kind}); Jev had said: ${decision.reason}. ${count} label(s) total.\n`);
-      const m = store.add({ kind: label.kind as Kind, text: scrubSecrets(text).slice(0, cfg.writer.maxChars), conf: decision.confidence });
+      const m = store.add({ kind: label.kind as Kind, text: clampLine(scrubSecrets(text), cfg.writer.maxChars), conf: decision.confidence });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}\n`);
       printJevSummary(jev.log);
       return 0;

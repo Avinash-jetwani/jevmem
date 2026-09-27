@@ -1,6 +1,6 @@
 export { decide, evaluatePolicy, buildDecideQuestions, prefilterByOverlap, NOUL_NAMES } from "./decide.js";
 export type { Decision, DecideInput, DecideOptions, NoulName } from "./decide.js";
-export { writeMemory, composeLine, DEAD_END_WRITER_NOTE, DEAD_END_NO_REASON } from "./write.js";
+export { writeMemory, composeLine, DEAD_END_WRITER_NOTE, WORKS_NOW_WRITER_NOTE, DEAD_END_NO_REASON } from "./write.js";
 export type { WriteResult, WriteOptions } from "./write.js";
 export { MemoryStore, parseLine, formatLine, parseMemoryFile, serializeMemoryFile, newId, MEMORY_HEADER } from "./store.js";
 export type { MemoryFile } from "./store.js";
@@ -8,7 +8,7 @@ export { createJev, hasJevKey, summarizeLog, readLog } from "./jev.js";
 export type { JevCaller, JevLogEntry, JevCallOptions } from "./jev.js";
 export { rankMemories, recallForPrompt, recallGuarded, rankGuarded, formatInjection, MEMORY_FRAME, neutralize, DEAD_END_PREFIX } from "./recall.js";
 export type { RankedMemory, GuardedRank } from "./recall.js";
-export { gateNoul, gateKey, gateQuestions, gateLines, planGate, settleGate, filterForServing, knownWithheld, hiddenTextReason, readVerdicts, cachedVerdict, GATE_VERSION } from "./guard.js";
+export { gateNoul, gateKey, gateQuestions, gateQuestionsFor, gateScore, deadEndGateNoul, deadEndGateKey, gateLines, planGate, settleGate, filterForServing, knownWithheld, hiddenTextReason, readVerdicts, cachedVerdict, GATE_VERSION, DEAD_END_GATE_VERSION } from "./guard.js";
 export type { GatePlan, Withheld, Verdict } from "./guard.js";
 export { lineSha, recordProvenance, readProvenance, isVerified, provenanceFile } from "./provenance.js";
 export { evaluateGuard, runGuardHook, decideGuard, tamperCheck, loadRules, readGuardConfig, callPayload, payloadHash, answerKey, readAnswers, breakNoul, breakKey, gatePendingRules, formatGuardTrace, hookOutput, toAction, GUARD_VERSION, GUARD_MATCHER, GUARDED_TOOLS, GUARD_HOOK_TIMEOUT_S, SEND } from "./guardrail.js";
@@ -52,7 +52,7 @@ export { watchCodex, findCodexRollouts, parseRolloutLines, codexSessionsDir } fr
 export type { WatchedTurn, WatchOptions } from "./watch.js";
 export { cacheKey, cacheDir, pruneCache, isVercelGateway } from "./jev.js";
 export type { LogSummary } from "./jev.js";
-export { stripFiller, clampLine, extractFirstSentence, extractDeadEnd, deadEndHasReason, DEAD_END_REASON } from "./llm/index.js";
+export { stripFiller, clampLine, extractFirstSentence, extractDeadEnd, extractWorksNow, isReasoningModel, callOpenAI } from "./llm/index.js";
 export { main as cliMain, COMMANDS, COMMAND_HELP } from "./cli-main.js";
 export { HOOK_SETTINGS_FILE } from "./init.js";
 export { splitStatements, collectCandidates, runImport, formatImport, autoMemoryDir, projectSlug, gitRepoRoot, IMPORT_SOURCES, DEFAULT_IMPORT_SOURCES } from "./import.js";

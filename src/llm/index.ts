@@ -62,35 +62,69 @@ async function withTimeout<T>(p: (signal: AbortSignal) => Promise<T>, ms: number
   }
 }
 
-/** gpt-5* and o-series models on api.openai.com accept `reasoning_effort`; other OpenAI-compatible endpoints may not. */
-export function isOpenAIReasoningModel(model: string, base: string): boolean {
-  return /^https:\/\/api\.openai\.com\//.test(base + "/") && /^(gpt-5|o\d)/.test(model);
+/**
+ * gpt-5* and o-series models, by id, with or without a provider prefix ("gpt-5-mini", "openai/gpt-5-mini" on OpenRouter,
+ * "o4-mini"). They spend completion tokens on reasoning before the line, so the writer asks them for minimal effort.
+ */
+export function isReasoningModel(model: string): boolean {
+  return /^(?:[\w.-]+\/)?(gpt-5|o\d)/i.test(model.trim());
 }
 
-export async function callOpenAI(input: { model: string; system: string; user: string; timeoutMs: number; env?: NodeJS.ProcessEnv; fetchImpl?: typeof fetch }): Promise<string> {
+/** What an OpenAI-compatible endpoint returned for the writer, and what had to change on the way. */
+export interface WriterReply {
+  text: string;
+  /** Set when the request had to be sent again without `reasoning_effort` (the endpoint rejected it). */
+  note?: string;
+  /** Why the text is empty, when it is: the finish reason and the reasoning tokens, as the endpoint reported them. */
+  empty?: string;
+}
+
+/**
+ * One line from an OpenAI-compatible chat-completions endpoint: api.openai.com, or `OPENAI_BASE_URL` (docs/configuration.md
+ * names OpenRouter, Groq and Ollama). A reasoning model is asked for `reasoning_effort: "minimal"` on any endpoint (OpenRouter
+ * documents the parameter); an endpoint that rejects it with a 400 gets the request once more without it, and the reply
+ * says so. The caller falls back to the local writer on an empty text and logs why.
+ */
+export async function callOpenAI(input: { model: string; system: string; user: string; timeoutMs: number; env?: NodeJS.ProcessEnv; fetchImpl?: typeof fetch }): Promise<WriterReply> {
   const env = input.env ?? process.env;
   const base = (env.OPENAI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/+$/, "");
   const f = input.fetchImpl ?? fetch;
+  const reasoning = isReasoningModel(input.model);
   return withTimeout(async (signal) => {
-    const r = await f(`${base}/chat/completions`, {
-      method: "POST",
-      signal,
-      headers: { "content-type": "application/json", authorization: `Bearer ${env.OPENAI_API_KEY ?? ""}` },
-      body: JSON.stringify({
-        model: input.model,
-        messages: [
-          { role: "system", content: input.system },
-          { role: "user", content: input.user },
-        ],
-        // Reasoning models (gpt-5*, o*) spend completion tokens on reasoning before the line; a 120 cap could leave
-        // nothing for the answer. Ask api.openai.com reasoning models for minimal effort, and cap high enough either way.
-        max_completion_tokens: 1000,
-        ...(isOpenAIReasoningModel(input.model, base) ? { reasoning_effort: "minimal" } : {}),
-      }),
-    });
+    const send = (withEffort: boolean) =>
+      f(`${base}/chat/completions`, {
+        method: "POST",
+        signal,
+        headers: { "content-type": "application/json", authorization: `Bearer ${env.OPENAI_API_KEY ?? ""}` },
+        body: JSON.stringify({
+          model: input.model,
+          messages: [
+            { role: "system", content: input.system },
+            { role: "user", content: input.user },
+          ],
+          // Reasoning models (gpt-5*, o*) spend completion tokens on reasoning before the line; a 120 cap could leave
+          // nothing for the answer. Ask them for minimal effort, and cap high enough either way.
+          max_completion_tokens: 1000,
+          ...(withEffort ? { reasoning_effort: "minimal" } : {}),
+        }),
+      });
+    let r = await send(reasoning);
+    let note: string | undefined;
+    if (reasoning && (r.status === 400 || r.status === 422)) {
+      const body = (await r.text()).slice(0, 300);
+      if (!/reasoning/i.test(body)) throw new Error(`openai ${r.status}: ${body.slice(0, 200)}`);
+      note = `${base} rejected reasoning_effort (HTTP ${r.status}), so the request was sent again without it`;
+      r = await send(false);
+    }
     if (!r.ok) throw new Error(`openai ${r.status}: ${(await r.text()).slice(0, 200)}`);
     const j: any = await r.json();
-    return String(j.choices?.[0]?.message?.content ?? "");
+    const text = String(j.choices?.[0]?.message?.content ?? "");
+    if (text.trim()) return { text, ...(note ? { note } : {}) };
+    const finish = j.choices?.[0]?.finish_reason;
+    const used = j.usage?.completion_tokens_details?.reasoning_tokens;
+    const details = [finish ? `finish_reason ${finish}` : null, typeof used === "number" ? `${used} reasoning tokens` : null].filter(Boolean).join(", ");
+    const empty = `${input.model} at ${base} returned an empty line${details ? ` (${details})` : ""}`;
+    return { text: "", empty, ...(note ? { note } : {}) };
   }, input.timeoutMs);
 }
 
@@ -173,30 +207,9 @@ export function extractFirstSentence(message: string, maxChars: number, kind?: s
 
 // ---------------------------------------------------------------------------------------------
 // Dead ends (docs/dead-ends.md): the line says what was tried and why it failed or was dropped. The reason is the
-// point of the line, so the local writer keeps the sentence with it rather than only the first good sentence.
+// point of the line, so the local writer keeps the clauses from the attempt on rather than one good sentence. Whether
+// the turn says why at all is Jev's call (the dead-end noul, in the decide request): the writer checks no words.
 
-/**
- * Words that say why an attempt failed or was dropped: a cause, a failure, a limit, a measurement, a cost. "Didn't work",
- * "didn't stick", "didn't pan out", "dropped it" and "went back" say that it failed, not why, so they don't count.
- */
-export const DEAD_END_REASON = new RegExp(
-  "\\b(" +
-    [
-      "because", "since", "due to", "caused", "given that",
-      "fail(s|ed|ing|ure|ures)?", "broke|breaks|broken|breaking", "crash(es|ed|ing)?", "errors?", "exception", "panic(s|ked)?", "hang(s|ing)?|hung",
-      "timed out|times out|time out|timeouts?", "oom|out of memory|out-of-memory", "leak(s|ed|ing)?", "block(s|ed|ing)?", "reject(s|ed)?", "refus(es|ed)",
-      "denied", "throttl(ed|es|ing)", "corrupt(s|ed)?", "chok(es|ed|ing)", "peg(s|ged)", "drift(s|ed)?", "stale", "lock(s|ed)?", "overlap(s|ped|ping)?",
-      "lag(s|gy|ged)?", "jank(s|y)?", "stutter(s|ed)?", "slivers?", "black", "blank",
-      "can't|cannot|couldn't|could not|won't|wouldn't|isn't|is not|wasn't|aren't|no way|not supported|unsupported|incompatible|lacks?|missing|needs|requires|only",
-      "(didn't|did not|doesn't|does not)\\s+(?!work\\b|stick\\b|pan\\b)\\w+",
-      "too (slow|big|large|heavy|expensive|many|much|few|long|small|late|early)", "slower|bigger|larger|heavier|longer|higher|worse|more than|less than",
-      "costs?|costly|bill", "limits?", "wall", "no (change|difference|effect)", "made no difference", "still", "enforc(es|ed)",
-      "at most|at best|no more than", "silently", "(matched|returned|did|found|showed|changed) nothing|nothing (happened|changed|matched)",
-    ].join("|") +
-    // A measurement: "40 ms", "1.1 s", "12 GB", "100%", "3x", "45-minute", "3.5k requests".
-    ")\\b|\\d[\\d,.]*k?(\\s?(ms|sec|seconds?|mins?|minutes?|hours?|days?|kb|mb|gb|gib|%|x|×|requests|times)|\\s(s|w)|-(second|minute|hour|day))(?![a-z])",
-  "i",
-);
 /**
  * An attempt, as people report one: "tried", "attempted", "I ran", "gave X a go", "prototyped", "was a dead end", and
  * "X didn't work out", which names the attempt (and says it failed, not why).
@@ -205,19 +218,17 @@ const ATTEMPT = /\b(tried|attempted|attempts?|(i|we) (first )?ran|prototyped|exp
 /** Sentences that are not what happened: requests, conditions, plans and acknowledgements. */
 const NOT_A_FACT = /^(can|could|would|will) (you|we)\b|^(please|let me know|your call|if|when|try|make|get|turn|next|i'll|i will|we'll|we will|okay|ok|noted|understood|got it|sure|thanks|great|nice|good)\b/i;
 
-/** Does a dead-end line give a reason (docs/dead-ends.md)? A line without one is not saved as a dead end. */
-export function deadEndHasReason(line: string): boolean {
-  return DEAD_END_REASON.test(line);
-}
-
 /** Sentences for a dead end: also split at ". " before a lowercase word (typed quickly), but not after e.g., i.e., vs. */
 const deadEndSentences = (text: string) =>
   text
     .replace(/\s+/g, " ")
     .trim()
-    .split(/(?<=[.!?])(?<!\b(?:e\.g|i\.e|vs|etc|approx)\.)\s+(?=[A-Za-z0-9"'(])/i)
+    .split(/(?<=[.!?])(?<!\b(?:e\.g|i\.e|vs|etc|approx)\.)\s+(?=[A-Za-z0-9"'(`])/i)
     .map((s) => s.trim())
     .filter(Boolean);
+
+/** A turn's statements: no questions, requests, conditions, plans or acknowledgements. */
+const factsOf = (text: string) => deadEndSentences(text).filter((s) => s.length >= 8 && !/\?$/.test(s) && !NOT_A_FACT.test(s));
 
 /**
  * A leading "fyi", then "I tried", "We tried" or "Tried" before what was tried: the [dead-end] tag and "Already tried:"
@@ -232,35 +243,65 @@ function leadingTried(s: string): string {
 }
 
 /**
- * The local writer's dead-end line: from the sentence that says what was tried, the sentences that follow it, in
- * order, while they fit in `maxChars` (the reason and the outcome usually come right after the attempt). When the
- * attempt alone fills the line and says no reason, it is shortened to make room for the next sentence that does: the
- * reason is the point of the line. The reply's sentences are used when it reports the attempt (the user's are then the
- * request); requests, conditions, plans and acknowledgements never are.
+ * A sentence that holds more than the attempt: a negation ("didn't help", "no difference"), or a clause after "but",
+ * "because", "so", "since" or "which", a colon, a semicolon or a spaced dash, usually says what happened. Sentence
+ * structure (negations and the words that open a clause), not a list of failure words; it only decides which clauses
+ * fit in the line.
+ */
+const MORE_THAN_THE_ATTEMPT = /n't\b|\b(?:not|no|never|nothing|without)\b|,\s*(?:but|so|which|and then|until)\b|\b(?:but|because|since|so)\b|[:;]\s|\s[—–-]\s/i;
+
+/**
+ * The local writer's dead-end line: the clauses from the sentence that says what was tried, in order, while they fit in
+ * `maxChars` (the reason and the outcome usually come right after the attempt). When only the attempt fits and its
+ * sentence says nothing but the attempt, its trailing clauses make room for the next sentence. The reply's sentences
+ * are used when it reports the attempt (the user's are then the request); requests, conditions, plans and
+ * acknowledgements never are.
  */
 export function extractDeadEnd(message: string, maxChars: number): string {
   const { roles } = splitRoles(message);
-  const facts = (text: string) => deadEndSentences(text).filter((s) => s.length >= 8 && !/\?$/.test(s) && !NOT_A_FACT.test(s));
-  const user = roles.filter((r) => r.role === "user").flatMap((r) => facts(r.text));
-  const reply = roles.filter((r) => r.role === "assistant").flatMap((r) => facts(r.text));
+  const user = roles.filter((r) => r.role === "user").flatMap((r) => factsOf(r.text));
+  const reply = roles.filter((r) => r.role === "assistant").flatMap((r) => factsOf(r.text));
   // The reply's sentences when the reply reports the attempt; otherwise the user's, then the reply's.
   const pool = reply.some((s) => ATTEMPT.test(s)) ? reply : [...user, ...reply];
   if (!pool.length) return extractFirstSentence(message, maxChars);
-  // From the sentence that names the attempt; with none, from the sentence before the first reason, which usually says
-  // what was run ("I ran X once. It fails because Y.").
-  const attempt = pool.findIndex((s) => ATTEMPT.test(s));
-  const start = Math.max(0, attempt >= 0 ? attempt : pool.findIndex((s) => DEAD_END_REASON.test(s)) - 1);
-  const window = [pool[start]!];
-  for (let i = start + 1; i < pool.length && [...window, pool[i]].join(" ").length <= maxChars; i++) window.push(pool[i]!);
-  let line = window.join(" ");
-  if (window.length === 1 && !DEAD_END_REASON.test(line)) {
-    const next = pool.slice(start + 1).find((s) => DEAD_END_REASON.test(s));
-    if (next) {
-      const why = clampLine(next, Math.floor(maxChars * 0.65));
-      line = `${clampLine(pool[start]!, maxChars - why.length - 1)} ${why}`;
-    }
+  // From the sentence that names the attempt; with none, from the first statement, which usually says what was run
+  // ("I ran X once. It fails because Y.").
+  const [attempt, ...rest] = pool.slice(Math.max(0, pool.findIndex((s) => ATTEMPT.test(s))));
+  let line = clampLine([attempt!, ...rest].join(" "), maxChars);
+  const next = rest[0];
+  if (next && line.length <= attempt!.length && !MORE_THAN_THE_ATTEMPT.test(attempt!)) {
+    const after = clampLine(next, Math.floor(maxChars * 0.65));
+    const head = clampLine(attempt!, maxChars - after.length - 2);
+    if (!head.endsWith("…") && head.length >= 12 && !after.endsWith("…")) line = `${head.replace(/[.!?]$/, "")}. ${after}`;
   }
   return clampLine(leadingTried(line), maxChars);
+}
+
+const COMMON = new Set("the and for with that this from into was were are has have had not but its now can also then than when they them there".split(" "));
+/** Distinct words of three letters or more, lowercased, without the most common ones: what two sentences share. */
+const wordsOf = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9_]+/).filter((w) => w.length > 2 && !COMMON.has(w)));
+
+/**
+ * The local writer's line for a turn that makes a listed dead end work (docs/dead-ends.md): the reply's statements when
+ * it has any (Claude made it work), else the user's, while they fit, past a bare "It works now.". The sentence that
+ * names the approach of the dead end (the most words in common with the dead-end line's first clause, what was tried,
+ * at least three) goes first, so the line says what works now and then what changed, and a later prompt about that
+ * approach finds it.
+ */
+export function extractWorksNow(message: string, maxChars: number, deadEnd?: string): string {
+  const { roles } = splitRoles(message);
+  const reply = roles.filter((r) => r.role === "assistant").flatMap((r) => factsOf(r.text));
+  let pool = reply.length ? reply : roles.filter((r) => r.role === "user").flatMap((r) => factsOf(r.text));
+  if (!pool.length) return extractFirstSentence(message, maxChars, "decision");
+  if (pool.length > 1 && pool[0]!.split(/\s+/).length <= 3) pool = pool.slice(1);
+  if (deadEnd && pool.length > 1) {
+    const firstEnd = clauseEnds(deadEnd).find((e) => e.strong);
+    const de = wordsOf(firstEnd ? deadEnd.slice(0, firstEnd.at) : deadEnd);
+    const shared = pool.map((s) => [...wordsOf(s)].filter((w) => de.has(w)).length);
+    const best = shared.indexOf(Math.max(...shared));
+    if (best > 0 && shared[best]! >= 3) pool = [pool[best]!, ...pool.filter((_, i) => i !== best)];
+  }
+  return clampLine(pool.join(" "), maxChars);
 }
 
 const URL_RE = /^[a-z][a-z0-9+.-]*:\/\/\S+|^www\.\S+/i;
@@ -296,13 +337,82 @@ export function stripFiller(line: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
+// Words after ", " that start a new clause, and conjunctions that start one without a comma.
+const CLAUSE_WORD = /^(?:and|but|so|or|yet|which|who|whose|because|since|while|as|where|whereas|though|although|unless|until|after|before|when|then|leaving|making|meaning|causing|except|instead)\b/i;
+const BARE_CLAUSE_WORD = /^(?:because|since|but|so|which|while|although|though|unless|until|whereas)\b/i;
+const ABBREVIATION = /(?:^|[\s(])(?:e\.g|i\.e|vs|etc|approx|cf|no|fig|vol|ca)\.$/i;
+
 /**
- * One line, at most `maxChars`. Cuts only at word boundaries and never inside a URL: a URL that would straddle the
- * limit is dropped whole (with the trailing "…"), unless it is the only token, in which case it is kept intact.
+ * Where `t` may end on a complete clause (the cut is before position `at`): after the end of a sentence; before "; ",
+ * ": ", a spaced dash or an opening parenthesis; before ", " and a word that starts a clause ("but", "so", "which", …);
+ * before "because", "but", "so", "which" and the like. Never inside parentheses, brackets, backticks or double quotes,
+ * so never inside a code span or a URL. A bare ", " is a weak end: it may close an opening phrase, not a clause.
+ */
+function clauseEnds(t: string): { at: number; strong: boolean }[] {
+  const out: { at: number; strong: boolean }[] = [];
+  let depth = 0;
+  let code = false;
+  let quote = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i]!;
+    if (c === "`") {
+      code = !code;
+      continue;
+    }
+    if (code) continue;
+    if (c === '"' || c === "“" || c === "”") {
+      quote = c === "“" ? true : c === "”" ? false : !quote;
+      continue;
+    }
+    if (c === "(" || c === "[") {
+      if (depth === 0 && !quote && t[i - 1] === " ") out.push({ at: i - 1, strong: true });
+      depth++;
+      continue;
+    }
+    if (c === ")" || c === "]") {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (depth > 0 || quote) continue;
+    const next = t.slice(i + 1);
+    if (/[.!?]/.test(c) && (next === "" || next.startsWith(" ")) && !ABBREVIATION.test(t.slice(Math.max(0, i - 7), i + 1))) out.push({ at: i + 1, strong: true });
+    else if ((c === ";" || c === ":") && next.startsWith(" ")) out.push({ at: i, strong: true });
+    else if (c === " " && /^[—–-] /.test(next)) out.push({ at: i, strong: true });
+    else if (c === "," && next.startsWith(" ")) out.push({ at: i, strong: CLAUSE_WORD.test(next.trimStart()) });
+    else if (c === " " && t[i - 1] !== "," && BARE_CLAUSE_WORD.test(next)) out.push({ at: i, strong: true });
+  }
+  return out;
+}
+
+/**
+ * One line, at most `maxChars`, that ends on a complete clause: a longer text loses its trailing clauses (see
+ * `clauseEnds`), never part of a word, a code span or a URL. The longest cut at a clause's end is taken; a bare comma
+ * only when no clause ends in the first half of the line. Only a single clause longer than the line (no cut keeps a
+ * quarter of it) is cut at a word, and then it ends in "…", as before.
  */
 export function clampLine(text: string, maxChars: number): string {
-  const t = text.replace(/\s+/g, " ").trim().replace(/^["'`\-*•\s]+|["'`\s]+$/g, "");
+  let t = text.replace(/\s+/g, " ").trim().replace(/^[-*•\s]+/, "");
+  // Quotes or backticks around the whole line (as an LLM sometimes writes it) go; a code span at the start stays.
+  const q = /^(["'`])(.*)\1$/s.exec(t);
+  if (q && !q[2]!.includes(q[1]!)) t = q[2]!.trim();
   if (t.length <= maxChars) return t;
+  const tidy = (s: string) => s.replace(/[\s,;:—–-]+$/, "").trim();
+  const ends = clauseEnds(t)
+    .map((e) => ({ strong: e.strong, text: tidy(t.slice(0, e.at)) }))
+    .filter((e) => e.text.length > 0 && e.text.length <= maxChars);
+  const longest = (xs: typeof ends) => xs.reduce<(typeof ends)[number] | null>((a, b) => (!a || b.text.length > a.text.length ? b : a), null);
+  const strong = longest(ends.filter((e) => e.strong));
+  const any = longest(ends);
+  const pick = strong && strong.text.length >= maxChars / 2 ? strong : any;
+  if (pick && pick.text.length >= maxChars / 4) return pick.text;
+  return cutAtWord(t, maxChars);
+}
+
+/**
+ * A single clause longer than the line: cut at a word, never inside a URL (a URL that would straddle the limit is
+ * dropped whole, unless it is the only token, in which case it is kept intact), and end in "…".
+ */
+function cutAtWord(t: string, maxChars: number): string {
   const words = t.split(" ");
   const out: string[] = [];
   let len = 0;

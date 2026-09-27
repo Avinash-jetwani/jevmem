@@ -1,6 +1,6 @@
 import type { JevCaller } from "./jev.js";
-import { combine, defaultWeights, evaluatePolicy, mergeWeights, resolveKind, type Weights } from "./combine.js";
-import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildTier1Questions, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, type Family } from "./questions.js";
+import { combine, defaultWeights, evaluatePolicy, mergeWeights, resolveKind, supersedeTarget, type PolicyInput, type Weights } from "./combine.js";
+import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildTier1Questions, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, WORKS_NOW_CHOICE, WORKS_NOW_NOUL, type Family } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
 import { mergeTurn } from "./transcript.js";
 import { DEFAULT_CONFIG, type BorderlineRule, type Importance, type Kind, type Memory, type Thresholds, type TiersConfig } from "./types.js";
@@ -45,6 +45,8 @@ export interface TierAnswers {
   importanceScore: number;
   importanceConfidence: number;
   touchesMemoryId: string;
+  /** The works-now noul and choice (asked only when the state lists a live dead end), else null. */
+  worksNow: WorksNow | null;
   /** The policy outcome using this tier's answers alone. */
   save: boolean;
   reason: string;
@@ -52,13 +54,25 @@ export interface TierAnswers {
   cacheHit: boolean;
 }
 
+/** What Jev answered about the live dead-end lines: does the turn show one now works, and which (docs/dead-ends.md). */
+export interface WorksNow {
+  noul: number;
+  choice: string;
+  /** The dead-end line the turn supersedes because it now works (noul at `contradictionMin`, a listed id chosen), or null. */
+  id: string | null;
+}
+
 export interface Decision {
   save: boolean;
   kind: Kind | "none";
   importance: Importance;
   importanceScore: number;
+  /** True when the turn supersedes `touchesMemoryId`. */
   contradiction: boolean;
+  /** The line the turn supersedes when `contradiction` is true, else the line Jev said the turn touches (or null). */
   touchesMemoryId: string | null;
+  /** The works-now answer, when the state listed a live dead end. */
+  worksNow: WorksNow | null;
   /** The nouls of the tier that produced the final answer. */
   nouls: Record<string, number>;
   /** Family scores of the tier that produced the final answer. */
@@ -76,7 +90,7 @@ export interface Decision {
   thresholds: Thresholds;
   /** Where the saved content comes from. `user_message` unless the assistant reply was in the state and Jev said otherwise. */
   source: "user_message" | "assistant_reply" | "both" | "none";
-  /** True when the user asked a question and the assistant reply was sent to Jev. */
+  /** True when the assistant reply was sent to Jev (a question, a reported attempt, or a turn about a live dead end). */
   assistantIncluded: boolean;
   /**
    * The text the writer should condense: the assistant reply when `source` is `assistant_reply`, else the user message.
@@ -169,6 +183,25 @@ export function reportsAnAttempt(assistant: string): boolean {
   return ATTEMPT_REPORT.test(assistant);
 }
 
+/** Distinct keywords (see `keywords`) a turn and a live dead-end line must share for the turn to be about that dead end. */
+export const DEAD_END_TOPIC_MIN = 3;
+
+/**
+ * Is the turn (the user message and the reply) about a live dead-end line: at least DEAD_END_TOPIC_MIN keywords in
+ * common with one? Then the reply is part of the state, because Claude may have made the dead end work, which only the
+ * reply shows ("Make X work" → "X works now: …"). Only live dead ends count, and only the works-now question lets the
+ * reply supersede anything, and only a dead-end line (docs/dead-ends.md).
+ */
+export function aboutADeadEnd(text: string, memories: Pick<Memory, "kind" | "text">[]): boolean {
+  const kw = keywords(text);
+  return memories.some((m) => {
+    if (m.kind !== "dead-end") return false;
+    let n = 0;
+    for (const w of keywords(m.text)) if (kw.has(w) && ++n >= DEAD_END_TOPIC_MIN) return true;
+    return false;
+  });
+}
+
 /** The borderline rule: which conditions say tier 1 is unsure. Pure, so it is testable and shown by `why`. */
 export function borderlineReasons(t1: Pick<TierAnswers, "nouls" | "importanceConfidence"> & { kindConfidence?: number }, rule: BorderlineRule): string[] {
   const reasons: string[] = [];
@@ -198,14 +231,25 @@ export function borderlineReasons(t1: Pick<TierAnswers, "nouls" | "importanceCon
   return reasons;
 }
 
-function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families: Record<Family, number>, thresholds: Thresholds): TierAnswers & { source: string } {
+/** The works-now answer from one tier's response, when it was asked (the state listed a live dead end). */
+function worksNowOf(a: any, deadEndIds: ReadonlySet<string>, t: Thresholds): WorksNow | null {
+  const n = a[WORKS_NOW_NOUL];
+  const c = a[WORKS_NOW_CHOICE];
+  if (!n || !c) return null;
+  const noul = typeof n.noul === "number" ? n.noul : 0;
+  const choice = String(c.choice ?? "none");
+  return { noul, choice, id: noul >= t.contradictionMin && deadEndIds.has(choice) ? choice : null };
+}
+
+function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families: Record<Family, number>, thresholds: Thresholds, candidates: Pick<Memory, "id" | "kind">[]): TierAnswers & { source: string } {
   const a = res.answers;
   const nouls: Record<string, number> = {};
   for (const n of names) nouls[n] = a[n]?.noul ?? 0;
   const kind = a.kind.choice as string;
   const touches = a.touches_memory_id.choice as string;
   const source = (a.content_source?.choice as string | undefined) ?? "user_message";
-  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: a.importance.score, families, touchesMemoryId: touches, source }, thresholds);
+  const worksNow = worksNowOf(a, new Set(candidates.filter((m) => m.kind === "dead-end").map((m) => m.id)), thresholds);
+  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: a.importance.score, families, touchesMemoryId: touches, touchesKind: candidates.find((m) => m.id === touches)?.kind, source, worksNowId: worksNow?.id ?? undefined }, thresholds);
   return {
     tier,
     nouls,
@@ -217,6 +261,7 @@ function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families
     importanceScore: a.importance.score,
     importanceConfidence: a.importance.confidence,
     touchesMemoryId: touches,
+    worksNow,
     save: policy.save,
     reason: policy.reason,
     usage: { inputTokens: res.usage.input_tokens, outputTokens: res.usage.output_tokens },
@@ -234,8 +279,8 @@ export type DecideState = {
 /**
  * The exact state `decide` sends Jev for a turn. Exported so the benchmark gives other deciders the identical input.
  * The user message is the state; the assistant reply joins it only when `looksLikeQuestion` is true, when the reply
- * reports an attempt (`reportsAnAttempt`), or when there is no user text at all, because otherwise the assistant's
- * acknowledgement, options, or summary would be remembered.
+ * reports an attempt (`reportsAnAttempt`), when the turn is about a live dead-end line (`aboutADeadEnd`), or when there
+ * is no user text at all, because otherwise the assistant's acknowledgement, options, or summary would be remembered.
  */
 export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "maxIds" | "maxMessageChars" | "maxContextChars"> = {}) {
   const parts = input.userMessage !== undefined ? { user: input.userMessage, assistant: input.assistantReply ?? "" } : splitTurn(input.message ?? "");
@@ -244,7 +289,9 @@ export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "
   const userMessage = scrubSecrets(parts.user).slice(0, opts.maxMessageChars ?? 6000);
   // Also included when there is no user text at all (transcript unreadable, only `last_assistant_message`): the
   // content_source choice then decides, and only bug, architecture and dead-end may come from the assistant.
-  const assistantIncluded = parts.assistant.trim().length > 0 && (looksLikeQuestion(userMessage) || userMessage.trim().length === 0 || reportsAnAttempt(parts.assistant));
+  const assistantIncluded =
+    parts.assistant.trim().length > 0 &&
+    (looksLikeQuestion(userMessage) || userMessage.trim().length === 0 || reportsAnAttempt(parts.assistant) || aboutADeadEnd(`${userMessage} ${scrubSecrets(parts.assistant).slice(0, 2000)}`, input.existingMemories));
   const assistantReply = assistantIncluded ? scrubSecrets(parts.assistant).slice(0, 2000) : "";
   const recent = scrubSecrets(input.recentContext ?? "").slice(-(opts.maxContextChars ?? 1500));
   const candidates = prefilterByOverlap(userMessage + " " + assistantReply, input.existingMemories, opts.maxIds ?? DEFAULT_CONFIG.jev.maxIdsPerCall).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
@@ -279,21 +326,23 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
     const res = await jev.call(state, buildTier1Questions(candidates, { withAssistant: assistantIncluded }), { label: "decide", tier: 1, timeoutMs: opts.timeoutMs });
     const nouls: Record<string, number> = {};
     for (const n of tier1Names) nouls[n] = (res.answers as any)[n]?.noul ?? 0;
-    tier1 = answersToTier(1, res, tier1Names, tier1Families(nouls), tier1Thresholds);
+    tier1 = answersToTier(1, res, tier1Names, tier1Families(nouls), tier1Thresholds, candidates);
     if (tiers.mode === "auto") escalationReasons = borderlineReasons(tier1, tiers.borderline);
   }
   if (tiers.mode === "full" || escalationReasons.length > 0) {
     const res = await jev.call(state, buildDecideQuestions(candidates, { examplesPerSide: tiers.tier2ExamplesPerSide, withAssistant: assistantIncluded }), { label: "decide", tier: 2, timeoutMs: opts.timeoutMs });
     const nouls: Record<string, number> = {};
     for (const n of tier2Names) nouls[n] = (res.answers as any)[n]?.noul ?? 0;
-    tier2 = answersToTier(2, res, tier2Names, combine(nouls, weights), thresholds);
+    tier2 = answersToTier(2, res, tier2Names, combine(nouls, weights), thresholds, candidates);
   }
 
   const final = tier2 ?? tier1!;
   const t = final.tier === 2 ? thresholds : tier1Thresholds;
   const source = (assistantIncluded ? final.source : "user_message") as Decision["source"];
-  const { kind, note } = resolveKind(final.kind, final.kindProbabilities, final.families, final.touchesMemoryId, t);
-  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId, source }, t);
+  const worksNowId = final.worksNow?.id ?? undefined;
+  const policyIn: PolicyInput = { kindChoice: final.kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId, touchesKind: candidates.find((m) => m.id === final.touchesMemoryId)?.kind, source, worksNowId };
+  const { kind, note } = resolveKind(final.kind, final.kindProbabilities, final.families, supersedeTarget(policyIn, t) !== null, t, Boolean(worksNowId));
+  const policy = evaluatePolicy({ ...policyIn, kindChoice: kind }, t);
   const usage = { inputTokens: (tier1?.usage.inputTokens ?? 0) + (tier2?.usage.inputTokens ?? 0), outputTokens: (tier1?.usage.outputTokens ?? 0) + (tier2?.usage.outputTokens ?? 0) };
   return {
     save: policy.save,
@@ -301,7 +350,8 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
     importance: policy.importance,
     importanceScore: final.importanceScore,
     contradiction: policy.contradiction,
-    touchesMemoryId: final.touchesMemoryId === "none" ? null : final.touchesMemoryId,
+    touchesMemoryId: policy.supersedes ?? (final.touchesMemoryId === "none" ? null : final.touchesMemoryId),
+    worksNow: final.worksNow,
     nouls: final.nouls,
     families: final.families,
     content: policy.content,
@@ -313,7 +363,9 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
     thresholds: t,
     source,
     assistantIncluded,
-    sourceText: source === "assistant_reply" ? parts.assistant.trim() : kind === "dead-end" && source === "both" ? mergeTurn(parts.user, parts.assistant) : parts.user.trim(),
+    // A dead end or a dead end that now works, from both sides: the whole turn (what was asked is often in the request,
+    // what happened in the reply).
+    sourceText: source === "assistant_reply" ? parts.assistant.trim() : (kind === "dead-end" || worksNowId) && source === "both" ? mergeTurn(parts.user, parts.assistant) : parts.user.trim(),
     tier: final.tier,
     mode: tiers.mode,
     escalated: Boolean(tier1 && tier2),

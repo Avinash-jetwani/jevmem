@@ -1,7 +1,7 @@
 import { choice, noul, type ChoiceCriteria, type Questions } from "@typesafe-ai/sdk";
 import type { JevCaller } from "./jev.js";
 import { prefilterByOverlap } from "./decide.js";
-import { gateKey, gateNoul, planGate, settleGate, type Withheld } from "./guard.js";
+import { gateQuestionsFor, gateScore, planGate, settleGate, type Withheld } from "./guard.js";
 import { scrubSecrets } from "./scrub.js";
 import type { Memory } from "./types.js";
 
@@ -57,7 +57,7 @@ async function rankWithModel(jev: JevCaller, query: string, memories: Memory[], 
     });
   }
 
-  for (const m of candidates) if (opts.gateIds?.has(m.id)) questions[gateKey(m.id)] = gateNoul(m.id);
+  for (const m of candidates) if (opts.gateIds?.has(m.id)) Object.assign(questions, gateQuestionsFor(m));
 
   const state = {
     query: query.slice(0, 4000),
@@ -67,12 +67,11 @@ async function rankWithModel(jev: JevCaller, query: string, memories: Memory[], 
   const probs = (res.answers.most_relevant as any).probabilities as Record<string, number>;
   const ranked: RankedMemory[] = candidates.map((m) => {
     const rel = res.answers[`rel_${m.id}`];
-    const inj = res.answers[gateKey(m.id)];
     return {
       memory: m,
       choiceProbability: probs[m.id] ?? 0,
       relevance: rel && rel.type === "noul" ? rel.noul : null,
-      injection: inj && inj.type === "noul" ? inj.noul : null,
+      injection: opts.gateIds?.has(m.id) ? gateScore(res.answers as Record<string, any>, m) : null,
     };
   });
   ranked.sort((a, b) => (b.relevance ?? b.choiceProbability) - (a.relevance ?? a.choiceProbability) || b.choiceProbability - a.choiceProbability);

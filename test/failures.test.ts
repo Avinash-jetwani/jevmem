@@ -67,7 +67,7 @@ describe("recentFailures", () => {
     expect(lines).toContain(`    2× not retryable: ${syntax(173)} (last ${at(2).slice(0, 16).replace("T", " ")} UTC)`);
     expect(lines).toContain("  failed recalls, the prompt got no project memory:");
     expect(lines).toContain("  guard checks that failed or timed out, the call ran unchecked:");
-    expect(formatFailures(recentFailures([], { now: NOW }), "failures ", "  ")).toEqual(["failures none in the last 7 days: no dropped turn, failed recall or failed guard check in .jevmem/log.jsonl"]);
+    expect(formatFailures(recentFailures([], { now: NOW }), "failures ", "  ")).toEqual(["failures none in the last 7 days: no dropped turn, failed recall, failed guard check or writer fallback in .jevmem/log.jsonl"]);
   });
 });
 
@@ -132,7 +132,7 @@ describe("jevmem stats and doctor show the failures the hooks logged", () => {
   it("a project with nothing failed says so", async () => {
     const root = tmp();
     init({ root, hooks: false });
-    expect((await cli(["doctor"], root)).out).toMatch(/^failures none in the last 7 days: no dropped turn, failed recall or failed guard check in \.jevmem\/log\.jsonl$/m);
+    expect((await cli(["doctor"], root)).out).toMatch(/^failures none in the last 7 days: no dropped turn, failed recall, failed guard check or writer fallback in \.jevmem\/log\.jsonl$/m);
     expect((await cli(["stats"], root)).out).toMatch(/^failures: none in the last 7 days/m);
   });
 });

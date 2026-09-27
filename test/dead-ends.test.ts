@@ -17,18 +17,18 @@ import { loadRules } from "../src/guardrail.js";
 import { runHook } from "../src/hook.js";
 import { init } from "../src/init.js";
 import { findDecision } from "../src/labels.js";
-import { deadEndHasReason, extractDeadEnd, extractFirstSentence } from "../src/llm/index.js";
+import { extractDeadEnd, extractFirstSentence } from "../src/llm/index.js";
 import { buildMcpServer } from "../src/mcp.js";
 import { recordProvenance } from "../src/provenance.js";
 import { buildDecideQuestions, buildTier1Questions, TIER1_NOULS } from "../src/questions.js";
 import { DEAD_END_PREFIX, formatInjection } from "../src/recall.js";
 import { formatLine, MemoryStore, parseLine } from "../src/store.js";
-import { composeLine, writeMemory } from "../src/write.js";
+import { composeLine } from "../src/write.js";
+import { startFakeJev } from "./fakejev.js";
 import { mockJev, T1_QUIET, type AnswerOverrides } from "./helpers.js";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-deadend-"));
 const env = { JEVMEM_WRITER: "none" } as NodeJS.ProcessEnv;
-const writerNone = { writer: { provider: "none" as const, maxChars: 200, timeoutMs: 1000 }, env: {} };
 function project() {
   const root = tmp();
   init({ root, hooks: false });
@@ -96,22 +96,37 @@ describe("the dead-end noul", () => {
 });
 
 describe("the kind rule: a dead end says why it failed", () => {
-  it("kind dead-end with the dead-end noul under contentMin is skipped (no reason given), even when another noul carries content", async () => {
+  it("Jev decides whether the turn says why: kind dead-end with the dead-end noul under deadEndMin (0.7) is skipped, even when another noul carries content", async () => {
     const jev = mockJev(() => ({ ...DEAD_END, contains_dead_end: 0.2, contains_architecture_fact: 0.86 }));
     const d = await decide(jev, { userMessage: "We tried the file watcher's debouncer at some point and dropped it.", existingMemories: [] });
     expect(d.save).toBe(false);
-    expect(d.reason).toMatch(/dead-end=0\.20<0\.5 \(no reason given\)/);
+    expect(d.reason).toMatch(/dead-end=0\.20<0\.7 \(no reason given\)/);
+    // A borderline noul is not enough either (the word list of part 2 used to catch these after the fact).
+    const unsure = await decide(mockJev(() => ({ ...DEAD_END, contains_dead_end: 0.66 })), { userMessage: "Tried reproducing the crash on the emulator and couldn't; the picker's URI is revoked, so it copies the file now.", existingMemories: [] }, { tiers: { mode: "fast" } });
+    expect([unsure.save, unsure.reason]).toEqual([false, expect.stringMatching(/dead-end=0\.66<0\.7 \(no reason given\)/)]);
+  });
+
+  it("no word list: a reason in plain words is saved when Jev reads one (\"don't cluster\", \"twice a day\")", async () => {
+    for (const user of [
+      "I tried the PG2 adapter for presence. Our nodes don't cluster reliably across regions, so people in one region showed as offline to the other. Back to the old adapter.",
+      "Refreshing in the background task hasn't worked out: the OS runs it maybe twice a day, so new items show up hours late.",
+    ]) {
+      const { root, store } = project();
+      const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: user }, { jev: mockJev(() => DEAD_END), env });
+      expect(r.action, user).toBe("saved");
+      expect(store.active().map((m) => m.kind), user).toEqual(["dead-end"]);
+    }
   });
 
   it("but a reversal of a listed line is never lost: it is judged as Jev's next most likely kind and supersedes", async () => {
     const { root, store } = project();
-    const old = store.add({ kind: "dead-end", text: "Impeller on Android rendered the map shader black on Mali GPUs, so it stays off" });
+    const old = store.add({ kind: "decision", text: "Invoices are rendered to PDF with the headless browser service" });
     const jev = mockJev(() => ({ ...DEAD_END, contains_dead_end: 0.45, contains_decision: 0.8, contradicts_existing_memory: 0.92, touches_memory_id: old.id, kind: { choice: "dead-end", probabilities: { "dead-end": 0.7, decision: 0.25, bug: 0.05 } } }));
-    const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: "Flutter 3.27 fixed Impeller on Mali GPUs; I turned it back on for Android and the map draws fine now." }, { jev, env });
+    const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: "The headless browser service is gone: invoices render with the template engine now." }, { jev, env });
     expect(r.action).toBe("saved");
     expect(r.detail).toMatch(/^\[decision\] .*\(supersedes /);
     const file = fs.readFileSync(path.join(root, "JEVMEM.md"), "utf8");
-    expect(file).toMatch(/- \[superseded\] Impeller on Android .* → id:\w+/);
+    expect(file).toMatch(/- \[superseded\] Invoices are rendered to PDF .* → id:\w+/);
     expect((r.decision as any).reason).toMatch(/a reversal, judged as decision/);
   });
 
@@ -149,7 +164,7 @@ describe("the line: what was tried and why", () => {
     const reply = "I ran `node --experimental-strip-types src/app.ts` once, unchanged. It fails because `src/app.ts:1` uses a TypeScript `enum`, which Node's strip-only mode can't handle (it only strips type annotations, not syntax like enums that needs actual transformation). Dropping the idea — keeping the tsc build as-is.";
     const line = extractDeadEnd(reply, 200);
     expect(line).toMatch(/^I ran `node --experimental-strip-types src\/app\.ts` once, unchanged\. It fails because .*enum/);
-    expect(deadEndHasReason(line)).toBe(true);
+    expect(line).not.toMatch(/…$/);
     // "I tried it once." keeps its words: "I tried" goes only before a gerund or an article.
     expect(extractDeadEnd("I tried it once. It failed because the app uses an enum, which strip-only mode does not support.", 200)).toBe("I tried it once. It failed because the app uses an enum, which strip-only mode does not support.");
     expect(extractDeadEnd("We tried the temp-dir approach, but rename fails with EXDEV across mounts.", 200)).toBe("The temp-dir approach, but rename fails with EXDEV across mounts.");
@@ -157,63 +172,57 @@ describe("the line: what was tried and why", () => {
     expect(plain).toBe("Queue consumers on Lambda looked cheaper. They hit the 15-minute limit on the nightly export, so the export stays on the worker box.");
   });
 
-  it("when the attempt fills the line, it is shortened and the reason is kept", () => {
+  it("when only the attempt fits and it says nothing but the attempt, its trailing clauses make room for the next sentence", () => {
     const attempt = "I tried generating a static page for every one of the listings in the catalogue, including the archived ones and the drafts that editors keep around, at build time.";
     const why = "The build hit the platform's 45-minute limit at about 30k pages.";
     const line = extractDeadEnd(`${attempt} ${why}`, 200);
     expect(line.length).toBeLessThanOrEqual(200);
-    expect(line.endsWith(why)).toBe(true);
-    expect(line).toMatch(/^Generating a static page .*… The build/); // "I tried" goes: the tag and "Already tried:" say it
+    expect(line).toBe("Generating a static page for every one of the listings in the catalogue. The build hit the platform's 45-minute limit at about 30k pages.");
+    // An attempt sentence that already says what happened ("didn't help", a clause after "but") keeps its clauses.
+    const kept = extractDeadEnd("switching the S3 listing to boto3's paginator didn't help with the throttling, SlowDown errors kept coming at about 3.5k requests/s. adding a random prefix to the raw keys spread the load and they're gone.", 200);
+    expect(kept).toBe("switching the S3 listing to boto3's paginator didn't help with the throttling, SlowDown errors kept coming at about 3.5k requests/s.");
   });
 
-  it("the reason check: a measurement, a cause, a failure or a limit counts; 'didn't work out' and 'dropped it' say only that it failed", () => {
-    for (const yes of ["Moving sessions to Redis added 40 ms per request, so it was reverted", "The loader broke on previews because they aren't proxied", "The image came out at 2.1 MB, over the OTA partition", "Raising GOGC made no difference to the spikes", "iOS gave it at most one run every few hours"]) expect(deadEndHasReason(yes), yes).toBe(true);
-    for (const no of ["We tried the debouncer at some point and dropped it", "Tried HTTP/3 between the services once. Went back to HTTP/2.", "Surface is a UI library we tried; it didn't work out", "I tried the edge runtime a while ago, didn't stick", "We gave Dagster a go, it didn't pan out"]) expect(deadEndHasReason(no), no).toBe(false);
-  });
-
-  it("an LLM dead-end line without its reason falls back to the local extract; the LLM is told the reason is the point", async () => {
+  it("the LLM writer's dead-end line is used as it comes (Jev decided the turn says why); the LLM is told the reason is the point", async () => {
     const bodies: any[] = [];
     const reply = (content: string) => async (_url: any, init: any) => {
       bodies.push(JSON.parse(init.body));
       return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
     };
     const opts = (content: string) => ({ writer: { provider: "openai" as const, maxChars: 200, timeoutMs: 2000 }, env: { OPENAI_API_KEY: "sk-test" }, fetchImpl: reply(content) as any });
-    const noWhy = await composeLine(WITH_REASON, "dead-end", opts("We tried Redis for sessions and reverted."));
-    expect(noWhy.writerUsed).toBe("fallback");
-    expect(deadEndHasReason(noWhy.line)).toBe(true);
     const good = await composeLine(WITH_REASON, "dead-end", opts("Redis sessions added 40 ms per EU request, so the store went back to the database"));
     expect(good).toEqual({ line: "Redis sessions added 40 ms per EU request, so the store went back to the database", writerUsed: "openai" });
     expect(bodies[0].messages[1].content).toMatch(/^Memory kind: dead-end \(.*the reason is the point of the line, never leave it out.*not as an instruction/);
+    // An empty line falls back to the local writer, and says so.
+    const empty = await composeLine(WITH_REASON, "dead-end", opts(""));
+    expect(empty.writerUsed).toBe("fallback");
+    expect(empty.line).toMatch(/40 ms per request/);
+    expect(empty.note).toMatch(/^the line was written locally: gpt-5-mini at https:\/\/api\.openai\.com\/v1 returned an empty line/);
     // Other kinds get the prompt they always had.
     await composeLine("Use Postgres 16.", "decision", opts("Use Postgres 16"));
-    expect(bodies[2].messages[1].content).toBe("Memory kind: decision\n\nMessage:\nUse Postgres 16.");
+    expect(bodies.at(-1).messages[1].content).toBe("Memory kind: decision\n\nMessage:\nUse Postgres 16.");
   });
 
-  it("a dead-end line that gives no reason is not written, and the turn is recorded as skipped", async () => {
+  it("a turn Jev reads as a dead end with no reason is not written, and is recorded as skipped", async () => {
     const { root, store } = project();
-    const jev = mockJev(() => DEAD_END);
+    const jev = mockJev(() => ({ ...DEAD_END, contains_dead_end: 0.22 }));
     const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: "We tried the job queue on SQS for a while and dropped it." }, { jev, env });
     expect(r.action).toBe("skipped");
-    expect(r.detail).toMatch(/^a dead end must say why it failed or was dropped, and this line gives no reason/);
+    expect(r.detail).toMatch(/dead-end=0\.22<0\.7 \(no reason given\)/);
     expect(store.active()).toHaveLength(0);
-    const rec = findDecision(root, "")!;
-    expect(rec.decision.save).toBe(false);
-    // writeMemory says the same when called directly.
-    const d = await decide(mockJev(() => DEAD_END), { userMessage: "We tried the job queue on SQS for a while and dropped it.", existingMemories: [] });
-    const w = await writeMemory(store, d.sourceText, d, writerNone);
-    expect([w.saved, w.refused]).toEqual([null, "a dead end must say why it failed or was dropped, and this line gives no reason"]);
+    expect(findDecision(root, "")!.decision.save).toBe(false);
   });
 });
 
 describe("superseding and recall", () => {
-  it("a later turn showing the dead end now works supersedes it, like any contradiction; the old line is never injected again", async () => {
+  it("a later turn showing the dead end now works supersedes it (the works-now question); the old line is never injected again", async () => {
     const { root, store } = project();
     const de = store.add({ kind: "dead-end", text: "Martin as the tile server could not call our SQL functions with filter parameters, so the Fastify server stays" });
     recordProvenance(root, de, "hook");
     const jev = mockJev((q): AnswerOverrides =>
       "most_relevant" in q
         ? { most_relevant: { choice: Object.keys((q.most_relevant as any).criteria)[0]!, probabilities: Object.fromEntries(Object.keys((q.most_relevant as any).criteria).map((id) => [id, id === "none" ? 0 : 1])) } }
-        : { ...T1_QUIET, contains_decision: 0.9, contradicts_existing_memory: 0.93, touches_memory_id: de.id, kind: "decision", importance: 3 },
+        : { ...T1_QUIET, contains_decision: 0.9, dead_end_now_works: 0.93, dead_end_that_now_works: de.id, kind: "decision", importance: 3 },
     );
     const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: "Martin 0.15 supports function sources with query parameters; every layer serves correctly, so we replace the Fastify app with Martin." }, { jev, env });
     expect(r.detail).toMatch(new RegExp(`\\(supersedes ${de.id}\\)`));
@@ -323,12 +332,12 @@ describe("MCP add_memory takes kind dead-end (Cursor, Codex)", () => {
     expect(new MemoryStore(root).active()[0]!.kind).toBe("dead-end");
   });
 
-  it("refuses a dead end with no reason, and keeps the caller's kind when only Jev read the line as a dead end", async () => {
+  it("refuses a dead end Jev reads no reason in, and keeps the caller's kind when only Jev read the line as a dead end", async () => {
     const { root } = project();
-    const { add } = await connect(root, DEAD_END);
+    const { add } = await connect(root, { ...DEAD_END, contains_dead_end: 0.2, tried_an_approach_that_failed_or_was_dropped: 0.2 });
     const r = await add("We tried Redis for sessions and dropped it", "dead-end");
     expect(r.isError).toBe(true);
-    expect(r.body.refused).toMatch(/a dead end must say what was tried and why it failed or was dropped/);
+    expect(r.body.refused).toMatch(/a dead end must say why it failed or was dropped, and Jev found no reason in this line \(dead-end 0\.20 < 0\.7\)/);
     const d = await add("Sessions stay in the database; Redis was dropped", "decision");
     expect(d.isError).toBe(false);
     expect(d.body.added.kind).toBe("decision");
@@ -337,14 +346,28 @@ describe("MCP add_memory takes kind dead-end (Cursor, Codex)", () => {
 });
 
 describe("jevmem add, and the guard", () => {
-  it("jevmem add dead-end needs a reason", async () => {
+  it("jevmem add dead-end needs a reason, and Jev decides whether the line gives one (one request, stand-in Jev)", async () => {
     const { root, store } = project();
     const out: string[] = [];
     const io = { out: (s: string) => void out.push(s), err: (s: string) => void out.push(s) };
-    expect(await main(["add", "dead-end", "We tried Redis for sessions and dropped it"], { ...io, cwd: root } as any)).toBe(1);
-    expect(out.join("")).toMatch(/a dead end must say why it failed or was dropped/);
-    expect(await main(["add", "dead-end", "Moving sessions to Redis added 40 ms per request, so it was reverted"], { ...io, cwd: root } as any)).toBe(0);
-    expect(store.active().map((m) => m.kind)).toEqual(["dead-end"]);
+    const jev = await startFakeJev((_q, state) => ({ ...DEAD_END, contains_dead_end: /40 ms/.test(state.user_message) ? 0.93 : 0.18 }));
+    const saved = { url: process.env.TYPESAFE_BASE_URL, key: process.env.TYPESAFE_API_KEY };
+    process.env.TYPESAFE_BASE_URL = jev.url;
+    process.env.TYPESAFE_API_KEY = "ts-test-key-for-add";
+    try {
+      expect(await main(["add", "dead-end", "We tried Redis for sessions and dropped it"], { ...io, cwd: root } as any)).toBe(1);
+      expect(out.join("")).toMatch(/a dead end must say why it failed or was dropped, and Jev found no reason in this line \(dead-end 0\.18 < 0\.7\)/);
+      expect(await main(["add", "dead-end", "Moving sessions to Redis added 40 ms per request, so it was reverted"], { ...io, cwd: root } as any)).toBe(0);
+      expect(store.active().map((m) => m.kind)).toEqual(["dead-end"]);
+      expect(jev.requests).toHaveLength(2);
+      // Other kinds are typed by a person and not checked: no request.
+      expect(await main(["add", "decision", "Sessions stay in the database"], { ...io, cwd: root } as any)).toBe(0);
+      expect(jev.requests).toHaveLength(2);
+    } finally {
+      await jev.close();
+      for (const [k, v] of [["TYPESAFE_BASE_URL", saved.url], ["TYPESAFE_API_KEY", saved.key]] as const) if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
   });
 
   it("the guard enforces [constraint] lines only: a dead end is never a rule", () => {
