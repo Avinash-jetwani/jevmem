@@ -159,6 +159,9 @@ describe.skipIf(process.platform === "win32")("a project that has not run `jevme
     const until = Date.now() + 10_000;
     while (new MemoryStore(w.project).active().length === 0 && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
     expect(new MemoryStore(w.project).active().map((m) => m.text)).toEqual(["We will use Postgres 16 for the primary store."]);
+    // The line is written before the turn leaves the queue: let the detached CLI finish before the snapshots below.
+    const q = path.join(w.project, ".jevmem", "queue.jsonl");
+    while ((fs.existsSync(path.join(w.project, ".jevmem", "drain.lock")) || (fs.existsSync(q) && fs.readFileSync(q, "utf8").trim())) && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
     expect(fake.requests.length).toBeGreaterThan(0);
     // The MCP server in the same process-less form now works too.
     const mcp = await mcpSession(path.join(w.bin, "jevmem"), ["mcp"], env(w), w.project);

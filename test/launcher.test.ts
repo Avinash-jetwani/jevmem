@@ -33,6 +33,13 @@ async function waitFor(cond: () => boolean, ms = 10_000) {
   }
 }
 
+/** The detached CLI has finished: its drain lock is gone and the queue is empty. The line is written before the turn
+ * leaves the queue (a temp file and a rename), so a check made as soon as the line appears can see that temp file. */
+function drained(root: string): boolean {
+  const q = path.join(root, ".jevmem", "queue.jsonl");
+  return !fs.existsSync(path.join(root, ".jevmem", "drain.lock")) && !(fs.existsSync(q) && fs.readFileSync(q, "utf8").trim());
+}
+
 function runLauncher(root: string, env: Record<string, string>, payload: object, args: string[] = ["--node", process.execPath, "--detach", "hook"]) {
   const t0 = performance.now();
   const r = spawnSync("sh", [LAUNCHER, ...args], { cwd: root, env: { PATH: "/usr/bin:/bin", HOME: tmp(), JEVMEM_WRITER: "none", JEVMEM_CACHE: "0", ...env }, input: JSON.stringify(payload), encoding: "utf8", timeout: 10_000 });
@@ -47,6 +54,7 @@ describe.skipIf(process.platform === "win32")("hooks/jevmem-hook.sh --detach (th
     const r = runLauncher(root, { TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_DAEMON: "0" }, { hook_event_name: "Stop", cwd: root, user_message: "We will use Postgres 16 for the primary store." });
     expect(r.status).toBe(0);
     await waitFor(() => new MemoryStore(root).active().length === 1);
+    await waitFor(() => drained(root));
     expect(fs.readdirSync(path.join(root, ".jevmem")).filter((f) => f.startsWith("queue.jsonl") && f !== "queue.jsonl")).toEqual([]);
   });
 
