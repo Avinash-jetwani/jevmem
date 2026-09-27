@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Dead ends (docs/dead-ends.md) on eval/dead-ends-dev.jsonl and eval/dead-ends-dev-v2.jsonl (tuning), or
-// eval/dead-ends-heldout.jsonl (held-out v1, run once in part 2) and eval/dead-ends-heldout-v2.jsonl (held-out v2, run
-// once at the end of part 2b).
+// Dead ends (docs/dead-ends.md) on eval/dead-ends-dev.jsonl, eval/dead-ends-dev-v2.jsonl and
+// eval/dead-ends-dev-v3.jsonl (tuning), or eval/dead-ends-heldout.jsonl (held-out v1, run once in part 2),
+// eval/dead-ends-heldout-v2.jsonl (held-out v2, run once at the end of part 2b) and eval/dead-ends-heldout-v3.jsonl
+// (held-out v3, run once at the end of part 2c).
 //
-//   node scripts/eval-dead-ends.mjs [path/to/dist/index.js] [--set dev|dev2|heldout|heldout2] [--mode auto|fast|full] [--out results/…json]
-//   node scripts/eval-dead-ends.mjs --writer-only [--set dev|dev2|heldout|heldout2] [--writer none|openai|anthropic] [--model <id>] [--out …]
+//   node scripts/eval-dead-ends.mjs [path/to/dist/index.js] [--set dev|dev2|dev3|heldout|heldout2|heldout3] [--mode auto|fast|full] [--out results/…json]
+//   node scripts/eval-dead-ends.mjs --writer-only [--set …] [--writer none|openai|anthropic] [--model <id>] [--out …]
 //
 // Pipeline (the default): every turn goes through the hook's path with the real Jev: `decide` (warm in-process client,
 // no cache), then `writeMemory` with the local writer into a scratch JEVMEM.md that holds the turn's existing lines, so
@@ -17,6 +18,13 @@
 // one), with the cases where a dead end now works (told by the user, or made to work by Claude) and the ones that must
 // never supersede (a dead end that keeps a listed line, near misses, Claude's reply contradicting a listed line, a
 // question with no content) counted on their own.
+// The v3 sets (part 2c) add: saved when it should be (every row labelled save, as a kind it accepts) and skipped when it
+// should be; plain statements whose reply adds nothing (saved as their kind, and why the others were skipped);
+// questions and proposals (saved, superseded: both must be 0); dead ends that reverse a listed line (saved as a dead end
+// and superseding it); retests of a listed dead end (the same reason: skipped; a new reason: one dead-end line with both
+// reasons, superseding the old one); duplicates (a retest with the same reason saved as any line, or a retest with a new
+// reason saved as a dead end next to the old line). A retest that fails again is a real dead end, so a second copy
+// counts as a duplicate, not as a false positive of dead-end precision.
 // --writer-only: no Jev. Every labelled dead end is written with kind dead-end from the text the hook would give the
 // writer (the user message, the assistant reply, or both, per the label), with the local writer (none) or an LLM
 // writer. An LLM writer needs OPENAI_API_KEY / ANTHROPIC_API_KEY; with OPENROUTER_API_KEY and --writer openai it goes
@@ -37,7 +45,7 @@ const opt = (n, d) => {
 };
 const distArg = args[0] && !args[0].startsWith("--") ? args[0] : path.resolve("dist/index.js");
 const SET = opt("--set", "dev");
-const FILE = { dev: "eval/dead-ends-dev.jsonl", heldout: "eval/dead-ends-heldout.jsonl", dev2: "eval/dead-ends-dev-v2.jsonl", heldout2: "eval/dead-ends-heldout-v2.jsonl" }[SET];
+const FILE = { dev: "eval/dead-ends-dev.jsonl", heldout: "eval/dead-ends-heldout.jsonl", dev2: "eval/dead-ends-dev-v2.jsonl", heldout2: "eval/dead-ends-heldout-v2.jsonl", dev3: "eval/dead-ends-dev-v3.jsonl", heldout3: "eval/dead-ends-heldout-v3.jsonl" }[SET];
 if (!FILE) throw new Error(`unknown --set ${SET}`);
 const MODE = opt("--mode", "auto");
 const WRITER_ONLY = args.includes("--writer-only");
@@ -161,11 +169,12 @@ async function pipeline() {
       got = w.saved ? { save: true, kind: w.saved.kind, line: w.line, superseded: w.superseded?.id ?? null, refused: null } : { save: false, kind: "none", line: w.line, superseded: null, refused: w.refused };
     }
     const deadEnd = r.deadEnd && got.kind === "dead-end" ? { triedKept: keeps(got.line, r.deadEnd.triedKeys), reasonKept: keeps(got.line, r.deadEnd.whyKeys), workedKept: r.deadEnd.worked ? keeps(got.line, r.deadEnd.workedKeys) : null } : null;
+    const retest = r.retest ? { of: r.retest.of, same: r.retest.same, oldReasonKept: r.retest.oldWhyKeys && got.line ? keeps(got.line, r.retest.oldWhyKeys) : null, newReasonKept: r.retest.newWhyKeys && got.line ? keeps(got.line, r.retest.newWhyKeys) : null } : null;
     const want = r.accept.includes("skip") && !r.label.save ? "skip" : r.label.kind;
     out.push({
       id: r.id, tag: r.tag, subtype: r.subtype, user: r.user.slice(0, 100),
       want: { ...r.label, contradicts: r.contradicts ?? null, accept: r.accept },
-      got, deadEnd,
+      got, deadEnd, retest,
       ok: r.accept.includes(got.save ? got.kind : "skip") && (r.contradicts ? got.superseded === r.contradicts : !got.superseded),
       ms, inputTokens: d.usage.inputTokens, outputTokens: d.usage.outputTokens, escalated: Boolean(d.escalated), assistantIncluded: d.assistantIncluded, source: d.source,
       reason: d.reason,
@@ -182,8 +191,9 @@ async function pipeline() {
   const isDE = (o) => o.got.kind === "dead-end";
   const labelled = out.filter((o) => rows.find((r) => r.id === o.id).deadEnd);
   const tp = labelled.filter(isDE).length;
-  // A row without a labelled dead end whose accept list still takes one (a retest that failed again) counts neither way.
-  const fp = out.filter((o) => isDE(o) && !rows.find((r) => r.id === o.id).deadEnd && !o.want.accept.includes("dead-end")).length;
+  // A row without a labelled dead end whose accept list still takes one counts neither way; a retest that failed again for
+  // the same reason (v3) is a real dead end, so saving it again counts as a duplicate (below), not here.
+  const fp = out.filter((o) => isDE(o) && !rows.find((r) => r.id === o.id).deadEnd && !o.want.accept.includes("dead-end") && o.tag !== "retest-same").length;
   const fn = labelled.length - tp;
   const saved = out.filter((o) => o.deadEnd);
   const byTag = {};
@@ -215,6 +225,36 @@ async function pipeline() {
   const p = (q) => lat[Math.min(lat.length - 1, Math.floor(q * lat.length))];
   const avgIn = out.reduce((a, o) => a + o.inputTokens, 0) / out.length;
   const negativeTags = ["transient", "test-first", "options-not-tried", "taste-change", "no-reason"];
+  // v3 (part 2c).
+  const kinds = (xs) => xs.reduce((a, o) => ((a[o.got.save ? o.got.kind : "skip"] = (a[o.got.save ? o.got.kind : "skip"] ?? 0) + 1), a), {});
+  const tagged = (t) => out.filter((o) => o.tag === t);
+  const v3 = out.some((o) => ["plain-statement", "question-proposal", "retest-same", "retest-new"].includes(o.tag))
+    ? (() => {
+        const shouldSave = out.filter((o) => o.want.save);
+        const shouldSkip = out.filter((o) => !o.want.save);
+        const plain = tagged("plain-statement");
+        const qs = tagged("question-proposal");
+        const rev = tagged("dead-end-reversal");
+        const same = tagged("retest-same");
+        const fresh = tagged("retest-new");
+        const but = out.filter((o) => o.tag === "dead-end" && o.subtype === "but");
+        const dupSame = same.filter((o) => o.got.save);
+        const dupNew = fresh.filter((o) => isDE(o) && o.got.superseded !== o.want.contradicts);
+        return {
+          savedWhenShould: `${shouldSave.filter((o) => o.got.save && o.want.accept.includes(o.got.kind)).length}/${shouldSave.length}`,
+          savedAnyKindWhenShould: `${shouldSave.filter((o) => o.got.save).length}/${shouldSave.length}`,
+          skippedWhenShould: `${shouldSkip.filter((o) => !o.got.save).length}/${shouldSkip.length}`,
+          plainStatements: { cases: plain.length, savedAsAccepted: plain.filter((o) => o.got.save && o.want.accept.includes(o.got.kind)).length, saved: plain.filter((o) => o.got.save).length, skipped: plain.filter((o) => !o.got.save).length, skippedSourceNone: plain.filter((o) => !o.got.save && o.source === "none").length, kinds: kinds(plain) },
+          questionsAndProposals: { cases: qs.length, saved: qs.filter((o) => o.got.save).length, superseded: qs.filter((o) => o.got.superseded).length, kinds: kinds(qs) },
+          reversals: { cases: rev.length, savedAsDeadEnd: rev.filter(isDE).length, superseded: rev.filter((o) => o.got.superseded === o.want.contradicts).length, savedAsDeadEndAndSuperseded: rev.filter((o) => isDE(o) && o.got.superseded === o.want.contradicts).length, kinds: kinds(rev) },
+          retestSame: { cases: same.length, skipped: same.filter((o) => !o.got.save).length, saved: dupSame.length, superseded: same.filter((o) => o.got.superseded).length, kinds: kinds(same) },
+          retestNew: { cases: fresh.length, savedAsDeadEnd: fresh.filter(isDE).length, supersededOld: fresh.filter((o) => o.got.superseded === o.want.contradicts).length, bothReasonsKept: fresh.filter((o) => isDE(o) && o.retest?.oldReasonKept && o.retest?.newReasonKept).length, newReasonKept: fresh.filter((o) => isDE(o) && o.retest?.newReasonKept).length, oldReasonKept: fresh.filter((o) => isDE(o) && o.retest?.oldReasonKept).length, kinds: kinds(fresh) },
+          duplicates: dupSame.length + dupNew.length,
+          duplicateIds: [...dupSame, ...dupNew].map((o) => o.id),
+          reasonAfterBut: { cases: but.length, savedAsDeadEnd: but.filter(isDE).length, reasonKept: but.filter((o) => o.deadEnd?.reasonKept).length },
+        };
+      })()
+    : null;
   const summary = {
     mode: MODE, started_at: startedAt, finished_at: finishedAt,
     deadEnds: labelled.length, savedAsDeadEnd: out.filter(isDE).length, truePositives: tp, falsePositives: fp, falseNegatives: fn,
@@ -240,6 +280,7 @@ async function pipeline() {
     p50ms: p(0.5), p95ms: p(0.95), avgInputTokens: Math.round(avgIn), costPerDecision: (avgIn / 1e6) * USD_PER_M_INPUT,
     escalationRate: MODE === "auto" ? out.filter((o) => o.escalated).length / out.length : null,
     assistantIncludedRate: out.filter((o) => o.assistantIncluded).length / out.length,
+    ...(v3 ? { v3 } : {}),
   };
   for (const o of out) delete o._want;
   return { kind: "dead-ends", ...meta, network_path: `direct HTTPS to ${process.env.TYPESAFE_BASE_URL ?? "the TypeSafe API default base URL"}, warm in-process client, cache off`, cost_method: "input tokens × $0.042 per million; output tokens free", summary, rows: out };
@@ -266,10 +307,17 @@ if (WRITER_ONLY) {
   const ss = s.supersedeScore;
   console.log(`supersedes: correct ${ss.correct}/${ss.labelled}, missed ${ss.missed}, false ${ss.false} ${JSON.stringify(ss.falseByTag)}; must not supersede: ${Object.entries(s.mustNotSupersede).map(([k, v]) => `${k} ${v.superseded}/${v.cases}${k === "questionNoContent" ? ` (saved ${v.saved})` : ""}`).join(", ")}`);
   console.log(`ordinary ${s.ordinaryCorrect}; all rows ${s.allCorrect}; p50 ${s.p50ms} ms, p95 ${s.p95ms} ms, ${s.avgInputTokens} input tokens, $${s.costPerDecision.toFixed(7)}/decision, escalated ${f(s.escalationRate)}, reply in state ${f(s.assistantIncludedRate)}`);
+  if (s.v3) {
+    const v = s.v3;
+    console.log(`saved when it should be ${v.savedWhenShould} (any kind ${v.savedAnyKindWhenShould}), skipped when it should be ${v.skippedWhenShould}; duplicates ${v.duplicates}${v.duplicates ? ` (${v.duplicateIds.join(", ")})` : ""}`);
+    console.log(`plain statements saved ${v.plainStatements.savedAsAccepted}/${v.plainStatements.cases} (skipped ${v.plainStatements.skipped}, source none ${v.plainStatements.skippedSourceNone}); questions and proposals saved ${v.questionsAndProposals.saved}/${v.questionsAndProposals.cases}, superseding ${v.questionsAndProposals.superseded}`);
+    console.log(`reversals: saved as dead end ${v.reversals.savedAsDeadEnd}/${v.reversals.cases}, superseded ${v.reversals.superseded}/${v.reversals.cases}, both ${v.reversals.savedAsDeadEndAndSuperseded} ${JSON.stringify(v.reversals.kinds)}`);
+    console.log(`retests, same reason: skipped ${v.retestSame.skipped}/${v.retestSame.cases} ${JSON.stringify(v.retestSame.kinds)}; new reason: dead end ${v.retestNew.savedAsDeadEnd}/${v.retestNew.cases}, old superseded ${v.retestNew.supersededOld}, both reasons kept ${v.retestNew.bothReasonsKept} (new ${v.retestNew.newReasonKept}, old ${v.retestNew.oldReasonKept}); reason after "but" kept ${v.reasonAfterBut.reasonKept}/${v.reasonAfterBut.cases}`);
+  }
   for (const [t, v] of Object.entries(s.byTag)) console.log(`  ${t.padEnd(20)} n=${String(v.n).padStart(2)}  saved as dead end ${v.savedAsDeadEnd}  ok ${v.ok}`);
-  for (const o of report.rows.filter((x) => !x.ok || (x.deadEnd && !x.deadEnd.reasonKept))) {
+  for (const o of report.rows.filter((x) => !x.ok || (x.deadEnd && !x.deadEnd.reasonKept) || (x.retest && !x.retest.same && x.got.kind === "dead-end" && !(x.retest.oldReasonKept && x.retest.newReasonKept)))) {
     console.log(`  ✗ ${o.id.padEnd(22)} ${o.tag.padEnd(18)} want ${o.want.accept.join("|")}${o.want.contradicts ? ` ⊃${o.want.contradicts}` : ""} got ${o.got.save ? o.got.kind : "skip"}${o.got.superseded ? ` ⊃${o.got.superseded}` : ""}  de1=${o.deadEndNoul.tier1?.toFixed(2) ?? "-"} de2=${o.deadEndNoul.tier2?.toFixed(2) ?? "-"} ${o.reason}`);
-    if (o.got.line) console.log(`      line: ${o.got.line}${o.deadEnd ? `  [tried ${o.deadEnd.triedKept ? "✓" : "✗"} why ${o.deadEnd.reasonKept ? "✓" : "✗"}]` : ""}${o.got.refused ? `  (refused: ${o.got.refused})` : ""}`);
+    if (o.got.line) console.log(`      line: ${o.got.line}${o.deadEnd ? `  [tried ${o.deadEnd.triedKept ? "✓" : "✗"} why ${o.deadEnd.reasonKept ? "✓" : "✗"}]` : ""}${o.retest && !o.retest.same ? `  [old reason ${o.retest.oldReasonKept ? "✓" : "✗"} new ${o.retest.newReasonKept ? "✓" : "✗"}]` : ""}${o.got.refused ? `  (refused: ${o.got.refused})` : ""}`);
   }
 }
 if (OUT) console.log(`\nwritten ${OUT}`);

@@ -7,6 +7,11 @@
  * a dead end that agrees with a listed line, Claude's reply contradicting a listed line, questions with no content),
  * eval/dead-ends-heldout-v2.jsonl (held-out v2, run once at the end, every case), and the planted dead-end lines for the
  * poisoning gate, eval/dead-ends-gate-dev.jsonl and eval/dead-ends-gate-heldout-v2.jsonl. They get the same checks.
+ *
+ * Part 2c added two more, committed before any part 2c change: eval/dead-ends-dev-v3.jsonl (tuning) and
+ * eval/dead-ends-heldout-v3.jsonl (held-out v3, run once at the end): plain statements whose reply adds nothing,
+ * questions and proposals next to a listed line, dead ends that reverse a listed line, retests of a listed dead end
+ * that fail again (for the same reason, or a new one), dead ends with the reason after "but", and ordinary turns.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -16,6 +21,7 @@ const read = (f: string) => fs.readFileSync(path.resolve(f), "utf8").split("\n")
 const sets = { dev: read("eval/dead-ends-dev.jsonl"), heldout: read("eval/dead-ends-heldout.jsonl") };
 const setsV2 = { devV2: read("eval/dead-ends-dev-v2.jsonl"), heldoutV2: read("eval/dead-ends-heldout-v2.jsonl") };
 const gateSets = { gateDev: read("eval/dead-ends-gate-dev.jsonl"), gateHeldoutV2: read("eval/dead-ends-gate-heldout-v2.jsonl") };
+const setsV3 = { devV3: read("eval/dead-ends-dev-v3.jsonl"), heldoutV3: read("eval/dead-ends-heldout-v3.jsonl") };
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const words = (s: string) => norm(s).split(" ").filter(Boolean);
 function shingles(s: string, n: number): Set<string> {
@@ -47,6 +53,10 @@ const TAGS = ["dead-end", "a-failed-b-worked", "dead-end-reversal", "supersede",
 /** v2 adds: Claude makes a listed dead end work, a dead end that keeps a listed line, the reply contradicting a listed line, a question with no content. */
 const TAGS_V2 = [...TAGS, "supersede-by-reply", "dead-end-agrees", "reply-chatter", "question-no-content"];
 const DEAD_END_TAGS = ["dead-end", "a-failed-b-worked", "dead-end-reversal", "dead-end-agrees"];
+/** v3: a plain statement whose reply adds nothing, a question or proposal next to a listed line, a dead end that reverses a
+ * listed line, a retest of a listed dead end that fails again for the same reason or a new one, a dead end, ordinary turns. */
+const TAGS_V3 = ["plain-statement", "question-proposal", "dead-end-reversal", "retest-same", "retest-new", "dead-end", "ordinary"];
+const DEAD_END_TAGS_V3 = ["dead-end-reversal", "retest-new", "dead-end"];
 const KINDS = ["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end"];
 
 describe("eval/dead-ends-*.jsonl", () => {
@@ -220,7 +230,7 @@ describe("part 2b: eval/dead-ends-*-v2.jsonl and the planted dead-end lines", ()
 
   it("no two dead-end sets share a project, an equal text or a run of five words", () => {
     const all: Record<string, string[]> = {};
-    for (const [name, rows] of Object.entries({ ...sets, ...setsV2 })) all[name] = rows.flatMap(rowTexts);
+    for (const [name, rows] of Object.entries({ ...sets, ...setsV2, ...setsV3 })) all[name] = rows.flatMap(rowTexts);
     for (const [name, rows] of Object.entries(gateSets)) all[name] = rows.flatMap((r) => [r.text, r.query]);
     const hits: string[] = [];
     const names = Object.keys(all);
@@ -242,14 +252,17 @@ describe("part 2b: eval/dead-ends-*-v2.jsonl and the planted dead-end lines", ()
     const v2 = new Set([...projects(setsV2.devV2), ...projects(setsV2.heldoutV2)]);
     for (const p of [...projects(sets.dev), ...projects(sets.heldout)]) if (v2.has(p)) hits.push(`project ${p} in v1 and v2`);
     for (const p of projects(setsV2.devV2)) if (projects(setsV2.heldoutV2).has(p)) hits.push(`project ${p} in dev v2 and held-out v2`);
+    const v3 = new Set([...projects(setsV3.devV3), ...projects(setsV3.heldoutV3)]);
+    for (const p of [...projects(sets.dev), ...projects(sets.heldout), ...v2]) if (v3.has(p)) hits.push(`project ${p} in v3 and an earlier set`);
+    for (const p of projects(setsV3.devV3)) if (projects(setsV3.heldoutV3).has(p)) hits.push(`project ${p} in dev v3 and held-out v3`);
     expect(hits).toEqual([]);
   });
 
-  it("no v2 set shares a run of five words with any other eval set, or text with jevmem's prompts", () => {
+  it("no v2 or v3 set shares a run of five words with any other eval set, or text with jevmem's prompts", () => {
     const other = new Map<string, string>();
     for (const f of OTHER_SETS) for (const t of otherTexts(f)) for (const sh of shingles(t, 5)) other.set(sh, f);
     const texts: [string, string][] = [];
-    for (const [name, rows] of Object.entries(setsV2)) for (const r of rows) for (const t of rowTexts(r)) texts.push([`${name} ${r.id}`, t]);
+    for (const [name, rows] of Object.entries({ ...setsV2, ...setsV3 })) for (const r of rows) for (const t of rowTexts(r)) texts.push([`${name} ${r.id}`, t]);
     for (const [name, rows] of Object.entries(gateSets)) for (const r of rows) for (const t of [r.text, r.query]) texts.push([name, t]);
     const lits = [...literals(fs.readFileSync(path.resolve("src/questions.ts"), "utf8")), ...literals(fs.readFileSync(path.resolve("src/guard.ts"), "utf8"))];
     const litSh = new Map<string, string>();
@@ -268,5 +281,102 @@ describe("part 2b: eval/dead-ends-*-v2.jsonl and the planted dead-end lines", ()
       }
     }
     expect(hits).toEqual([]);
+  });
+});
+
+describe("part 2c: eval/dead-ends-dev-v3.jsonl and eval/dead-ends-heldout-v3.jsonl", () => {
+  for (const [name, rows] of Object.entries(setsV3)) {
+    it(`${name}: every row is labelled, each case has the label it needs, and dead ends carry what was tried and why`, () => {
+      expect(new Set(rows.map((r) => r.id)).size).toBe(rows.length);
+      for (const r of rows) {
+        expect(TAGS_V3, r.id).toContain(r.tag);
+        expect(typeof r.user === "string" && typeof r.assistant === "string", r.id).toBe(true);
+        expect(r.existing.length, r.id).toBeGreaterThanOrEqual(3);
+        expect(r.existing.length, r.id).toBeLessThanOrEqual(15);
+        expect(new Set(r.existing.map((m: any) => m.id)).size, r.id).toBe(r.existing.length);
+        expect(r.label.save ? KINDS.includes(r.label.kind) : r.label.kind === "none", r.id).toBe(true);
+        expect(Array.isArray(r.accept) && r.accept.length > 0, r.id).toBe(true);
+        for (const a of r.accept) expect([...KINDS, "skip"], r.id).toContain(a);
+        expect(r.accept, r.id).toContain(r.label.save ? r.label.kind : "skip");
+        if (r.contradicts) expect(r.existing.map((m: any) => m.id), r.id).toContain(r.contradicts);
+        expect(Boolean(r.deadEnd), r.id).toBe(DEAD_END_TAGS_V3.includes(r.tag));
+        expect(r.label.kind === "dead-end", r.id).toBe(Boolean(r.deadEnd));
+        if (r.deadEnd) {
+          const d = r.deadEnd;
+          const text = (d.source === "user" ? r.user : d.source === "assistant" ? r.assistant : `${r.user} ${r.assistant}`).toLowerCase();
+          expect(["user", "assistant", "both"], r.id).toContain(d.source);
+          expect(d.triedKeys.some((k: string) => text.includes(k.toLowerCase())), `${r.id} tried`).toBe(true);
+          expect(d.whyKeys.some((k: string) => text.includes(k.toLowerCase())), `${r.id} why`).toBe(true);
+          if (d.worked) expect(d.workedKeys.some((k: string) => text.includes(k.toLowerCase())), `${r.id} worked`).toBe(true);
+        }
+        // A plain statement: saved as its kind (never a dead end), and the reply adds nothing.
+        if (r.tag === "plain-statement") {
+          expect(r.label.save && r.label.kind !== "dead-end", r.id).toBe(true);
+          expect(r.accept, r.id).not.toContain("skip");
+          expect(r.assistant.length, r.id).toBeLessThanOrEqual(60);
+          expect(r.contradicts, r.id).toBeUndefined();
+        }
+        // A question or proposal with nothing decided: skipped, and it supersedes nothing, though a listed line is on its topic.
+        if (r.tag === "question-proposal") {
+          expect(r.accept, r.id).toEqual(["skip"]);
+          expect(r.contradicts, r.id).toBeUndefined();
+        }
+        // A dead end that reverses a listed line (not a dead end): saved as a dead end, superseding that line.
+        if (r.tag === "dead-end-reversal") {
+          expect(r.accept, r.id).toEqual(["dead-end"]);
+          expect(r.existing.find((m: any) => m.id === r.contradicts)?.kind, r.id).not.toBe("dead-end");
+        }
+        // A retest of a listed dead end: the same reason is skipped (no second copy); a new reason is one dead-end line
+        // that carries both reasons and supersedes the old line.
+        if (r.tag === "retest-same" || r.tag === "retest-new") {
+          const old = r.existing.find((m: any) => m.id === r.retest?.of);
+          expect(old?.kind, r.id).toBe("dead-end");
+          expect(r.retest.same, r.id).toBe(r.tag === "retest-same");
+        }
+        if (r.tag === "retest-same") {
+          expect(r.accept, r.id).toEqual(["skip"]);
+          expect(r.contradicts, r.id).toBeUndefined();
+        }
+        if (r.tag === "retest-new") {
+          expect(r.accept, r.id).toEqual(["dead-end"]);
+          expect(r.contradicts, r.id).toBe(r.retest.of);
+          const old = r.existing.find((m: any) => m.id === r.retest.of).text.toLowerCase();
+          expect(r.retest.oldWhyKeys.some((k: string) => old.includes(k.toLowerCase())), `${r.id} old why`).toBe(true);
+          expect(r.retest.newWhyKeys.some((k: string) => `${r.user} ${r.assistant}`.toLowerCase().includes(k.toLowerCase())), `${r.id} new why`).toBe(true);
+          expect(r.retest.newWhyKeys.some((k: string) => old.includes(k.toLowerCase())), `${r.id} the new reason is new`).toBe(false);
+        }
+        if (r.tag !== "dead-end-reversal" && r.tag !== "retest-new") expect(r.contradicts, r.id).toBeUndefined();
+        if (r.tag !== "retest-same" && r.tag !== "retest-new") expect(r.retest, r.id).toBeUndefined();
+      }
+    });
+  }
+
+  it("held-out v3 holds every case the brief names, and dev v3 each of them too", () => {
+    const n = (rows: any[], tag: string, subtype?: string) => rows.filter((r) => r.tag === tag && (!subtype || r.subtype === subtype)).length;
+    const h = setsV3.heldoutV3;
+    expect(n(h, "plain-statement")).toBeGreaterThanOrEqual(20);
+    expect(n(h, "question-proposal")).toBeGreaterThanOrEqual(20);
+    expect(n(h, "dead-end-reversal")).toBeGreaterThanOrEqual(10);
+    expect(n(h, "retest-same")).toBeGreaterThanOrEqual(5);
+    expect(n(h, "retest-new")).toBeGreaterThanOrEqual(5);
+    expect(n(h, "dead-end")).toBeGreaterThanOrEqual(10);
+    expect(n(h, "dead-end", "but")).toBeGreaterThanOrEqual(4);
+    expect(n(h, "ordinary")).toBeGreaterThanOrEqual(25);
+    const kinds = new Set(h.filter((r) => r.tag === "ordinary" && r.label.save).map((r) => r.label.kind));
+    for (const k of ["decision", "constraint", "preference", "bug", "architecture", "todo"]) expect(kinds.has(k), k).toBe(true);
+    const plainKinds = new Set(h.filter((r) => r.tag === "plain-statement").map((r) => r.label.kind));
+    for (const k of ["decision", "constraint", "bug", "architecture", "todo"]) expect(plainKinds.has(k), k).toBe(true);
+    // Questions and proposals with a listed line on their topic, and retests told by the user and found by Claude.
+    expect(h.filter((r) => r.tag === "question-proposal" && r.existing.length > 5).length).toBeGreaterThanOrEqual(8);
+    for (const rows of [h, setsV3.devV3]) {
+      expect(rows.filter((r) => r.retest && r.deadEnd?.source !== "assistant" && r.tag === "retest-new").length).toBeGreaterThanOrEqual(1);
+      expect(rows.filter((r) => r.retest && r.deadEnd?.source === "assistant").length).toBeGreaterThanOrEqual(1);
+    }
+    const d = setsV3.devV3;
+    expect(n(d, "plain-statement")).toBeGreaterThanOrEqual(15);
+    expect(n(d, "question-proposal")).toBeGreaterThanOrEqual(15);
+    expect(n(d, "dead-end-reversal")).toBeGreaterThanOrEqual(6);
+    for (const tag of ["retest-same", "retest-new"]) expect(n(d, tag), tag).toBeGreaterThanOrEqual(6);
+    expect(n(d, "dead-end", "but")).toBeGreaterThanOrEqual(6);
   });
 });
