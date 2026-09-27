@@ -1,14 +1,29 @@
 /**
- * The Jev question set for `decide`: 30 atomic, literal, positively-worded nouls grouped into nine families,
+ * The Jev question set for `decide`: 31 atomic, literal, positively-worded nouls grouped into eleven families,
  * one `kind` choice, one `touches_memory_id` choice, and one `importance` score. Every criterion uses the
  * structured `what` / `not_for` / `examples` form (https://docs.typesafe.ai/primitives/advanced).
  */
 import { choice, noul, score, type ChoiceCriteria, type EntryType, type Questions } from "@typesafe-ai/sdk";
 import { NEW_KINDS } from "./types.js";
 
-export const FAMILIES = ["decision", "constraint", "preference", "bug", "architecture", "todo", "chit_chat", "injection", "contradiction", "meta"] as const;
+export const FAMILIES = ["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end", "chit_chat", "injection", "contradiction", "meta"] as const;
 export type Family = (typeof FAMILIES)[number];
-export const KIND_FAMILIES = ["decision", "constraint", "preference", "bug", "architecture", "todo"] as const satisfies readonly Family[];
+export const KIND_FAMILIES = ["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end"] as const satisfies readonly Family[];
+
+/**
+ * The dead-end noul, the same question in both tiers (docs/dead-ends.md): an approach tried in this project that failed
+ * or was dropped, and why. The "no" side names the brief's negatives: a failure a retry fixed, a test written to fail
+ * first, options only discussed, a change of taste, and an attempt with no reason given.
+ */
+const DEAD_END_QUESTION = "Does the user message or the assistant reply say that an approach was tried and didn't work, or was dropped, and why?";
+const DEAD_END_YES = {
+  what: "Something was really tried in this project (built, run, deployed or measured) and failed or was given up, and the text says why: an error, a limit, a measurement or a cost.",
+  examples: ["Moving the job queue to SQS added 300 ms per job, so it was rolled back.", "A CDN cache in front of the API served stale carts to logged-in users, so it came out again."],
+};
+const DEAD_END_NO = {
+  what: "A failure that a retry fixed (network, rate limit, a flaky run), a test written to fail first, trying to reproduce a bug, options only discussed, a change of taste, an attempt with no reason given, or an approach that failed before and works now.",
+  examples: ["The package registry timed out once and the rerun passed.", "We could try SQS for the job queue later."],
+};
 
 export interface AtomicNoul {
   name: string;
@@ -89,6 +104,8 @@ export const ATOMIC_NOULS: readonly AtomicNoul[] = [
   N("describes_work_agreed_but_not_done", "todo", 1, "Does the user message describe work that both sides agree should happen but has not happened yet?",
     { what: "An accepted piece of future work.", examples: ["Agreed, we need pagination on that endpoint.", "Yes, let's add tracing once the API settles."] },
     { what: "Completed work, or work that was rejected.", examples: ["Pagination is in.", "We decided not to add tracing."] }),
+  // dead-end (one noul, as in tier 1)
+  N("tried_an_approach_that_failed_or_was_dropped", "dead-end", 1, DEAD_END_QUESTION, DEAD_END_YES, DEAD_END_NO),
   // chit_chat
   N("is_greeting_thanks_or_acknowledgement", "chit_chat", 1, "Is the user message a greeting, thanks, apology, or a short acknowledgement?",
     { what: "Social phrases with no task content.", examples: ["thanks, great work!", "ok sounds good"] },
@@ -145,7 +162,7 @@ export const SOURCE_OPTIONS = ["user_message", "assistant_reply", "both", "none"
 export type ContentSource = (typeof SOURCE_OPTIONS)[number];
 const SOURCE_CRITERIA: Record<ContentSource, EntryType> = {
   user_message: { what: "The memorable content is stated by the user.", examples: ["User: 'We'll use Postgres.' Assistant: 'Done.'"] },
-  assistant_reply: { what: "The memorable content appears only in the assistant reply, such as a root cause or a structure fact the assistant found.", examples: ["User: 'why is the test flaky?' Assistant: 'Two tests share a temp dir.'"] },
+  assistant_reply: { what: "The memorable content appears only in the assistant reply, such as a root cause, a structure fact, or an approach the assistant tried that failed.", examples: ["User: 'why is the test flaky?' Assistant: 'Two tests share a temp dir.'"] },
   both: { what: "Both the user message and the assistant reply carry memorable content.", examples: ["User: 'Use pg.' Assistant: 'Done; note the pool lives in db.ts.'"] },
   none: { what: "Neither carries anything worth remembering.", examples: ["User: 'thanks' Assistant: 'You're welcome.'"] },
 };
@@ -168,7 +185,7 @@ const KIND_CRITERIA: Record<(typeof NEW_KINDS)[number] | "none", EntryType> = {
   },
   bug: {
     what: "A bug, its root cause, or a fix that was found while working.",
-    not_for: "Planned features or refactors (todo), how the system is laid out (architecture).",
+    not_for: "Planned features or refactors (todo), how the system is laid out (architecture), a fix found after another attempt failed (dead-end).",
     examples: ["The flaky test was caused by a shared temp dir.", "Race in the cache invalidation on logout."],
   },
   architecture: {
@@ -180,6 +197,11 @@ const KIND_CRITERIA: Record<(typeof NEW_KINDS)[number] | "none", EntryType> = {
     what: "Work that is explicitly deferred or promised for later.",
     not_for: "Work already done (bug fix, decision), rules (constraint).",
     examples: ["Add rate limiting before launch.", "TODO: migrate the cron job to a queue."],
+  },
+  "dead-end": {
+    what: "An approach that was tried for this project and failed or was dropped, with the reason it did not work; also when another approach, or a fix, then worked.",
+    not_for: "A failure that a retry fixed, a test written to fail first, options discussed but not tried, a change of taste (decision or preference), an approach that failed before and works now (decision).",
+    examples: ["Moving the job queue to SQS added 300 ms per job, so it was rolled back.", "A CDN cache in front of the API served stale carts to logged-in users, so it came out again."],
   },
   none: {
     what: "Nothing in the message is worth remembering for this project: greetings, thanks, status chatter, generic questions, or content unrelated to the project.",
@@ -205,9 +227,10 @@ const KIND_CRITERIA_COMPACT: Record<(typeof NEW_KINDS)[number] | "none", EntryTy
   decision: { what: "A choice was made for this project.", examples: ["We'll use Postgres instead of SQLite."] },
   constraint: { what: "A hard rule or limit.", examples: ["Never call the payments API from the client."] },
   preference: { what: "How the user likes things done.", examples: ["Prefer named exports."] },
-  bug: { what: "A bug, its cause, or its fix.", examples: ["The flaky test was caused by a shared temp dir."] },
+  bug: { what: "A bug, its cause, or its fix, with no failed attempt before it.", examples: ["The flaky test was caused by a shared temp dir."] },
   architecture: { what: "How the system is structured or where something lives.", examples: ["Auth lives in packages/auth."] },
   todo: { what: "Work deferred for later.", examples: ["Add rate limiting before launch."] },
+  "dead-end": { what: "An approach was tried and failed or was dropped, and why, even if a later fix worked.", examples: ["Moving the job queue to SQS added 300 ms per job, so it was rolled back."] },
   none: { what: "Nothing worth remembering: greetings, generic questions, unrelated content.", examples: ["thanks, great work!"] },
 };
 
@@ -227,7 +250,7 @@ function sharedQuestions(memoryIds: { id: string; kind: string; text: string }[]
   touches.none = compact
     ? "The message does not restate, change, or conflict with any memory listed."
     : { what: "The message does not restate, change, or conflict with any memory listed.", examples: ["A new topic.", "No memories are listed."].slice(0, examplesPerSide) };
-  q.kind = choice(compact ? "Which kind of project memory is the user message?" : "Which kind of project memory best describes the user message (or, for a bug or architecture fact, the assistant reply)?", kindCriteria);
+  q.kind = choice(compact ? "Which kind of project memory is the user message?" : "Which kind of project memory best describes the user message (or, for a bug, an architecture fact or a dead end, the assistant reply)?", kindCriteria);
   q.touches_memory_id = choice(compact ? "Which existing memory does the user message change or conflict with?" : "Which existing memory does the user message restate, change, or conflict with?", touches);
   const importance = compact
     ? IMPORTANCE_CRITERIA.map((l) => ({ summary: l.summary, what: l.what, signals: l.signals.slice(0, 2) }))
@@ -237,7 +260,7 @@ function sharedQuestions(memoryIds: { id: string; kind: string; text: string }[]
 }
 
 /**
- * Tier 2: the 30 atomic nouls (33 with the meta family when the assistant reply is in the state) plus kind / touches /
+ * Tier 2: the 31 atomic nouls (34 with the meta family when the assistant reply is in the state) plus kind / touches /
  * importance (and content_source with the assistant reply). `examplesPerSide` trims the criteria (1 or 2).
  */
 export function buildDecideQuestions(memoryIds: { id: string; kind: string; text: string }[], opts: { examplesPerSide?: number; withAssistant?: boolean } = {}) {
@@ -247,11 +270,12 @@ export function buildDecideQuestions(memoryIds: { id: string; kind: string; text
   return { ...q, ...sharedQuestions(memoryIds, n, false, opts.withAssistant ?? false) };
 }
 
-/** Question count without the assistant reply (30 nouls + kind + touches + importance). */
+/** Question count without the assistant reply (31 nouls + kind + touches + importance). */
 export const DECIDE_QUESTION_COUNT = atomicNoulsFor(false).length + 3;
 
 // ---------------------------------------------------------------------------------------------
-// Tier 1: nine broad nouls, one positive and one negative example each. Runs on every turn.
+// Tier 1: ten broad nouls, one positive and one negative example each. Runs on every turn. (The tenth, the dead-end
+// noul, is unreleased: v0.6 part 2.)
 // (v0.4.0 also asked the four atomic injection nouls here; v0.4.1 reverted that: more cost, no measured benefit,
 // one false refusal. They still run in tier 2.)
 
@@ -284,6 +308,7 @@ export const TIER1_NOULS: readonly BroadNoul[] = [
   B("contains_todo", "todo", "Does the user message defer or promise work for later?",
     { what: "Work postponed or agreed for later.", examples: ["Add rate limiting before launch, next sprint."] },
     { what: "Work done now.", examples: ["I added rate limiting."] }),
+  B("contains_dead_end", "dead-end", DEAD_END_QUESTION, trim(DEAD_END_YES, 1), trim(DEAD_END_NO, 1)),
   B("is_only_chit_chat", "chit_chat", "Is the user message only small talk, thanks, greetings, or acknowledgement with no project content?",
     { what: "Social phrases only.", examples: ["thanks, great work!"] },
     { what: "Any project content, even if polite.", examples: ["Thanks, now switch to Postgres."] }),
@@ -310,7 +335,7 @@ export function buildTier1Questions(memoryIds: { id: string; kind: string; text:
   return { ...q, ...sharedQuestions(memoryIds, 1, true, opts.withAssistant ?? false) };
 }
 
-/** Question count without the assistant reply (9 nouls + kind + touches + importance). */
+/** Question count without the assistant reply (10 nouls + kind + touches + importance). */
 export const TIER1_QUESTION_COUNT = tier1NoulsFor(false).length + 3;
 
 /** The tier-1 injection nouls (one: the broad noul). */

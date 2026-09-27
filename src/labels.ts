@@ -248,7 +248,7 @@ export function formatWhy(rec: DecisionRecord): string {
   };
   if (d.tier1) {
     out.push("");
-    out.push(`tier 1 (9 broad nouls, ${d.tier1.usage.inputTokens + d.tier1.usage.outputTokens} tokens${d.tier1.cacheHit ? ", cache hit" : ""}): ${d.tier1.reason}`);
+    out.push(`tier 1 (${Object.keys(d.tier1.nouls).length} broad nouls, ${d.tier1.usage.inputTokens + d.tier1.usage.outputTokens} tokens${d.tier1.cacheHit ? ", cache hit" : ""}): ${d.tier1.reason}`);
     for (const n of TIER1_NOULS) {
       const v = d.tier1.nouls[n.name] ?? 0;
       out.push(`  ${bar(v)} ${v.toFixed(2)}  ${n.name}${d.tier === 1 ? gate(n.family, v) : ""}`);
@@ -258,7 +258,7 @@ export function formatWhy(rec: DecisionRecord): string {
   const t2 = d.tier2 ?? (d.tier1 ? undefined : d);
   if (t2) {
     out.push("");
-    out.push(d.tier2 ? `tier 2 (30 atomic nouls, ${d.tier2.usage.inputTokens + d.tier2.usage.outputTokens} tokens${d.tier2.cacheHit ? ", cache hit" : ""}): ${d.tier2.reason}` : "atomic nouls:");
+    out.push(d.tier2 ? `tier 2 (${Object.keys(d.tier2.nouls).length} atomic nouls, ${d.tier2.usage.inputTokens + d.tier2.usage.outputTokens} tokens${d.tier2.cacheHit ? ", cache hit" : ""}): ${d.tier2.reason}` : "atomic nouls:");
     out.push("family scores (logistic over the atomic nouls):");
     for (const f of FAMILIES) {
       const v = t2.families[f];

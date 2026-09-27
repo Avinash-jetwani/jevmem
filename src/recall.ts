@@ -135,8 +135,11 @@ export function neutralize(text: string): string {
   return text.replace(/<\/?\s*jevmem-memory\b[^>]*>/gi, "[tag removed]");
 }
 
+/** How a dead-end line is injected: a plain fact about the past, not an instruction (docs/dead-ends.md). */
+export const DEAD_END_PREFIX = "Already tried:";
+
 export function formatInjection(ranked: RankedMemory[]): string {
   if (ranked.length === 0) return "";
-  const lines = ranked.map((r) => `- [${r.memory.kind}] ${neutralize(r.memory.text)} (id:${r.memory.id}, p=${r.choiceProbability.toFixed(2)})`);
+  const lines = ranked.map((r) => `- ${r.memory.kind === "dead-end" ? DEAD_END_PREFIX : `[${r.memory.kind}]`} ${neutralize(r.memory.text)} (id:${r.memory.id}, p=${r.choiceProbability.toFixed(2)})`);
   return ["<jevmem-memory>", MEMORY_FRAME, ...lines, JEVMEM_HANDS_OFF, "</jevmem-memory>"].join("\n");
 }

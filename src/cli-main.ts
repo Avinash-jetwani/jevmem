@@ -13,7 +13,8 @@ import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, 
 import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey, saveJevKey } from "./env.js";
-import { resolveWriter } from "./llm/index.js";
+import { deadEndHasReason, resolveWriter } from "./llm/index.js";
+import { DEAD_END_NO_REASON } from "./write.js";
 import { keyFound, missingKeyNotice, writerOptInNotice } from "./notice.js";
 import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
 import { disableProject, enableProject, init, projectEnablesPlugin, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
@@ -177,8 +178,9 @@ and whether the poisoning gate withheld it.
 `,
   add: `jevmem add <kind> <text>
 
-Append one memory line by hand. kind: decision | constraint | preference | bug | architecture | todo.
-Secrets are scrubbed; there is no Jev check (you typed it).
+Append one memory line by hand. kind: decision | constraint | preference | bug | architecture | todo | dead-end.
+Secrets are scrubbed; there is no Jev check (you typed it). A dead-end line must say what was tried and why it failed
+or was dropped (docs/dead-ends.md).
 `,
   import: `jevmem import [--from claude-md,agents-md,cursor-rules,claude-auto-memory] [--apply] [--memory-dir <dir>]
 
@@ -580,6 +582,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const kind = args.shift() as Kind | undefined;
       const text = args.join(" ").trim();
       if (!kind || !(NEW_KINDS as readonly string[]).includes(kind) || !text) return fail(`usage: jevmem add <${NEW_KINDS.join("|")}> <text>`);
+      if (kind === "dead-end" && !deadEndHasReason(text)) return fail(`${DEAD_END_NO_REASON}. Say what was tried and why, for example: jevmem add dead-end "Moving sessions to Redis added 40 ms per request from the EU region, so it was reverted"`);
       const cfg = loadConfig(root);
       const store = new MemoryStore(root, cfg.memoryFile);
       // Typed by a person, so no Jev check; secrets are still scrubbed because JEVMEM.md is committed.

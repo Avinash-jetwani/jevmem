@@ -1,12 +1,12 @@
 export { decide, evaluatePolicy, buildDecideQuestions, prefilterByOverlap, NOUL_NAMES } from "./decide.js";
 export type { Decision, DecideInput, DecideOptions, NoulName } from "./decide.js";
-export { writeMemory, composeLine } from "./write.js";
+export { writeMemory, composeLine, DEAD_END_WRITER_NOTE, DEAD_END_NO_REASON } from "./write.js";
 export type { WriteResult, WriteOptions } from "./write.js";
 export { MemoryStore, parseLine, formatLine, parseMemoryFile, serializeMemoryFile, newId, MEMORY_HEADER } from "./store.js";
 export type { MemoryFile } from "./store.js";
 export { createJev, hasJevKey, summarizeLog, readLog } from "./jev.js";
 export type { JevCaller, JevLogEntry, JevCallOptions } from "./jev.js";
-export { rankMemories, recallForPrompt, recallGuarded, rankGuarded, formatInjection, MEMORY_FRAME, neutralize } from "./recall.js";
+export { rankMemories, recallForPrompt, recallGuarded, rankGuarded, formatInjection, MEMORY_FRAME, neutralize, DEAD_END_PREFIX } from "./recall.js";
 export type { RankedMemory, GuardedRank } from "./recall.js";
 export { gateNoul, gateKey, gateQuestions, gateLines, planGate, settleGate, filterForServing, knownWithheld, hiddenTextReason, readVerdicts, cachedVerdict, GATE_VERSION } from "./guard.js";
 export type { GatePlan, Withheld, Verdict } from "./guard.js";
@@ -35,7 +35,7 @@ export type { Kind, Importance, Memory, Thresholds, JevmemConfig, GuardConfig, G
 export { combine, defaultWeights, mergeWeights, fit, fitThresholds, sigmoid } from "./combine.js";
 export type { Weights, FamilyWeights, LabelledExample, FitResult } from "./combine.js";
 export { ATOMIC_NOULS, FAMILIES, KIND_FAMILIES, DECIDE_QUESTION_COUNT, TIER1_NOULS, TIER1_NOUL_NAMES, TIER1_QUESTION_COUNT, buildTier1Questions, tier1Families } from "./questions.js";
-export { borderlineReasons, buildDecideState, splitTurn, looksLikeQuestion } from "./decide.js";
+export { borderlineReasons, buildDecideState, splitTurn, looksLikeQuestion, reportsAnAttempt } from "./decide.js";
 export { atomicNoulsFor, tier1NoulsFor, SOURCE_OPTIONS } from "./questions.js";
 export { ASSISTANT_KINDS } from "./combine.js";
 export type { DecideState, TierAnswers } from "./decide.js";
@@ -52,7 +52,7 @@ export { watchCodex, findCodexRollouts, parseRolloutLines, codexSessionsDir } fr
 export type { WatchedTurn, WatchOptions } from "./watch.js";
 export { cacheKey, cacheDir, pruneCache, isVercelGateway } from "./jev.js";
 export type { LogSummary } from "./jev.js";
-export { stripFiller, clampLine, extractFirstSentence } from "./llm/index.js";
+export { stripFiller, clampLine, extractFirstSentence, extractDeadEnd, deadEndHasReason, DEAD_END_REASON } from "./llm/index.js";
 export { main as cliMain, COMMANDS, COMMAND_HELP } from "./cli-main.js";
 export { HOOK_SETTINGS_FILE } from "./init.js";
 export { splitStatements, collectCandidates, runImport, formatImport, autoMemoryDir, projectSlug, gitRepoRoot, IMPORT_SOURCES, DEFAULT_IMPORT_SOURCES } from "./import.js";

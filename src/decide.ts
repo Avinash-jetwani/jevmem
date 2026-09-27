@@ -1,7 +1,8 @@
 import type { JevCaller } from "./jev.js";
-import { combine, defaultWeights, evaluatePolicy, mergeWeights, type Weights } from "./combine.js";
+import { combine, defaultWeights, evaluatePolicy, mergeWeights, resolveKind, type Weights } from "./combine.js";
 import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildTier1Questions, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, type Family } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
+import { mergeTurn } from "./transcript.js";
 import { DEFAULT_CONFIG, type BorderlineRule, type Importance, type Kind, type Memory, type Thresholds, type TiersConfig } from "./types.js";
 
 export { evaluatePolicy } from "./combine.js";
@@ -77,7 +78,10 @@ export interface Decision {
   source: "user_message" | "assistant_reply" | "both" | "none";
   /** True when the user asked a question and the assistant reply was sent to Jev. */
   assistantIncluded: boolean;
-  /** The text the writer should condense: the assistant reply when `source` is `assistant_reply`, else the user message. */
+  /**
+   * The text the writer should condense: the assistant reply when `source` is `assistant_reply`, else the user message.
+   * For a dead end with `source` `both`, the whole turn: what was tried is often in the request, why it failed in the reply.
+   */
   sourceText: string;
   /** Which tier's answer is final. */
   tier: 1 | 2;
@@ -142,7 +146,7 @@ const BUG_REPORT = /\b(fails?|failing|failed|broken|breaks?|crash(es|ed|ing)?|er
  * - its first 400 characters contain bug-report vocabulary (error, fails, broken, crash, flaky, stale, wrong, slow,
  *   timeout, bug, regression, leak, a `…Error` name, or an HTTP-context 4xx/5xx such as "returns 500").
  * So "Use Sentry for error reporting." also sends the reply; the content_source question then decides which side
- * the memory comes from, and only bug/architecture may come from the assistant.
+ * the memory comes from, and only bug, architecture and dead-end may come from the assistant.
  */
 export function looksLikeQuestion(user: string): boolean {
   const t = user.trim();
@@ -150,6 +154,19 @@ export function looksLikeQuestion(user: string): boolean {
   if (/\?\s*$/.test(t) || /\?/.test(t.split("\n")[0] ?? "")) return true;
   if (QUESTION_START.test(t)) return true;
   return BUG_REPORT.test(t.slice(0, 400));
+}
+
+// An attempt and how it ended, in the assistant's words: "I tried …", "reverted", "rolled back", "didn't help".
+const ATTEMPT_REPORT = /\b(tried|attempted|reverted|rolled (it |that |this |them )?back|backed (it|that|this|them) out|switched (it |that |them )?back|went back to|gave up on|abandoned|(didn't|did not|doesn't|does not) (work|help)|made no difference|no luck|still (fails|failed|failing))\b/i;
+
+/**
+ * Does the assistant reply report an attempt that ended (tried, reverted, rolled back, didn't help)? Then the reply is
+ * part of the state even when the user made a statement: a dead end is usually found by the assistant while it works
+ * ("Try keepalive" → "I tried keepalive at 10 s; the server answered GOAWAY, so I removed it"). A keyword heuristic, like
+ * `looksLikeQuestion`; the content_source question still decides which side a memory comes from.
+ */
+export function reportsAnAttempt(assistant: string): boolean {
+  return ATTEMPT_REPORT.test(assistant);
 }
 
 /** The borderline rule: which conditions say tier 1 is unsure. Pure, so it is testable and shown by `why`. */
@@ -216,8 +233,9 @@ export type DecideState = {
 
 /**
  * The exact state `decide` sends Jev for a turn. Exported so the benchmark gives other deciders the identical input.
- * The user message is the state; the assistant reply joins it only when `looksLikeQuestion` is true (or there is no
- * user text at all), because otherwise the assistant's acknowledgement, options, or summary would be remembered.
+ * The user message is the state; the assistant reply joins it only when `looksLikeQuestion` is true, when the reply
+ * reports an attempt (`reportsAnAttempt`), or when there is no user text at all, because otherwise the assistant's
+ * acknowledgement, options, or summary would be remembered.
  */
 export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "maxIds" | "maxMessageChars" | "maxContextChars"> = {}) {
   const parts = input.userMessage !== undefined ? { user: input.userMessage, assistant: input.assistantReply ?? "" } : splitTurn(input.message ?? "");
@@ -225,8 +243,8 @@ export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "
   // HTTP boundary; doing it here too means a mocked or custom JevCaller never sees a credential either.)
   const userMessage = scrubSecrets(parts.user).slice(0, opts.maxMessageChars ?? 6000);
   // Also included when there is no user text at all (transcript unreadable, only `last_assistant_message`): the
-  // content_source choice then decides, and only bug/architecture may come from the assistant.
-  const assistantIncluded = parts.assistant.trim().length > 0 && (looksLikeQuestion(userMessage) || userMessage.trim().length === 0);
+  // content_source choice then decides, and only bug, architecture and dead-end may come from the assistant.
+  const assistantIncluded = parts.assistant.trim().length > 0 && (looksLikeQuestion(userMessage) || userMessage.trim().length === 0 || reportsAnAttempt(parts.assistant));
   const assistantReply = assistantIncluded ? scrubSecrets(parts.assistant).slice(0, 2000) : "";
   const recent = scrubSecrets(input.recentContext ?? "").slice(-(opts.maxContextChars ?? 1500));
   const candidates = prefilterByOverlap(userMessage + " " + assistantReply, input.existingMemories, opts.maxIds ?? DEFAULT_CONFIG.jev.maxIdsPerCall).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
@@ -240,7 +258,7 @@ export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "
 }
 
 /**
- * Two-tier decide. Tier 1 (9 broad nouls) runs every turn; tier 2 (30 atomic nouls) runs only when the
+ * Two-tier decide. Tier 1 (10 broad nouls) runs every turn; tier 2 (31 atomic nouls) runs only when the
  * borderline rule says tier 1 is unsure. `tiers.mode` forces `fast` (tier 1 only) or `full` (always tier 2).
  */
 export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOptions = {}): Promise<Decision> {
@@ -274,11 +292,12 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
   const final = tier2 ?? tier1!;
   const t = final.tier === 2 ? thresholds : tier1Thresholds;
   const source = (assistantIncluded ? final.source : "user_message") as Decision["source"];
-  const policy = evaluatePolicy({ kindChoice: final.kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId, source }, t);
+  const { kind, note } = resolveKind(final.kind, final.kindProbabilities, final.families, final.touchesMemoryId, t);
+  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId, source }, t);
   const usage = { inputTokens: (tier1?.usage.inputTokens ?? 0) + (tier2?.usage.inputTokens ?? 0), outputTokens: (tier1?.usage.outputTokens ?? 0) + (tier2?.usage.outputTokens ?? 0) };
   return {
     save: policy.save,
-    kind: final.kind as Kind | "none",
+    kind: kind as Kind | "none",
     importance: policy.importance,
     importanceScore: final.importanceScore,
     contradiction: policy.contradiction,
@@ -288,13 +307,13 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
     content: policy.content,
     kindProbabilities: final.kindProbabilities,
     confidence: final.kindConfidence,
-    reason: `${policy.reason} [tier ${final.tier}${tier2 && tier1 ? ", escalated" : ""}]`,
+    reason: `${policy.reason}${note} [tier ${final.tier}${tier2 && tier1 ? ", escalated" : ""}]`,
     usage,
     cacheHit: Boolean(tier1?.cacheHit || tier2?.cacheHit) && !(tier1 && !tier1.cacheHit) && !(tier2 && !tier2.cacheHit),
     thresholds: t,
     source,
     assistantIncluded,
-    sourceText: source === "assistant_reply" ? parts.assistant.trim() : parts.user.trim(),
+    sourceText: source === "assistant_reply" ? parts.assistant.trim() : kind === "dead-end" && source === "both" ? mergeTurn(parts.user, parts.assistant) : parts.user.trim(),
     tier: final.tier,
     mode: tiers.mode,
     escalated: Boolean(tier1 && tier2),

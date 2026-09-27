@@ -6,8 +6,10 @@ import { KINDS, type Kind, type Memory } from "./types.js";
 
 export const FOOTER_RE = /^<!--\s*jevmem:.*-->\s*$/;
 
+// A kind is lowercase words joined by hyphens (`dead-end`). Versions before dead ends read only `[a-z]+`, so to them a
+// dead-end line is not a memory: they keep it in the file as it is (test/old-cli-deadend.test.ts).
 const LINE_RE =
-  /^- \[(?<kind>[a-z]+)\]\s+(?<text>.*?)\s*<!--\s*(?<meta>[^>]*?)\s*-->\s*$/;
+  /^- \[(?<kind>[a-z]+(?:-[a-z]+)*)\]\s+(?<text>.*?)\s*<!--\s*(?<meta>[^>]*?)\s*-->\s*$/;
 
 export function parseLine(line: string): Memory | null {
   const m = LINE_RE.exec(line);

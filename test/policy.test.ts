@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { combine, defaultWeights, evaluatePolicy, fit, mergeWeights, sigmoid, type LabelledExample } from "../src/combine.js";
 import { decide, prefilterByOverlap } from "../src/decide.js";
-import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, DECIDE_QUESTION_COUNT, FAMILIES, KIND_FAMILIES, NOUL_NAMES } from "../src/questions.js";
+import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, DECIDE_QUESTION_COUNT, FAMILIES, KIND_FAMILIES, NOUL_NAMES, TIER1_NOULS } from "../src/questions.js";
 import { DEFAULT_CONFIG } from "../src/types.js";
 import { CHIT_CHAT, INJECTION, mockJev, SAVE_DECISION } from "./helpers.js";
 
@@ -11,17 +11,21 @@ const quiet = () => Object.fromEntries(NOUL_NAMES.map((n) => [n, 0.05]));
 const fam = (over: Record<string, number>) => combine({ ...quiet(), ...over }, W);
 
 describe("question set", () => {
-  it("has 30 atomic nouls in nine families (+3 meta nouls with the assistant reply), two choices, one score, each choice with a none option", () => {
-    expect(atomicNoulsFor(false)).toHaveLength(30);
-    expect(ATOMIC_NOULS).toHaveLength(33);
-    expect(DECIDE_QUESTION_COUNT).toBe(33);
-    for (const f of FAMILIES) expect(ATOMIC_NOULS.filter((n) => n.family === f).length).toBeGreaterThanOrEqual(3);
+  it("has 31 atomic nouls in ten families (+3 meta nouls with the assistant reply), two choices, one score, each choice with a none option", () => {
+    expect(atomicNoulsFor(false)).toHaveLength(31);
+    expect(ATOMIC_NOULS).toHaveLength(34);
+    expect(DECIDE_QUESTION_COUNT).toBe(34);
+    // Every family has three or more atomic nouls, except dead-end: one noul, the same question as tier 1's (the brief:
+    // "a new noul in the decide step", in the request each tier already makes).
+    for (const f of FAMILIES) expect(ATOMIC_NOULS.filter((n) => n.family === f).length).toBeGreaterThanOrEqual(f === "dead-end" ? 1 : 3);
+    const deadEnd = ATOMIC_NOULS.filter((n) => n.family === "dead-end");
+    expect(deadEnd.map((n) => n.question)).toEqual([TIER1_NOULS.find((n) => n.family === "dead-end")!.question]);
     const q = buildDecideQuestions([{ id: "m1", kind: "decision", text: "Use Postgres" }]);
-    expect(Object.keys(q)).toHaveLength(33);
+    expect(Object.keys(q)).toHaveLength(34);
     const qa = buildDecideQuestions([{ id: "m1", kind: "decision", text: "Use Postgres" }], { withAssistant: true });
-    expect(Object.keys(qa)).toHaveLength(37);
+    expect(Object.keys(qa)).toHaveLength(38);
     expect(Object.keys((qa.content_source as any).criteria)).toEqual(["user_message", "assistant_reply", "both", "none"]);
-    expect(Object.keys((q.kind as any).criteria)).toEqual(["decision", "constraint", "preference", "bug", "architecture", "todo", "none"]);
+    expect(Object.keys((q.kind as any).criteria)).toEqual(["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end", "none"]);
     expect(Object.keys((q.touches_memory_id as any).criteria)).toEqual(["m1", "none"]);
     expect((q.importance as any).criteria).toHaveLength(5);
   });
@@ -157,7 +161,7 @@ describe("decide() with a mocked Jev (tier 2, mode=full)", () => {
     const existing = Array.from({ length: 250 }, (_, i) => ({ id: `id${i}`, kind: "todo" as const, text: `memory number ${i}` }));
     const d = await decide(jev, { message: "USER: let's use Postgres", existingMemories: existing }, { maxIds: 200, ...FULL });
     expect(jev.calls).toHaveLength(1);
-    expect(Object.keys(jev.calls[0]!.questions)).toHaveLength(33);
+    expect(Object.keys(jev.calls[0]!.questions)).toHaveLength(34);
     expect(Object.keys((jev.calls[0]!.questions.touches_memory_id as any).criteria)).toHaveLength(201);
     expect(d.save).toBe(true);
     expect(d.kind).toBe("decision");
@@ -165,7 +169,7 @@ describe("decide() with a mocked Jev (tier 2, mode=full)", () => {
     expect(d.families.decision).toBeGreaterThan(0.8);
     expect(d.content).toBe(Math.max(...KIND_FAMILIES.map((k) => d.families[k])));
     expect(d.cacheHit).toBe(false);
-    expect(Object.keys(d.nouls)).toHaveLength(30);
+    expect(Object.keys(d.nouls)).toHaveLength(31);
     expect(d.assistantIncluded).toBe(false);
     expect(d.source).toBe("user_message");
   });

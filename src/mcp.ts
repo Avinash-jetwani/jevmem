@@ -62,7 +62,7 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
     {
       title: "Add a memory",
       description:
-        "Append one memory line to JEVMEM.md. The line is scrubbed of secrets and checked by Jev first (the same gate as the Claude Code hook): lines that read as instructions aimed at an AI, small talk, or duplicates are refused with a reason. Jev may correct the kind. In Claude Code with jevmem's hooks (the plugin or `jevmem init`), every turn is already recorded automatically: do not call this to repeat what the user just said; call it only when the user asks you to record something the conversation itself does not state.",
+        "Append one memory line to JEVMEM.md. The line is scrubbed of secrets and checked by Jev first (the same gate as the Claude Code hook): lines that read as instructions aimed at an AI, small talk, or duplicates are refused with a reason. Jev may correct the kind. Kind dead-end is an approach that was tried and failed or was dropped: the line must say what was tried and why, or it is refused. In Claude Code with jevmem's hooks (the plugin or `jevmem init`), every turn is already recorded automatically: do not call this to repeat what the user just said; call it only when the user asks you to record something the conversation itself does not state.",
       inputSchema: { text: z.string().min(3).max(500), kind: z.enum(NEW_KINDS as unknown as [string, ...string[]]) },
       // Writes JEVMEM.md after asking Jev (external API), so openWorldHint is true. destructiveHint is true because
       // a line that contradicts a live memory re-tags that memory [superseded], taking it out of what is served:

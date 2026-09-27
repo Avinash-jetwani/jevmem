@@ -18,11 +18,12 @@ import { decide, type Decision } from "./decide.js";
 import { gateLines, hiddenTextReason } from "./guard.js";
 import type { JevCaller } from "./jev.js";
 import { recordDecision } from "./labels.js";
-import { clampLine, stripFiller } from "./llm/index.js";
+import { clampLine, deadEndHasReason, stripFiller } from "./llm/index.js";
 import { recordProvenance } from "./provenance.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
 import type { Kind, Memory } from "./types.js";
+import { DEAD_END_NO_REASON } from "./write.js";
 
 export const IMPORT_SOURCES = ["claude-md", "agents-md", "cursor-rules", "claude-auto-memory"] as const;
 export type ImportSource = (typeof IMPORT_SOURCES)[number];
@@ -285,6 +286,10 @@ export async function runImport(jev: JevCaller, store: MemoryStore, cfg: ReturnT
     decisions.set(row, d);
     if (!d.save || d.kind === "none") {
       row.reason = d.reason;
+      continue;
+    }
+    if (d.kind === "dead-end" && !deadEndHasReason(text)) {
+      row.reason = `skip: ${DEAD_END_NO_REASON}`;
       continue;
     }
     row.outcome = "add";

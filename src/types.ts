@@ -1,4 +1,7 @@
-/** The seven memory kinds Jevmem tracks. `superseded` is only ever assigned by contradiction handling. */
+/**
+ * The eight memory kinds Jevmem tracks. `superseded` is only ever assigned by contradiction handling. `dead-end` is an
+ * approach that was tried and failed or was dropped, with the reason (docs/dead-ends.md).
+ */
 export const KINDS = [
   "decision",
   "constraint",
@@ -6,6 +9,7 @@ export const KINDS = [
   "bug",
   "architecture",
   "todo",
+  "dead-end",
   "superseded",
 ] as const;
 export type Kind = (typeof KINDS)[number];
@@ -90,7 +94,7 @@ export interface JevmemConfig {
   };
   /** Logistic weights over the atomic nouls, per family. Hand-set defaults; `jevmem fit` overwrites them from labels. */
   weights?: Record<string, { bias: number; w: Record<string, number> }>;
-  /** Two-tier decide: tier 1 (9 broad nouls) every turn, tier 2 (30 atomic nouls) only on borderline turns. */
+  /** Two-tier decide: tier 1 (10 broad nouls) every turn, tier 2 (31 atomic nouls) only on borderline turns. */
   tiers: TiersConfig;
   /** The PreToolUse guard: checks Bash, Edit and Write calls against the project's saved `[constraint]` lines. */
   guard: GuardConfig;

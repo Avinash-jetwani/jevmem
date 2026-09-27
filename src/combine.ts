@@ -32,6 +32,8 @@ export function defaultWeights(): Weights {
     bug: { bias: -2.5, w: { describes_a_failure_or_incorrect_behavior: 2.0, names_a_root_cause: 2.5, describes_a_fix_that_was_applied: 1.5, mentions_a_test_error_or_stack_trace: 1.0 } },
     architecture: { bias: -2.5, w: { describes_where_code_or_data_lives: 2.0, describes_how_components_connect_or_data_flows: 2.0, names_modules_services_or_boundaries: 1.5 } },
     todo: { bias: -2.5, w: { defers_work_to_a_later_time: 2.5, uses_todo_later_next_or_before_launch: 2.0, describes_work_agreed_but_not_done: 1.5 } },
+    // One noul, so the family follows it: 0.5 → 0.5, 0.9 → 0.82.
+    "dead-end": { bias: -2.5, w: { tried_an_approach_that_failed_or_was_dropped: 5.0 } },
     chit_chat: { bias: -2.5, w: { is_greeting_thanks_or_acknowledgement: 2.0, contains_no_project_specific_content: 1.5, has_no_fact_decision_or_request: 2.0 } },
     injection: { bias: -2.5, w: { tells_an_ai_to_ignore_or_replace_instructions: 3.5, claims_system_or_admin_authority_over_the_ai: 2.5, asks_the_ai_to_store_or_alter_memory_or_rules: 2.5, quotes_text_from_a_file_or_page_addressed_to_an_ai: 2.0 } },
     contradiction: { bias: -3, w: { reverses_or_replaces_a_listed_memory: 4, uses_change_of_plan_instead_or_actually: 1.5, is_about_the_same_topic_as_a_listed_memory: 1 } },
@@ -69,8 +71,31 @@ export interface PolicyInput {
   source?: string;
 }
 
-/** Kinds an assistant reply may produce on its own (only when the user asked a question). */
-export const ASSISTANT_KINDS = new Set(["bug", "architecture"]);
+/**
+ * Kinds an assistant reply may produce on its own (only when the reply is in the state: the user asked a question, or
+ * the reply reports an attempt). A dead end is usually found by the assistant while it works, like a root cause.
+ */
+export const ASSISTANT_KINDS = new Set(["bug", "architecture", "dead-end"]);
+
+/** Jev's most likely kind other than dead-end (and none), for a turn that is not a dead end after all. */
+export function runnerUpKind(kindProbabilities: Record<string, number>): string {
+  const ranked = Object.entries(kindProbabilities).filter(([k]) => k !== "dead-end" && k !== "none" && k !== "superseded").sort((a, b) => b[1] - a[1]);
+  return ranked[0]?.[0] ?? "decision";
+}
+
+/**
+ * The kind a turn is judged as. A dead end must say why it failed, which the kind choice does not check: it reads "we
+ * tried X and dropped it" as a dead end too. When the dead-end noul, which asks for the reason, is under `contentMin`,
+ * the turn is not a dead end. If it reverses a listed line (the contradiction rule), it takes Jev's next most likely
+ * kind, so the old line is still superseded ("X works now" is read as a dead end with no reason). Otherwise it stays
+ * dead-end and the policy skips it: saved as its next kind, "we tried X and dropped it" came out as [architecture].
+ */
+export function resolveKind(kindChoice: string, kindProbabilities: Record<string, number>, families: Record<Family, number>, touchesMemoryId: string, t: Thresholds): { kind: string; note: string } {
+  const de = families["dead-end"] ?? 0;
+  if (kindChoice !== "dead-end" || de >= t.contentMin || touchesMemoryId === "none" || families.contradiction < t.contradictionMin) return { kind: kindChoice, note: "" };
+  const kind = runnerUpKind(kindProbabilities);
+  return { kind, note: ` (kind dead-end, but dead-end=${de.toFixed(2)}<${t.contentMin}: no reason given; a reversal, judged as ${kind})` };
+}
 
 export function importanceIndex(level: Importance): number {
   return IMPORTANCE_LEVELS.indexOf(level);
@@ -92,7 +117,10 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
   if (a.families.injection >= t.injectionMax) reasons.push(`injection=${a.families.injection.toFixed(2)}`);
   // The meta gate only matters when the assistant reply is what would be saved; a user statement stays the memory.
   if (a.source === "assistant_reply" && (a.families.meta ?? 0) >= t.metaMax) reasons.push(`assistant_meta=${a.families.meta.toFixed(2)}`);
-  if (a.source === "assistant_reply" && !ASSISTANT_KINDS.has(a.kindChoice)) reasons.push(`source=assistant_reply kind=${a.kindChoice} (only bug/architecture may come from the assistant)`);
+  // A dead end also needs the dead-end noul, which asks why it failed: the kind choice alone reads "we tried X and
+  // dropped it", with no reason given, as a dead end (docs/dead-ends.md).
+  if (a.kindChoice === "dead-end" && (a.families["dead-end"] ?? 0) < t.contentMin) reasons.push(`dead-end=${(a.families["dead-end"] ?? 0).toFixed(2)}<${t.contentMin} (no reason given)`);
+  if (a.source === "assistant_reply" && !ASSISTANT_KINDS.has(a.kindChoice)) reasons.push(`source=assistant_reply kind=${a.kindChoice} (only bug, architecture and dead-end may come from the assistant)`);
   const save = reasons.length === 0;
   const contradiction = save && a.families.contradiction >= t.contradictionMin && a.touchesMemoryId !== "none";
   return {

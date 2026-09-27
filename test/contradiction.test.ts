@@ -24,10 +24,10 @@ describe("contradiction handling", () => {
     const r = await writeMemory(store, message, d, writerNone);
     expect(r.superseded?.id).toBe(old.id);
     const raw = fs.readFileSync(path.join(root, "JEVMEM.md"), "utf8");
-    expect(raw).toContain(`- [superseded] Use SQLite for the primary store → id:${r.saved.id}`);
+    expect(raw).toContain(`- [superseded] Use SQLite for the primary store → id:${r.saved!.id}`);
     expect(raw).toContain(`- [decision] ${r.line}`);
     expect(store.active()).toHaveLength(1);
-    expect(store.active()[0]!.id).toBe(r.saved.id);
+    expect(store.active()[0]!.id).toBe(r.saved!.id);
   });
 
   it("does not supersede when the noul is high but no memory id was chosen", async () => {
@@ -37,7 +37,7 @@ describe("contradiction handling", () => {
     const d = await decide(jev, { message: "USER: Use Postgres now.", existingMemories: store.active() });
     const r = await writeMemory(store, "USER: Use Postgres now.", d, writerNone);
     expect(r.superseded).toBeNull();
-    expect(store.active().map((m) => m.id).sort()).toEqual([old.id, r.saved.id].sort());
+    expect(store.active().map((m) => m.id).sort()).toEqual([old.id, r.saved!.id].sort());
   });
 
   it("refuses to write a non-save decision", async () => {
@@ -133,7 +133,7 @@ describe("reversal satisfies the content gate (v0.4.2)", () => {
     const { evaluatePolicy } = await import("../src/combine.js");
     const { DEFAULT_CONFIG } = await import("../src/types.js");
     const t = DEFAULT_CONFIG.thresholds;
-    const fam = (content: number, contradiction: number) => ({ decision: content, constraint: 0, preference: 0, bug: 0, architecture: 0, todo: 0, chit_chat: 0.05, injection: 0.05, contradiction, meta: 0 });
+    const fam = (content: number, contradiction: number) => ({ decision: content, constraint: 0, preference: 0, bug: 0, architecture: 0, todo: 0, "dead-end": 0, chit_chat: 0.05, injection: 0.05, contradiction, meta: 0 });
     const reversal = evaluatePolicy({ kindChoice: "decision", importanceScore: 3, families: fam(0.3, 0.85), touchesMemoryId: "l3" }, t);
     expect(reversal.save).toBe(true);
     expect(reversal.contradiction).toBe(true);

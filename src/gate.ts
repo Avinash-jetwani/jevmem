@@ -8,7 +8,7 @@ import { decide, type Decision } from "./decide.js";
 import type { JevCaller } from "./jev.js";
 import { recordDecision } from "./labels.js";
 import { recordProvenance } from "./provenance.js";
-import { clampLine } from "./llm/index.js";
+import { clampLine, deadEndHasReason } from "./llm/index.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
 import type { Kind, Memory } from "./types.js";
@@ -45,8 +45,15 @@ export async function gatedAdd(jev: JevCaller, store: MemoryStore, cfg: ReturnTy
   if (chat >= decision.thresholds.chitChatMax) return refuse(`refused: the line is small talk with no project content (chit-chat ${chat.toFixed(2)} ≥ ${decision.thresholds.chitChatMax})`);
   const dup = existing.find((m) => m.text.toLowerCase() === clean.toLowerCase());
   if (dup) return refuse(`refused: duplicate of ${dup.id}`);
-  const kindFrom = decision.kind !== "none" ? "jev" : "caller";
-  const kind = (decision.kind !== "none" ? decision.kind : callerKind) as Kind;
+  let kindFrom: "jev" | "caller" = decision.kind !== "none" ? "jev" : "caller";
+  let kind = (decision.kind !== "none" ? decision.kind : callerKind) as Kind;
+  // A dead end says why it failed or was dropped (docs/dead-ends.md). Jev reading a line as a dead end that gives no
+  // reason leaves the caller's kind; a caller's dead end with no reason is refused.
+  if (kind === "dead-end" && !deadEndHasReason(clean)) {
+    if (callerKind === "dead-end") return refuse("refused: a dead end must say what was tried and why it failed or was dropped, and this line gives no reason");
+    kind = callerKind;
+    kindFrom = "caller";
+  }
   const saved = store.add({ kind, text: clean, conf: decision.confidence });
   recordProvenance(store.root, saved, "mcp");
   const superseded = decision.contradiction && decision.touchesMemoryId ? store.supersede(decision.touchesMemoryId, saved.id) : null;
