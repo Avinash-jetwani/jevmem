@@ -221,13 +221,14 @@ const deadEndSentences = (text: string) =>
 
 /**
  * A leading "fyi", then "I tried", "We tried" or "Tried" before what was tried: the [dead-end] tag and "Already tried:"
- * say it. Kept when what follows is a name in code (generateStaticParams, next/image), which must keep its case.
+ * say it. Only before a gerund or an article ("switching the watcher", "the temp-dir approach"): before anything else
+ * ("I tried it once", "tried rayon's par_bridge", "tried generateStaticParams") the words stay as they are.
  */
 function leadingTried(s: string): string {
   const t = s.replace(/^(?:fyi|fwiw|btw)\b[,:]?\s+/i, "");
-  const m = /^(?:(?:i|we)\s+(?:first\s+)?)?tried\s+(?!to\b)([a-z][a-z']*)(?=[\s,;:])/i.exec(t);
-  if (!m || /[A-Z]/.test(m[1]!.slice(1))) return t;
-  return m[1]!.charAt(0).toUpperCase() + t.slice(m[0].length - m[1]!.length + 1);
+  const m = /^(?:(?:i|we)\s+(?:first\s+)?)?tried\s+([a-z]+ing|the|a|an|our|their|its)\s/i.exec(t);
+  if (!m) return t;
+  return m[1]!.charAt(0).toUpperCase() + t.slice(m[0].length - m[1]!.length);
 }
 
 /**

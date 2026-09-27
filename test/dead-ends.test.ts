@@ -150,6 +150,9 @@ describe("the line: what was tried and why", () => {
     const line = extractDeadEnd(reply, 200);
     expect(line).toMatch(/^I ran `node --experimental-strip-types src\/app\.ts` once, unchanged\. It fails because .*enum/);
     expect(deadEndHasReason(line)).toBe(true);
+    // "I tried it once." keeps its words: "I tried" goes only before a gerund or an article.
+    expect(extractDeadEnd("I tried it once. It failed because the app uses an enum, which strip-only mode does not support.", 200)).toBe("I tried it once. It failed because the app uses an enum, which strip-only mode does not support.");
+    expect(extractDeadEnd("We tried the temp-dir approach, but rename fails with EXDEV across mounts.", 200)).toBe("The temp-dir approach, but rename fails with EXDEV across mounts.");
     const plain = extractDeadEnd("Queue consumers on Lambda looked cheaper. They hit the 15-minute limit on the nightly export, so the export stays on the worker box.", 200);
     expect(plain).toBe("Queue consumers on Lambda looked cheaper. They hit the 15-minute limit on the nightly export, so the export stays on the worker box.");
   });
