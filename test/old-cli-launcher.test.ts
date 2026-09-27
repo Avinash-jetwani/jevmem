@@ -170,9 +170,13 @@ describe.skipIf(!release)(`the plugin's launcher with the jevmem ${TAG.slice(1)}
     // Recall reached Claude Code the same way.
     expect(JSON.parse(before.steps[0]!.stdout).hookSpecificOutput.additionalContext).toContain("Use Postgres 16 for the main database (id:<id0>");
     const probe = ["/", "<bin>/jevmem guard --help"];
+    // The 0.5.7 launcher's Stop hook can print bash's harmless "child setpgid (…): Operation not permitted" race (about 1
+    // launch in 1,000); this launcher keeps it off stderr, so it is left out of the comparison and must never show here.
+    const setpgid = /^.*: child setpgid \(\d+ to \d+\): Operation not permitted\n/gm;
     for (const [i, b] of before.steps.entries()) {
       const a = after.steps[i]!;
-      expect([a.name, a.status, a.stdout, a.stderr]).toEqual([b.name, b.status, b.stdout, b.stderr]);
+      expect(a.stderr, a.name).not.toMatch(setpgid);
+      expect([a.name, a.status, a.stdout, a.stderr]).toEqual([b.name, b.status, b.stdout, b.stderr.replace(setpgid, "")]);
       // The same processes in the same order, but for the guard check on a run with nothing cached.
       const extra = a.started.filter((p) => p.join("\t") === probe.join("\t"));
       expect(a.started.filter((p) => p.join("\t") !== probe.join("\t")), a.name).toEqual(b.started);
@@ -182,7 +186,7 @@ describe.skipIf(!release)(`the plugin's launcher with the jevmem ${TAG.slice(1)}
     // What was compared: on a cold run, the Node check, --version and the hook itself (Stop hands over a saved input file).
     expect(before.steps[0]!.started.map((p) => p[1]!.replace(/^-e .*/, "-e <node check>"))).toEqual(["-e <node check>", "<bin>/jevmem --version", "<bin>/jevmem hook --plugin"]);
     expect(before.steps[1]!.started).toEqual([["<project>", "<bin>/jevmem hook --plugin --stdin-file <data>/tmp/jevmem-hook.<pid>"]]);
-    for (const s of [...before.steps, ...after.steps]) expect([s.status, s.stderr]).toEqual([0, ""]);
+    for (const s of [...before.steps, ...after.steps]) expect([s.status, s.stderr.replace(setpgid, "")]).toEqual([0, ""]);
   }, 120_000);
 
   it("the PreToolUse hook never starts the 0.5.7 CLI's hook: no output, no request, no file; that CLI would have queued a turn", async () => {

@@ -153,7 +153,11 @@ if [ "$detach" -eq 1 ]; then
     if [ -n "$node" ]; then setsid "$node" "$cli" "$@" --stdin-file "$tmp" </dev/null >/dev/null 2>&1 &
     else setsid "$cli" "$@" --stdin-file "$tmp" </dev/null >/dev/null 2>&1 & fi
   else
+    # Job control gives the CLI its own process group. The shell and the child both set it, and when the child is first
+    # the shell prints "child setpgid (...): Operation not permitted" (harmless, about 1 launch in 1,000). Nothing else is
+    # printed from here, so stderr goes to /dev/null first; a redirected { … & } group would leave the CLI holding it.
     set -m
+    exec 2>/dev/null
     cli_run "$@" --stdin-file "$tmp" </dev/null >/dev/null 2>&1 &
   fi
   exit 0
