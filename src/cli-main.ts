@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { applyAudit, auditMemories, formatAuditTable, formatSecurityTable, securityAudit } from "./audit.js";
 import { knownWithheld, planGate } from "./guard.js";
+import { formatFailures, recentFailures } from "./failures.js";
 import { formatGuardLog, formatGuardStats, guardLogStats, readGuardLog } from "./guardlog.js";
 import { checkCli, initHookClis, pluginLauncherCli, userEnablesPlugin } from "./hookcli.js";
 import { isVerified, readProvenance } from "./provenance.js";
@@ -221,6 +222,9 @@ Retry queue: turns queued after a Jev failure (timeout, 5xx, 529), retries, turn
 Guard (from .jevmem/guard-log.jsonl): Bash, Edit and Write calls the PreToolUse hook checked, how many took the fast
 path (no candidate rule, nothing sent), were answered from the cache or were sent to Jev, and how many were asked
 (tamper asks among them), denied or warned.
+Failures in the last 7 days (from .jevmem/log.jsonl, no network): turns dropped without being evaluated, recall
+requests that failed (the prompt got no project memory), and guard checks that failed or timed out (the call ran
+unchecked), each with its reasons.
 `,
   doctor: `jevmem doctor
 
@@ -237,6 +241,8 @@ Checks this project's setup and prints it. Never prints a key.
             whether the jevmem and Node a hook names still exist. A jevmem too old for the guard makes the plugin skip
             its PreToolUse hook, and under a PreToolUse hook from \`jevmem init\` it would read every Bash, Edit and
             Write call as a finished turn
+  failures  from .jevmem/log.jsonl, the last 7 days: turns dropped without being evaluated, recall requests that
+            failed, and guard checks that failed or timed out, each with its reasons (the same as \`jevmem stats\`)
 `,
   log: `jevmem log
 
@@ -608,6 +614,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         io.out(`writer: ${w.provider === "none" ? "jevmem (local, no LLM)" : `${w.provider} (${w.model})`}: ${w.reason}\n`);
         const q = queueStats(root, allEntries);
         io.out(`retry queue: ${q.queued} queued after a Jev failure, ${q.retried} retries, ${q.savedFromQueue} saved from the queue (${q.skippedFromQueue} skipped by Jev), ${q.dropped} dropped, ${q.pending} pending\n`);
+        for (const line of formatFailures(recentFailures(allEntries), "failures: ", "  ")) io.out(line + "\n");
         const withheld = new Set(allEntries.filter((e) => e.event === "withheld").map((e) => e.memoryId)).size;
         if (withheld) io.out(`poisoning gate: ${withheld} line(s) withheld from recall (see \`jevmem audit\`)\n`);
         const guard = formatGuardStats(guardLogStats(readGuardLog(root)));
@@ -643,6 +650,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no jevmem plugin in the project or user settings, and no init hooks in this project"}\n`);
       if (enabled) io.out(`guard    ${guardStatus(root)}\n`);
       for (const line of hookCliLines(root, plugin)) io.out(line + "\n");
+      for (const line of formatFailures(recentFailures(readLog(root)), "failures ", "         ")) io.out(line + "\n");
       return 0;
     }
     case "why": {
