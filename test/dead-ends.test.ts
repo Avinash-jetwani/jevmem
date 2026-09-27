@@ -144,6 +144,16 @@ describe("the line: what was tried and why", () => {
     expect(extractFirstSentence(turn, 200)).not.toMatch(/connections/); // the one-sentence extract, as other kinds get it
   });
 
+  it("when the attempt and the reason are two sentences and no word like 'tried' names the attempt, the line still starts at the attempt", () => {
+    // As Claude wrote it in an end-to-end run: the reason's sentence alone lost what was tried.
+    const reply = "I ran `node --experimental-strip-types src/app.ts` once, unchanged. It fails because `src/app.ts:1` uses a TypeScript `enum`, which Node's strip-only mode can't handle (it only strips type annotations, not syntax like enums that needs actual transformation). Dropping the idea — keeping the tsc build as-is.";
+    const line = extractDeadEnd(reply, 200);
+    expect(line).toMatch(/^I ran `node --experimental-strip-types src\/app\.ts` once, unchanged\. It fails because .*enum/);
+    expect(deadEndHasReason(line)).toBe(true);
+    const plain = extractDeadEnd("Queue consumers on Lambda looked cheaper. They hit the 15-minute limit on the nightly export, so the export stays on the worker box.", 200);
+    expect(plain).toBe("Queue consumers on Lambda looked cheaper. They hit the 15-minute limit on the nightly export, so the export stays on the worker box.");
+  });
+
   it("when the attempt fills the line, it is shortened and the reason is kept", () => {
     const attempt = "I tried generating a static page for every one of the listings in the catalogue, including the archived ones and the drafts that editors keep around, at build time.";
     const why = "The build hit the platform's 45-minute limit at about 30k pages.";

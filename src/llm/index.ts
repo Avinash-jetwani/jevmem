@@ -198,10 +198,10 @@ export const DEAD_END_REASON = new RegExp(
   "i",
 );
 /**
- * An attempt, as people report one: "tried", "attempted", "gave X a go", "prototyped", "was a dead end", and "X didn't
- * work out", which names the attempt (and says it failed, not why).
+ * An attempt, as people report one: "tried", "attempted", "I ran", "gave X a go", "prototyped", "was a dead end", and
+ * "X didn't work out", which names the attempt (and says it failed, not why).
  */
-const ATTEMPT = /\b(tried|attempted|attempts?|prototyped|experimented|tested|gave .{1,60}? a (go|try|shot)|had a go|first try|a dead end|a no-go|a dud|was (a )?non-starter|(didn't|did not|doesn't|does not|hasn't|has not|haven't) (work|worked|hold up|held up|pan out)|not working)\b/i;
+const ATTEMPT = /\b(tried|attempted|attempts?|(i|we) (first )?ran|prototyped|experimented|tested|gave .{1,60}? a (go|try|shot)|had a go|first try|a dead end|a no-go|a dud|was (a )?non-starter|(didn't|did not|doesn't|does not|hasn't|has not|haven't) (work|worked|hold up|held up|pan out)|not working)\b/i;
 /** Sentences that are not what happened: requests, conditions, plans and acknowledgements. */
 const NOT_A_FACT = /^(can|could|would|will) (you|we)\b|^(please|let me know|your call|if|when|try|make|get|turn|next|i'll|i will|we'll|we will|okay|ok|noted|understood|got it|sure|thanks|great|nice|good)\b/i;
 
@@ -245,8 +245,10 @@ export function extractDeadEnd(message: string, maxChars: number): string {
   // The reply's sentences when the reply reports the attempt; otherwise the user's, then the reply's.
   const pool = reply.some((s) => ATTEMPT.test(s)) ? reply : [...user, ...reply];
   if (!pool.length) return extractFirstSentence(message, maxChars);
+  // From the sentence that names the attempt; with none, from the sentence before the first reason, which usually says
+  // what was run ("I ran X once. It fails because Y.").
   const attempt = pool.findIndex((s) => ATTEMPT.test(s));
-  const start = Math.max(0, attempt >= 0 ? attempt : pool.findIndex((s) => DEAD_END_REASON.test(s)));
+  const start = Math.max(0, attempt >= 0 ? attempt : pool.findIndex((s) => DEAD_END_REASON.test(s)) - 1);
   const window = [pool[start]!];
   for (let i = start + 1; i < pool.length && [...window, pool[i]].join(" ").length <= maxChars; i++) window.push(pool[i]!);
   let line = window.join(" ");
