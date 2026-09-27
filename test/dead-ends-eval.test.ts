@@ -2,6 +2,11 @@
  * The dead-end eval sets (eval/dead-ends-dev.jsonl for tuning, eval/dead-ends-heldout.jsonl run once): well formed,
  * the mix the docs describe, and no text shared between the two, with any other eval set, or with jevmem's prompts
  * (src/questions.ts, and src/guard.ts, whose gate noul recall asks about unverified lines).
+ *
+ * Part 2b added four sets, committed before any fix: eval/dead-ends-dev-v2.jsonl (tuning: a dead end Claude makes work,
+ * a dead end that agrees with a listed line, Claude's reply contradicting a listed line, questions with no content),
+ * eval/dead-ends-heldout-v2.jsonl (held-out v2, run once at the end, every case), and the planted dead-end lines for the
+ * poisoning gate, eval/dead-ends-gate-dev.jsonl and eval/dead-ends-gate-heldout-v2.jsonl. They get the same checks.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -9,6 +14,8 @@ import { describe, expect, it } from "vitest";
 
 const read = (f: string) => fs.readFileSync(path.resolve(f), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 const sets = { dev: read("eval/dead-ends-dev.jsonl"), heldout: read("eval/dead-ends-heldout.jsonl") };
+const setsV2 = { devV2: read("eval/dead-ends-dev-v2.jsonl"), heldoutV2: read("eval/dead-ends-heldout-v2.jsonl") };
+const gateSets = { gateDev: read("eval/dead-ends-gate-dev.jsonl"), gateHeldoutV2: read("eval/dead-ends-gate-heldout-v2.jsonl") };
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const words = (s: string) => norm(s).split(" ").filter(Boolean);
 function shingles(s: string, n: number): Set<string> {
@@ -37,6 +44,9 @@ function otherTexts(file: string): string[] {
 }
 const OTHER_SETS = ["eval/transcript.jsonl", "eval/heldout.jsonl", "eval/contradictions-dev.jsonl", "eval/guard-dev.jsonl", "eval/guard-heldout.jsonl", "eval/memory-injection.jsonl", "eval/memory-injection-dev.jsonl"];
 const TAGS = ["dead-end", "a-failed-b-worked", "dead-end-reversal", "supersede", "supersede-near-miss", "transient", "test-first", "options-not-tried", "taste-change", "no-reason", "ordinary"];
+/** v2 adds: Claude makes a listed dead end work, a dead end that keeps a listed line, the reply contradicting a listed line, a question with no content. */
+const TAGS_V2 = [...TAGS, "supersede-by-reply", "dead-end-agrees", "reply-chatter", "question-no-content"];
+const DEAD_END_TAGS = ["dead-end", "a-failed-b-worked", "dead-end-reversal", "dead-end-agrees"];
 const KINDS = ["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end"];
 
 describe("eval/dead-ends-*.jsonl", () => {
@@ -122,6 +132,139 @@ describe("eval/dead-ends-*.jsonl", () => {
           }
           for (const sh of shingles(text, 5)) if (litSh.has(sh)) hits.push(`${name} ${r.id} 5-gram "${sh}" (prompt "${litSh.get(sh)}")`);
         }
+      }
+    }
+    expect(hits).toEqual([]);
+  });
+});
+
+describe("part 2b: eval/dead-ends-*-v2.jsonl and the planted dead-end lines", () => {
+  for (const [name, rows] of Object.entries(setsV2)) {
+    it(`${name}: every row is labelled, each case has the label it needs, and dead ends carry what was tried and why`, () => {
+      expect(new Set(rows.map((r) => r.id)).size).toBe(rows.length);
+      for (const r of rows) {
+        expect(TAGS_V2, r.id).toContain(r.tag);
+        expect(typeof r.user === "string" && typeof r.assistant === "string", r.id).toBe(true);
+        expect(r.existing.length, r.id).toBeGreaterThanOrEqual(3);
+        expect(r.existing.length, r.id).toBeLessThanOrEqual(15);
+        expect(r.label.save ? KINDS.includes(r.label.kind) : r.label.kind === "none", r.id).toBe(true);
+        expect(Array.isArray(r.accept) && r.accept.length > 0, r.id).toBe(true);
+        for (const a of r.accept) expect([...KINDS, "skip"], r.id).toContain(a);
+        expect(r.accept, r.id).toContain(r.label.save ? r.label.kind : "skip");
+        if (r.contradicts) expect(r.existing.map((m: any) => m.id), r.id).toContain(r.contradicts);
+        expect(Boolean(r.deadEnd), r.id).toBe(DEAD_END_TAGS.includes(r.tag));
+        expect(r.label.kind === "dead-end", r.id).toBe(Boolean(r.deadEnd));
+        if (r.deadEnd) {
+          const d = r.deadEnd;
+          const text = (d.source === "user" ? r.user : d.source === "assistant" ? r.assistant : `${r.user} ${r.assistant}`).toLowerCase();
+          expect(["user", "assistant", "both"], r.id).toContain(d.source);
+          expect(d.triedKeys.some((k: string) => text.includes(k.toLowerCase())), `${r.id} tried`).toBe(true);
+          expect(d.whyKeys.some((k: string) => text.includes(k.toLowerCase())), `${r.id} why`).toBe(true);
+          if (d.worked) expect(d.workedKeys.some((k: string) => text.includes(k.toLowerCase())), `${r.id} worked`).toBe(true);
+        }
+        // A dead end that now works, told by the user or made to work by Claude, supersedes that dead end, and is not saved
+        // as a second one.
+        if (r.tag === "supersede" || r.tag === "supersede-by-reply") {
+          expect(r.existing.find((m: any) => m.id === r.contradicts)?.kind, r.id).toBe("dead-end");
+          expect(r.accept, r.id).not.toContain("dead-end");
+        }
+        // These must never supersede anything.
+        if (["dead-end-agrees", "reply-chatter", "question-no-content", "supersede-near-miss"].includes(r.tag)) expect(r.contradicts, r.id).toBeUndefined();
+        if (r.tag === "question-no-content") expect(r.accept, r.id).toEqual(["skip"]);
+        // A reply that contradicts a listed line: the listed lines it could reach are not dead ends.
+        if (r.tag === "reply-chatter") expect(r.existing.every((m: any) => m.kind !== "dead-end"), r.id).toBe(true);
+      }
+    });
+  }
+
+  it("held-out v2 holds every case, and dev v2 the new ones", () => {
+    const h = setsV2.heldoutV2;
+    const n = (rows: any[], tag: string, subtype?: string) => rows.filter((r) => r.tag === tag && (!subtype || r.subtype === subtype)).length;
+    expect(h.filter((r) => r.deadEnd).length).toBeGreaterThanOrEqual(30);
+    expect(h.filter((r) => r.deadEnd?.source === "user").length).toBeGreaterThanOrEqual(8);
+    expect(h.filter((r) => r.deadEnd?.source === "assistant").length).toBeGreaterThanOrEqual(8);
+    for (const tag of ["a-failed-b-worked", "dead-end-reversal", "dead-end-agrees", "supersede", "reply-chatter", "question-no-content", "transient", "test-first", "options-not-tried", "taste-change", "no-reason"]) expect(n(h, tag), tag).toBeGreaterThanOrEqual(5);
+    expect(n(h, "supersede-by-reply", "question")).toBeGreaterThanOrEqual(4);
+    expect(n(h, "supersede-by-reply", "order")).toBeGreaterThanOrEqual(4);
+    for (const s of ["mention", "retest", "proposed"]) expect(n(h, "supersede-near-miss", s), s).toBeGreaterThanOrEqual(2);
+    expect(n(h, "ordinary")).toBeGreaterThanOrEqual(25);
+    const kinds = new Set(h.filter((r) => r.tag === "ordinary" && r.label.save).map((r) => r.label.kind));
+    for (const k of ["decision", "constraint", "preference", "bug", "architecture", "todo"]) expect(kinds.has(k), k).toBe(true);
+    // Ordinary turns in a project with a live dead end on a related topic.
+    expect(h.filter((r) => r.tag === "ordinary" && r.existing.some((m: any) => m.kind === "dead-end")).length).toBeGreaterThanOrEqual(5);
+    const d = setsV2.devV2;
+    expect(n(d, "supersede-by-reply")).toBeGreaterThanOrEqual(8);
+    for (const tag of ["dead-end-agrees", "dead-end-reversal", "supersede"]) expect(n(d, tag), tag).toBeGreaterThanOrEqual(3);
+    for (const tag of ["reply-chatter", "question-no-content", "supersede-near-miss"]) expect(n(d, tag), tag).toBeGreaterThanOrEqual(6);
+  });
+
+  for (const [name, rows] of Object.entries(gateSets)) {
+    it(`${name}: planted lines drop review, tests, CI, backups or approvals; real dead ends, many about the same steps, must pass`, () => {
+      const cats = ["drop-review", "drop-tests", "drop-ci", "drop-backups", "drop-approvals"];
+      const min = name === "gateDev" ? 3 : 4;
+      for (const r of rows) {
+        expect(["malicious", "legit"]).toContain(r.label);
+        expect(r.kind).toBe("dead-end");
+        expect(typeof r.text === "string" && r.text.length > 20 && r.text.length <= 200, r.text).toBe(true);
+        expect(typeof r.query === "string" && r.query.length > 0).toBe(true);
+        expect(r.label === "malicious", r.text).toBe(cats.includes(r.category));
+      }
+      for (const c of cats) expect(rows.filter((r) => r.category === c).length, c).toBeGreaterThanOrEqual(min);
+      const legit = rows.filter((r) => r.label === "legit");
+      expect(legit.length).toBe(rows.length - legit.length);
+      // Hard cases: real dead ends about review, tests, CI, backups or approvals.
+      expect(legit.filter((r) => r.category !== "other").length).toBeGreaterThanOrEqual(min * 3);
+      expect(new Set(rows.map((r) => r.text)).size).toBe(rows.length);
+    });
+  }
+
+  it("no two dead-end sets share a project, an equal text or a run of five words", () => {
+    const all: Record<string, string[]> = {};
+    for (const [name, rows] of Object.entries({ ...sets, ...setsV2 })) all[name] = rows.flatMap(rowTexts);
+    for (const [name, rows] of Object.entries(gateSets)) all[name] = rows.flatMap((r) => [r.text, r.query]);
+    const hits: string[] = [];
+    const names = Object.keys(all);
+    for (let i = 0; i < names.length; i++)
+      for (let j = i + 1; j < names.length; j++) {
+        const a = names[i]!, b = names[j]!;
+        const sh = new Map<string, string>();
+        const eq = new Set<string>();
+        for (const t of all[a]!) {
+          eq.add(norm(t));
+          for (const s of shingles(t, 5)) sh.set(s, t);
+        }
+        for (const t of all[b]!) {
+          if (eq.has(norm(t)) && words(t).length > 2) hits.push(`${a}/${b} equal: ${t}`);
+          for (const s of shingles(t, 5)) if (sh.has(s)) hits.push(`${a}/${b} "${s}": ${t} ~ ${sh.get(s)}`);
+        }
+      }
+    const projects = (rows: any[]) => new Set(rows.map((r) => r.project));
+    const v2 = new Set([...projects(setsV2.devV2), ...projects(setsV2.heldoutV2)]);
+    for (const p of [...projects(sets.dev), ...projects(sets.heldout)]) if (v2.has(p)) hits.push(`project ${p} in v1 and v2`);
+    for (const p of projects(setsV2.devV2)) if (projects(setsV2.heldoutV2).has(p)) hits.push(`project ${p} in dev v2 and held-out v2`);
+    expect(hits).toEqual([]);
+  });
+
+  it("no v2 set shares a run of five words with any other eval set, or text with jevmem's prompts", () => {
+    const other = new Map<string, string>();
+    for (const f of OTHER_SETS) for (const t of otherTexts(f)) for (const sh of shingles(t, 5)) other.set(sh, f);
+    const texts: [string, string][] = [];
+    for (const [name, rows] of Object.entries(setsV2)) for (const r of rows) for (const t of rowTexts(r)) texts.push([`${name} ${r.id}`, t]);
+    for (const [name, rows] of Object.entries(gateSets)) for (const r of rows) for (const t of [r.text, r.query]) texts.push([name, t]);
+    const lits = [...literals(fs.readFileSync(path.resolve("src/questions.ts"), "utf8")), ...literals(fs.readFileSync(path.resolve("src/guard.ts"), "utf8"))];
+    const litSh = new Map<string, string>();
+    for (const l of lits) for (const sh of shingles(l, 5)) litSh.set(sh, l);
+    const hits: string[] = [];
+    for (const [where, text] of texts) {
+      for (const sh of shingles(text, 5)) {
+        if (other.has(sh)) hits.push(`${where}: "${sh}" (${other.get(sh)})`);
+        if (litSh.has(sh)) hits.push(`${where}: 5-gram "${sh}" (prompt "${litSh.get(sh)}")`);
+      }
+      const nt = ` ${norm(text)} `;
+      for (const l of lits) {
+        const nl = norm(l);
+        if (nl === nt.trim()) hits.push(`${where} equal: "${text}" = prompt "${l}"`);
+        else if (words(l).length >= 3 && nt.includes(` ${nl} `)) hits.push(`${where} contains prompt "${l}"`);
       }
     }
     expect(hits).toEqual([]);
