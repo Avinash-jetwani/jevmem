@@ -1,6 +1,6 @@
 export { decide, evaluatePolicy, buildDecideQuestions, prefilterByOverlap, NOUL_NAMES } from "./decide.js";
 export type { Decision, DecideInput, DecideOptions, NoulName } from "./decide.js";
-export { writeMemory, composeLine, DEAD_END_WRITER_NOTE, WORKS_NOW_WRITER_NOTE, DEAD_END_NO_REASON } from "./write.js";
+export { writeMemory, composeLine, DEAD_END_WRITER_NOTE, WORKS_NOW_WRITER_NOTE, RETEST_WRITER_NOTE, DEAD_END_NO_REASON } from "./write.js";
 export type { WriteResult, WriteOptions } from "./write.js";
 export { MemoryStore, parseLine, formatLine, parseMemoryFile, serializeMemoryFile, newId, MEMORY_HEADER } from "./store.js";
 export type { MemoryFile } from "./store.js";
@@ -52,7 +52,7 @@ export { watchCodex, findCodexRollouts, parseRolloutLines, codexSessionsDir } fr
 export type { WatchedTurn, WatchOptions } from "./watch.js";
 export { cacheKey, cacheDir, pruneCache, isVercelGateway } from "./jev.js";
 export type { LogSummary } from "./jev.js";
-export { stripFiller, clampLine, extractFirstSentence, extractDeadEnd, extractWorksNow, isReasoningModel, callOpenAI } from "./llm/index.js";
+export { stripFiller, clampLine, extractFirstSentence, extractDeadEnd, extractWorksNow, combineRetest, isReasoningModel, callOpenAI } from "./llm/index.js";
 export { main as cliMain, COMMANDS, COMMAND_HELP } from "./cli-main.js";
 export { HOOK_SETTINGS_FILE } from "./init.js";
 export { splitStatements, collectCandidates, runImport, formatImport, autoMemoryDir, projectSlug, gitRepoRoot, IMPORT_SOURCES, DEFAULT_IMPORT_SOURCES } from "./import.js";

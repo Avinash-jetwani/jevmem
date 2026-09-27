@@ -266,15 +266,127 @@ export function extractDeadEnd(message: string, maxChars: number): string {
   if (!pool.length) return extractFirstSentence(message, maxChars);
   // From the sentence that names the attempt; with none, from the first statement, which usually says what was run
   // ("I ran X once. It fails because Y.").
-  const [attempt, ...rest] = pool.slice(Math.max(0, pool.findIndex((s) => ATTEMPT.test(s))));
-  let line = clampLine([attempt!, ...rest].join(" "), maxChars);
+  const [first, ...rest] = pool.slice(Math.max(0, pool.findIndex((s) => ATTEMPT.test(s))));
+  // Without "I tried" first, so what follows has that much more room.
+  const attempt = leadingTried(first!);
+  let line = clampLine([attempt, ...rest].join(" "), maxChars);
+  // A cut that drops the clause after a "but" in a later sentence drops the reason ("It made each path four times
+  // faster, but the pool stole cores from the tick thread"), so the upside before the "but" goes instead.
+  for (let k = 0; k < rest.length; k++) {
+    const reason = afterBut(rest[k]!);
+    if (!reason) continue;
+    if (!line.includes(reason.slice(0, 24))) {
+      const again = clampLine([attempt, ...rest.slice(0, k), capitalized(reason), ...rest.slice(k + 1)].join(" "), maxChars);
+      if (again.includes(capitalized(reason).slice(0, 24))) line = again;
+      else {
+        // The reason's sentence does not fit whole after what comes before it: its first clause that does.
+        const before = [attempt, ...rest.slice(0, k)].join(" ");
+        const cut = fitClause(capitalized(reason), maxChars - before.length - 1);
+        if (cut && cut.length >= 30) line = `${before} ${cut}`;
+      }
+    }
+    break;
+  }
   const next = rest[0];
-  if (next && line.length <= attempt!.length && !MORE_THAN_THE_ATTEMPT.test(attempt!)) {
+  if (next && line.length <= attempt.length && !MORE_THAN_THE_ATTEMPT.test(attempt)) {
     const after = clampLine(next, Math.floor(maxChars * 0.65));
-    const head = clampLine(attempt!, maxChars - after.length - 2);
+    const head = clampLine(attempt, maxChars - after.length - 2);
     if (!head.endsWith("…") && head.length >= 12 && !after.endsWith("…")) line = `${head.replace(/[.!?]$/, "")}. ${after}`;
   }
   return clampLine(leadingTried(line), maxChars);
+}
+
+const capitalized = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * The clause after a sentence's first ", but" outside parentheses, code spans and quotes, or null. In a dead end it is
+ * usually the reason, and the clause before it the upside ("Packets got 30% smaller, but encoding took 2.4 ms").
+ */
+function afterBut(s: string): string | null {
+  let depth = 0;
+  let code = false;
+  let quote = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]!;
+    if (c === "`") code = !code;
+    else if (code) continue;
+    else if (c === '"') quote = !quote;
+    else if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth = Math.max(0, depth - 1);
+    else if (c === "," && depth === 0 && !quote) {
+      const m = /^,\s+but\s+(?=\S)/i.exec(s.slice(i));
+      if (m) return s.slice(i + m[0].length);
+    }
+  }
+  return null;
+}
+
+/** " and " before a word that opens a clause ("… in memory at once and the upload server was killed"). */
+const AND_CLAUSE = / and (?=(?:the|a|an|it|its|we|our|they|their|every|each|this|that|these|those|no|nothing)\b)/gi;
+
+/**
+ * `text` in at most `max` characters, ending on a complete clause: `clampLine`'s cut, or when that is a word cut ("…"),
+ * the longest cut before an " and " that opens a clause (at least a third of `max`); else null.
+ */
+function fitClause(text: string, max: number): string | null {
+  if (max < 12) return null;
+  const cut = clampLine(text, max);
+  if (!cut.endsWith("…")) return cut;
+  const at = [...text.matchAll(AND_CLAUSE)].map((m) => m.index!).filter((i) => i <= max && i >= max / 3).pop();
+  return at === undefined ? null : text.slice(0, at).replace(/[\s,;:]+$/, "");
+}
+
+/** A dead-end text without its closing ", so …" (what was done about it): what was tried, and why it failed. */
+function withoutConclusion(text: string): string {
+  const t = text.replace(/\s+/g, " ").trim().replace(/[.!]+$/, "");
+  const m = /[,;]\s+(?:so|which is why|and so)\s+[^,;:]*$/i.exec(t);
+  return m && m.index >= 30 ? t.slice(0, m.index) : t;
+}
+
+/** What a dead-end line says was tried: the text before its first strong clause end (usually "X: why it failed"). */
+function triedPart(line: string): string {
+  const end = clauseEnds(line).find((e) => e.strong);
+  return end ? line.slice(0, end.at) : line;
+}
+
+/**
+ * The ways to shorten a dead-end line that keep its reason (more than what was tried), longest first: the whole line,
+ * its clause ends, and before an " and " that opens a clause ("… for it to help and the credits doubled").
+ */
+function reasonCuts(text: string): string[] {
+  const tried = triedPart(text).length;
+  const tidy = (s: string) => s.replace(/[\s,;:—–-]+$/, "");
+  const ats = [...clauseEnds(text).map((e) => e.at), ...[...text.matchAll(AND_CLAUSE)].map((m) => m.index!)];
+  const cuts = new Set([text, ...ats.map((at) => tidy(text.slice(0, at)))]);
+  return [...cuts].filter((c) => c.length > tried + 10).sort((a, b) => b.length - a.length);
+}
+
+/**
+ * The local writer's line for a listed dead end tried again that failed for a new reason (docs/dead-ends.md): the
+ * earlier line without its closing ", so …", then "retried:" and the new reason, so the line keeps both. The new
+ * reason is the clause after the turn's first "but" ("the drift is gone, but its UDP wrapper copies every packet"),
+ * else the turn's dead-end text after the sentence that names the attempt. When both do not fit, each is cut at a
+ * clause's end.
+ */
+export function combineRetest(earlier: string, message: string, maxChars: number): string {
+  const head = withoutConclusion(earlier);
+  const text = extractDeadEnd(message, 4000);
+  const sentences = deadEndSentences(text);
+  const but = sentences.map(afterBut).find((r) => r !== null);
+  const reason = withoutConclusion(but ?? (sentences.length > 1 && ATTEMPT.test(sentences[0]!) ? sentences.slice(1).join(" ") : text));
+  const sep = "; retried: ";
+  const room = maxChars - sep.length;
+  const join = (h: string, r: string) => `${h.replace(/[.!]+$/, "")}${sep}${r}`;
+  if (head.length + reason.length <= room) return join(head, reason);
+  // The longest cut of the earlier line that keeps its reason and leaves room for the new reason, cut at a clause's end;
+  // when none does, the new reason to half the line (at a word if it must) and the earlier line to what is left.
+  const heads = reasonCuts(head);
+  for (const h of heads) {
+    const r = clampLine(reason, room - h.length);
+    if (!r.endsWith("…") && r.length >= 30) return join(h, r);
+  }
+  const r = clampLine(reason, Math.ceil(room / 2));
+  return join(heads.find((h) => h.length <= room - r.length) ?? clampLine(head, room - r.length), r);
 }
 
 const COMMON = new Set("the and for with that this from into was were are has have had not but its now can also then than when they them there".split(" "));

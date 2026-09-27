@@ -1,5 +1,5 @@
 import type { Decision } from "./decide.js";
-import { callAnthropic, callOpenAI, clampLine, extractFirstSentence, extractWorksNow, resolveWriter, stripFiller, systemPrompt, type WriterConfig } from "./llm/index.js";
+import { callAnthropic, callOpenAI, clampLine, combineRetest, extractFirstSentence, extractWorksNow, resolveWriter, stripFiller, systemPrompt, type WriterConfig } from "./llm/index.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
 import type { Kind, Memory } from "./types.js";
@@ -30,6 +30,10 @@ export const DEAD_END_WRITER_NOTE =
 export const WORKS_NOW_WRITER_NOTE =
   "an approach that had failed before works now: say what works now and what was changed to make it work; state it as a fact about the project";
 
+/** Added to the LLM writer's input for a listed dead end tried again that failed for a new reason (docs/dead-ends.md). */
+export const RETEST_WRITER_NOTE =
+  "an approach that had failed before was tried again and failed for a new reason: one line that says what was tried, the earlier reason (from the earlier line) and the new one; state it as a past fact, not as an instruction";
+
 /** Why a dead-end line is not saved as one (docs/dead-ends.md). Jev decides whether a line says why, not a word list. */
 export const DEAD_END_NO_REASON = "a dead end must say why it failed or was dropped, and Jev found no reason in this line";
 
@@ -37,12 +41,13 @@ export const DEAD_END_NO_REASON = "a dead end must say why it failed or was drop
  * Turn a message into one memory line (max `maxChars`). Uses the configured LLM, else the local writer. `note` says why
  * the LLM writer's line was not used, or what its request needed; it is absent when no LLM writer is configured.
  */
-export async function composeLine(message: string, kind: Kind, opts: WriteOptions, extra: { worksNow?: boolean; deadEnd?: string } = {}): Promise<{ line: string; writerUsed: WriteResult["writerUsed"]; note?: string }> {
+export async function composeLine(message: string, kind: Kind, opts: WriteOptions, extra: { worksNow?: boolean; deadEnd?: string; retestOf?: string } = {}): Promise<{ line: string; writerUsed: WriteResult["writerUsed"]; note?: string }> {
   const env = opts.env ?? process.env;
   const w = resolveWriter(opts.writer, env);
   const safe = scrubSecrets(message).slice(0, 8000);
-  const kindNote = kind === "dead-end" ? DEAD_END_WRITER_NOTE : extra.worksNow ? WORKS_NOW_WRITER_NOTE : null;
-  const user = `Memory kind: ${kind}${kindNote ? ` (${kindNote})` : ""}\n\nMessage:\n${safe}`;
+  const retest = kind === "dead-end" && extra.retestOf ? scrubSecrets(extra.retestOf) : null;
+  const kindNote = retest ? RETEST_WRITER_NOTE : kind === "dead-end" ? DEAD_END_WRITER_NOTE : extra.worksNow ? WORKS_NOW_WRITER_NOTE : null;
+  const user = `Memory kind: ${kind}${kindNote ? ` (${kindNote})` : ""}${retest ? `\n\nEarlier line: ${retest}` : ""}\n\nMessage:\n${safe}`;
   const system = systemPrompt(opts.writer.maxChars);
   let why: string | undefined;
   if (w.provider !== "none") {
@@ -59,7 +64,7 @@ export async function composeLine(message: string, kind: Kind, opts: WriteOption
       why = `${w.provider} (${w.model}) failed: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
-  const local = extra.worksNow && kind !== "dead-end" ? extractWorksNow(message, opts.writer.maxChars, extra.deadEnd) : extractFirstSentence(message, opts.writer.maxChars, kind);
+  const local = retest ? combineRetest(retest, message, opts.writer.maxChars) : extra.worksNow && kind !== "dead-end" ? extractWorksNow(message, opts.writer.maxChars, extra.deadEnd) : extractFirstSentence(message, opts.writer.maxChars, kind);
   return { line: clampLine(stripFiller(local), opts.writer.maxChars), writerUsed: "fallback", ...(why ? { note: scrubSecrets(`the line was written locally: ${why}`) } : {}) };
 }
 
@@ -73,7 +78,10 @@ export async function writeMemory(store: MemoryStore, message: string, decision:
   const kind: Kind = decision.kind;
   const worksNow = decision.worksNow?.id ?? null;
   const deadEnd = worksNow ? store.list().find((m) => m.id === worksNow)?.text : undefined;
-  const { line, writerUsed, note } = await composeLine(message, kind, opts, { worksNow: Boolean(worksNow), deadEnd });
+  // A listed dead end tried again that failed for a new reason: the new line carries the earlier reason too.
+  const retestId = kind === "dead-end" && decision.contradiction && decision.retest?.id && !decision.retest.same && decision.touchesMemoryId === decision.retest.id ? decision.retest.id : null;
+  const retestOf = retestId ? store.list().find((m) => m.id === retestId)?.text : undefined;
+  const { line, writerUsed, note } = await composeLine(message, kind, opts, { worksNow: Boolean(worksNow), deadEnd, retestOf });
   const saved = store.add({ kind, text: line, conf: decision.confidence });
   const superseded = decision.contradiction && decision.touchesMemoryId ? store.supersede(decision.touchesMemoryId, saved.id) : null;
   return { saved, superseded, writerUsed, line, ...(note ? { writerNote: note } : {}) };

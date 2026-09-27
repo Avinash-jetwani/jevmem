@@ -73,6 +73,10 @@ export interface PolicyInput {
   touchesKind?: string;
   /** A live dead-end line the turn shows now works (the works-now noul and choice, docs/dead-ends.md), or absent. */
   worksNowId?: string;
+  /** A live dead-end line the turn tried again and that failed again (the retest noul and choice), or absent. */
+  retestId?: string;
+  /** With `retestId`: it failed for the reason the line already gives (the new-reason noul under NEW_REASON_MIN). */
+  retestSame?: boolean;
 }
 
 /**
@@ -126,12 +130,14 @@ export function importanceIndex(level: Importance): number {
 
 /**
  * Which listed line a turn supersedes, if any (docs/dead-ends.md):
- * - a live dead-end line only when the turn shows it now works (`worksNowId`, from the user message or the reply);
+ * - a live dead-end line when the turn shows it now works (`worksNowId`, from the user message or the reply), or when
+ *   it was tried again and failed for a new reason (`retestId`, a dead end): the new line carries both reasons;
  * - any other line when the user message reverses it (the contradiction family at `contradictionMin`), and not when
  *   the memorable content is in the reply alone: Claude's reply never supersedes a decision, a rule or a fact.
  */
 export function supersedeTarget(a: PolicyInput, t: Thresholds): string | null {
   if (a.worksNowId) return a.worksNowId;
+  if (a.retestId && !a.retestSame && a.kindChoice === "dead-end") return a.retestId;
   if (a.touchesMemoryId === "none" || a.families.contradiction < t.contradictionMin) return null;
   if (a.touchesKind === "dead-end" || a.source === "assistant_reply") return null;
   return a.touchesMemoryId;
@@ -148,9 +154,11 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
   const target = supersedeTarget(a, t);
   const reversal = target !== null;
   const reasons: string[] = [];
-  // A turn with no content source (a question, or options with no decision) has nothing to remember on either side:
-  // never saved, so never superseding, whatever the kind choice says.
-  if (a.source === "none") reasons.push("source=none (nothing to remember in the user message or the reply)");
+  // A turn with no content source (chatter, or a question, a proposal or options nobody decides) states nothing on either
+  // side: never saved, so never superseding, whatever the kind choice says. Part 2c changed the question, not this rule.
+  if (a.source === "none") reasons.push("source=none (neither side states anything for the project)");
+  // A listed dead end tried again that failed for the reason its line gives: nothing new, so no second copy.
+  if (a.retestId && a.retestSame && (a.kindChoice === "dead-end" || a.kindChoice === "bug")) reasons.push(`retest of ${a.retestId}: failed again for the reason it gives (nothing new)`);
   if (a.kindChoice === "none") reasons.push("kind=none");
   if (content < t.contentMin && !reversal) reasons.push(`content=${content.toFixed(2)}<${t.contentMin}`);
   if (levelIdx < importanceIndex(t.importanceMin)) reasons.push(`importance=${importance}<${t.importanceMin}`);
@@ -172,7 +180,7 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
     importance,
     content,
     reason: save
-      ? `save kind=${a.kindChoice} content=${content.toFixed(2)}${content < t.contentMin ? " (reversal)" : ""} importance=${importance}${a.source && a.source !== "user_message" ? ` source=${a.source}` : ""}${supersedes ? ` supersedes=${supersedes}${a.worksNowId ? " (works now)" : ""}` : ""}`
+      ? `save kind=${a.kindChoice} content=${content.toFixed(2)}${content < t.contentMin ? " (reversal)" : ""} importance=${importance}${a.source && a.source !== "user_message" ? ` source=${a.source}` : ""}${supersedes ? ` supersedes=${supersedes}${a.worksNowId ? " (works now)" : supersedes === a.retestId ? " (failed again, new reason)" : ""}` : ""}`
       : `skip: ${reasons.join(", ")}`,
   };
 }

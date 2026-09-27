@@ -41,7 +41,7 @@ describe("a turn with no content source never saves or supersedes (the Kafka que
   it("the policy skips source none whatever the kind and contradiction say", () => {
     const p = evaluatePolicy({ kindChoice: "architecture", importanceScore: 2, families: fam({ architecture: 0.8, contradiction: 0.75 }), touchesMemoryId: "or1", touchesKind: "decision", source: "none" }, t);
     expect([p.save, p.contradiction, p.supersedes]).toEqual([false, false, null]);
-    expect(p.reason).toMatch(/^skip: source=none \(nothing to remember in the user message or the reply\)/);
+    expect(p.reason).toMatch(/^skip: source=none \(neither side states anything for the project\)/);
   });
 
   it("through decide and the hook: the question is skipped and the listed line stays live", async () => {

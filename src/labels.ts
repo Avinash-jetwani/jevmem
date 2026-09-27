@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fit, fitThresholds, type FitResult, type LabelledExample } from "./combine.js";
 import { CONFIG_FILE, loadConfig } from "./config.js";
-import { decide, resolveWeights, type Decision } from "./decide.js";
+import { decide, NEW_REASON_MIN, resolveWeights, type Decision } from "./decide.js";
 import type { JevCaller } from "./jev.js";
 import { ATOMIC_NOULS, FAMILIES, TIER1_NOULS } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
@@ -279,6 +279,11 @@ export function formatWhy(rec: DecisionRecord): string {
   out.push(`touches memory: ${d.touchesMemoryId ?? "none"}  contradiction: ${d.contradiction ? "yes" : "no"}`);
   // Recorded from v0.6 part 2b on, when the state listed a live dead end.
   if (d.worksNow) out.push(`a listed dead end works now: ${d.worksNow.noul.toFixed(2)} (min ${t.contradictionMin}), which: ${d.worksNow.choice}  ${d.worksNow.id ? `✓ supersedes ${d.worksNow.id}` : "✗"}`);
+  // Recorded from v0.6 part 2c on, with the works-now answer.
+  if (d.retest)
+    out.push(
+      `a listed dead end tried again and failed again: ${d.retest.noul.toFixed(2)} (min ${t.contradictionMin}), which: ${d.retest.choice}, a new reason: ${d.retest.newReason.toFixed(2)} (min ${NEW_REASON_MIN})  ${!d.retest.id ? "✗" : d.retest.same ? `✓ the same reason as ${d.retest.id}: nothing new` : d.contradiction && d.touchesMemoryId === d.retest.id ? `✓ supersedes ${d.retest.id}, both reasons in the new line` : `✓ ${d.retest.id}, a new reason`}`,
+    );
   out.push(`tokens: ${d.usage.inputTokens + d.usage.outputTokens}${d.cacheHit ? " (cache hit)" : ""}`);
   return out.join("\n");
 }

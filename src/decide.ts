@@ -1,6 +1,6 @@
 import type { JevCaller } from "./jev.js";
 import { combine, defaultWeights, evaluatePolicy, mergeWeights, resolveKind, supersedeTarget, type PolicyInput, type Weights } from "./combine.js";
-import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildTier1Questions, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, WORKS_NOW_CHOICE, WORKS_NOW_NOUL, type Family } from "./questions.js";
+import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildTier1Questions, NEW_REASON_NOUL, RETEST_CHOICE, RETEST_NOUL, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, WORKS_NOW_CHOICE, WORKS_NOW_NOUL, type Family } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
 import { mergeTurn } from "./transcript.js";
 import { DEFAULT_CONFIG, type BorderlineRule, type Importance, type Kind, type Memory, type Thresholds, type TiersConfig } from "./types.js";
@@ -47,6 +47,8 @@ export interface TierAnswers {
   touchesMemoryId: string;
   /** The works-now noul and choice (asked only when the state lists a live dead end), else null. */
   worksNow: WorksNow | null;
+  /** The retest nouls and choice (asked with the works-now ones), else null. */
+  retest: Retest | null;
   /** The policy outcome using this tier's answers alone. */
   save: boolean;
   reason: string;
@@ -62,6 +64,23 @@ export interface WorksNow {
   id: string | null;
 }
 
+/**
+ * What Jev answered about a listed dead end tried again (docs/dead-ends.md): did it fail again, which line, and does the
+ * turn give a new reason. `id` is the dead-end line when the noul is at `contradictionMin` and a listed id is chosen.
+ */
+export interface Retest {
+  noul: number;
+  choice: string;
+  /** The new-reason noul: at NEW_REASON_MIN the turn gives a reason the line does not. */
+  newReason: number;
+  id: string | null;
+  /** True when `id` is set and the reason is the one the line already gives: nothing new to save. */
+  same: boolean;
+}
+
+/** The new-reason noul at or above which a retest that failed again adds a reason the dead-end line does not give. */
+export const NEW_REASON_MIN = 0.5;
+
 export interface Decision {
   save: boolean;
   kind: Kind | "none";
@@ -73,6 +92,8 @@ export interface Decision {
   touchesMemoryId: string | null;
   /** The works-now answer, when the state listed a live dead end. */
   worksNow: WorksNow | null;
+  /** The retest answer, when the state listed a live dead end. */
+  retest: Retest | null;
   /** The nouls of the tier that produced the final answer. */
   nouls: Record<string, number>;
   /** Family scores of the tier that produced the final answer. */
@@ -241,6 +262,19 @@ function worksNowOf(a: any, deadEndIds: ReadonlySet<string>, t: Thresholds): Wor
   return { noul, choice, id: noul >= t.contradictionMin && deadEndIds.has(choice) ? choice : null };
 }
 
+/** The retest answer from one tier's response, when it was asked (the state listed a live dead end). */
+function retestOf(a: any, deadEndIds: ReadonlySet<string>, t: Thresholds): Retest | null {
+  const n = a[RETEST_NOUL];
+  const c = a[RETEST_CHOICE];
+  const r = a[NEW_REASON_NOUL];
+  if (!n || !c || !r) return null;
+  const noul = typeof n.noul === "number" ? n.noul : 0;
+  const choice = String(c.choice ?? "none");
+  const newReason = typeof r.noul === "number" ? r.noul : 0;
+  const id = noul >= t.contradictionMin && deadEndIds.has(choice) ? choice : null;
+  return { noul, choice, newReason, id, same: id !== null && newReason < NEW_REASON_MIN };
+}
+
 function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families: Record<Family, number>, thresholds: Thresholds, candidates: Pick<Memory, "id" | "kind">[]): TierAnswers & { source: string } {
   const a = res.answers;
   const nouls: Record<string, number> = {};
@@ -248,8 +282,11 @@ function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families
   const kind = a.kind.choice as string;
   const touches = a.touches_memory_id.choice as string;
   const source = (a.content_source?.choice as string | undefined) ?? "user_message";
-  const worksNow = worksNowOf(a, new Set(candidates.filter((m) => m.kind === "dead-end").map((m) => m.id)), thresholds);
-  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: a.importance.score, families, touchesMemoryId: touches, touchesKind: candidates.find((m) => m.id === touches)?.kind, source, worksNowId: worksNow?.id ?? undefined }, thresholds);
+  const deadEndIds = new Set(candidates.filter((m) => m.kind === "dead-end").map((m) => m.id));
+  const worksNow = worksNowOf(a, deadEndIds, thresholds);
+  // A dead end that works now is not also one tried again that failed.
+  const retest = worksNow?.id ? null : retestOf(a, deadEndIds, thresholds);
+  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: a.importance.score, families, touchesMemoryId: touches, touchesKind: candidates.find((m) => m.id === touches)?.kind, source, worksNowId: worksNow?.id ?? undefined, retestId: retest?.id ?? undefined, retestSame: retest?.same }, thresholds);
   return {
     tier,
     nouls,
@@ -262,6 +299,7 @@ function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families
     importanceConfidence: a.importance.confidence,
     touchesMemoryId: touches,
     worksNow,
+    retest,
     save: policy.save,
     reason: policy.reason,
     usage: { inputTokens: res.usage.input_tokens, outputTokens: res.usage.output_tokens },
@@ -340,7 +378,8 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
   const t = final.tier === 2 ? thresholds : tier1Thresholds;
   const source = (assistantIncluded ? final.source : "user_message") as Decision["source"];
   const worksNowId = final.worksNow?.id ?? undefined;
-  const policyIn: PolicyInput = { kindChoice: final.kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId, touchesKind: candidates.find((m) => m.id === final.touchesMemoryId)?.kind, source, worksNowId };
+  const retest = final.retest;
+  const policyIn: PolicyInput = { kindChoice: final.kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId, touchesKind: candidates.find((m) => m.id === final.touchesMemoryId)?.kind, source, worksNowId, retestId: retest?.id ?? undefined, retestSame: retest?.same };
   const { kind, note } = resolveKind(final.kind, final.kindProbabilities, final.families, supersedeTarget(policyIn, t) !== null, t, Boolean(worksNowId));
   const policy = evaluatePolicy({ ...policyIn, kindChoice: kind }, t);
   const usage = { inputTokens: (tier1?.usage.inputTokens ?? 0) + (tier2?.usage.inputTokens ?? 0), outputTokens: (tier1?.usage.outputTokens ?? 0) + (tier2?.usage.outputTokens ?? 0) };
@@ -352,6 +391,7 @@ export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOpt
     contradiction: policy.contradiction,
     touchesMemoryId: policy.supersedes ?? (final.touchesMemoryId === "none" ? null : final.touchesMemoryId),
     worksNow: final.worksNow,
+    retest,
     nouls: final.nouls,
     families: final.families,
     content: policy.content,
