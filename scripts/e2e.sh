@@ -152,6 +152,19 @@ wait_queue() {
   return 1
 }
 
+# A project's queue state, printed when a turn did not drain: the decisions, the queued turns with their attempts and
+# last error, the drain lock, the daemon, the last captured turn and the last log lines. Enough to tell a retried Jev
+# call from a turn that was never queued.
+queue_state() {
+  "$NODE" - "$1" <<'JS'
+    const fs=require("fs"),path=require("path");const r=process.argv[2];const j=(f)=>{try{return fs.readFileSync(path.join(r,".jevmem",f),"utf8")}catch{return null}};
+    const dec=(j("decisions.jsonl")||"").split("\n").filter(Boolean).length;
+    const q=(j("queue.jsonl")||"").split("\n").filter(Boolean).map(l=>{try{const t=JSON.parse(l);return `${t.hash} attempts=${t.attempts} next=${t.nextAttemptAt??"-"} error=${(t.lastError??"").slice(0,120)}`}catch{return "a torn line"}});
+    console.log(`     state: ${dec} decision(s); queue: ${q.length?q.join(" | "):"empty"}; drain.lock: ${(j("drain.lock")??"none").trim()}; daemon.json: ${j("daemon.json")?"present":"none"}; state.json: ${(j("state.json")||"none").replace(/\s+/g," ").slice(0,160)}`);
+    for(const l of (j("log.jsonl")||"").split("\n").filter(Boolean).slice(-15)){try{const e=JSON.parse(l);console.log(`     log ${e.ts} ${e.label}${e.event?"/"+e.event:""} ok=${e.ok}${e.latencyMs?` ${e.latencyMs} ms`:""}${e.error?` error=${String(e.error).slice(0,160)}`:""}${e.detail?` ${String(e.detail).slice(0,160)}`:""}`)}catch{}}
+JS
+}
+
 # Outage then recovery: turn 1 while Jev answers 529, turn 2 after it recovers.
 run_outage() {
   local run="$1" scratch proxy_pid proxy_url flag fail=0
@@ -194,7 +207,7 @@ JS
     echo "---- turn 2 (Jev back): $p2"
     ( cd "$scratch" && claude_session -- -p --continue --max-turns 15 "$p2" 2>&1 | tail -2 | sed 's/^/   claude> /' )
     # The queued turn waits out its backoff (15 s) and the daemon's retry tick (15 s); turn 2 waits behind it.
-    wait_queue "$scratch" 1 || { echo "   ✗ queue did not drain within 60 s"; fail=1; }
+    wait_queue "$scratch" 1 || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; fail=1; }
   fi
   if [ $fail -eq 0 ]; then
     "$NODE" - "$scratch" <<'JS' || fail=1
@@ -360,7 +373,7 @@ run_dormant() {
     ( cd "$scratch" && cli enable | sed 's/^/   /' )
     echo "---- turn 2 (project enabled): $p2"
     ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --continue --max-turns 15 "$p2" 2>&1 | tail -2 | sed 's/^/   claude> /' )
-    wait_queue "$scratch" 0 || { echo "   ✗ queue did not drain within 60 s"; fail=1; }
+    wait_queue "$scratch" 0 || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; fail=1; }
   fi
   if [ $fail -eq 0 ]; then
     n=$(wc -l < "$plog" | tr -d ' ')
@@ -567,7 +580,7 @@ run_once() {
     ( cd "$scratch" && claude_session -- "${args[@]}" "$prompt" 2>&1 | tail -3 | sed 's/^/   claude> /' )
     # Since v0.5.0 the Stop hook only queues the turn (async, detached) and the daemon evaluates it, so the line can
     # land after claude exits: wait until the queue is empty and nobody is evaluating it (at most 60 s).
-    wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; fail=1; break; }
+    wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; fail=1; break; }
     "$NODE" - "$scratch" "$exp" "$((i+1))" <<'JS' || fail=1
       const fs=require("fs");const [root,exp,turn]=process.argv.slice(2);
       const [wantTotal,wantSup,wantKind,wantPrevSup]=exp.split(" ");
@@ -638,10 +651,26 @@ JS
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
 scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli outage guard)
+# Every failed scenario is recorded with its whole output in test-results/e2e-failures.log (JEVMEM_TEST_RESULTS names
+# another folder), as the unit tests' failures are in test-results/failures.jsonl.
+RESULTS="${JEVMEM_TEST_RESULTS:-$ROOT/test-results}"
+mkdir -p "$RESULTS"
+# Each scenario's output also goes through tee, so it runs in a subshell: the packed CLI the plugin scenarios share is
+# installed here, once, instead of by the first of them.
+case " ${scenarios[*]} " in *" plugin "*|*" dormant "*|*" published "*|*" nocli "*) install_cli || exit 1;; esac
 status=0
 for m in "${modes[@]}"; do
   for r in $(seq 1 "$RUNS"); do
-    for sc in "${scenarios[@]}"; do run_once "$r" "$m" "$sc" || status=1; done
+    for sc in "${scenarios[@]}"; do
+      out="$(mktemp /tmp/jevmem-e2e-out.XXXXXX)"
+      run_once "$r" "$m" "$sc" 2>&1 | tee "$out"
+      if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+        status=1
+        { echo "==== $(date -u +%Y-%m-%dT%H:%M:%SZ) FAIL run $r scenario=$sc automemory=$m, commit $(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)$(git -C "$ROOT" status --porcelain src scripts hooks plugin 2>/dev/null | grep -q . && echo +dirty)"; cat "$out"; } >> "$RESULTS/e2e-failures.log"
+        echo "   (recorded in $RESULTS/e2e-failures.log)"
+      fi
+      rm -f "$out"
+    done
   done
 done
 exit $status
