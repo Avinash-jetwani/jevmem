@@ -9,7 +9,7 @@ import { checkCli, initHookClis, pluginLauncherCli, userEnablesPlugin } from "./
 import { isVerified, readProvenance } from "./provenance.js";
 import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { PACKAGE_VERSION } from "./version.js";
-import { DAEMON_VERSION, daemonEnabled, daemonRequest, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
+import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey, saveJevKey } from "./env.js";
@@ -413,7 +413,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         } else {
           if (useDaemon) {
             const t0 = performance.now();
-            const res = await daemonRequest(projectRoot, { type: "hook", input }, { connectMs: 250, responseMs: cfg.jev.timeoutMs + cfg.writer.timeoutMs + 2000 });
+            const res = await daemonRequest(projectRoot, { type: "hook", input, client: jevFingerprint() }, { connectMs: 250, responseMs: cfg.jev.timeoutMs + cfg.writer.timeoutMs + 2000 });
             if (res && res.ok && res.type === "hook") {
               out = res.outcome;
               if (out.summary) out.summary += ` (daemon round trip ${Math.round(performance.now() - t0)} ms)`;
@@ -908,10 +908,10 @@ async function handOffStop(root: string, cfg: ReturnType<typeof loadConfig>, inp
     if (mine) return { ...mine, summary, via: "inline" };
     return { event, action: "queued", detail: r.blocked ? "queued; the oldest queued turn is waiting for a retry" : "queued", summary, via: "inline" };
   }
-  const res = await daemonRequest(root, { type: "drain" }, { connectMs: 250, responseMs: 1500 });
+  const res = await daemonRequest(root, { type: "drain", client: jevFingerprint() }, { connectMs: 250, responseMs: 1500 });
   if (res && res.ok && res.type === "draining") return { event, action: "queued", detail: `handed to the daemon (${res.pending} turn(s) queued)`, via: "daemon" };
   if (res) {
-    // An older daemon (no `drain` request): replace it.
+    // A daemon started with another key (it is exiting), or an older daemon (no `drain` request): replace it.
     await daemonRequest(root, { type: "stop" }, { connectMs: 250, responseMs: 1000 });
     await new Promise((r) => setTimeout(r, 200));
   }

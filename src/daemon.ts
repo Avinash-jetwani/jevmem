@@ -15,18 +15,30 @@ import { drainTurns, runHook, type HookInput, type HookOutcome } from "./hook.js
 import { createJev, hasJevKey } from "./jev.js";
 import { nextDue, readQueue } from "./queue.js";
 
-export const DAEMON_VERSION = 4;
+export const DAEMON_VERSION = 5;
 
 /** How often an idle daemon looks at the retry queue. */
 export const RETRY_TICK_MS = 15_000;
 
-export type DaemonRequest = { type: "ping" } | { type: "stop" } | { type: "hook"; input: HookInput; verbose?: boolean } | { type: "drain" };
+/** `client`: the fingerprint of the Jev client the hook would build now (`jevFingerprint`), so a daemon started with another key can step aside. */
+export type DaemonRequest = { type: "ping" } | { type: "stop" } | { type: "hook"; input: HookInput; verbose?: boolean; client?: string } | { type: "drain"; client?: string };
 export type DaemonResponse =
   | { ok: true; type: "pong"; pid: number; version: number; uptimeMs: number; served: number; pending: number }
   | { ok: true; type: "stopping" }
   | { ok: true; type: "hook"; outcome: HookOutcome }
   | { ok: true; type: "draining"; pending: number }
+  | { ok: false; type: "key-changed" }
   | { ok: false; error: string };
+
+/**
+ * A fingerprint of the Jev client this environment builds: the TypeSafe key and base URL, hashed (the key never leaves
+ * the process). The daemon keeps the client it started with; when a hook's fingerprint differs (a key replaced with
+ * `jevmem key` or in the plugin setting, or a new base URL), the daemon answers `key-changed` and exits, and the hook
+ * works inline and starts a new daemon with its own environment.
+ */
+export function jevFingerprint(env: NodeJS.ProcessEnv = process.env): string {
+  return crypto.createHash("sha256").update(`${env.TYPESAFE_API_KEY?.trim() ?? ""}\n${env.TYPESAFE_BASE_URL?.trim() ?? ""}`).digest("hex").slice(0, 16);
+}
 
 function hashRoot(root: string): string {
   return crypto.createHash("sha1").update(path.resolve(root)).digest("hex").slice(0, 12);
@@ -114,6 +126,7 @@ export interface ServeOptions {
 export async function serveDaemon(root: string, opts: ServeOptions = {}): Promise<net.Server> {
   const cfg = loadConfig(root);
   if (!hasJevKey()) throw new Error("TYPESAFE_API_KEY is not set");
+  const fingerprint = jevFingerprint();
   const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
   const sockPath = socketPath(root);
   const idleMs = opts.idleMs ?? cfg.daemon.idleMinutes * 60_000;
@@ -181,6 +194,10 @@ export async function serveDaemon(root: string, opts: ServeOptions = {}): Promis
           if (req.type === "ping") res = { ok: true, type: "pong", pid: process.pid, version: DAEMON_VERSION, uptimeMs: Date.now() - startedAt, served, pending: readQueue(root).length };
           else if (req.type === "stop") {
             res = { ok: true, type: "stopping" };
+            setTimeout(shutdown, 20);
+          } else if (req.client !== undefined && req.client !== fingerprint) {
+            // The hook would use another key (or base URL) than this daemon's client: step aside for a new daemon.
+            res = { ok: false, type: "key-changed" };
             setTimeout(shutdown, 20);
           } else if (req.type === "drain") {
             // The Stop hook has queued a turn and exits without waiting: answer at once, evaluate in the background.
