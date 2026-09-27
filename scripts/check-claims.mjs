@@ -42,6 +42,10 @@ function walk(v, key, parentTurns) {
     // Part 2b: supersedes scored correct over labelled, and the cases that must never supersede (superseded, saved).
     if (typeof v.correct === "number" && typeof v.labelled === "number") pool.frac.add(`${v.correct}/${v.labelled}`);
     if (typeof v.superseded === "number" && typeof v.cases === "number") for (const k of ["superseded", "saved"]) if (typeof v[k] === "number") pool.frac.add(`${v[k]}/${v.cases}`);
+    // Part 2c (the v3 sets): every count in a case group, over its cases (saved, skipped, superseded, reasons kept, …).
+    if (typeof v.cases === "number") for (const [k, x] of Object.entries(v)) if (k !== "cases" && typeof x === "number" && Number.isInteger(x)) pool.frac.add(`${x}/${v.cases}`);
+    // The content-source diagnosis (scripts/diag-content-source.mjs): answers of each kind over the answers.
+    if (typeof v.answers === "number") for (const k of ["none", "assistantOrBoth"]) if (typeof v[k] === "number") pool.frac.add(`${v[k]}/${v.answers}`);
     for (const [k, x] of Object.entries(v)) walk(x, k, turns);
     return;
   }

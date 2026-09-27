@@ -1,0 +1,282 @@
+{
+  "kind": "eval-compare",
+  "set": "eval/heldout.jsonl",
+  "before": {
+    "file": "results/eval-heldout-2026-09-27-2b.json",
+    "commit": "123be86",
+    "dist": "dist/index.js",
+    "started_at": "2026-09-27T20:28:30.579Z"
+  },
+  "after": {
+    "file": "results/eval-heldout-2026-09-27-2c.json",
+    "commit": "4d8be0e",
+    "dist": "node_modules/.cache/jevmem-2c-4d8be0e/dist/index.js",
+    "started_at": "2026-09-27T22:16:29.094Z"
+  },
+  "modes": [
+    {
+      "mode": "fast",
+      "before": {
+        "saveSkipCorrect": 63,
+        "saveKindCorrect": 61,
+        "n": 66,
+        "contradictionsDetected": "5/5",
+        "falseContradictions": 0,
+        "p50ms": 255,
+        "p95ms": 402,
+        "avgInputTokens": 2569,
+        "costPerTurn": 0.00010790436363636364,
+        "escalationRate": 0
+      },
+      "after": {
+        "saveSkipCorrect": 65,
+        "saveKindCorrect": 63,
+        "n": 66,
+        "contradictionsDetected": "5/5",
+        "falseContradictions": 0,
+        "p50ms": 225,
+        "p95ms": 321,
+        "avgInputTokens": 2649,
+        "costPerTurn": 0.00011125927272727273,
+        "escalationRate": 0
+      },
+      "changed": 2,
+      "gotRight": 2,
+      "gotWrong": 0,
+      "turns": [
+        {
+          "i": 20,
+          "tag": "preference",
+          "user": "When you touch SQL, format it in uppercase keywords with one clause per line.",
+          "want": "preference",
+          "before": {
+            "result": "skip",
+            "right": false,
+            "reason": "skip: source=none (nothing to remember in the user message or the reply) [tier 1]",
+            "assistantIncluded": true,
+            "source": "none"
+          },
+          "after": {
+            "result": "preference",
+            "right": true,
+            "reason": "save kind=preference content=0.87 importance=useful [tier 1]",
+            "assistantIncluded": true,
+            "source": "user_message",
+            "deadEndNoul": 0.02
+          }
+        },
+        {
+          "i": 26,
+          "tag": "bug",
+          "user": "The admin export returns 403 for editors even though they should see it",
+          "want": "bug",
+          "before": {
+            "result": "skip",
+            "right": false,
+            "reason": "skip: source=none (nothing to remember in the user message or the reply) [tier 1]",
+            "assistantIncluded": true,
+            "source": "none"
+          },
+          "after": {
+            "result": "bug",
+            "right": true,
+            "reason": "save kind=bug content=0.98 importance=important source=both [tier 1]",
+            "assistantIncluded": true,
+            "source": "both",
+            "deadEndNoul": 0.54
+          }
+        }
+      ]
+    },
+    {
+      "mode": "auto",
+      "before": {
+        "saveSkipCorrect": 63,
+        "saveKindCorrect": 60,
+        "n": 66,
+        "contradictionsDetected": "5/5",
+        "falseContradictions": 0,
+        "p50ms": 273,
+        "p95ms": 698,
+        "avgInputTokens": 3410,
+        "costPerTurn": 0.0001432098181818182,
+        "escalationRate": 0.15151515151515152
+      },
+      "after": {
+        "saveSkipCorrect": 65,
+        "saveKindCorrect": 63,
+        "n": 66,
+        "contradictionsDetected": "5/5",
+        "falseContradictions": 0,
+        "p50ms": 242,
+        "p95ms": 544,
+        "avgInputTokens": 3666,
+        "costPerTurn": 0.00015396754545454546,
+        "escalationRate": 0.18181818181818182
+      },
+      "changed": 3,
+      "gotRight": 3,
+      "gotWrong": 0,
+      "turns": [
+        {
+          "i": 20,
+          "tag": "preference",
+          "user": "When you touch SQL, format it in uppercase keywords with one clause per line.",
+          "want": "preference",
+          "before": {
+            "result": "skip",
+            "right": false,
+            "reason": "skip: source=none (nothing to remember in the user message or the reply) [tier 1]",
+            "assistantIncluded": true,
+            "source": "none"
+          },
+          "after": {
+            "result": "preference",
+            "right": true,
+            "reason": "save kind=preference content=0.86 importance=useful [tier 1]",
+            "assistantIncluded": true,
+            "source": "user_message",
+            "deadEndNoul": 0.02
+          }
+        },
+        {
+          "i": 26,
+          "tag": "bug",
+          "user": "The admin export returns 403 for editors even though they should see it",
+          "want": "bug",
+          "before": {
+            "result": "skip",
+            "right": false,
+            "reason": "skip: source=none (nothing to remember in the user message or the reply) [tier 1]",
+            "assistantIncluded": true,
+            "source": "none"
+          },
+          "after": {
+            "result": "bug",
+            "right": true,
+            "reason": "save kind=bug content=0.98 importance=important source=both [tier 1]",
+            "assistantIncluded": true,
+            "source": "both",
+            "deadEndNoul": 0.56
+          }
+        },
+        {
+          "i": 57,
+          "tag": "contradiction",
+          "user": "We're dropping Vitest and going back to Jest because of the snapshot tooling.",
+          "want": "decision ⊃pan3",
+          "before": {
+            "result": "dead-end ⊃pan3",
+            "right": false,
+            "reason": "save kind=dead-end content=0.98 importance=important supersedes=pan3 [tier 1]",
+            "assistantIncluded": false,
+            "source": "user_message"
+          },
+          "after": {
+            "result": "decision ⊃pan3",
+            "right": true,
+            "reason": "save kind=decision content=0.98 importance=important supersedes=pan3 (kind dead-end, but dead-end=0.65<0.7: no reason given; a reversal, judged as decision) [tier 1]",
+            "assistantIncluded": false,
+            "source": "user_message",
+            "deadEndNoul": 0.65
+          }
+        }
+      ]
+    },
+    {
+      "mode": "full",
+      "before": {
+        "saveSkipCorrect": 59,
+        "saveKindCorrect": 58,
+        "n": 66,
+        "contradictionsDetected": "5/5",
+        "falseContradictions": 0,
+        "p50ms": 269,
+        "p95ms": 379,
+        "avgInputTokens": 5425,
+        "costPerTurn": 0.0002278347272727273,
+        "escalationRate": 0
+      },
+      "after": {
+        "saveSkipCorrect": 61,
+        "saveKindCorrect": 59,
+        "n": 66,
+        "contradictionsDetected": "5/5",
+        "falseContradictions": 0,
+        "p50ms": 254,
+        "p95ms": 331,
+        "avgInputTokens": 5499,
+        "costPerTurn": 0.0002309376363636364,
+        "escalationRate": 0
+      },
+      "changed": 3,
+      "gotRight": 2,
+      "gotWrong": 1,
+      "turns": [
+        {
+          "i": 20,
+          "tag": "preference",
+          "user": "When you touch SQL, format it in uppercase keywords with one clause per line.",
+          "want": "preference",
+          "before": {
+            "result": "skip",
+            "right": false,
+            "reason": "skip: source=none (nothing to remember in the user message or the reply) [tier 2]",
+            "assistantIncluded": true,
+            "source": "none"
+          },
+          "after": {
+            "result": "preference",
+            "right": true,
+            "reason": "save kind=preference content=0.53 importance=useful [tier 2]",
+            "assistantIncluded": true,
+            "source": "user_message",
+            "deadEndNoul": 0.02
+          }
+        },
+        {
+          "i": 26,
+          "tag": "bug",
+          "user": "The admin export returns 403 for editors even though they should see it",
+          "want": "bug",
+          "before": {
+            "result": "skip",
+            "right": false,
+            "reason": "skip: source=none (nothing to remember in the user message or the reply) [tier 2]",
+            "assistantIncluded": true,
+            "source": "none"
+          },
+          "after": {
+            "result": "bug",
+            "right": true,
+            "reason": "save kind=bug content=0.98 importance=important source=both [tier 2]",
+            "assistantIncluded": true,
+            "source": "both",
+            "deadEndNoul": 0.58
+          }
+        },
+        {
+          "i": 57,
+          "tag": "contradiction",
+          "user": "We're dropping Vitest and going back to Jest because of the snapshot tooling.",
+          "want": "decision ⊃pan3",
+          "before": {
+            "result": "decision ⊃pan3",
+            "right": true,
+            "reason": "save kind=decision content=0.94 importance=important supersedes=pan3 [tier 2]",
+            "assistantIncluded": false,
+            "source": "user_message"
+          },
+          "after": {
+            "result": "dead-end ⊃pan3",
+            "right": false,
+            "reason": "save kind=dead-end content=0.94 importance=important supersedes=pan3 [tier 2]",
+            "assistantIncluded": false,
+            "source": "user_message",
+            "deadEndNoul": 0.68
+          }
+        }
+      ]
+    }
+  ]
+}
