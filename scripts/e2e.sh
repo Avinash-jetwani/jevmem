@@ -51,9 +51,9 @@
 #              which Node's type stripping cannot run, with two hand-added lines, and `node` on the session PATH. Session 1:
 #              Claude is asked to try running src/app.ts directly with node --experimental-strip-types and to drop the idea
 #              if it fails: exactly one new line, a [dead-end] line that says what was tried and why it failed. Session 2, a
-#              new session with a related prompt: the UserPromptSubmit hook's context has "Already tried: <that line>"; what
-#              Claude then did (its tool calls and reply) is printed. Session 3, a new session with an unrelated prompt: no
-#              dead end in the context
+#              new session with an unrelated prompt, while that line is live: no dead end in the context. Session 3, a new
+#              session with a related prompt: the UserPromptSubmit hook's context has "Already tried: <that line>"; what
+#              Claude then did (its tool calls and reply) and what the turn saved are printed
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
 # memory line, or the jevmem footer (i.e. a line the assistant wrote by hand).
 #
@@ -782,11 +782,37 @@ TS
 JS
   fi
   if [ $fail -eq 0 ]; then
-    echo "---- session 2 (new session, a related prompt): $p2"
+    echo "---- session 2 (new session, an unrelated prompt, while the dead end is live): $p3"
     before=$(decisions "$scratch")
-    ( cd "$scratch" && claude_session -- -p "$p2" --max-turns 10 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits --allowedTools "Bash(node *)" > "$events.2" 2>&1 )
+    ( cd "$scratch" && claude_session -- -p "$p3" --max-turns 6 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits > "$events.2" 2>&1 )
     wait_queue "$scratch" "$before" || { echo "   (session 2's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
     "$NODE" - "$events.2" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [evf,root]=process.argv.slice(2);
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      const errs=[];
+      // The check proves something only while the dead end is live (not superseded).
+      const de=JSON.parse(fs.readFileSync(root+"/.jevmem/e2e-deadend.json","utf8"));
+      if(!fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").some(l=>l.startsWith(`- [dead-end] `)&&l.includes(`id:${de.id} `)))errs.push("the dead-end line is not live, so the check proves nothing");
+      const ups=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="UserPromptSubmit");
+      if(ups.length!==1)errs.push(`${ups.length} UserPromptSubmit hook responses, expected 1`);
+      const out=String(ups[0]?.stdout??"").trim();
+      let ctx="";if(out){try{ctx=JSON.parse(out).hookSpecificOutput.additionalContext}catch{errs.push("the hook printed something that is not JSON")}}
+      const mem=ctx.split("\n").filter(l=>/^- /.test(l));
+      console.log(`     injected context: ${mem.length?"":"nothing"}`);for(const l of mem)console.log("       "+l);
+      if(ctx.includes("Already tried"))errs.push("a dead end was injected for an unrelated prompt");
+      const log=fs.readFileSync(root+"/.jevmem/log.jsonl","utf8").trim().split("\n").map(l=>JSON.parse(l)).filter(e=>e.label==="recall"&&!e.event);
+      if(!log.length||!log.at(-1).ok)errs.push("the last recall call did not succeed, so the check proves nothing");
+      console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,200)}`);
+      if(errs.length){console.log("   ✗ FAIL session 2: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ session 2: the unrelated prompt got no dead end, with the dead-end line live");
+JS
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- session 3 (new session, a related prompt): $p2"
+    before=$(decisions "$scratch")
+    ( cd "$scratch" && claude_session -- -p "$p2" --max-turns 10 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits --allowedTools "Bash(node *)" > "$events.3" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   (session 3's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
+    "$NODE" - "$events.3" "$scratch" <<'JS' || fail=1
       const fs=require("fs");const [evf,root]=process.argv.slice(2);
       const de=JSON.parse(fs.readFileSync(root+"/.jevmem/e2e-deadend.json","utf8"));
       const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
@@ -803,31 +829,13 @@ JS
       const firstEdit=calls.findIndex(c=>["Edit","Write","MultiEdit"].includes(c.name)&&/src\/app\.ts$/.test(c.arg));
       console.log(`     ran the failed attempt again, unchanged: ${firstRun>=0&&(firstEdit<0||firstRun<firstEdit)?"yes":"no"}${firstRun>=0&&firstEdit>=0&&firstEdit<firstRun?" (it ran app.ts with type stripping after changing app.ts)":""}`);
       console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,500)}`);
-      if(errs.length){console.log("   ✗ FAIL session 2: "+errs.join("; "));process.exit(1);}
-      console.log("   ✓ session 2: the related prompt's context has \"Already tried: <the dead-end line>\"");
-JS
-  fi
-  if [ $fail -eq 0 ]; then
-    echo "---- session 3 (new session, an unrelated prompt): $p3"
-    before=$(decisions "$scratch")
-    ( cd "$scratch" && claude_session -- -p "$p3" --max-turns 6 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits > "$events.3" 2>&1 )
-    wait_queue "$scratch" "$before" || { echo "   (session 3's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
-    "$NODE" - "$events.3" "$scratch" <<'JS' || fail=1
-      const fs=require("fs");const [evf,root]=process.argv.slice(2);
-      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
-      const errs=[];
-      const ups=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="UserPromptSubmit");
-      if(ups.length!==1)errs.push(`${ups.length} UserPromptSubmit hook responses, expected 1`);
-      const out=String(ups[0]?.stdout??"").trim();
-      let ctx="";if(out){try{ctx=JSON.parse(out).hookSpecificOutput.additionalContext}catch{errs.push("the hook printed something that is not JSON")}}
-      const mem=ctx.split("\n").filter(l=>/^- /.test(l));
-      console.log(`     injected context: ${mem.length?"":"nothing"}`);for(const l of mem)console.log("       "+l);
-      if(ctx.includes("Already tried"))errs.push("a dead end was injected for an unrelated prompt");
-      const log=fs.readFileSync(root+"/.jevmem/log.jsonl","utf8").trim().split("\n").map(l=>JSON.parse(l)).filter(e=>e.label==="recall"&&!e.event);
-      if(!log.length||!log.at(-1).ok)errs.push("the last recall call did not succeed, so the check proves nothing");
-      console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,200)}`);
+      // What this turn saved (not a check): when Claude made the approach work, the turn may supersede the dead end.
+      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
+      console.log("     JEVMEM.md after this session (not checked):");for(const l of lines)console.log("       "+l.replace(/\s*<!--.*-->/,""));
+      const dec=fs.readFileSync(root+"/.jevmem/decisions.jsonl","utf8").trim().split("\n").map(JSON.parse).at(-1);
+      console.log(`     this turn's decision: ${dec.decision.reason}`);
       if(errs.length){console.log("   ✗ FAIL session 3: "+errs.join("; "));process.exit(1);}
-      console.log("   ✓ session 3: the unrelated prompt got no dead end");
+      console.log("   ✓ session 3: the related prompt's context has \"Already tried: <the dead-end line>\"");
 JS
   fi
   ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
