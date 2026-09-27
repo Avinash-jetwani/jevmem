@@ -101,7 +101,7 @@ async function story(run: Run, root: string, home: string, notice: string) {
 }
 
 describe.skipIf(process.platform === "win32")("no TypeSafe key in an enabled project", () => {
-  it("the plugin's launcher: the notice names the plugin setting and /plugin configure", async () => {
+  it("the plugin's launcher: the notice names the plugin setting among the places, and jevmem key as the fix", async () => {
     const root = tmp();
     init({ root, hooks: false });
     const home = tmp();
@@ -110,7 +110,10 @@ describe.skipIf(process.platform === "win32")("no TypeSafe key in an enabled pro
     fs.symlinkSync(process.execPath, path.join(bin, "node"));
     const env = { PATH: `${bin}:/usr/bin:/bin`, HOME: home, TMPDIR: tmp(), CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: tmp(), JEVMEM_DAEMON: "0", JEVMEM_CACHE: "0" };
     const run: Run = (kind, input) => runAsync("sh", [PLUGIN_LAUNCHER, ...(kind === "stop" ? ["--detach"] : []), "hook", "--plugin"], { cwd: root, env, input });
-    expect(MISSING_KEY_NOTICE_PLUGIN).toMatch(/no TypeSafe API key found.*plugin setting.*TYPESAFE_API_KEY.*\.jevmem\/\.env.*~\/\.jevmem\/env.*run \/plugin configure jevmem@jevmem/);
+    expect(MISSING_KEY_NOTICE_PLUGIN).toMatch(/no TypeSafe API key found.*plugin setting.*TYPESAFE_API_KEY.*\.jevmem\/\.env.*~\/\.jevmem\/env.*To fix it, run jevmem key in a terminal and paste your key \(get one at https:\/\/console\.typesafe\.ai\/keys\)\.$/);
+    // No command that names a marketplace, and the same fix as the init hooks'.
+    expect(MISSING_KEY_NOTICE_PLUGIN).not.toContain("@");
+    expect(MISSING_KEY_NOTICE_PLUGIN.slice(MISSING_KEY_NOTICE_PLUGIN.indexOf("To fix it"))).toBe(MISSING_KEY_NOTICE_INIT.slice(MISSING_KEY_NOTICE_INIT.indexOf("To fix it")));
     await story(run, root, home, MISSING_KEY_NOTICE_PLUGIN);
   });
 
@@ -142,6 +145,63 @@ describe.skipIf(process.platform === "win32")("no TypeSafe key in an enabled pro
   });
 });
 
+/**
+ * A command run on a real pseudo-terminal (python3's pty), as in a terminal: each step waits for a text, then types.
+ * Returns everything the terminal showed and the exit code.
+ */
+const PTY = `
+import json, os, pty, select, sys, time
+argv, env, steps = json.loads(sys.argv[1]), json.loads(sys.argv[2]), json.loads(sys.argv[3])
+pid, fd = pty.fork()
+if pid == 0:
+    os.execve(argv[0], argv, env)
+out = b""
+def pump(timeout):
+    global out
+    r, _, _ = select.select([fd], [], [], timeout)
+    if not r:
+        return True
+    try:
+        data = os.read(fd, 4096)
+    except OSError:
+        return False
+    if not data:
+        return False
+    out += data
+    return True
+for wait_for, send in steps:
+    end = time.time() + 15
+    while wait_for.encode() not in out and time.time() < end:
+        if not pump(0.1):
+            break
+    os.write(fd, send.encode())
+end = time.time() + 15
+while time.time() < end and pump(0.1):
+    pass
+_, status = os.waitpid(pid, 0)
+print(json.dumps({"out": out.decode("utf-8", "replace"), "code": os.waitstatus_to_exitcode(status)}))
+`;
+function inTerminal(home: string, steps: [string, string][], cwd = tmp()): { out: string; code: number } {
+  const env = { PATH: "/usr/bin:/bin", HOME: home, TERM: "xterm" };
+  const r = spawnSync("python3", ["-c", PTY, JSON.stringify([process.execPath, CLI, "key"]), JSON.stringify(env), JSON.stringify(steps)], { cwd, encoding: "utf8", timeout: 40_000 });
+  if (r.status !== 0) throw new Error(`pty helper failed: ${r.stderr}`);
+  return JSON.parse(r.stdout);
+}
+/** Every file under `dir` whose text contains `needle`. */
+function filesWith(dir: string, needle: string): string[] {
+  const hits: string[] = [];
+  const walk = (d: string) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.isFile() && fs.readFileSync(p, "utf8").includes(needle)) hits.push(p);
+    }
+  };
+  walk(dir);
+  return hits;
+}
+const SAVED = "Saved your TypeSafe API key to ~/.jevmem/env (readable only by you). jevmem uses it from your next prompt, unless a key from the plugin setting, the environment or the project's .jevmem/.env comes first.\n";
+
 describe("jevmem key", () => {
   const home0 = process.env.HOME;
   afterEach(() => {
@@ -155,24 +215,73 @@ describe("jevmem key", () => {
     return { code, out, err };
   }
 
-  it("saves the key to ~/.jevmem/env, readable only by you, and never prints it", async () => {
+  it("saves the key to ~/.jevmem/env: the folder 700 and the file 600; the key never printed or logged", async () => {
     const home = tmp();
     const r = await key("typesafe-test-key-0003\n", home);
-    expect(r).toEqual({ code: 0, out: "Saved your TypeSafe API key to ~/.jevmem/env (readable only by you). jevmem's hooks use it from your next prompt.\n", err: "" });
+    expect(r).toEqual({ code: 0, out: SAVED, err: "" });
     const file = path.join(home, ".jevmem", "env");
     expect(fs.readFileSync(file, "utf8")).toBe("TYPESAFE_API_KEY=typesafe-test-key-0003\n");
     expect(fs.statSync(file).mode & 0o777).toBe(0o600);
     expect(fs.statSync(path.dirname(file)).mode & 0o777).toBe(0o700);
     expect(resolveJevKey(tmp(), {}, home)).toBe("~/.jevmem/env");
+    expect(filesWith(home, "typesafe-test-key-0003")).toEqual([file]);
   });
 
-  it("replaces an earlier key and keeps the other lines", async () => {
+  it("makes an existing folder 700 and an existing file 600, before the key goes in", async () => {
+    const home = tmp();
+    fs.mkdirSync(path.join(home, ".jevmem"), { mode: 0o755 });
+    fs.chmodSync(path.join(home, ".jevmem"), 0o755);
+    fs.writeFileSync(path.join(home, ".jevmem", "env"), "OPENAI_API_KEY=sk-other\n", { mode: 0o644 });
+    fs.chmodSync(path.join(home, ".jevmem", "env"), 0o644);
+    expect((await key("typesafe-test-key-0006", home)).code).toBe(0);
+    expect(fs.statSync(path.join(home, ".jevmem")).mode & 0o777).toBe(0o700);
+    expect(fs.statSync(path.join(home, ".jevmem", "env")).mode & 0o777).toBe(0o600);
+    expect(fs.readFileSync(path.join(home, ".jevmem", "env"), "utf8")).toBe("OPENAI_API_KEY=sk-other\nTYPESAFE_API_KEY=typesafe-test-key-0006\n");
+  });
+
+  it("does not replace a saved key without a terminal to ask in: nothing changes", async () => {
     const home = tmp();
     fs.mkdirSync(path.join(home, ".jevmem"));
-    fs.writeFileSync(path.join(home, ".jevmem", "env"), "OPENAI_API_KEY=sk-other\nexport TYPESAFE_API_KEY=old-key-000000\n\n", { mode: 0o644 });
-    expect((await key("export TYPESAFE_API_KEY='typesafe-test-key-0004'", home)).code).toBe(0);
+    const before = "OPENAI_API_KEY=sk-other\nexport TYPESAFE_API_KEY=old-key-000000\n";
+    fs.writeFileSync(path.join(home, ".jevmem", "env"), before, { mode: 0o600 });
+    const r = await key("typesafe-test-key-0004", home);
+    expect(r.code).toBe(1);
+    expect(r.err).toBe("jevmem key: ~/.jevmem/env already has a TypeSafe API key, so nothing was changed. To replace it, run jevmem key in a terminal: it asks first.\n");
+    expect(fs.readFileSync(path.join(home, ".jevmem", "env"), "utf8")).toBe(before);
+    expect(r.out + r.err).not.toContain("old-key-000000");
+  });
+
+  it.skipIf(process.platform === "win32")("in a terminal: asks for the key without echoing it", () => {
+    const home = tmp();
+    const t = inTerminal(home, [["TypeSafe API key (input hidden): ", "typesafe-test-key-0007\r"]]);
+    expect(t.code).toBe(0);
+    expect(t.out).toContain("TypeSafe API key (input hidden): ");
+    expect(t.out).toContain("Saved your TypeSafe API key to ~/.jevmem/env");
+    expect(t.out).not.toContain("typesafe-test-key-0007");
+    expect(fs.readFileSync(path.join(home, ".jevmem", "env"), "utf8")).toBe("TYPESAFE_API_KEY=typesafe-test-key-0007\n");
+    expect(filesWith(home, "typesafe-test-key-0007")).toEqual([path.join(home, ".jevmem", "env")]);
+  });
+
+  it.skipIf(process.platform === "win32")("in a terminal, with a key saved: asks first; no keeps it, yes replaces it and keeps the other lines", () => {
+    const home = tmp();
+    fs.mkdirSync(path.join(home, ".jevmem"));
     const file = path.join(home, ".jevmem", "env");
-    expect(fs.readFileSync(file, "utf8")).toBe("OPENAI_API_KEY=sk-other\nTYPESAFE_API_KEY=typesafe-test-key-0004\n");
+    const before = "OPENAI_API_KEY=sk-other\nexport TYPESAFE_API_KEY=old-key-000000\n\n";
+    fs.writeFileSync(file, before, { mode: 0o600 });
+    const ASK = "A TypeSafe API key is already saved in ~/.jevmem/env. Replace it? [y/N] ";
+    for (const answer of ["\r", "n\r", "no\r"]) {
+      const t = inTerminal(home, [[ASK, answer]]);
+      expect(t.code, JSON.stringify(answer)).toBe(0);
+      expect(t.out).toContain("Kept the key already saved in ~/.jevmem/env.");
+      expect(t.out).not.toContain("TypeSafe API key (input hidden)");
+      expect(fs.readFileSync(file, "utf8")).toBe(before);
+    }
+    const t = inTerminal(home, [[ASK, "y\r"], ["TypeSafe API key (input hidden): ", "typesafe-test-key-0008\r"]]);
+    expect(t.code).toBe(0);
+    expect(t.out).toContain("Saved your TypeSafe API key to ~/.jevmem/env");
+    expect(t.out).not.toContain("typesafe-test-key-0008");
+    expect(t.out).not.toContain("old-key-000000");
+    expect(fs.readFileSync(file, "utf8")).toBe("OPENAI_API_KEY=sk-other\nTYPESAFE_API_KEY=typesafe-test-key-0008\n");
     expect(fs.statSync(file).mode & 0o777).toBe(0o600);
   });
 
@@ -181,7 +290,7 @@ describe("jevmem key", () => {
       const home = tmp();
       const r = await key(bad, home);
       expect(r.code, bad).toBe(1);
-      expect(r.err).toMatch(/no usable key read/);
+      expect(r.err).toMatch(/no usable key read, so nothing was changed/);
       expect(fs.existsSync(path.join(home, ".jevmem")), bad).toBe(false);
     }
     expect(cleanPastedKey('  "typesafe-test-key-0005"  ')).toBe("typesafe-test-key-0005");

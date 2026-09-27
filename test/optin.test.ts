@@ -220,15 +220,18 @@ describe("jevmem doctor", () => {
     expect(r.stdout + r.stderr).not.toContain("secret-");
   });
 
-  it("with no key: names the plugin setting and ~/.jevmem/env; init says the same", () => {
+  it("with no key: names jevmem key, ~/.jevmem/env and the plugin setting (no marketplace name); init says the same", () => {
     const root = project({});
     const e = { PATH: "/usr/bin:/bin", HOME: tmp() };
     const d = spawnSync(process.execPath, [CLI, "doctor"], { cwd: root, env: e, encoding: "utf8" });
-    expect(d.stdout).toContain("/plugin configure jevmem@jevmem");
-    expect(d.stdout).toContain("~/.jevmem/env");
-    expect(d.stdout).toMatch(/writer +jevmem \(local, no LLM\)/);
     const i = spawnSync(process.execPath, [CLI, "init", "--tool", "claude"], { cwd: project(null), env: e, encoding: "utf8" });
-    expect(i.stdout).toContain("/plugin configure jevmem@jevmem");
-    expect(i.stdout).toContain("~/.jevmem/env");
+    for (const out of [d.stdout, i.stdout]) {
+      expect(out).toContain("run jevmem key in a terminal and paste your key");
+      expect(out).toContain("~/.jevmem/env");
+      expect(out).toContain("/plugin configure jevmem ");
+      expect(out).not.toContain("jevmem@jevmem");
+      expect(out).toContain("https://console.typesafe.ai/keys");
+    }
+    expect(d.stdout).toMatch(/writer +jevmem \(local, no LLM\)/);
   });
 });

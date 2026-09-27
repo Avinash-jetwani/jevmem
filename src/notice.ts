@@ -40,10 +40,12 @@ function readState(root: string): Record<string, unknown> {
 }
 
 const WHERE = "TYPESAFE_API_KEY in the environment Claude Code gives hooks (your shell profile is not read), <project>/.jevmem/.env and ~/.jevmem/env";
+/** The one fix, for both kinds of hooks: `jevmem key` saves to ~/.jevmem/env, which the plugin's hooks read too. */
+const FIX = "To fix it, run jevmem key in a terminal and paste your key (get one at https://console.typesafe.ai/keys).";
 /** What the plugin's hooks show when no key is found: what is missing, where jevmem looks, and the one command that fixes it. */
-export const MISSING_KEY_NOTICE_PLUGIN = `jevmem: no TypeSafe API key found, so memory is off in this project. jevmem looks in the plugin setting, then ${WHERE}. To fix it, run /plugin configure jevmem@jevmem and enter your key (get one at https://typesafe.ai).`;
+export const MISSING_KEY_NOTICE_PLUGIN = `jevmem: no TypeSafe API key found, so memory is off in this project. jevmem looks in the plugin setting, then ${WHERE}. ${FIX}`;
 /** The same for the hooks `jevmem init` registers, which have no plugin setting. */
-export const MISSING_KEY_NOTICE_INIT = `jevmem: no TypeSafe API key found, so memory is off in this project. jevmem looks for ${WHERE}. To fix it, run jevmem key in a terminal and paste your key (get one at https://typesafe.ai).`;
+export const MISSING_KEY_NOTICE_INIT = `jevmem: no TypeSafe API key found, so memory is off in this project. jevmem looks for ${WHERE}. ${FIX}`;
 
 /**
  * The notice for an enabled project where no TypeSafe key was found: the hooks then do nothing, and only `jevmem

@@ -12,7 +12,7 @@ import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
-import { applyPluginOption, cleanPastedKey, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey, saveJevKey } from "./env.js";
+import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey, saveJevKey } from "./env.js";
 import { resolveWriter } from "./llm/index.js";
 import { keyFound, missingKeyNotice, writerOptInNotice } from "./notice.js";
 import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
@@ -249,10 +249,10 @@ Checks this project's setup and prints it. Never prints a key.
   key: `jevmem key
 
 Save your TypeSafe API key to ~/.jevmem/env, where jevmem's hooks, MCP server and commands look when their environment
-has no key. It asks for the key without showing it, or reads it from stdin (jevmem key < file). An earlier
-TYPESAFE_API_KEY line in that file is replaced, other lines are kept, and the file is readable only by you. The key is
-never printed or logged. With the Claude Code plugin you can keep it in your system's credential store instead:
-/plugin configure jevmem@jevmem.
+has no key. It asks for the key without showing it, or reads it from stdin (jevmem key < file). When the file already
+has a key, it asks before replacing it, which needs a terminal; other lines are kept. The folder is readable only by
+you (700) and so is the file (600). The key is never printed or logged. With the Claude Code plugin you can keep it in
+your system's credential store instead: run /plugin configure jevmem in Claude Code.
 `,
   log: `jevmem log
 
@@ -668,11 +668,21 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       return 0;
     }
     case "key": {
-      const raw = opts.stdin ?? (process.stdin.isTTY ? await readHidden("TypeSafe API key (input hidden): ") : await readAll());
+      const tty = opts.stdin === undefined && process.stdin.isTTY === true;
+      // A key already saved is replaced only after a yes, which needs a terminal to ask in.
+      if (hasSavedJevKey()) {
+        if (!tty) return fail("jevmem key: ~/.jevmem/env already has a TypeSafe API key, so nothing was changed. To replace it, run jevmem key in a terminal: it asks first.");
+        const answer = (await readLine("A TypeSafe API key is already saved in ~/.jevmem/env. Replace it? [y/N] ")).trim().toLowerCase();
+        if (answer !== "y" && answer !== "yes") {
+          io.out("Kept the key already saved in ~/.jevmem/env.\n");
+          return 0;
+        }
+      }
+      const raw = opts.stdin ?? (tty ? await readLine("TypeSafe API key (input hidden): ", { hidden: true }) : await readAll());
       const key = cleanPastedKey(raw);
-      if (!key) return fail("jevmem key: no usable key read. Paste your TypeSafe API key (from https://typesafe.ai) and press Enter, or run jevmem key < file. A key with spaces, quotes, #, $ or a backslash can't go in ~/.jevmem/env this way.");
+      if (!key) return fail("jevmem key: no usable key read, so nothing was changed. Paste your TypeSafe API key (from https://console.typesafe.ai/keys) and press Enter, or run jevmem key < file. A key with spaces, quotes, #, $ or a backslash can't go in ~/.jevmem/env this way.");
       const file = saveJevKey(key);
-      io.out(`Saved your TypeSafe API key to ${file.replace(os.homedir(), "~")} (readable only by you). jevmem's hooks use it from your next prompt.\n`);
+      io.out(`Saved your TypeSafe API key to ${file.replace(os.homedir(), "~")} (readable only by you). jevmem uses it from your next prompt, unless a key from the plugin setting, the environment or the project's .jevmem/.env comes first.\n`);
       return 0;
     }
     case "why": {
@@ -929,8 +939,11 @@ function readAll(): Promise<string> {
   });
 }
 
-/** One line from the terminal, not echoed: Enter ends it, Backspace deletes, Ctrl-C or Ctrl-D gives "". */
-function readHidden(prompt: string): Promise<string> {
+/**
+ * One line from the terminal: Enter ends it, Backspace deletes, Ctrl-C or Ctrl-D gives "". With `hidden` nothing typed
+ * is echoed (the key); otherwise each character is (a yes or no).
+ */
+function readLine(prompt: string, opts: { hidden?: boolean } = {}): Promise<string> {
   return new Promise((resolve) => {
     const stdin = process.stdin;
     let text = "";
@@ -945,15 +958,21 @@ function readHidden(prompt: string): Promise<string> {
       for (const ch of chunk) {
         if (ch === "\r" || ch === "\n") return done(text);
         if (ch === "\u0003" || ch === "\u0004") return done("");
-        if (ch === "\u007f" || ch === "\b") text = text.slice(0, -1);
-        else if (ch >= " ") text += ch;
+        if (ch === "\u007f" || ch === "\b") {
+          if (text && !opts.hidden) io.err("\b \b");
+          text = text.slice(0, -1);
+        } else if (ch >= " ") {
+          text += ch;
+          if (!opts.hidden) io.err(ch);
+        }
       }
     };
-    io.err(prompt);
+    // Raw mode (no echo) before the prompt appears, so a key pasted as soon as it shows is not echoed.
     stdin.setEncoding("utf8");
     stdin.setRawMode(true);
     stdin.resume();
     stdin.on("data", onData);
+    io.err(prompt);
   });
 }
 
