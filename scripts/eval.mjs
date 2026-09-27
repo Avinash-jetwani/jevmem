@@ -54,6 +54,12 @@ async function runMode(mode) {
       outputTokens: d.usage.outputTokens,
       escalated: Boolean(d.escalated),
       reason: d.reason,
+      // Why a turn's result moved between two builds: was the reply in the state, where the memory came from, and
+      // the dead-end noul (null in a build without it).
+      assistantIncluded: d.assistantIncluded,
+      source: d.source,
+      deadEndNoul: d.tier1?.nouls?.contains_dead_end ?? d.tier2?.nouls?.tried_an_approach_that_failed_or_was_dropped ?? null,
+      kindProbabilities: d.kindProbabilities,
     });
   }
   const finishedAt = new Date().toISOString();
