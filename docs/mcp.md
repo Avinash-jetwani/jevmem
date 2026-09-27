@@ -60,7 +60,7 @@ args = ["-y", "jevmem", "mcp"]
 env = { TYPESAFE_API_KEY = "your-key" }
 ```
 
-`jevmem init --tool codex` writes this section without the `env` line; the server then reads the key from `~/.jevmem/env` (jevmem does not read shell profiles). Or from the CLI: `codex mcp add jevmem -- npx -y jevmem mcp`.
+`jevmem init --tool codex` writes this section without the `env` line; the server then reads the key from `~/.jevmem/env` (jevmem does not read shell profiles). That needs the MCP server on `main`, not yet in the npm release: 0.5.7's server reads only its own environment, so with 0.5.7 keep the `env` line. Or from the CLI: `codex mcp add jevmem -- npx -y jevmem mcp`.
 
 ### Claude Code plugin
 

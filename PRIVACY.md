@@ -43,7 +43,7 @@ All of it on your machine:
 - **`.jevmem/`**, in the project, local and gitignored: a copy of the memory lines, a log of each Jev call and of any line the poisoning check withheld, the save queue and recent decisions with the scrubbed turn text, your `right` and `wrong` labels, cached Jev answers, hashes of the lines jevmem wrote, and the guard's index of your rules and its cached answers (kept by hashes of the rule and the call, not the call's text). The guard (on `main`, not yet in the npm release) also keeps a log, `.jevmem/guard-log.jsonl`: one line per Bash, Edit or Write call it checked, with the time, the tool and how it was decided, and for a call it asked about, denied or warned about, the rule, Jev's score and a short scrubbed summary of the command or edit. `jevmem guard log` shows it, and nothing in it is sent anywhere. With `JEVMEM_DEBUG=1`, also the raw hook input.
 - **The plugin's data folder** (`~/.claude/plugins/data/…`): the paths of the jevmem CLI and Node it found and, in an enabled project without the CLI, the ids of the sessions it has shown the "CLI not found" message.
 - **The system temp folder**: the `Stop` hook's input, until jevmem reads and deletes it.
-- **Your TypeSafe API key**: entered in the plugin's settings (`/plugin configure jevmem@jevmem`), Claude Code keeps it in your system's secure credential store, and jevmem doesn't write it to a file or a log (tested). If you put it in `~/.jevmem/env` or `<project>/.jevmem/.env` instead, it is in that file.
+- **Your TypeSafe API key**: entered in the plugin's settings (`/plugin configure jevmem`), Claude Code keeps it in your system's secure credential store, and jevmem doesn't write it to a file or a log (tested). If you put it in `~/.jevmem/env` or `<project>/.jevmem/.env` instead, it is in that file. On `main`, not yet in the npm release, `jevmem key` writes it to `~/.jevmem/env` for you: the folder and the file readable only by you, and the key never printed or logged (tested).
 
 ## How to delete it
 
@@ -56,7 +56,7 @@ In each project:
 
 Then, once:
 
-- `claude plugin uninstall jevmem@jevmem` removes the plugin. When you uninstall it from the last place it's installed, Claude Code also deletes its data folder, unless you pass `--keep-data`.
+- `claude plugin uninstall jevmem` removes the plugin. When you uninstall it from the last place it's installed, Claude Code also deletes its data folder, unless you pass `--keep-data`.
 - A key you entered in the plugin's settings is held by Claude Code in the credential store, not by jevmem; remove it there. Delete `~/.jevmem/env` if you created it.
 - `npm uninstall -g jevmem` removes the CLI.
 
