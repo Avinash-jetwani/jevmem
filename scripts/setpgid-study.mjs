@@ -229,12 +229,14 @@ const run = {
     }),
   ),
 };
-let file = { kind: "setpgid-study", about: "scripts/setpgid-study.mjs: the Stop launchers' setpgid race, one run per entry", runs: [] };
+const ABOUT = "scripts/setpgid-study.mjs: the Stop launchers' setpgid race, one run per entry. The turns were decided by a local stand-in for Jev (every noul low, so each turn is skipped), not by the real Jev.";
+let file = { kind: "setpgid-study", about: ABOUT, runs: [] };
 try {
   file = JSON.parse(fs.readFileSync(OUT, "utf8"));
 } catch {
   /* a new file */
 }
+file.about = ABOUT;
 file.runs.push(run);
 fs.writeFileSync(OUT, JSON.stringify(file, null, 1) + "\n");
 fs.rmSync(RUN, { recursive: true, force: true });
