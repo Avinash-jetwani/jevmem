@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { noul, type JsonValue, type Questions } from "@typesafe-ai/sdk";
+import { noul, type EntryType, type JsonValue, type Questions } from "@typesafe-ai/sdk";
 import { gateLines, gateReason, hiddenTextReason, settleGate } from "./guard.js";
-import type { JevCaller } from "./jev.js";
+import { scrubState, type JevCaller } from "./jev.js";
 import { isVerified, readProvenance } from "./provenance.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
@@ -67,7 +67,9 @@ export interface AuditRow {
 export async function auditMemories(jev: JevCaller, store: MemoryStore, opts: { staleBelow: number; batch?: number; snapshot?: ReturnType<typeof snapshotRepo>; timeoutMs?: number }): Promise<AuditRow[]> {
   const memories = store.active();
   if (memories.length === 0) return [];
-  const snapshot = JSON.parse(scrubSecrets(JSON.stringify(opts.snapshot ?? snapshotRepo(store.root))));
+  // Each string on its own: scrubbing the JSON text could run a `KEY=value` match into a closing quote (a package.json
+  // script ending in `--token=$VERCEL_TOKEN` did), and the snapshot no longer parsed.
+  const snapshot = scrubState((opts.snapshot ?? snapshotRepo(store.root)) as EntryType);
   const batch = opts.batch ?? 60;
   const rows: AuditRow[] = [];
   for (let i = 0; i < memories.length; i += batch) {
