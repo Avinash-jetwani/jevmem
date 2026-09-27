@@ -843,7 +843,8 @@ JS
       const calls=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")calls.push({name:c.name,arg:String(c.input.command??c.input.file_path??c.input.pattern??"")});
       console.log(`     what Claude then did: tool calls: ${calls.map(c=>`${c.name}: ${JSON.stringify(c.arg)}`).join(" | ")||"none"}`);
       // The dead end repeated: running app.ts with type stripping before anything changed app.ts.
-      const firstRun=calls.findIndex(c=>c.name==="Bash"&&/strip-types|node\b[^|]*src\/app\.ts/.test(c.arg));
+      // Type stripping, by flag or by default (node src/app.ts); another flag such as --experimental-transform-types is another approach.
+      const firstRun=calls.findIndex(c=>c.name==="Bash"&&/--experimental-strip-types|\bnode\s+(?:\S+\/)?src\/app\.ts/.test(c.arg));
       const firstEdit=calls.findIndex(c=>["Edit","Write","MultiEdit"].includes(c.name)&&/src\/app\.ts$/.test(c.arg));
       console.log(`     ran the failed attempt again, unchanged: ${firstRun>=0&&(firstEdit<0||firstRun<firstEdit)?"yes":"no"}${firstRun>=0&&firstEdit>=0&&firstEdit<firstRun?" (it ran app.ts with type stripping after changing app.ts)":""}`);
       console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,500)}`);
@@ -896,7 +897,7 @@ run_supersede() {
       console.log(`     tool calls: ${calls.join(" | ")||"none"}`);
       // What Claude did with the dead end in its context: did it run the failed command again before changing app.ts?
       const cl=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")cl.push({name:c.name,arg:String(c.input.command??c.input.file_path??c.input.pattern??"")});
-      const firstRun=cl.findIndex(c=>c.name==="Bash"&&/strip-types|node\b[^|]*src\/app\.ts/.test(c.arg));
+      const firstRun=cl.findIndex(c=>c.name==="Bash"&&/--experimental-strip-types|\bnode\s+(?:\S+\/)?src\/app\.ts/.test(c.arg));
       const firstEdit=cl.findIndex(c=>["Edit","Write","MultiEdit"].includes(c.name)&&/src\/app\.ts$/.test(c.arg));
       console.log(`     ran the failed attempt again, unchanged, before changing app.ts: ${firstRun>=0&&(firstEdit<0||firstRun<firstEdit)?"yes":"no"}`);
       console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,500)}`);

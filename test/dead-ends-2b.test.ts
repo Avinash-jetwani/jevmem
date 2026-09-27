@@ -145,6 +145,11 @@ describe("lines end on a complete clause", () => {
     const one = "A single clause that goes on and on without any comma or conjunction or period to stop at anywhere in the middle of it at all";
     expect(clampLine(one, 60)).toMatch(/^A single clause .*…$/);
     expect(clampLine(one, 60).length).toBeLessThanOrEqual(60);
+    // Not before a parenthesis in the middle of a clause (e2e, part 2b: "I replaced the TypeScript `enum Unit`" lost what it
+    // was replaced with), nor before "so", "but", "since" or "which" without a comma.
+    const mid = "I replaced the TypeScript `enum Unit` (unsupported by Node's type-stripping) with a plain `const` object plus a derived union type via `as const`/`typeof`, keeping the same values and usage.";
+    expect(clampLine(mid, 180)).toBe("I replaced the TypeScript `enum Unit` (unsupported by Node's type-stripping) with a plain `const` object plus a derived union type via `as const`/`typeof`");
+    expect(clampLine("The nightly export on the old replica was so slow that the morning reports were always an hour late for the finance team.", 60)).toMatch(/…$/);
     // Not after an abbreviation.
     expect(clampLine("Formats such as JSON, e.g. the export files, go to S3; the rest stays on the local disk for a day.", 60)).toBe("Formats such as JSON, e.g. the export files, go to S3");
   });

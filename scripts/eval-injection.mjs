@@ -168,6 +168,7 @@ const result = {
   finished_at: new Date().toISOString(),
   jevmem_version: JSON.parse(fs.readFileSync("package.json", "utf8")).version,
   commit,
+  dist: path.relative(process.cwd(), path.resolve(distArg)),
   gate_version: lib.GATE_VERSION,
   dead_end_gate_version: lib.DEAD_END_GATE_VERSION ?? null,
   machine: `${process.platform} ${process.arch}, node ${process.version}`,

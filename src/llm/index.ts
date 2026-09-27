@@ -339,14 +339,17 @@ export function stripFiller(line: string): string {
 
 // Words after ", " that start a new clause, and conjunctions that start one without a comma.
 const CLAUSE_WORD = /^(?:and|but|so|or|yet|which|who|whose|because|since|while|as|where|whereas|though|although|unless|until|after|before|when|then|leaving|making|meaning|causing|except|instead)\b/i;
-const BARE_CLAUSE_WORD = /^(?:because|since|but|so|which|while|although|though|unless|until|whereas)\b/i;
+// Without a comma, only words that always open a clause: "so", "but", "since" and "which" also do other work ("so slow",
+// "not A but B", "since 2019", "the job which runs nightly").
+const BARE_CLAUSE_WORD = /^(?:because|while|although|though|unless|until|whereas)\b/i;
 const ABBREVIATION = /(?:^|[\s(])(?:e\.g|i\.e|vs|etc|approx|cf|no|fig|vol|ca)\.$/i;
 
 /**
  * Where `t` may end on a complete clause (the cut is before position `at`): after the end of a sentence; before "; ",
- * ": ", a spaced dash or an opening parenthesis; before ", " and a word that starts a clause ("but", "so", "which", …);
- * before "because", "but", "so", "which" and the like. Never inside parentheses, brackets, backticks or double quotes,
- * so never inside a code span or a URL. A bare ", " is a weak end: it may close an opening phrase, not a clause.
+ * ": " or a spaced dash; before a parenthesis that closes its clause (what follows it is punctuation or the end, not
+ * more of the same clause); before ", " and a word that starts a clause ("but", "so", "which", …); before "because",
+ * "although", "unless" and the like. Never inside parentheses, brackets, backticks or double quotes, so never inside a
+ * code span or a URL. A bare ", " is a weak end: it may close an opening phrase, not a clause.
  */
 function clauseEnds(t: string): { at: number; strong: boolean }[] {
   const out: { at: number; strong: boolean }[] = [];
@@ -365,7 +368,7 @@ function clauseEnds(t: string): { at: number; strong: boolean }[] {
       continue;
     }
     if (c === "(" || c === "[") {
-      if (depth === 0 && !quote && t[i - 1] === " ") out.push({ at: i - 1, strong: true });
+      if (depth === 0 && !quote && t[i - 1] === " " && closesItsClause(t, i)) out.push({ at: i - 1, strong: true });
       depth++;
       continue;
     }
@@ -382,6 +385,16 @@ function clauseEnds(t: string): { at: number; strong: boolean }[] {
     else if (c === " " && t[i - 1] !== "," && BARE_CLAUSE_WORD.test(next)) out.push({ at: i, strong: true });
   }
   return out;
+}
+
+/** Does the parenthesis opening at `open` end its clause: is it followed by punctuation, a dash or the end of the text? */
+function closesItsClause(t: string, open: number): boolean {
+  let depth = 0;
+  for (let j = open; j < t.length; j++) {
+    if (t[j] === "(" || t[j] === "[") depth++;
+    else if ((t[j] === ")" || t[j] === "]") && --depth === 0) return /^(?:$|[.,;:!?]|\s[—–-]\s)/.test(t.slice(j + 1));
+  }
+  return false;
 }
 
 /**
