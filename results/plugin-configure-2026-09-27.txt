@@ -1,0 +1,55 @@
+# How a plugin user sets or changes the sensitive typesafe_api_key option, checked in Claude Code's TUI, 2026-09-27.
+# scripts/plugin-configure-check.py --claude <binary>, once with 2.1.274 (the CLI on this machine's PATH) and once with
+# 2.1.281 (the desktop app's bundle), on the part 1e working tree before its commits. The plugin is installed from a marketplace NOT
+# called jevmem ("not-jevmem"), so nothing here depends on the marketplace's name. Jev is a local stand-in (simulated,
+# not the real Jev) that records the key each request carries; the keys are fake test values.
+# A: /plugin configure jevmem (no marketplace name). B: the same, again, with another key. C: the path Claude Code's docs
+# describe (/plugin, the Installed tab, jevmem, Configure options). D: claude plugin install --config on the installed
+# plugin (informational). Each is followed by a headless session in an enabled project whose hooks must send that key.
+#
+# Also on both versions, for reference:
+#   claude plugin --help            lists details, disable, enable, eval, help, init, install, list, marketplace, prune,
+#                                   tag, uninstall, update, validate: no configure (it is a /plugin subcommand in the TUI)
+#   claude plugin install --help    "--config <key=value>  Set a userConfig option declared in the plugin's manifest
+#                                   (repeatable). Values are validated against the schema and stored via the same path
+#                                   as the interactive /plugin configure flow."
+#   /plugin help (in the TUI)       "/plugin configure <plugin> - Set userConfig options"
+#   claude plugin uninstall jevmem  "Successfully uninstalled plugin: jevmem" with the plugin from not-jevmem
+#
+# ---- 2.1.274
+# 2.1.274 (Claude Code), in a temporary CLAUDE_CONFIG_DIR; Jev is a local stand-in (not the real Jev)
+$ claude plugin marketplace add <marketplace not named jevmem>
+  Adding marketplace…✔ Successfully added marketplace: not-jevmem (declared in user settings)
+$ claude plugin install jevmem@not-jevmem
+  Installing plugin "jevmem@not-jevmem"...✔ Successfully installed plugin: jevmem@not-jevmem (scope: user)
+  1 userConfig option not yet set — run /plugin configure jevmem@not-jevmem in Claude Code, or pass --config KEY=VALUE.
+PASS A (/plugin configure jevmem): the 'Configure jevmem' dialog opened: True; the key was masked: True; 'Configuration saved.': True
+PASS A: the next session's hooks sent 1 request(s) to the stand-in, with key(s) ['cfg-test-key-A-0001']; expected cfg-test-key-A-0001
+PASS B (/plugin configure jevmem, again): the 'Configure jevmem' dialog opened: True; the key was masked: True; 'Configuration saved.': True
+PASS B: the next session's hooks sent 1 request(s) to the stand-in, with key(s) ['cfg-test-key-B-0002']; expected cfg-test-key-B-0002
+PASS C (/plugin > Installed > jevmem > Configure options): the 'Configure jevmem' dialog opened: True; the key was masked: True; 'Configuration saved.': True
+PASS C: the next session's hooks sent 2 request(s) to the stand-in, with key(s) ['cfg-test-key-C-0003']; expected cfg-test-key-C-0003
+$ claude plugin install jevmem@not-jevmem --config typesafe_api_key=<key D>   (the plugin is installed already)
+  Installing plugin "jevmem@not-jevmem"...✔ Plugin "jevmem@not-jevmem" is already installed (scope: user)
+PASS D (informational): the next session's hooks sent 2 request(s) to the stand-in, with key(s) ['cfg-test-key-D-0004']; expected cfg-test-key-D-0004
+# cleanup: the keychain item Claude Code-credentials-09d62cae (this run's temporary config) deleted; the daemon stopped
+RESULT A, B and C passed
+#
+# ---- 2.1.281
+# 2.1.281 (Claude Code), in a temporary CLAUDE_CONFIG_DIR; Jev is a local stand-in (not the real Jev)
+$ claude plugin marketplace add <marketplace not named jevmem>
+  Adding marketplace…✔ Successfully added marketplace: not-jevmem (declared in user settings)
+$ claude plugin install jevmem@not-jevmem
+  Installing plugin "jevmem@not-jevmem"...✔ Successfully installed plugin: jevmem@not-jevmem (scope: user)
+  1 userConfig option not yet set — run /plugin configure jevmem@not-jevmem in Claude Code, or pass --config KEY=VALUE.
+PASS A (/plugin configure jevmem): the 'Configure jevmem' dialog opened: True; the key was masked: True; 'Configuration saved.': True
+PASS A: the next session's hooks sent 2 request(s) to the stand-in, with key(s) ['cfg-test-key-A-0001']; expected cfg-test-key-A-0001
+PASS B (/plugin configure jevmem, again): the 'Configure jevmem' dialog opened: True; the key was masked: True; 'Configuration saved.': True
+PASS B: the next session's hooks sent 2 request(s) to the stand-in, with key(s) ['cfg-test-key-B-0002']; expected cfg-test-key-B-0002
+PASS C (/plugin > Installed > jevmem > Configure options): the 'Configure jevmem' dialog opened: True; the key was masked: True; 'Configuration saved.': True
+PASS C: the next session's hooks sent 2 request(s) to the stand-in, with key(s) ['cfg-test-key-C-0003']; expected cfg-test-key-C-0003
+$ claude plugin install jevmem@not-jevmem --config typesafe_api_key=<key D>   (the plugin is installed already)
+  Installing plugin "jevmem@not-jevmem"...✔ Plugin "jevmem@not-jevmem" is already installed (scope: user) — it loads in place from <tmp>/market/plugin, so edits there take effect at the next session start or /reload-plugins
+PASS D (informational): the next session's hooks sent 2 request(s) to the stand-in, with key(s) ['cfg-test-key-D-0004']; expected cfg-test-key-D-0004
+# cleanup: the keychain item Claude Code-credentials-e43873bb (this run's temporary config) deleted; the daemon stopped
+RESULT A, B and C passed
