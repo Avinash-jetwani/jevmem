@@ -31,6 +31,14 @@ function walk(v, key, parentTurns) {
     // Contradiction diagnostics (scripts/diag-contradictions.mjs) store counts, not "N/M" strings.
     if (typeof v.found === "number" && typeof v.contradictions === "number") pool.frac.add(`${v.found}/${v.contradictions}`);
     if (typeof v.false_supersedes === "number" && typeof v.near_misses === "number") pool.frac.add(`${v.false_supersedes}/${v.near_misses}`);
+    // Dead ends (scripts/eval-dead-ends.mjs): precision as saved-and-right over saved, found/cases per case group,
+    // near misses superseded, per-tag counts, and the writer's kept counts over the dead ends.
+    if (typeof v.truePositives === "number" && typeof v.falsePositives === "number") pool.frac.add(`${v.truePositives}/${v.truePositives + v.falsePositives}`);
+    if (typeof v.found === "number" && typeof v.cases === "number") pool.frac.add(`${v.found}/${v.cases}`);
+    if (typeof v.nearMissFalseSupersedes === "number" && typeof v.nearMisses === "number") pool.frac.add(`${v.nearMissFalseSupersedes}/${v.nearMisses}`);
+    if (typeof v.savedAsDeadEnd === "number" && typeof v.cases === "number") pool.frac.add(`${v.savedAsDeadEnd}/${v.cases}`);
+    if (typeof v.savedAsDeadEnd === "number" && typeof v.n === "number") for (const k of ["savedAsDeadEnd", "ok"]) pool.frac.add(`${v[k]}/${v.n}`);
+    if (typeof v.deadEnds === "number") for (const k of ["reasonKept", "triedKept", "bothKept", "passesReasonCheck"]) if (typeof v[k] === "number") pool.frac.add(`${v[k]}/${v.deadEnds}`);
     for (const [k, x] of Object.entries(v)) walk(x, k, turns);
     return;
   }

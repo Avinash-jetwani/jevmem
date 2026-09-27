@@ -15,6 +15,8 @@ In a project without `jevmem.config.json` (not opted in with `jevmem enable` or 
 
 `search_memory` and `list_memory` never return a line the [poisoning gate](../SECURITY.md#memory-poisoning) withholds (they list it under `withheld` with the reason instead), and `list_memory` without a key withholds unverified lines it cannot check. Both are marked open-world because they may ask Jev.
 
+`add_memory` takes `kind` ∈ `decision | constraint | preference | bug | architecture | todo`, and on `main` (not yet released) `dead-end`: an approach that was tried and failed or was dropped. A dead-end line must say what was tried and why, or it is refused ("a dead end must say what was tried and why it failed or was dropped, and this line gives no reason"); a line Jev reads as a dead end with no reason keeps the kind you gave. `search_memory` and `list_memory` return dead ends with `"kind": "dead-end"`; the Claude Code hook injects them as `Already tried: <line>` ([Dead ends](dead-ends.md)).
+
 Both writing tools are marked destructive because they can change existing lines, not only add new ones: `add_memory` re-tags a contradicted memory `[superseded]`, which takes it out of what is served (the line stays in the file), and `audit_memory` with `apply: true` sets or clears `[stale?]` flags on existing lines (flagged lines keep their text and stay live).
 
 ### Cursor
