@@ -37,16 +37,50 @@ if (argv[0] === "hook" && process.env.CLAUDE_PROJECT_DIR && !fs.existsSync(path.
 } else await run();
 
 async function run(stdin?: string): Promise<void> {
-  const { main } = await import("./cli-main.js");
-  main(argv, undefined, { stdin }).then(
-    (code) => {
-      if (code >= 0) process.exit(code);
-    },
-    (err) => {
-      process.stderr.write(`jevmem: ${err instanceof Error ? err.message : String(err)}\n`);
-      process.exit(argv[0] === "hook" ? 0 : 1);
-    },
-  );
+  let code: number;
+  try {
+    const { main } = await import("./cli-main.js");
+    code = await main(argv, undefined, { stdin });
+  } catch (err) {
+    process.stderr.write(`jevmem: ${err instanceof Error ? err.message : String(err)}\n`);
+    if (argv[0] === "hook") logHookFailure(err instanceof Error ? `${err.name}: ${err.message}` : String(err), stdin);
+    code = argv[0] === "hook" ? 0 : 1;
+  }
+  if (code >= 0) process.exit(code);
+}
+
+/**
+ * A hook that failed before or outside the CLI's own error handling (the CLI's main module did not load, say, after an
+ * upgrade replaced it): the error goes to the project's .jevmem/log.jsonl, where doctor and stats find it. The Stop
+ * hook's detached CLI has no stderr to tell anyone. Written only in an enabled project; the saved hook input
+ * (--stdin-file) is removed, as the CLI would have done.
+ */
+function logHookFailure(message: string, stdin?: string): void {
+  try {
+    const i = argv.indexOf("--stdin-file");
+    const file = i >= 0 ? argv[i + 1] : undefined;
+    let raw = stdin ?? "";
+    if (file) {
+      try {
+        raw = fs.readFileSync(file, "utf8");
+      } finally {
+        fs.rmSync(file, { force: true });
+      }
+    }
+    let input: { hook_event_name?: unknown; cwd?: unknown } = {};
+    try {
+      input = JSON.parse(raw);
+    } catch {
+      /* not JSON */
+    }
+    const root = [process.env.CLAUDE_PROJECT_DIR, typeof input.cwd === "string" ? input.cwd : undefined, process.cwd()].find((d) => d && fs.existsSync(d))!;
+    if (!fs.existsSync(path.join(root, "jevmem.config.json"))) return;
+    const event = typeof input.hook_event_name === "string" ? input.hook_event_name : "hook";
+    fs.mkdirSync(path.join(root, ".jevmem"), { recursive: true });
+    fs.appendFileSync(path.join(root, ".jevmem", "log.jsonl"), JSON.stringify({ ts: new Date().toISOString(), label: "hook", ok: false, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, error: `${event}: ${message}` }) + "\n");
+  } catch {
+    /* nowhere left to report it */
+  }
 }
 
 function readStdin(): Promise<string> {
