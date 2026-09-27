@@ -38,7 +38,10 @@ function walk(v, key, parentTurns) {
     if (typeof v.nearMissFalseSupersedes === "number" && typeof v.nearMisses === "number") pool.frac.add(`${v.nearMissFalseSupersedes}/${v.nearMisses}`);
     if (typeof v.savedAsDeadEnd === "number" && typeof v.cases === "number") pool.frac.add(`${v.savedAsDeadEnd}/${v.cases}`);
     if (typeof v.savedAsDeadEnd === "number" && typeof v.n === "number") for (const k of ["savedAsDeadEnd", "ok"]) pool.frac.add(`${v[k]}/${v.n}`);
-    if (typeof v.deadEnds === "number") for (const k of ["reasonKept", "triedKept", "bothKept", "passesReasonCheck"]) if (typeof v[k] === "number") pool.frac.add(`${v[k]}/${v.deadEnds}`);
+    if (typeof v.deadEnds === "number") for (const k of ["reasonKept", "triedKept", "bothKept", "passesReasonCheck", "emptyLines"]) if (typeof v[k] === "number") pool.frac.add(`${v[k]}/${v.deadEnds}`);
+    // Part 2b: supersedes scored correct over labelled, and the cases that must never supersede (superseded, saved).
+    if (typeof v.correct === "number" && typeof v.labelled === "number") pool.frac.add(`${v.correct}/${v.labelled}`);
+    if (typeof v.superseded === "number" && typeof v.cases === "number") for (const k of ["superseded", "saved"]) if (typeof v[k] === "number") pool.frac.add(`${v[k]}/${v.cases}`);
     for (const [k, x] of Object.entries(v)) walk(x, k, turns);
     return;
   }

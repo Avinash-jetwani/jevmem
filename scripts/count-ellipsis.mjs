@@ -87,6 +87,8 @@ const summary = {
   files: out.length,
   lines: sum(out, (x) => x.lines),
   ellipsis: sum(out, (x) => x.ellipsis),
+  endsInEllipsis: `${sum(out, (x) => x.ellipsis)}/${sum(out, (x) => x.lines)}`,
+  evalEndsInEllipsis: `${sum(out.filter((x) => x.shape !== "e2e"), (x) => x.ellipsis)}/${sum(out.filter((x) => x.shape !== "e2e"), (x) => x.lines)}`,
   ...(lib
     ? {
         recomputedWith: RECOMPUTE,
@@ -96,6 +98,7 @@ const summary = {
         llmEllipsisNotRecomputed: sum(out.filter((x) => x.recomputed), (x) => x.recomputed.llmEllipsis ?? 0),
         e2eLines: sum(out.filter((x) => x.shape === "e2e"), (x) => x.lines),
         e2eEllipsis: sum(out.filter((x) => x.shape === "e2e"), (x) => x.ellipsis),
+        localLinesRecomputed: `${sum(out.filter((x) => x.recomputed), (x) => x.recomputed.ellipsis - (x.recomputed.llmEllipsis ?? 0))}/${sum(out.filter((x) => x.recomputed), (x) => x.recomputed.lines - (x.recomputed.llmLinesNotRecomputed ?? 0))}`,
       }
     : {}),
 };
