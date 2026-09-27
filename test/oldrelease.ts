@@ -23,16 +23,30 @@ export function oldRelease(): { cli: string; plugin: string } | null {
     const work = `${dir}.${process.pid}.tmp`;
     fs.rmSync(work, { recursive: true, force: true });
     fs.mkdirSync(work, { recursive: true });
-    const tar = execFileSync("git", ["archive", "--format=tar", TAG, "src", "plugin", "hooks", "package.json", "tsconfig.json", "tsup.config.ts"], { maxBuffer: 1 << 28 });
-    execFileSync("tar", ["-x", "-C", work], { input: tar });
+    // Through a file, not a pipe: bsdtar (macOS) can stop reading at the archive's end marker while node is still writing
+    // the padding after it into tar's stdin, and spawnSync then fails with EPIPE (seen in CI, macOS, node 20).
+    const archive = `${work}.tar`;
+    execFileSync("git", ["archive", "--format=tar", "-o", archive, TAG, "src", "plugin", "hooks", "package.json", "tsconfig.json", "tsup.config.ts"]);
+    execFileSync("tar", ["-x", "-f", archive, "-C", work]);
+    fs.rmSync(archive, { force: true });
     fs.symlinkSync(path.resolve("node_modules"), path.join(work, "node_modules"));
     try {
       execFileSync(path.resolve("node_modules", ".bin", "tsup"), [], { cwd: work, stdio: "pipe" });
     } catch (err) {
       throw new Error(`could not build jevmem ${TAG} from the tag (set JEVMEM_OLD_CLI to a ${TAG.slice(1)} dist/cli.js instead): ${String((err as { stderr?: unknown }).stderr ?? err).slice(0, 500)}`);
     }
-    fs.rmSync(dir, { recursive: true, force: true });
-    fs.renameSync(work, dir);
+    // Vitest runs test files in parallel, so another worker may finish the same build first. The cache directory only ever
+    // appears by this rename, whole: keep a copy that is already there (deleting it would pull it from under the tests
+    // using it) and drop ours; only a directory without a CLI in it is replaced.
+    try {
+      fs.renameSync(work, dir);
+    } catch {
+      if (fs.existsSync(path.join(dir, "dist", "cli.js"))) fs.rmSync(work, { recursive: true, force: true });
+      else {
+        fs.rmSync(dir, { recursive: true, force: true });
+        fs.renameSync(work, dir);
+      }
+    }
   }
   return { cli: process.env.JEVMEM_OLD_CLI ? path.resolve(process.env.JEVMEM_OLD_CLI) : path.join(dir, "dist", "cli.js"), plugin: path.join(dir, "plugin") };
 }
