@@ -40,6 +40,22 @@ describe("audit", () => {
     applyAudit(store, rows2);
     expect(fs.readFileSync(path.join(root, "JEVMEM.md"), "utf8")).not.toContain("[stale?]");
   });
+
+  it("scrubs each string of the snapshot: a script ending in --token=$VERCEL_TOKEN no longer breaks it", async () => {
+    const root = tmp();
+    fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ name: "demo", scripts: { deploy: "vercel --prod --token=$VERCEL_TOKEN" } }));
+    fs.writeFileSync(path.join(root, "README.md"), "# demo\nexport PGPASSWORD=hunter2");
+    const store = new MemoryStore(root);
+    store.add({ kind: "decision", text: "Deploys go through Vercel" });
+    const jev = mockJev(() => ({}));
+    await auditMemories(jev, store, { staleBelow: 0.4 });
+    const snap = (jev.calls[0]!.state as any).repository_snapshot;
+    expect(snap.packageJson.scripts.deploy).toBe("vercel --prod --token=[REDACTED]");
+    expect(snap.readme).toBe("# demo\nexport PGPASSWORD=[REDACTED]");
+    // Scrubbing the snapshot's JSON text, as 0.5.7 did, threw on this repository.
+    const { scrubSecrets: scrub057 } = await import("./fixtures/scrub-0.5.7/scrub.js");
+    expect(() => JSON.parse(scrub057(JSON.stringify(snapshotRepo(root))))).toThrow(SyntaxError);
+  });
 });
 
 describe("search ranking", () => {
