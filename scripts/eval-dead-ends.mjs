@@ -180,6 +180,7 @@ async function pipeline() {
       reason: d.reason,
       deadEndNoul: { tier1: d.tier1?.nouls?.contains_dead_end ?? null, tier2: d.tier2?.nouls?.tried_an_approach_that_failed_or_was_dropped ?? null },
       worksNow: d.worksNow ?? null,
+      retestAnswer: d.retest ?? null,
       kindChoice: d.kind, kindProbabilities: d.kindProbabilities,
       touches: d.touchesMemoryId, contradictionFamily: d.families?.contradiction ?? null,
       _want: want,
