@@ -1,0 +1,473 @@
+{
+  "kind": "diag-recall-supersede-e2e",
+  "date": "2026-09-28",
+  "reps": 2,
+  "query": "Can I run src/app.ts directly with node now, without tsc? Answer in one sentence, without running anything.",
+  "method": "Each case's three live lines sent as recall would, in process, cache off, repeated `reps` times; a case counts as injected when every repeat injects the new line: old = the 0.5.9 rule (choice ≥ 0.05), new = relevance ≥ 0.97, or ≥ 0.8 with the choice ≥ 0.05.",
+  "summary": {
+    "old_questions": "4/9",
+    "new_questions": "4/9",
+    "new_questions_with_replaces": "9/9"
+  },
+  "cases": [
+    {
+      "source": "part2b run 1",
+      "line": "`node --experimental-strip-types src/app.ts` now runs directly and prints `2.1 min`. I replaced the TypeScript `enum Unit`",
+      "old": [
+        {
+          "newLine": 0.98,
+          "tsc": 0.02
+        },
+        {
+          "newLine": 0.98,
+          "tsc": 0.02
+        }
+      ],
+      "new": [
+        {
+          "newLine": 0.97,
+          "tsc": 0.03,
+          "relNewLine": 0.97,
+          "relTsc": 0.93,
+          "relPref": 0.13
+        },
+        {
+          "newLine": 0.98,
+          "tsc": 0.02,
+          "relNewLine": 0.97,
+          "relTsc": 0.93,
+          "relPref": 0.14
+        }
+      ],
+      "newWithReplaces": [
+        {
+          "newLine": 0.93,
+          "tsc": 0.07,
+          "relNewLine": 0.95,
+          "relTsc": 0.94,
+          "relPref": 0.13
+        },
+        {
+          "newLine": 0.95,
+          "tsc": 0.05,
+          "relNewLine": 0.95,
+          "relTsc": 0.92,
+          "relPref": 0.14
+        }
+      ],
+      "injected": {
+        "old": true,
+        "new": true,
+        "newWithReplaces": true
+      }
+    },
+    {
+      "source": "part2b run 2",
+      "line": "Node's `--experimental-strip-types` only strips type syntax — it can't handle real TypeScript `enum`, which emits actual JS. It runs and prints `2.1 min`. I replaced the real TypeScript `enum Unit`",
+      "old": [
+        {
+          "newLine": 0.08,
+          "tsc": 0.92
+        },
+        {
+          "newLine": 0.1,
+          "tsc": 0.9
+        }
+      ],
+      "new": [
+        {
+          "newLine": 0.09,
+          "tsc": 0.91,
+          "relNewLine": 0.89,
+          "relTsc": 0.95,
+          "relPref": 0.08
+        },
+        {
+          "newLine": 0.1,
+          "tsc": 0.9,
+          "relNewLine": 0.88,
+          "relTsc": 0.96,
+          "relPref": 0.08
+        }
+      ],
+      "newWithReplaces": [
+        {
+          "newLine": 0.91,
+          "tsc": 0.09,
+          "relNewLine": 0.97,
+          "relTsc": 0.95,
+          "relPref": 0.07
+        },
+        {
+          "newLine": 0.9,
+          "tsc": 0.1,
+          "relNewLine": 0.97,
+          "relTsc": 0.94,
+          "relPref": 0.08
+        }
+      ],
+      "injected": {
+        "old": true,
+        "new": true,
+        "newWithReplaces": true
+      }
+    },
+    {
+      "source": "part2b run 3",
+      "line": "I replaced the TypeScript `enum Unit` (which Node's type-stripping mode can't erase) with a `const Unit = {...} as const` object plus a derived `type Unit` alias",
+      "old": [
+        {
+          "newLine": 0.01,
+          "tsc": 0.99
+        },
+        {
+          "newLine": 0.01,
+          "tsc": 0.99
+        }
+      ],
+      "new": [
+        {
+          "newLine": 0.02,
+          "tsc": 0.98,
+          "relNewLine": 0.67,
+          "relTsc": 0.96,
+          "relPref": 0.09
+        },
+        {
+          "newLine": 0.01,
+          "tsc": 0.99,
+          "relNewLine": 0.66,
+          "relTsc": 0.96,
+          "relPref": 0.09
+        }
+      ],
+      "newWithReplaces": [
+        {
+          "newLine": 0.85,
+          "tsc": 0.15,
+          "relNewLine": 0.97,
+          "relTsc": 0.94,
+          "relPref": 0.09
+        },
+        {
+          "newLine": 0.78,
+          "tsc": 0.22,
+          "relNewLine": 0.97,
+          "relTsc": 0.94,
+          "relPref": 0.07
+        }
+      ],
+      "injected": {
+        "old": false,
+        "new": false,
+        "newWithReplaces": true
+      }
+    },
+    {
+      "source": "part2b run 4",
+      "line": "It runs correctly now. I replaced the TypeScript `enum Unit` with a `const Unit` object plus a derived `type Unit` union",
+      "old": [
+        {
+          "newLine": 0,
+          "tsc": 1
+        },
+        {
+          "newLine": 0,
+          "tsc": 1
+        }
+      ],
+      "new": [
+        {
+          "newLine": 0,
+          "tsc": 1,
+          "relNewLine": 0.3,
+          "relTsc": 0.97,
+          "relPref": 0.08
+        },
+        {
+          "newLine": 0,
+          "tsc": 1,
+          "relNewLine": 0.3,
+          "relTsc": 0.97,
+          "relPref": 0.08
+        }
+      ],
+      "newWithReplaces": [
+        {
+          "newLine": 0.48,
+          "tsc": 0.52,
+          "relNewLine": 0.92,
+          "relTsc": 0.95,
+          "relPref": 0.1
+        },
+        {
+          "newLine": 0.51,
+          "tsc": 0.49,
+          "relNewLine": 0.92,
+          "relTsc": 0.95,
+          "relPref": 0.08
+        }
+      ],
+      "injected": {
+        "old": false,
+        "new": false,
+        "newWithReplaces": true
+      }
+    },
+    {
+      "source": "part2b run 5",
+      "line": "`node --experimental-strip-types src/app.ts` now runs directly and prints `2.1 min`. I replaced the TypeScript `enum Unit` with a `const Unit` object plus a derived union type",
+      "old": [
+        {
+          "newLine": 0.99,
+          "tsc": 0.01
+        },
+        {
+          "newLine": 0.98,
+          "tsc": 0.02
+        }
+      ],
+      "new": [
+        {
+          "newLine": 0.98,
+          "tsc": 0.02,
+          "relNewLine": 0.97,
+          "relTsc": 0.93,
+          "relPref": 0.14
+        },
+        {
+          "newLine": 0.98,
+          "tsc": 0.02,
+          "relNewLine": 0.97,
+          "relTsc": 0.93,
+          "relPref": 0.12
+        }
+      ],
+      "newWithReplaces": [
+        {
+          "newLine": 0.94,
+          "tsc": 0.06,
+          "relNewLine": 0.97,
+          "relTsc": 0.93,
+          "relPref": 0.12
+        },
+        {
+          "newLine": 0.93,
+          "tsc": 0.07,
+          "relNewLine": 0.97,
+          "relTsc": 0.93,
+          "relPref": 0.13
+        }
+      ],
+      "injected": {
+        "old": true,
+        "new": true,
+        "newWithReplaces": true
+      }
+    },
+    {
+      "source": "part2b run 6",
+      "line": "I replaced the TypeScript `enum Unit` in `src/app.ts` with a `const Unit = {...} as const` object plus a derived `type Unit`",
+      "old": [
+        {
+          "newLine": 0,
+          "tsc": 1
+        },
+        {
+          "newLine": 0,
+          "tsc": 1
+        }
+      ],
+      "new": [
+        {
+          "newLine": 0,
+          "tsc": 1,
+          "relNewLine": 0.52,
+          "relTsc": 0.96,
+          "relPref": 0.08
+        },
+        {
+          "newLine": 0,
+          "tsc": 1,
+          "relNewLine": 0.52,
+          "relTsc": 0.96,
+          "relPref": 0.09
+        }
+      ],
+      "newWithReplaces": [
+        {
+          "newLine": 0.75,
+          "tsc": 0.25,
+          "relNewLine": 0.95,
+          "relTsc": 0.95,
+          "relPref": 0.09
+        },
+        {
+          "newLine": 0.82,
+          "tsc": 0.18,
+          "relNewLine": 0.96,
+          "relTsc": 0.94,
+          "relPref": 0.09
+        }
+      ],
+      "injected": {
+        "old": false,
+        "new": false,
+        "newWithReplaces": true
+      }
+    },
+    {
+      "source": "part2c run 1",
+      "line": "I replaced the TypeScript `enum Unit` with a `const Unit` object (`as const`) plus a derived `type Unit` union, since real enums emit runtime code that `--experimental-strip-types` can't strip",
+      "old": [
+        {
+          "newLine": 0,
+          "tsc": 1
+        },
+        {
+          "newLine": 0,
+          "tsc": 1
+        }
+      ],
+      "new": [
+        {
+          "newLine": 0,
+          "tsc": 1,
+          "relNewLine": 0.4,
+          "relTsc": 0.96,
+          "relPref": 0.08
+        },
+        {
+          "newLine": 0,
+          "tsc": 1,
+          "relNewLine": 0.41,
+          "relTsc": 0.96,
+          "relPref": 0.08
+        }
+      ],
+      "newWithReplaces": [
+        {
+          "newLine": 0.84,
+          "tsc": 0.16,
+          "relNewLine": 0.96,
+          "relTsc": 0.94,
+          "relPref": 0.08
+        },
+        {
+          "newLine": 0.83,
+          "tsc": 0.17,
+          "relNewLine": 0.96,
+          "relTsc": 0.94,
+          "relPref": 0.08
+        }
+      ],
+      "injected": {
+        "old": false,
+        "new": false,
+        "newWithReplaces": true
+      }
+    },
+    {
+      "source": "part2c run 2",
+      "line": "I replaced the real TypeScript `enum` (which `--experimental-strip-types` can't erase) with a `const` object plus a derived union type, since only type-only syntax is stripped, not runtime enum code.",
+      "old": [
+        {
+          "newLine": 0.01,
+          "tsc": 0.99
+        },
+        {
+          "newLine": 0,
+          "tsc": 1
+        }
+      ],
+      "new": [
+        {
+          "newLine": 0,
+          "tsc": 1,
+          "relNewLine": 0.46,
+          "relTsc": 0.96,
+          "relPref": 0.07
+        },
+        {
+          "newLine": 0,
+          "tsc": 1,
+          "relNewLine": 0.42,
+          "relTsc": 0.96,
+          "relPref": 0.07
+        }
+      ],
+      "newWithReplaces": [
+        {
+          "newLine": 0.72,
+          "tsc": 0.28,
+          "relNewLine": 0.94,
+          "relTsc": 0.94,
+          "relPref": 0.08
+        },
+        {
+          "newLine": 0.78,
+          "tsc": 0.22,
+          "relNewLine": 0.95,
+          "relTsc": 0.94,
+          "relPref": 0.08
+        }
+      ],
+      "injected": {
+        "old": false,
+        "new": false,
+        "newWithReplaces": true
+      }
+    },
+    {
+      "source": "part2c run 3",
+      "line": "`node --experimental-strip-types src/app.ts` now runs directly and prints `2.1 min`.",
+      "old": [
+        {
+          "newLine": 0.99,
+          "tsc": 0.01
+        },
+        {
+          "newLine": 0.99,
+          "tsc": 0.01
+        }
+      ],
+      "new": [
+        {
+          "newLine": 0.99,
+          "tsc": 0.01,
+          "relNewLine": 0.97,
+          "relTsc": 0.93,
+          "relPref": 0.14
+        },
+        {
+          "newLine": 0.99,
+          "tsc": 0.01,
+          "relNewLine": 0.98,
+          "relTsc": 0.93,
+          "relPref": 0.16
+        }
+      ],
+      "newWithReplaces": [
+        {
+          "newLine": 0.96,
+          "tsc": 0.04,
+          "relNewLine": 0.96,
+          "relTsc": 0.92,
+          "relPref": 0.14
+        },
+        {
+          "newLine": 0.97,
+          "tsc": 0.03,
+          "relNewLine": 0.96,
+          "relTsc": 0.93,
+          "relPref": 0.13
+        }
+      ],
+      "injected": {
+        "old": true,
+        "new": true,
+        "newWithReplaces": true
+      }
+    }
+  ]
+}

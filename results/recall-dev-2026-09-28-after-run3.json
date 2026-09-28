@@ -1,0 +1,4140 @@
+{
+  "kind": "recall",
+  "set": "dev",
+  "file": "eval/recall-dev.jsonl",
+  "date": "2026-09-28",
+  "started_at": "2026-09-28T16:11:26.491Z",
+  "finished_at": "2026-09-28T16:16:21.509Z",
+  "jevmem_version": "0.5.7",
+  "package": "this checkout (dist/ built from it)",
+  "commit": "8e9ad1e+dirty",
+  "label": "after",
+  "machine": "darwin arm64, node v22.22.0",
+  "thresholds": {
+    "recallTopK": 5,
+    "recallMin": 0.05,
+    "recallRelevanceMin": 0.8,
+    "maxRecallCandidates": 60
+  },
+  "tokens_counted_with": "anthropic/claude-sonnet-5 (prompt tokens of the context as one user message, minus those of \".\", from OpenRouter's usage)",
+  "cost_method": "Jev input tokens × $0.042 per million; output tokens free",
+  "method": "Each memory file is written into a scratch project in jevmem's line format (superseded lines tagged, every live line recorded as written by jevmem here, so verified), jev.cache off. Each prompt is sent through the real hook (`node <pkg>/dist/cli.js hook`, the UserPromptSubmit payload on stdin) after two warm-up prompts, so the warm daemon serves it. Injected lines are read from the hook's output; the Jev call's latency and input tokens from .jevmem/log.jsonl; hook time is the hook process's wall time. recall = wanted lines injected / wanted lines; precision = injected lines that are wanted or ok / injected lines; unrelated = unrelated prompts that got any line; leaks = prompts that got a superseded line.",
+  "files": [
+    {
+      "id": "dev-small",
+      "size": "small",
+      "project": "quillnote",
+      "lines": 21,
+      "live": 19,
+      "superseded": 2,
+      "deadEnds": 2
+    },
+    {
+      "id": "dev-medium",
+      "size": "medium",
+      "project": "ferryhub",
+      "lines": 78,
+      "live": 70,
+      "superseded": 8,
+      "deadEnds": 6
+    },
+    {
+      "id": "dev-large",
+      "size": "large",
+      "project": "grainline",
+      "lines": 255,
+      "live": 225,
+      "superseded": 30,
+      "deadEnds": 20
+    }
+  ],
+  "overall": {
+    "prompts": 90,
+    "recall": 0.8571428571428571,
+    "recall_frac": "66/77",
+    "served_frac": "62/72",
+    "precision": 0.987012987012987,
+    "precision_frac": "76/77",
+    "unrelated_injected_frac": "0/18",
+    "unrelated_injected_rate": 0,
+    "superseded_leak_frac": "0/90",
+    "never_hit_frac": "0/90",
+    "lines_per_prompt": 0.8555555555555555,
+    "context_chars_per_prompt": 402.2888888888889,
+    "context_tokens_per_prompt": null,
+    "context_tokens_per_injecting_prompt": null,
+    "hook_p50_ms": 455,
+    "hook_p95_ms": 2089,
+    "jev_p50_ms": 372,
+    "jev_p95_ms": 2004,
+    "input_tokens_per_prompt": 11078.522222222222,
+    "cost_per_prompt_usd": 0.00046529793333333324,
+    "jev_failures": 9,
+    "via_daemon_frac": "89/90"
+  },
+  "by_size": {
+    "small": {
+      "prompts": 20,
+      "recall": 0.8823529411764706,
+      "recall_frac": "15/17",
+      "served_frac": "15/16",
+      "precision": 1,
+      "precision_frac": "16/16",
+      "unrelated_injected_frac": "0/4",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/20",
+      "never_hit_frac": "0/20",
+      "lines_per_prompt": 0.8,
+      "context_chars_per_prompt": 415.75,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 345,
+      "hook_p95_ms": 2085,
+      "jev_p50_ms": 263,
+      "jev_p95_ms": 2002,
+      "input_tokens_per_prompt": 2026.95,
+      "cost_per_prompt_usd": 0.00008513190000000002,
+      "jev_failures": 1,
+      "via_daemon_frac": "20/20"
+    },
+    "medium": {
+      "prompts": 30,
+      "recall": 0.8461538461538461,
+      "recall_frac": "22/26",
+      "served_frac": "20/24",
+      "precision": 1,
+      "precision_frac": "24/24",
+      "unrelated_injected_frac": "0/6",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/30",
+      "never_hit_frac": "0/30",
+      "lines_per_prompt": 0.8,
+      "context_chars_per_prompt": 382.7,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 372,
+      "hook_p95_ms": 2086,
+      "jev_p50_ms": 289,
+      "jev_p95_ms": 2002,
+      "input_tokens_per_prompt": 6002.833333333333,
+      "cost_per_prompt_usd": 0.0002521190000000001,
+      "jev_failures": 3,
+      "via_daemon_frac": "30/30"
+    },
+    "large": {
+      "prompts": 40,
+      "recall": 0.8529411764705882,
+      "recall_frac": "29/34",
+      "served_frac": "27/32",
+      "precision": 0.972972972972973,
+      "precision_frac": "36/37",
+      "unrelated_injected_frac": "0/8",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/40",
+      "never_hit_frac": "0/40",
+      "lines_per_prompt": 0.925,
+      "context_chars_per_prompt": 410.25,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 527,
+      "hook_p95_ms": 2126,
+      "jev_p50_ms": 441,
+      "jev_p95_ms": 2006,
+      "input_tokens_per_prompt": 19411.075,
+      "cost_per_prompt_usd": 0.0008152651500000002,
+      "jev_failures": 5,
+      "via_daemon_frac": "39/40"
+    }
+  },
+  "by_type": {
+    "direct": {
+      "prompts": 18,
+      "recall": 0.85,
+      "recall_frac": "17/20",
+      "served_frac": "16/18",
+      "precision": 1,
+      "precision_frac": "19/19",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "lines_per_prompt": 1.0555555555555556,
+      "context_chars_per_prompt": 490.22222222222223,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 460,
+      "hook_p95_ms": 2100,
+      "jev_p50_ms": 385,
+      "jev_p95_ms": 2005,
+      "input_tokens_per_prompt": 11207.555555555555,
+      "cost_per_prompt_usd": 0.0004707173333333334,
+      "jev_failures": 2,
+      "via_daemon_frac": "17/18"
+    },
+    "indirect": {
+      "prompts": 18,
+      "recall": 0.8095238095238095,
+      "recall_frac": "17/21",
+      "served_frac": "14/18",
+      "precision": 0.9545454545454546,
+      "precision_frac": "21/22",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "lines_per_prompt": 1.2222222222222223,
+      "context_chars_per_prompt": 504.44444444444446,
+      "context_tokens_per_prompt": 185.33333333333334,
+      "context_tokens_per_injecting_prompt": 222.4,
+      "hook_p50_ms": 526,
+      "hook_p95_ms": 2242,
+      "jev_p50_ms": 336,
+      "jev_p95_ms": 2009,
+      "input_tokens_per_prompt": 8863,
+      "cost_per_prompt_usd": 0.000372246,
+      "jev_failures": 3,
+      "via_daemon_frac": "18/18"
+    },
+    "unrelated": {
+      "prompts": 18,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": null,
+      "precision_frac": "0/0",
+      "unrelated_injected_frac": "0/18",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "lines_per_prompt": 0,
+      "context_chars_per_prompt": 0,
+      "context_tokens_per_prompt": 0,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 421,
+      "hook_p95_ms": 567,
+      "jev_p50_ms": 338,
+      "jev_p95_ms": 485,
+      "input_tokens_per_prompt": 12553.666666666666,
+      "cost_per_prompt_usd": 0.000527254,
+      "jev_failures": 0,
+      "via_daemon_frac": "18/18"
+    },
+    "supersede": {
+      "prompts": 18,
+      "recall": 0.9444444444444444,
+      "recall_frac": "17/18",
+      "served_frac": "17/18",
+      "precision": 1,
+      "precision_frac": "18/18",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "lines_per_prompt": 1,
+      "context_chars_per_prompt": 515.3333333333334,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 455,
+      "hook_p95_ms": 2102,
+      "jev_p50_ms": 372,
+      "jev_p95_ms": 2004,
+      "input_tokens_per_prompt": 11322.777777777777,
+      "cost_per_prompt_usd": 0.00047555666666666667,
+      "jev_failures": 1,
+      "via_daemon_frac": "18/18"
+    },
+    "dead-end": {
+      "prompts": 18,
+      "recall": 0.8333333333333334,
+      "recall_frac": "15/18",
+      "served_frac": "15/18",
+      "precision": 1,
+      "precision_frac": "18/18",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "lines_per_prompt": 1,
+      "context_chars_per_prompt": 501.44444444444446,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 491,
+      "hook_p95_ms": 2089,
+      "jev_p50_ms": 395,
+      "jev_p95_ms": 2004,
+      "input_tokens_per_prompt": 11445.611111111111,
+      "cost_per_prompt_usd": 0.0004807156666666666,
+      "jev_failures": 3,
+      "via_daemon_frac": "18/18"
+    }
+  },
+  "by_size_type": {
+    "small/direct": {
+      "prompts": 4,
+      "recall": 0.6,
+      "recall_frac": "3/5",
+      "served_frac": "3/4",
+      "precision": 1,
+      "precision_frac": "3/3",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "lines_per_prompt": 0.75,
+      "context_chars_per_prompt": 386.25,
+      "context_tokens_per_prompt": 140.5,
+      "context_tokens_per_injecting_prompt": 187.33333333333334,
+      "hook_p50_ms": 345,
+      "hook_p95_ms": 2085,
+      "jev_p50_ms": 270,
+      "jev_p95_ms": 2002,
+      "input_tokens_per_prompt": 1598,
+      "cost_per_prompt_usd": 0.000067116,
+      "jev_failures": 1,
+      "via_daemon_frac": "4/4"
+    },
+    "small/indirect": {
+      "prompts": 4,
+      "recall": 1,
+      "recall_frac": "4/4",
+      "served_frac": "4/4",
+      "precision": 1,
+      "precision_frac": "5/5",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "lines_per_prompt": 1.25,
+      "context_chars_per_prompt": 574.5,
+      "context_tokens_per_prompt": 207.5,
+      "context_tokens_per_injecting_prompt": 207.5,
+      "hook_p50_ms": 337,
+      "hook_p95_ms": 375,
+      "jev_p50_ms": 263,
+      "jev_p95_ms": 303,
+      "input_tokens_per_prompt": 2136,
+      "cost_per_prompt_usd": 0.00008971200000000001,
+      "jev_failures": 0,
+      "via_daemon_frac": "4/4"
+    },
+    "small/unrelated": {
+      "prompts": 4,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": null,
+      "precision_frac": "0/0",
+      "unrelated_injected_frac": "0/4",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "lines_per_prompt": 0,
+      "context_chars_per_prompt": 0,
+      "context_tokens_per_prompt": 0,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 412,
+      "hook_p95_ms": 421,
+      "jev_p50_ms": 334,
+      "jev_p95_ms": 338,
+      "input_tokens_per_prompt": 2132.5,
+      "cost_per_prompt_usd": 0.00008956500000000001,
+      "jev_failures": 0,
+      "via_daemon_frac": "4/4"
+    },
+    "small/supersede": {
+      "prompts": 4,
+      "recall": 1,
+      "recall_frac": "4/4",
+      "served_frac": "4/4",
+      "precision": 1,
+      "precision_frac": "4/4",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "lines_per_prompt": 1,
+      "context_chars_per_prompt": 521.5,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 372,
+      "hook_p95_ms": 444,
+      "jev_p50_ms": 286,
+      "jev_p95_ms": 359,
+      "input_tokens_per_prompt": 2131.25,
+      "cost_per_prompt_usd": 0.00008951250000000001,
+      "jev_failures": 0,
+      "via_daemon_frac": "4/4"
+    },
+    "small/dead-end": {
+      "prompts": 4,
+      "recall": 1,
+      "recall_frac": "4/4",
+      "served_frac": "4/4",
+      "precision": 1,
+      "precision_frac": "4/4",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "lines_per_prompt": 1,
+      "context_chars_per_prompt": 596.5,
+      "context_tokens_per_prompt": 214,
+      "context_tokens_per_injecting_prompt": 214,
+      "hook_p50_ms": 382,
+      "hook_p95_ms": 452,
+      "jev_p50_ms": 278,
+      "jev_p95_ms": 364,
+      "input_tokens_per_prompt": 2137,
+      "cost_per_prompt_usd": 0.00008975400000000001,
+      "jev_failures": 0,
+      "via_daemon_frac": "4/4"
+    },
+    "medium/direct": {
+      "prompts": 6,
+      "recall": 1,
+      "recall_frac": "7/7",
+      "served_frac": "6/6",
+      "precision": 1,
+      "precision_frac": "7/7",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "lines_per_prompt": 1.1666666666666667,
+      "context_chars_per_prompt": 545.8333333333334,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 382,
+      "hook_p95_ms": 518,
+      "jev_p50_ms": 296,
+      "jev_p95_ms": 428,
+      "input_tokens_per_prompt": 6670.666666666667,
+      "cost_per_prompt_usd": 0.00028016800000000007,
+      "jev_failures": 0,
+      "via_daemon_frac": "6/6"
+    },
+    "medium/indirect": {
+      "prompts": 6,
+      "recall": 0.8571428571428571,
+      "recall_frac": "6/7",
+      "served_frac": "5/6",
+      "precision": 1,
+      "precision_frac": "7/7",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "lines_per_prompt": 1.1666666666666667,
+      "context_chars_per_prompt": 543,
+      "context_tokens_per_prompt": 195.83333333333334,
+      "context_tokens_per_injecting_prompt": 195.83333333333334,
+      "hook_p50_ms": 350,
+      "hook_p95_ms": 847,
+      "jev_p50_ms": 278,
+      "jev_p95_ms": 336,
+      "input_tokens_per_prompt": 6673.5,
+      "cost_per_prompt_usd": 0.000280287,
+      "jev_failures": 0,
+      "via_daemon_frac": "6/6"
+    },
+    "medium/unrelated": {
+      "prompts": 6,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": null,
+      "precision_frac": "0/0",
+      "unrelated_injected_frac": "0/6",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "lines_per_prompt": 0,
+      "context_chars_per_prompt": 0,
+      "context_tokens_per_prompt": 0,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 369,
+      "hook_p95_ms": 388,
+      "jev_p50_ms": 297,
+      "jev_p95_ms": 322,
+      "input_tokens_per_prompt": 6666.166666666667,
+      "cost_per_prompt_usd": 0.000279979,
+      "jev_failures": 0,
+      "via_daemon_frac": "6/6"
+    },
+    "medium/supersede": {
+      "prompts": 6,
+      "recall": 1,
+      "recall_frac": "6/6",
+      "served_frac": "6/6",
+      "precision": 1,
+      "precision_frac": "6/6",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "lines_per_prompt": 1,
+      "context_chars_per_prompt": 517.3333333333334,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 372,
+      "hook_p95_ms": 455,
+      "jev_p50_ms": 278,
+      "jev_p95_ms": 372,
+      "input_tokens_per_prompt": 6668.5,
+      "cost_per_prompt_usd": 0.000280077,
+      "jev_failures": 0,
+      "via_daemon_frac": "6/6"
+    },
+    "medium/dead-end": {
+      "prompts": 6,
+      "recall": 0.5,
+      "recall_frac": "3/6",
+      "served_frac": "3/6",
+      "precision": 1,
+      "precision_frac": "4/4",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "lines_per_prompt": 0.6666666666666666,
+      "context_chars_per_prompt": 307.3333333333333,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 2068,
+      "hook_p95_ms": 2089,
+      "jev_p50_ms": 2001,
+      "jev_p95_ms": 2004,
+      "input_tokens_per_prompt": 3335.3333333333335,
+      "cost_per_prompt_usd": 0.000140084,
+      "jev_failures": 3,
+      "via_daemon_frac": "6/6"
+    },
+    "large/direct": {
+      "prompts": 8,
+      "recall": 0.875,
+      "recall_frac": "7/8",
+      "served_frac": "7/8",
+      "precision": 1,
+      "precision_frac": "9/9",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "lines_per_prompt": 1.125,
+      "context_chars_per_prompt": 500.5,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 527,
+      "hook_p95_ms": 2100,
+      "jev_p50_ms": 435,
+      "jev_p95_ms": 2005,
+      "input_tokens_per_prompt": 19415,
+      "cost_per_prompt_usd": 0.0008154300000000001,
+      "jev_failures": 1,
+      "via_daemon_frac": "7/8"
+    },
+    "large/indirect": {
+      "prompts": 8,
+      "recall": 0.7,
+      "recall_frac": "7/10",
+      "served_frac": "5/8",
+      "precision": 0.9,
+      "precision_frac": "9/10",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "lines_per_prompt": 1.25,
+      "context_chars_per_prompt": 440.5,
+      "context_tokens_per_prompt": 166.375,
+      "context_tokens_per_injecting_prompt": 266.2,
+      "hook_p50_ms": 546,
+      "hook_p95_ms": 2242,
+      "jev_p50_ms": 470,
+      "jev_p95_ms": 2009,
+      "input_tokens_per_prompt": 13868.625,
+      "cost_per_prompt_usd": 0.00058248225,
+      "jev_failures": 3,
+      "via_daemon_frac": "8/8"
+    },
+    "large/unrelated": {
+      "prompts": 8,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": null,
+      "precision_frac": "0/0",
+      "unrelated_injected_frac": "0/8",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "lines_per_prompt": 0,
+      "context_chars_per_prompt": 0,
+      "context_tokens_per_prompt": 0,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 503,
+      "hook_p95_ms": 567,
+      "jev_p50_ms": 427,
+      "jev_p95_ms": 485,
+      "input_tokens_per_prompt": 22179.875,
+      "cost_per_prompt_usd": 0.0009315547500000001,
+      "jev_failures": 0,
+      "via_daemon_frac": "8/8"
+    },
+    "large/supersede": {
+      "prompts": 8,
+      "recall": 0.875,
+      "recall_frac": "7/8",
+      "served_frac": "7/8",
+      "precision": 1,
+      "precision_frac": "8/8",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "lines_per_prompt": 1,
+      "context_chars_per_prompt": 510.75,
+      "context_tokens_per_prompt": null,
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 549,
+      "hook_p95_ms": 2102,
+      "jev_p50_ms": 464,
+      "jev_p95_ms": 2004,
+      "input_tokens_per_prompt": 19409.25,
+      "cost_per_prompt_usd": 0.0008151885000000001,
+      "jev_failures": 1,
+      "via_daemon_frac": "8/8"
+    },
+    "large/dead-end": {
+      "prompts": 8,
+      "recall": 1,
+      "recall_frac": "8/8",
+      "served_frac": "8/8",
+      "precision": 1,
+      "precision_frac": "10/10",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "lines_per_prompt": 1.25,
+      "context_chars_per_prompt": 599.5,
+      "context_tokens_per_prompt": 223.75,
+      "context_tokens_per_injecting_prompt": 223.75,
+      "hook_p50_ms": 515,
+      "hook_p95_ms": 631,
+      "jev_p50_ms": 414,
+      "jev_p95_ms": 551,
+      "input_tokens_per_prompt": 22182.625,
+      "cost_per_prompt_usd": 0.00093167025,
+      "jev_failures": 0,
+      "via_daemon_frac": "8/8"
+    }
+  },
+  "rows": [
+    {
+      "id": "dev-small-01",
+      "file": "dev-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Where should note bodies go when I add the tags panel: in the SQLite database or in the .md files?",
+      "want": [
+        "qn_sqlite",
+        "qn_nobodydb"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "qn_sqlite",
+        "qn_nobodydb"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2085,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2002,
+      "jevOk": false,
+      "inputTokens": 0,
+      "costUsd": 0,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "dev-small-02",
+      "file": "dev-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Set up the Tauri updater plugin for the next release.",
+      "want": [
+        "qn_updater"
+      ],
+      "ok": [
+        "qn_sign"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_updater",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 528,
+      "contextTokens": 193,
+      "hookMs": 345,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 270,
+      "jevOk": true,
+      "inputTokens": 2130,
+      "costUsd": 0.00008946
+    },
+    {
+      "id": "dev-small-03",
+      "file": "dev-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "The tray icon vanished again after suspend on GNOME. Can you look into it?",
+      "want": [
+        "qn_bug_tray"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_bug_tray",
+          "kind": "bug",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 512,
+      "contextTokens": 188,
+      "hookMs": 306,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 243,
+      "jevOk": true,
+      "inputTokens": 2135,
+      "costUsd": 0.00008967000000000001
+    },
+    {
+      "id": "dev-small-04",
+      "file": "dev-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Add German strings for the new export dialog.",
+      "want": [
+        "qn_i18n"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_i18n",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 505,
+      "contextTokens": 181,
+      "hookMs": 320,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 236,
+      "jevOk": true,
+      "inputTokens": 2127,
+      "costUsd": 0.00008933400000000001
+    },
+    {
+      "id": "dev-small-05",
+      "file": "dev-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "Could we keep a copy of each page's text in the local db so lookups get quicker?",
+      "want": [
+        "qn_nobodydb"
+      ],
+      "ok": [
+        "qn_sqlite",
+        "qn_todo_search"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_nobodydb",
+          "kind": "constraint",
+          "p": 0.97
+        },
+        {
+          "key": "qn_sqlite",
+          "kind": "decision",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 700,
+      "contextTokens": 255,
+      "hookMs": 316,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 230,
+      "jevOk": true,
+      "inputTokens": 2139,
+      "costUsd": 0.000089838
+    },
+    {
+      "id": "dev-small-06",
+      "file": "dev-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "Walk me through shipping a build for Apple computers that people can download safely.",
+      "want": [
+        "qn_sign"
+      ],
+      "ok": [
+        "qn_updater",
+        "qn_minos"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_sign",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 533,
+      "contextTokens": 189,
+      "hookMs": 375,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 303,
+      "jevOk": true,
+      "inputTokens": 2133,
+      "costUsd": 0.000089586
+    },
+    {
+      "id": "dev-small-07",
+      "file": "dev-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "The frontend needs the contents of a file from the user's folder. How should it get them?",
+      "want": [
+        "qn_core"
+      ],
+      "ok": [
+        "qn_ipc"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_core",
+          "kind": "architecture",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 532,
+      "contextTokens": 194,
+      "hookMs": 313,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 221,
+      "jevOk": true,
+      "inputTokens": 2138,
+      "costUsd": 0.000089796
+    },
+    {
+      "id": "dev-small-08",
+      "file": "dev-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "When somebody drops a screenshot into a page, where does the picture end up?",
+      "want": [
+        "qn_attach"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_attach",
+          "kind": "architecture",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 533,
+      "contextTokens": 192,
+      "hookMs": 337,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 263,
+      "jevOk": true,
+      "inputTokens": 2134,
+      "costUsd": 0.000089628
+    },
+    {
+      "id": "dev-small-09",
+      "file": "dev-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "Write a short haiku about autumn rain.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 412,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 338,
+      "jevOk": true,
+      "inputTokens": 2127,
+      "costUsd": 0.00008933400000000001
+    },
+    {
+      "id": "dev-small-10",
+      "file": "dev-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "In two sentences, what does a Rust lifetime annotation mean?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 421,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 334,
+      "jevOk": true,
+      "inputTokens": 2130,
+      "costUsd": 0.00008946
+    },
+    {
+      "id": "dev-small-11",
+      "file": "dev-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "How do I undo my last git commit but keep the changes in my working tree?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 314,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 230,
+      "jevOk": true,
+      "inputTokens": 2135,
+      "costUsd": 0.00008967000000000001
+    },
+    {
+      "id": "dev-small-12",
+      "file": "dev-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "Rename the local variable `tmp` to `buffer` in `src/utils/strings.ts`.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 309,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 230,
+      "jevOk": true,
+      "inputTokens": 2138,
+      "costUsd": 0.000089796
+    },
+    {
+      "id": "dev-small-13",
+      "file": "dev-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "Set up syncing to the WebDAV server on my NAS.",
+      "want": [
+        "qn_sync_new"
+      ],
+      "ok": [],
+      "never": [
+        "qn_webdav_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_sync_new",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 524,
+      "contextTokens": null,
+      "hookMs": 372,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 286,
+      "jevOk": true,
+      "inputTokens": 2130,
+      "costUsd": 0.00008946
+    },
+    {
+      "id": "dev-small-14",
+      "file": "dev-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "Where do synced notes get uploaded to?",
+      "want": [
+        "qn_sync_new"
+      ],
+      "ok": [],
+      "never": [
+        "qn_webdav_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_sync_new",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 524,
+      "contextTokens": 203,
+      "hookMs": 444,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 359,
+      "jevOk": true,
+      "inputTokens": 2126,
+      "costUsd": 0.000089292
+    },
+    {
+      "id": "dev-small-15",
+      "file": "dev-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "Is dark mode going to be in 1.0, or should I leave it for later?",
+      "want": [
+        "qn_theme_new"
+      ],
+      "ok": [],
+      "never": [
+        "qn_theme_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_theme_new",
+          "kind": "decision",
+          "p": 0.99
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 519,
+      "contextTokens": 184,
+      "hookMs": 320,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 229,
+      "jevOk": true,
+      "inputTokens": 2138,
+      "costUsd": 0.000089796
+    },
+    {
+      "id": "dev-small-16",
+      "file": "dev-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "Add a toggle for the dark colour scheme to the preferences screen.",
+      "want": [
+        "qn_theme_new"
+      ],
+      "ok": [],
+      "never": [
+        "qn_theme_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_theme_new",
+          "kind": "decision",
+          "p": 0.94
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 519,
+      "contextTokens": 184,
+      "hookMs": 327,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 245,
+      "jevOk": true,
+      "inputTokens": 2131,
+      "costUsd": 0.00008950200000000001
+    },
+    {
+      "id": "dev-small-17",
+      "file": "dev-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Let's convert the markdown to HTML on the Rust side with comrak and send that to the UI.",
+      "want": [
+        "qn_de_render"
+      ],
+      "ok": [
+        "qn_ipc",
+        "qn_core"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_de_render",
+          "kind": "dead-end",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 578,
+      "contextTokens": 209,
+      "hookMs": 382,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 222,
+      "jevOk": true,
+      "inputTokens": 2139,
+      "costUsd": 0.000089838
+    },
+    {
+      "id": "dev-small-18",
+      "file": "dev-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Every save on my Mac triggers the indexer twice. Can we just use notify's recommended watcher?",
+      "want": [
+        "qn_de_fswatch"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_de_fswatch",
+          "kind": "dead-end",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 615,
+      "contextTokens": 219,
+      "hookMs": 452,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 364,
+      "jevOk": true,
+      "inputTokens": 2138,
+      "costUsd": 0.000089796
+    },
+    {
+      "id": "dev-small-19",
+      "file": "dev-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Previews are slow in the webview; could the backend produce the finished HTML instead?",
+      "want": [
+        "qn_de_render"
+      ],
+      "ok": [
+        "qn_core",
+        "qn_ipc"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_de_render",
+          "kind": "dead-end",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 578,
+      "contextTokens": 209,
+      "hookMs": 317,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 220,
+      "jevOk": true,
+      "inputTokens": 2136,
+      "costUsd": 0.000089712
+    },
+    {
+      "id": "dev-small-20",
+      "file": "dev-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Why do we debounce file-change events? Can I drop that to simplify the code?",
+      "want": [
+        "qn_de_fswatch"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "qn_de_fswatch",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 615,
+      "contextTokens": 219,
+      "hookMs": 366,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 278,
+      "jevOk": true,
+      "inputTokens": 2135,
+      "costUsd": 0.00008967000000000001
+    },
+    {
+      "id": "dev-medium-01",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Write the SQL migration for a new nationality column on bookings and the Kysely query that reads it; the previous release's code must still work.",
+      "want": [
+        "fh_orm_new",
+        "fh_con_migrations"
+      ],
+      "ok": [
+        "fh_pref_naming",
+        "fh_api"
+      ],
+      "never": [
+        "fh_orm_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_orm_new",
+          "kind": "decision",
+          "p": 0.98
+        },
+        {
+          "key": "fh_con_migrations",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 2,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 688,
+      "contextTokens": 253,
+      "hookMs": 382,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 296,
+      "jevOk": true,
+      "inputTokens": 6683,
+      "costUsd": 0.000280686
+    },
+    {
+      "id": "dev-medium-02",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Log the full Adyen notification payload so we can debug the failed payments.",
+      "want": [
+        "fh_con_pan"
+      ],
+      "ok": [
+        "fh_adyen",
+        "fh_bug_webhook_order"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_con_pan",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 513,
+      "contextTokens": 188,
+      "hookMs": 404,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 322,
+      "jevOk": true,
+      "inputTokens": 6668,
+      "costUsd": 0.00028005600000000004
+    },
+    {
+      "id": "dev-medium-03",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Change the seat hold expiry from 15 to 20 minutes.",
+      "want": [
+        "fh_hold_new"
+      ],
+      "ok": [
+        "fh_timeout_web",
+        "fh_bug_hold_leak",
+        "fh_de_seat_lock"
+      ],
+      "never": [
+        "fh_hold_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_hold_new",
+          "kind": "architecture",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 558,
+      "contextTokens": 204,
+      "hookMs": 339,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 243,
+      "jevOk": true,
+      "inputTokens": 6668,
+      "costUsd": 0.00028005600000000004
+    },
+    {
+      "id": "dev-medium-04",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "The timetable import job failed again on one operator's CSV header row.",
+      "want": [
+        "fh_bug_csv_bom"
+      ],
+      "ok": [
+        "fh_timetable",
+        "fh_bug_dst",
+        "fh_todo_push_api"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_bug_csv_bom",
+          "kind": "bug",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 537,
+      "contextTokens": null,
+      "hookMs": 364,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 264,
+      "jevOk": true,
+      "inputTokens": 6667,
+      "costUsd": 0.00028001400000000003
+    },
+    {
+      "id": "dev-medium-05",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Add a Playwright end-to-end test for the vehicle booking form.",
+      "want": [
+        "fh_e2e_new"
+      ],
+      "ok": [
+        "fh_vehicles",
+        "fh_bug_vehicle_units",
+        "fh_con_wcag"
+      ],
+      "never": [
+        "fh_e2e_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_e2e_new",
+          "kind": "preference",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 489,
+      "contextTokens": null,
+      "hookMs": 382,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 287,
+      "jevOk": true,
+      "inputTokens": 6668,
+      "costUsd": 0.00028005600000000004
+    },
+    {
+      "id": "dev-medium-06",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Increase the rate limit on travel agent API keys to 50 requests per second.",
+      "want": [
+        "fh_con_rate_agents"
+      ],
+      "ok": [
+        "fh_agents_auth",
+        "fh_con_api_v1"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_con_rate_agents",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 490,
+      "contextTokens": 179,
+      "hookMs": 518,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 428,
+      "jevOk": true,
+      "inputTokens": 6670,
+      "costUsd": 0.00028014
+    },
+    {
+      "id": "dev-medium-07",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "How long can a customer sit on the checkout page before they lose their seats?",
+      "want": [
+        "fh_timeout_web",
+        "fh_hold_new"
+      ],
+      "ok": [
+        "fh_bug_hold_leak"
+      ],
+      "never": [
+        "fh_hold_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_timeout_web",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "fh_hold_new"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 510,
+      "contextTokens": 180,
+      "hookMs": 847,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 289,
+      "jevOk": true,
+      "inputTokens": 6669,
+      "costUsd": 0.000280098
+    },
+    {
+      "id": "dev-medium-08",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "Can I store the ticket cost as a decimal like 42.5 in the new promotions table?",
+      "want": [
+        "fh_money_int"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_money_int",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 508,
+      "contextTokens": 182,
+      "hookMs": 336,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 258,
+      "jevOk": true,
+      "inputTokens": 6674,
+      "costUsd": 0.00028030800000000005
+    },
+    {
+      "id": "dev-medium-09",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "An agency's integration keeps getting 401s. How are they supposed to identify themselves to us?",
+      "want": [
+        "fh_agents_auth"
+      ],
+      "ok": [
+        "fh_con_rate_agents",
+        "fh_con_api_v1"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_agents_auth",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 485,
+      "contextTokens": 178,
+      "hookMs": 411,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 336,
+      "jevOk": true,
+      "inputTokens": 6675,
+      "costUsd": 0.00028035
+    },
+    {
+      "id": "dev-medium-10",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "I need yesterday's sales numbers straight from live data. What's the right way to get them?",
+      "want": [
+        "fh_con_prod_db"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_con_prod_db",
+          "kind": "constraint",
+          "p": 0.94
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 544,
+      "contextTokens": 189,
+      "hookMs": 332,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 258,
+      "jevOk": true,
+      "inputTokens": 6673,
+      "costUsd": 0.00028026600000000004
+    },
+    {
+      "id": "dev-medium-11",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "If someone drops a table on the live system by mistake, how far back can we go?",
+      "want": [
+        "fh_backup_prod"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_backup_prod",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 523,
+      "contextTokens": 193,
+      "hookMs": 347,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 278,
+      "jevOk": true,
+      "inputTokens": 6672,
+      "costUsd": 0.00028022400000000003
+    },
+    {
+      "id": "dev-medium-12",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "The crew's phones will have no coverage for the whole trip to the outer islands. Will checking people on board still work?",
+      "want": [
+        "fh_con_scanner_offline"
+      ],
+      "ok": [
+        "fh_scanner",
+        "fh_de_asyncstorage",
+        "fh_bug_scanner_clock"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_scanner",
+          "kind": "architecture",
+          "p": 0.97
+        },
+        {
+          "key": "fh_con_scanner_offline",
+          "kind": "constraint",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 688,
+      "contextTokens": 253,
+      "hookMs": 350,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 276,
+      "jevOk": true,
+      "inputTokens": 6678,
+      "costUsd": 0.000280476
+    },
+    {
+      "id": "dev-medium-13",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Summarise the plot of Moby-Dick in three sentences.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 340,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 271,
+      "jevOk": true,
+      "inputTokens": 6667,
+      "costUsd": 0.00028001400000000003
+    },
+    {
+      "id": "dev-medium-14",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "In JavaScript, when would I pick `let` over `const`?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 352,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 282,
+      "jevOk": true,
+      "inputTokens": 6672,
+      "costUsd": 0.00028022400000000003
+    },
+    {
+      "id": "dev-medium-15",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Fix the typo 'recieve' in the README's installation section.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 369,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 302,
+      "jevOk": true,
+      "inputTokens": 6667,
+      "costUsd": 0.00028001400000000003
+    },
+    {
+      "id": "dev-medium-16",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Convert 30 degrees Celsius to Fahrenheit.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 331,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 264,
+      "jevOk": true,
+      "inputTokens": 6662,
+      "costUsd": 0.00027980400000000003
+    },
+    {
+      "id": "dev-medium-17",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Write a regular expression that matches US ZIP codes.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 371,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 297,
+      "jevOk": true,
+      "inputTokens": 6663,
+      "costUsd": 0.000279846
+    },
+    {
+      "id": "dev-medium-18",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Add an .editorconfig that uses two-space indentation.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 388,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 322,
+      "jevOk": true,
+      "inputTokens": 6666,
+      "costUsd": 0.000279972
+    },
+    {
+      "id": "dev-medium-19",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Write the Prisma schema for the new promotions model.",
+      "want": [
+        "fh_orm_new"
+      ],
+      "ok": [
+        "fh_pref_naming",
+        "fh_con_migrations"
+      ],
+      "never": [
+        "fh_orm_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_orm_new",
+          "kind": "decision",
+          "p": 0.94
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 529,
+      "contextTokens": 197,
+      "hookMs": 372,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 278,
+      "jevOk": true,
+      "inputTokens": 6664,
+      "costUsd": 0.000279888
+    },
+    {
+      "id": "dev-medium-20",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Which AWS region does production run in? I need it for the new S3 bucket.",
+      "want": [
+        "fh_region_new"
+      ],
+      "ok": [
+        "fh_backup_prod",
+        "fh_terraform"
+      ],
+      "never": [
+        "fh_region_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_region_new",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 536,
+      "contextTokens": 202,
+      "hookMs": 346,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 273,
+      "jevOk": true,
+      "inputTokens": 6671,
+      "costUsd": 0.000280182
+    },
+    {
+      "id": "dev-medium-21",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "A customer wants to cancel 30 hours before the sailing. Can they get their money back?",
+      "want": [
+        "fh_refund_new"
+      ],
+      "ok": [],
+      "never": [
+        "fh_refund_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_refund_new",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 527,
+      "contextTokens": 191,
+      "hookMs": 380,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 304,
+      "jevOk": true,
+      "inputTokens": 6673,
+      "costUsd": 0.00028026600000000004
+    },
+    {
+      "id": "dev-medium-22",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Bump the base image for the API container.",
+      "want": [
+        "fh_node_new"
+      ],
+      "ok": [
+        "fh_ecs"
+      ],
+      "never": [
+        "fh_node_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_node_new",
+          "kind": "decision",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 490,
+      "contextTokens": 187,
+      "hookMs": 336,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 262,
+      "jevOk": true,
+      "inputTokens": 6663,
+      "costUsd": 0.000279846
+    },
+    {
+      "id": "dev-medium-23",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Which place holds the booking confirmation email's template? I want to add the vehicle details to it.",
+      "want": [
+        "fh_email_new"
+      ],
+      "ok": [
+        "fh_vehicles"
+      ],
+      "never": [
+        "fh_email_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_email_new",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 526,
+      "contextTokens": null,
+      "hookMs": 312,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 241,
+      "jevOk": true,
+      "inputTokens": 6673,
+      "costUsd": 0.00028026600000000004
+    },
+    {
+      "id": "dev-medium-24",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Show prices in dollars to American visitors and charge them in dollars too.",
+      "want": [
+        "fh_currency_new"
+      ],
+      "ok": [
+        "fh_adyen",
+        "fh_money_int"
+      ],
+      "never": [
+        "fh_currency_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_currency_new",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 496,
+      "contextTokens": null,
+      "hookMs": 455,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 372,
+      "jevOk": true,
+      "inputTokens": 6667,
+      "costUsd": 0.00028001400000000003
+    },
+    {
+      "id": "dev-medium-25",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Move ticket PDF generation into a Lambda function so the API does less work.",
+      "want": [
+        "fh_de_lambda"
+      ],
+      "ok": [
+        "fh_pdf",
+        "fh_de_puppeteer"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "fh_de_lambda"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2089,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2004,
+      "jevOk": false,
+      "inputTokens": 0,
+      "costUsd": 0,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "dev-medium-26",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Could we offer travel agents a GraphQL API instead of REST?",
+      "want": [
+        "fh_de_graphql"
+      ],
+      "ok": [
+        "fh_con_api_v1",
+        "fh_agents_auth"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "fh_de_graphql"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2086,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2002,
+      "jevOk": false,
+      "inputTokens": 0,
+      "costUsd": 0,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "dev-medium-27",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Use row-level locks with SELECT FOR UPDATE to reserve seats during checkout.",
+      "want": [
+        "fh_de_seat_lock"
+      ],
+      "ok": [
+        "fh_hold_new",
+        "fh_bug_hold_leak"
+      ],
+      "never": [
+        "fh_hold_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_de_seat_lock",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 579,
+      "contextTokens": null,
+      "hookMs": 436,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 358,
+      "jevOk": true,
+      "inputTokens": 6667,
+      "costUsd": 0.00028001400000000003
+    },
+    {
+      "id": "dev-medium-28",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Store the scanner's passenger list in AsyncStorage; it's simpler than SQLite.",
+      "want": [
+        "fh_de_asyncstorage"
+      ],
+      "ok": [
+        "fh_scanner",
+        "fh_con_scanner_offline"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_de_asyncstorage",
+          "kind": "dead-end",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 580,
+      "contextTokens": 213,
+      "hookMs": 491,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 402,
+      "jevOk": true,
+      "inputTokens": 6672,
+      "costUsd": 0.00028022400000000003
+    },
+    {
+      "id": "dev-medium-29",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Let's auto-translate the Italian strings with DeepL during the build.",
+      "want": [
+        "fh_de_i18n_mt"
+      ],
+      "ok": [
+        "fh_i18n"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "fh_de_i18n_mt"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2068,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2001,
+      "jevOk": false,
+      "inputTokens": 0,
+      "costUsd": 0,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "dev-medium-30",
+      "file": "dev-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Tickets should look exactly like our web pages; can we print them from a headless browser?",
+      "want": [
+        "fh_de_puppeteer"
+      ],
+      "ok": [
+        "fh_pdf",
+        "fh_de_lambda"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "fh_de_puppeteer",
+          "kind": "dead-end",
+          "p": 0.97
+        },
+        {
+          "key": "fh_pdf",
+          "kind": "architecture",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 685,
+      "contextTokens": 272,
+      "hookMs": 353,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 272,
+      "jevOk": true,
+      "inputTokens": 6673,
+      "costUsd": 0.00028026600000000004
+    },
+    {
+      "id": "dev-large-01",
+      "file": "dev-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Add a spec for the '10+ sacks' volume tier boundary in the pricing resolver.",
+      "want": [
+        "gl_bug_tier_boundary"
+      ],
+      "ok": [
+        "gl_pricing_resolver",
+        "gl_price_per_buyer",
+        "gl_pref_request_specs",
+        "gl_pref_factories"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_bug_tier_boundary",
+          "kind": "bug",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 550,
+      "contextTokens": 206,
+      "hookMs": 638,
+      "hookExit": 0,
+      "via": "inline",
+      "jevMs": 557,
+      "jevOk": true,
+      "inputTokens": 22187,
+      "costUsd": 0.000931854
+    },
+    {
+      "id": "dev-large-02",
+      "file": "dev-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "The Xero sync stopped again for a supplier whose refresh token sat unused for weeks.",
+      "want": [
+        "gl_bug_xero_token"
+      ],
+      "ok": [
+        "gl_xero_api",
+        "gl_todo_xero_payments"
+      ],
+      "never": [
+        "gl_xero_csv"
+      ],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "gl_bug_xero_token"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2100,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2005,
+      "jevOk": false,
+      "inputTokens": 0,
+      "costUsd": 0,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "dev-large-03",
+      "file": "dev-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Update the OSRM `van.lua` profile so the speed cap goes from 56 mph to 60 mph.",
+      "want": [
+        "gl_osrm_profile"
+      ],
+      "ok": [
+        "gl_osrm_rebuild",
+        "gl_osrm_host",
+        "gl_bug_routing_ferry"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_osrm_profile",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 509,
+      "contextTokens": 192,
+      "hookMs": 524,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 435,
+      "jevOk": true,
+      "inputTokens": 22193,
+      "costUsd": 0.0009321060000000001
+    },
+    {
+      "id": "dev-large-04",
+      "file": "dev-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Send the delivery-window SMS at 18:00 instead of 19:00 the evening before.",
+      "want": [
+        "gl_sms_window_evening"
+      ],
+      "ok": [
+        "gl_sms_quiet_hours",
+        "gl_sms_twilio",
+        "gl_sms_eta_live"
+      ],
+      "never": [
+        "gl_sms_messagebird"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_sms_window_evening",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 523,
+      "contextTokens": 193,
+      "hookMs": 527,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 434,
+      "jevOk": true,
+      "inputTokens": 22192,
+      "costUsd": 0.000932064
+    },
+    {
+      "id": "dev-large-05",
+      "file": "dev-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Allow chilled dairy lines to ride for up to 6 hours after leaving the depot.",
+      "want": [
+        "gl_coldchain_chilled"
+      ],
+      "ok": [
+        "gl_bug_chilled_ride",
+        "gl_route_capacity"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_coldchain_chilled",
+          "kind": "constraint",
+          "p": 0.97
+        },
+        {
+          "key": "gl_bug_chilled_ride",
+          "kind": "bug",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 713,
+      "contextTokens": 270,
+      "hookMs": 460,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 385,
+      "jevOk": true,
+      "inputTokens": 22185,
+      "costUsd": 0.0009317700000000001
+    },
+    {
+      "id": "dev-large-06",
+      "file": "dev-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Raise the supplier stock API rate limit to 1,200 requests per minute per API key.",
+      "want": [
+        "gl_api_rate_supplier"
+      ],
+      "ok": [
+        "gl_supplier_stock_api"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_api_rate_supplier",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 523,
+      "contextTokens": 190,
+      "hookMs": 475,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 396,
+      "jevOk": true,
+      "inputTokens": 22189,
+      "costUsd": 0.0009319380000000001
+    },
+    {
+      "id": "dev-large-07",
+      "file": "dev-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Add a new ViewComponent for the delivery-date picker, with its spec and Lookbook preview.",
+      "want": [
+        "gl_test_component"
+      ],
+      "ok": [
+        "gl_viewcomponent",
+        "gl_pref_stimulus_names",
+        "gl_delivery_zones",
+        "gl_pref_turbo_first"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_test_component",
+          "kind": "preference",
+          "p": 0.98
+        },
+        {
+          "key": "gl_viewcomponent",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 677,
+      "contextTokens": null,
+      "hookMs": 442,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 363,
+      "jevOk": true,
+      "inputTokens": 22191,
+      "costUsd": 0.000932022
+    },
+    {
+      "id": "dev-large-08",
+      "file": "dev-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Import allergen data from GS1 for products that have GTINs.",
+      "want": [
+        "gl_todo_gs1_allergens"
+      ],
+      "ok": [
+        "gl_allergens_structured",
+        "gl_allergen_required"
+      ],
+      "never": [
+        "gl_allergens_freetext"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_todo_gs1_allergens",
+          "kind": "todo",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 509,
+      "contextTokens": null,
+      "hookMs": 536,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 439,
+      "jevOk": true,
+      "inputTokens": 22183,
+      "costUsd": 0.0009316860000000001
+    },
+    {
+      "id": "dev-large-09",
+      "file": "dev-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Can a café that still owes money on a bill from three weeks ago keep ordering from that shop?",
+      "want": [
+        "gl_terms_overdue_block"
+      ],
+      "ok": [
+        "gl_terms_default",
+        "gl_statement_monthly"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "gl_terms_overdue_block"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2242,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2009,
+      "jevOk": false,
+      "inputTokens": 0,
+      "costUsd": 0,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "dev-large-10",
+      "file": "dev-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "If the shop swaps an out-of-stock item for something that contains nuts, is that OK?",
+      "want": [
+        "gl_substitution_allergen"
+      ],
+      "ok": [
+        "gl_subs_in_app",
+        "gl_bug_substitution_price",
+        "gl_order_edit_supplier",
+        "gl_allergens_structured"
+      ],
+      "never": [
+        "gl_subs_phone"
+      ],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "gl_substitution_allergen"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2089,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2005,
+      "jevOk": false,
+      "inputTokens": 0,
+      "costUsd": 0,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "dev-large-11",
+      "file": "dev-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "For how long are the photos drivers snap at the door kept?",
+      "want": [
+        "gl_retention_pod_photos"
+      ],
+      "ok": [
+        "gl_pod_photos_s3",
+        "gl_pod_photo_size",
+        "gl_gdpr_erasure"
+      ],
+      "never": [
+        "gl_pod_photos_db"
+      ],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "gl_retention_pod_photos"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2126,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2006,
+      "jevOk": false,
+      "inputTokens": 0,
+      "costUsd": 0,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "dev-large-12",
+      "file": "dev-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "A new teammate asked how many people have to sign off before a change to how we compute what things cost can go in.",
+      "want": [
+        "gl_review_two"
+      ],
+      "ok": [
+        "gl_pricing_resolver",
+        "gl_pref_pr_small"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_review_two",
+          "kind": "constraint",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 523,
+      "contextTokens": 194,
+      "hookMs": 537,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 417,
+      "jevOk": true,
+      "inputTokens": 22193,
+      "costUsd": 0.0009321060000000001
+    },
+    {
+      "id": "dev-large-13",
+      "file": "dev-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Could a bakery ever be shown a rival firm's purchase history if a background worker forgets which firm it's serving?",
+      "want": [
+        "gl_bug_tenant_leak_job",
+        "gl_current_attributes"
+      ],
+      "ok": [
+        "gl_tenancy_row_scope",
+        "gl_never_unscoped",
+        "gl_de_tenancy_rls"
+      ],
+      "never": [
+        "gl_tenancy_schemas"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_bug_tenant_leak_job",
+          "kind": "bug",
+          "p": 0.93
+        },
+        {
+          "key": "gl_current_attributes",
+          "kind": "architecture",
+          "p": 0.9
+        },
+        {
+          "key": "gl_never_unscoped",
+          "kind": "constraint",
+          "p": 0.88
+        }
+      ],
+      "wantHit": 2,
+      "good": 3,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 3,
+      "contextChars": 912,
+      "contextTokens": 353,
+      "hookMs": 526,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 444,
+      "jevOk": true,
+      "inputTokens": 22192,
+      "costUsd": 0.000932064
+    },
+    {
+      "id": "dev-large-14",
+      "file": "dev-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "What should error text and button labels be written with, and where do they live?",
+      "want": [
+        "gl_i18n_keys"
+      ],
+      "ok": [
+        "gl_todo_irish_language"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_i18n_keys",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 534,
+      "contextTokens": 191,
+      "hookMs": 546,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 470,
+      "jevOk": true,
+      "inputTokens": 22185,
+      "costUsd": 0.0009317700000000001
+    },
+    {
+      "id": "dev-large-15",
+      "file": "dev-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "The couriers' phones stopped opening our tool after we shipped an over-the-air JavaScript fix. What's our rule for those?",
+      "want": [
+        "gl_expo_update_scope",
+        "gl_bug_eas_crash"
+      ],
+      "ok": [
+        "gl_driver_min_build",
+        "gl_driver_expo"
+      ],
+      "never": [
+        "gl_driver_pwa"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_expo_update_scope",
+          "kind": "decision",
+          "p": 0.95
+        },
+        {
+          "key": "gl_bug_eas_crash",
+          "kind": "bug",
+          "p": 0.91
+        },
+        {
+          "key": "gl_driver_min_build",
+          "kind": "constraint",
+          "p": 0.9
+        }
+      ],
+      "wantHit": 2,
+      "good": 3,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 3,
+      "contextChars": 872,
+      "contextTokens": 326,
+      "hookMs": 529,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 436,
+      "jevOk": true,
+      "inputTokens": 22198,
+      "costUsd": 0.000932316
+    },
+    {
+      "id": "dev-large-16",
+      "file": "dev-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "How quickly must placing an order respond before someone gets paged?",
+      "want": [
+        "gl_slo_checkout"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_edi_retry",
+          "kind": "constraint",
+          "p": 0.92
+        },
+        {
+          "key": "gl_slo_checkout",
+          "kind": "constraint",
+          "p": 0.88
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 1,
+      "missed": [],
+      "extra": [
+        "gl_edi_retry"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 683,
+      "contextTokens": 267,
+      "hookMs": 534,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 442,
+      "jevOk": true,
+      "inputTokens": 22181,
+      "costUsd": 0.000931602
+    },
+    {
+      "id": "dev-large-17",
+      "file": "dev-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "What's a good name for a golden retriever puppy?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 503,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 427,
+      "jevOk": true,
+      "inputTokens": 22180,
+      "costUsd": 0.00093156
+    },
+    {
+      "id": "dev-large-18",
+      "file": "dev-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Explain the difference between TCP and UDP in two sentences.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 546,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 460,
+      "jevOk": true,
+      "inputTokens": 22180,
+      "costUsd": 0.00093156
+    },
+    {
+      "id": "dev-large-19",
+      "file": "dev-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Translate 'good morning' into Portuguese.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 471,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 393,
+      "jevOk": true,
+      "inputTokens": 22176,
+      "costUsd": 0.0009313920000000001
+    },
+    {
+      "id": "dev-large-20",
+      "file": "dev-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Write a Python one-liner that reverses a string.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 455,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 368,
+      "jevOk": true,
+      "inputTokens": 22180,
+      "costUsd": 0.00093156
+    },
+    {
+      "id": "dev-large-21",
+      "file": "dev-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "What year did the Berlin Wall fall?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 499,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 416,
+      "jevOk": true,
+      "inputTokens": 22176,
+      "costUsd": 0.0009313920000000001
+    },
+    {
+      "id": "dev-large-22",
+      "file": "dev-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Give me three tips for a better night's sleep.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 524,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 442,
+      "jevOk": true,
+      "inputTokens": 22179,
+      "costUsd": 0.0009315180000000001
+    },
+    {
+      "id": "dev-large-23",
+      "file": "dev-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Rename the `tmp_list` variable in `lib/tasks/scratch.rake` to `rows`.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 567,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 485,
+      "jevOk": true,
+      "inputTokens": 22190,
+      "costUsd": 0.0009319800000000001
+    },
+    {
+      "id": "dev-large-24",
+      "file": "dev-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "How do I center a div with flexbox?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 478,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 404,
+      "jevOk": true,
+      "inputTokens": 22178,
+      "costUsd": 0.0009314760000000001
+    },
+    {
+      "id": "dev-large-25",
+      "file": "dev-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Deploy the Rails app to Heroku with a bigger Postgres plan.",
+      "want": [
+        "gl_hosting_ecs"
+      ],
+      "ok": [
+        "gl_rds_prod",
+        "gl_data_region",
+        "gl_de_aurora"
+      ],
+      "never": [
+        "gl_hosting_heroku"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_hosting_ecs",
+          "kind": "architecture",
+          "p": 0.94
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 573,
+      "contextTokens": 216,
+      "hookMs": 531,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 464,
+      "jevOk": true,
+      "inputTokens": 22182,
+      "costUsd": 0.000931644
+    },
+    {
+      "id": "dev-large-26",
+      "file": "dev-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Add a delayed_job worker for the new monthly statement emails.",
+      "want": [
+        "gl_jobs_sidekiq"
+      ],
+      "ok": [
+        "gl_statement_monthly",
+        "gl_sidekiq_queue_low",
+        "gl_pref_job_names",
+        "gl_bug_sidekiq_oom"
+      ],
+      "never": [
+        "gl_jobs_delayed_job"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_jobs_sidekiq",
+          "kind": "architecture",
+          "p": 0.95
+        },
+        {
+          "key": "gl_statement_monthly",
+          "kind": "decision",
+          "p": 0.94
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 711,
+      "contextTokens": 268,
+      "hookMs": 549,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 445,
+      "jevOk": true,
+      "inputTokens": 22180,
+      "costUsd": 0.00093156
+    },
+    {
+      "id": "dev-large-27",
+      "file": "dev-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "What time is the next-day cut-off for one supplier's Monday deliveries?",
+      "want": [
+        "gl_cutoff_per_weekday"
+      ],
+      "ok": [
+        "gl_timezones",
+        "gl_bug_cutoff_timezone",
+        "gl_cutoff_no_silent_move",
+        "gl_order_edit_buyer",
+        "gl_delivery_zones"
+      ],
+      "never": [
+        "gl_cutoff_global",
+        "gl_cutoff_per_supplier"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_cutoff_per_weekday",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 578,
+      "contextTokens": 224,
+      "hookMs": 458,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 373,
+      "jevOk": true,
+      "inputTokens": 22183,
+      "costUsd": 0.0009316860000000001
+    },
+    {
+      "id": "dev-large-28",
+      "file": "dev-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Is catalogue search still the trigram index on product names?",
+      "want": [
+        "gl_search_opensearch"
+      ],
+      "ok": [
+        "gl_search_synonyms",
+        "gl_search_rank_sku",
+        "gl_search_rank_history",
+        "gl_bug_search_accents",
+        "gl_de_elastic_cloud",
+        "gl_todo_opensearch_upgrade"
+      ],
+      "never": [
+        "gl_search_pg_trgm",
+        "gl_search_pg_ilike"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_search_opensearch",
+          "kind": "architecture",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 570,
+      "contextTokens": 219,
+      "hookMs": 525,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 441,
+      "jevOk": true,
+      "inputTokens": 22180,
+      "costUsd": 0.00093156
+    },
+    {
+      "id": "dev-large-29",
+      "file": "dev-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Show a coupon code box at checkout so buyers can type in promotions.",
+      "want": [
+        "gl_promo_auto"
+      ],
+      "ok": [
+        "gl_bug_promo_stack"
+      ],
+      "never": [
+        "gl_promo_codes"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_promo_auto",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 561,
+      "contextTokens": null,
+      "hookMs": 525,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 438,
+      "jevOk": true,
+      "inputTokens": 22182,
+      "costUsd": 0.000931644
+    },
+    {
+      "id": "dev-large-30",
+      "file": "dev-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Generate the next invoice number from the global INV- sequence for the new supplier.",
+      "want": [
+        "gl_invoice_number_per_supplier"
+      ],
+      "ok": [
+        "gl_credit_note_number",
+        "gl_invoice_issue_flow"
+      ],
+      "never": [
+        "gl_invoice_number_global"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_invoice_number_per_supplier",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 568,
+      "contextTokens": null,
+      "hookMs": 566,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 467,
+      "jevOk": true,
+      "inputTokens": 22184,
+      "costUsd": 0.000931728
+    },
+    {
+      "id": "dev-large-31",
+      "file": "dev-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Drivers keep forgetting their passwords; add a reset flow to the driver login.",
+      "want": [
+        "gl_driver_login_sms"
+      ],
+      "ok": [
+        "gl_driver_api",
+        "gl_api_rate_login"
+      ],
+      "never": [
+        "gl_driver_login_password"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_driver_login_sms",
+          "kind": "decision",
+          "p": 0.92
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 525,
+      "contextTokens": null,
+      "hookMs": 646,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 560,
+      "jevOk": true,
+      "inputTokens": 22183,
+      "costUsd": 0.0009316860000000001
+    },
+    {
+      "id": "dev-large-32",
+      "file": "dev-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Set up MessageBird for the new delivery texts.",
+      "want": [
+        "gl_sms_twilio"
+      ],
+      "ok": [
+        "gl_sms_window_evening",
+        "gl_sms_eta_live",
+        "gl_sms_sender_uk",
+        "gl_sms_sender_ie",
+        "gl_de_whatsapp",
+        "gl_sms_quiet_hours",
+        "gl_sms_retry"
+      ],
+      "never": [
+        "gl_sms_messagebird"
+      ],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "gl_sms_twilio"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2102,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2004,
+      "jevOk": false,
+      "inputTokens": 0,
+      "costUsd": 0,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "dev-large-33",
+      "file": "dev-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Let's try Postgres row-level security for tenant isolation.",
+      "want": [
+        "gl_de_tenancy_rls"
+      ],
+      "ok": [
+        "gl_tenancy_row_scope",
+        "gl_current_attributes",
+        "gl_never_unscoped"
+      ],
+      "never": [
+        "gl_tenancy_schemas"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_de_tenancy_rls",
+          "kind": "dead-end",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 582,
+      "contextTokens": 211,
+      "hookMs": 522,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 445,
+      "jevOk": true,
+      "inputTokens": 22180,
+      "costUsd": 0.00093156
+    },
+    {
+      "id": "dev-large-34",
+      "file": "dev-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Could we use Aurora Serverless so the database scales up for the afternoon rush?",
+      "want": [
+        "gl_de_aurora"
+      ],
+      "ok": [
+        "gl_rds_prod",
+        "gl_hosting_ecs"
+      ],
+      "never": [
+        "gl_hosting_heroku"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_de_aurora",
+          "kind": "dead-end",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 559,
+      "contextTokens": 215,
+      "hookMs": 471,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 395,
+      "jevOk": true,
+      "inputTokens": 22185,
+      "costUsd": 0.0009317700000000001
+    },
+    {
+      "id": "dev-large-35",
+      "file": "dev-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Cache each buyer's resolved prices in Redis to speed up the catalogue pages.",
+      "want": [
+        "gl_de_price_cache"
+      ],
+      "ok": [
+        "gl_pricing_resolver",
+        "gl_price_per_buyer"
+      ],
+      "never": [
+        "gl_price_single_list"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_de_price_cache",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 567,
+      "contextTokens": 199,
+      "hookMs": 631,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 551,
+      "jevOk": true,
+      "inputTokens": 22183,
+      "costUsd": 0.0009316860000000001
+    },
+    {
+      "id": "dev-large-36",
+      "file": "dev-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Render invoices with headless Chrome so they look exactly like the web page.",
+      "want": [
+        "gl_de_pdf_grover"
+      ],
+      "ok": [
+        "gl_invoice_pdf_prawn",
+        "gl_bug_sidekiq_oom",
+        "gl_bug_pdf_unicode"
+      ],
+      "never": [
+        "gl_invoice_pdf_wicked"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_de_pdf_grover",
+          "kind": "dead-end",
+          "p": 0.96
+        },
+        {
+          "key": "gl_invoice_pdf_prawn",
+          "kind": "decision",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 714,
+      "contextTokens": 284,
+      "hookMs": 442,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 374,
+      "jevOk": true,
+      "inputTokens": 22184,
+      "costUsd": 0.000931728
+    },
+    {
+      "id": "dev-large-37",
+      "file": "dev-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Move EDI to AS2 instead of SFTP drops.",
+      "want": [
+        "gl_de_edi_as2"
+      ],
+      "ok": [
+        "gl_edi_sftp_layout",
+        "gl_edi_orders_outbound",
+        "gl_edi_invoic_inbound"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_de_edi_as2",
+          "kind": "dead-end",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 554,
+      "contextTokens": 215,
+      "hookMs": 515,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 389,
+      "jevOk": true,
+      "inputTokens": 22180,
+      "costUsd": 0.00093156
+    },
+    {
+      "id": "dev-large-38",
+      "file": "dev-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Let's send delivery updates over WhatsApp instead of texts.",
+      "want": [
+        "gl_de_whatsapp"
+      ],
+      "ok": [
+        "gl_sms_twilio",
+        "gl_sms_window_evening",
+        "gl_sms_eta_live"
+      ],
+      "never": [
+        "gl_sms_messagebird"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_de_whatsapp",
+          "kind": "dead-end",
+          "p": 0.95
+        },
+        {
+          "key": "gl_sms_twilio",
+          "kind": "decision",
+          "p": 0.9
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 702,
+      "contextTokens": 266,
+      "hookMs": 501,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 414,
+      "jevOk": true,
+      "inputTokens": 22181,
+      "costUsd": 0.000931602
+    },
+    {
+      "id": "dev-large-39",
+      "file": "dev-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Build something that predicts what each bakery will order next week, so we can suggest it.",
+      "want": [
+        "gl_de_forecast"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_de_forecast",
+          "kind": "dead-end",
+          "p": 0.93
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 560,
+      "contextTokens": 197,
+      "hookMs": 467,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 375,
+      "jevOk": true,
+      "inputTokens": 22186,
+      "costUsd": 0.0009318120000000001
+    },
+    {
+      "id": "dev-large-40",
+      "file": "dev-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Have drivers scan the crate labels with the phone camera at each drop.",
+      "want": [
+        "gl_de_barcode"
+      ],
+      "ok": [
+        "gl_driver_expo",
+        "gl_pod_required"
+      ],
+      "never": [
+        "gl_driver_pwa"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "gl_de_barcode",
+          "kind": "dead-end",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 558,
+      "contextTokens": 203,
+      "hookMs": 556,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 467,
+      "jevOk": true,
+      "inputTokens": 22182,
+      "costUsd": 0.000931644
+    }
+  ]
+}

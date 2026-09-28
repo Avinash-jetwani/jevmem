@@ -1,0 +1,364 @@
+{
+  "kind": "diag-recall-questions",
+  "date": "2026-09-28",
+  "set": "eval/recall-dev.jsonl",
+  "source": "results/diag-recall-questions",
+  "method": "Offline, over the answers each variant's Jev calls gave on the dev set (one call per prompt, in process); top 5 by the rule's score. recall = wanted lines picked / wanted lines; precision = picked lines that are wanted or ok / picked lines; unrelated = unrelated prompts that got any line.",
+  "variants": {
+    "v0": {
+      "design": {
+        "cap": 60,
+        "choice": "text",
+        "noul": null
+      },
+      "run": "run 1",
+      "prompts": 90,
+      "input_tokens_per_prompt": 5386,
+      "jev_p50_ms": 264,
+      "wanted_lines_not_sent": 7,
+      "rules": {
+        "choice ≥ 0.05": {
+          "recall": "68/77",
+          "served": "64/72",
+          "precision": "73/89",
+          "unrelated": "5/18",
+          "lines_per_prompt": 0.99
+        }
+      }
+    },
+    "v1": {
+      "design": {
+        "cap": 60,
+        "choice": "text",
+        "noul": "search"
+      },
+      "run": "run 1",
+      "prompts": 90,
+      "input_tokens_per_prompt": 13257,
+      "jev_p50_ms": 321,
+      "wanted_lines_not_sent": 7,
+      "rules": {
+        "choice ≥ 0.05": {
+          "recall": "68/77",
+          "served": "64/72",
+          "precision": "73/90",
+          "unrelated": "4/18",
+          "lines_per_prompt": 1
+        },
+        "noul ≥ 0.8": {
+          "recall": "69/77",
+          "served": "66/72",
+          "precision": "90/90",
+          "unrelated": "0/18",
+          "lines_per_prompt": 1
+        },
+        "noul ≥ 0.9": {
+          "recall": "64/77",
+          "served": "61/72",
+          "precision": "71/71",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.79
+        },
+        "noul ≥ 0.8 and choice ≥ 0.05": {
+          "recall": "67/77",
+          "served": "64/72",
+          "precision": "71/71",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.79
+        }
+      }
+    },
+    "v2": {
+      "design": {
+        "cap": 255,
+        "choice": "bare",
+        "noul": "search"
+      },
+      "run": "run 1",
+      "prompts": 90,
+      "input_tokens_per_prompt": 28435,
+      "jev_p50_ms": 337,
+      "wanted_lines_not_sent": 0,
+      "rules": {
+        "choice ≥ 0.05": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "86/91",
+          "unrelated": "3/18",
+          "lines_per_prompt": 1.01
+        },
+        "noul ≥ 0.8": {
+          "recall": "77/77",
+          "served": "72/72",
+          "precision": "111/112",
+          "unrelated": "0/18",
+          "lines_per_prompt": 1.24
+        },
+        "noul ≥ 0.9": {
+          "recall": "67/77",
+          "served": "62/72",
+          "precision": "76/76",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.84
+        },
+        "noul ≥ 0.8 and choice ≥ 0.05": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "83/83",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.92
+        }
+      }
+    },
+    "v3": {
+      "design": {
+        "cap": 255,
+        "choice": "bare",
+        "noul": "compact"
+      },
+      "run": "run 1",
+      "prompts": 90,
+      "input_tokens_per_prompt": 12107,
+      "jev_p50_ms": 358,
+      "wanted_lines_not_sent": 0,
+      "rules": {
+        "choice ≥ 0.05": {
+          "recall": "77/77",
+          "served": "72/72",
+          "precision": "87/92",
+          "unrelated": "3/18",
+          "lines_per_prompt": 1.02
+        },
+        "noul ≥ 0.8": {
+          "recall": "77/77",
+          "served": "72/72",
+          "precision": "160/196",
+          "unrelated": "0/18",
+          "lines_per_prompt": 2.18
+        },
+        "noul ≥ 0.9": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "126/137",
+          "unrelated": "0/18",
+          "lines_per_prompt": 1.52
+        },
+        "noul ≥ 0.8 and choice ≥ 0.05": {
+          "recall": "77/77",
+          "served": "72/72",
+          "precision": "86/87",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.97
+        },
+        "noul ≥ 0.97, or noul ≥ 0.8 and choice ≥ 0.05 (shipped)": {
+          "recall": "77/77",
+          "served": "72/72",
+          "precision": "87/88",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.98
+        }
+      }
+    },
+    "v4": {
+      "design": {
+        "cap": 255,
+        "choice": null,
+        "noul": "compact"
+      },
+      "run": "run 1",
+      "prompts": 90,
+      "input_tokens_per_prompt": 10839,
+      "jev_p50_ms": 298,
+      "wanted_lines_not_sent": 0,
+      "rules": {
+        "noul ≥ 0.8": {
+          "recall": "77/77",
+          "served": "72/72",
+          "precision": "156/189",
+          "unrelated": "0/18",
+          "lines_per_prompt": 2.1
+        },
+        "noul ≥ 0.9": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "122/129",
+          "unrelated": "0/18",
+          "lines_per_prompt": 1.43
+        }
+      }
+    },
+    "v5": {
+      "design": {
+        "cap": 255,
+        "choice": null,
+        "noul": "search"
+      },
+      "run": "run 1",
+      "prompts": 90,
+      "input_tokens_per_prompt": 27167,
+      "jev_p50_ms": 314,
+      "wanted_lines_not_sent": 0,
+      "rules": {
+        "noul ≥ 0.8": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "111/112",
+          "unrelated": "0/18",
+          "lines_per_prompt": 1.24
+        },
+        "noul ≥ 0.9": {
+          "recall": "66/77",
+          "served": "61/72",
+          "precision": "79/79",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.88
+        }
+      }
+    },
+    "v6": {
+      "design": {
+        "cap": 255,
+        "choice": "bare",
+        "noul": "compact",
+        "replaces": true
+      },
+      "run": "run 2 (Jev latency was high for part of it)",
+      "prompts": 90,
+      "input_tokens_per_prompt": 12557,
+      "jev_p50_ms": 1218,
+      "wanted_lines_not_sent": 0,
+      "rules": {
+        "choice ≥ 0.05": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "85/89",
+          "unrelated": "3/18",
+          "lines_per_prompt": 0.99
+        },
+        "noul ≥ 0.8": {
+          "recall": "77/77",
+          "served": "72/72",
+          "precision": "157/189",
+          "unrelated": "0/18",
+          "lines_per_prompt": 2.1
+        },
+        "noul ≥ 0.9": {
+          "recall": "75/77",
+          "served": "70/72",
+          "precision": "124/133",
+          "unrelated": "0/18",
+          "lines_per_prompt": 1.48
+        },
+        "noul ≥ 0.8 and choice ≥ 0.05": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "85/86",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.96
+        },
+        "noul ≥ 0.97, or noul ≥ 0.8 and choice ≥ 0.05 (shipped)": {
+          "recall": "77/77",
+          "served": "72/72",
+          "precision": "87/88",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.98
+        }
+      }
+    },
+    "v7": {
+      "design": {
+        "cap": 255,
+        "choice": "bare",
+        "noul": null,
+        "replaces": true
+      },
+      "run": "run 2 (Jev latency was high for part of it)",
+      "prompts": 90,
+      "input_tokens_per_prompt": 9155,
+      "jev_p50_ms": 1282,
+      "wanted_lines_not_sent": 0,
+      "rules": {
+        "choice ≥ 0.05": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "84/88",
+          "unrelated": "3/18",
+          "lines_per_prompt": 0.98
+        }
+      }
+    },
+    "v8": {
+      "design": {
+        "cap": 255,
+        "choice": "bare",
+        "noul": "search",
+        "replaces": true
+      },
+      "run": "run 2",
+      "prompts": 90,
+      "input_tokens_per_prompt": 28884,
+      "jev_p50_ms": 332,
+      "wanted_lines_not_sent": 0,
+      "rules": {
+        "choice ≥ 0.05": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "85/90",
+          "unrelated": "3/18",
+          "lines_per_prompt": 1
+        },
+        "noul ≥ 0.8": {
+          "recall": "77/77",
+          "served": "72/72",
+          "precision": "110/112",
+          "unrelated": "0/18",
+          "lines_per_prompt": 1.24
+        },
+        "noul ≥ 0.9": {
+          "recall": "67/77",
+          "served": "62/72",
+          "precision": "77/77",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.86
+        },
+        "noul ≥ 0.8 and choice ≥ 0.05": {
+          "recall": "76/77",
+          "served": "71/72",
+          "precision": "83/83",
+          "unrelated": "0/18",
+          "lines_per_prompt": 0.92
+        }
+      }
+    },
+    "v9": {
+      "design": {
+        "cap": 255,
+        "choice": "bare",
+        "noul": null,
+        "replaces": true,
+        "exists": true
+      },
+      "run": "run 3",
+      "prompts": 90,
+      "input_tokens_per_prompt": 9229,
+      "jev_p50_ms": 311,
+      "wanted_lines_not_sent": 0,
+      "rules": {
+        "choice ≥ 0.05": {
+          "recall": "75/77",
+          "served": "70/72",
+          "precision": "84/88",
+          "unrelated": "3/18",
+          "lines_per_prompt": 0.98
+        },
+        "exists ≥ 0.5, then choice ≥ 0.05": {
+          "recall": "75/77",
+          "served": "70/72",
+          "precision": "84/86",
+          "unrelated": "1/18",
+          "lines_per_prompt": 0.96
+        }
+      }
+    }
+  }
+}
