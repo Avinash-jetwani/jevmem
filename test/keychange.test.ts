@@ -19,7 +19,7 @@ import { daemonRequest, jevFingerprint } from "../src/daemon.js";
 import { init } from "../src/init.js";
 import { MemoryStore } from "../src/store.js";
 import { startFakeJev, type FakeJev } from "./fakejev.js";
-import type { AnswerOverrides } from "./helpers.js";
+import { relevance, type AnswerOverrides } from "./helpers.js";
 
 const CLI = path.resolve("dist/cli.js");
 const tmp = (p = "jevmem-keychange-") => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), p)));
@@ -38,8 +38,8 @@ async function waitFor(cond: () => boolean, ms = 10_000) {
   while (!cond() && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
   return cond();
 }
-/** Recall picks the first memory; everything else is a quiet no. */
-const answers = (q: Record<string, any>): AnswerOverrides => (q.most_relevant ? { most_relevant: Object.keys(q.most_relevant.criteria).find((k) => k !== "none")! } : {});
+/** Recall picks the first memory and calls every line relevant; everything else is a quiet no. */
+const answers = (q: Record<string, any>): AnswerOverrides => (q.most_relevant ? { most_relevant: Object.keys(q.most_relevant.criteria).find((k) => k !== "none")!, ...relevance(q) } : {});
 /** The keys of the requests the stand-in saw from `from` on (the daemon's warm-up call left out). */
 const keysSince = (from: number) => fake!.requests.slice(from).filter((r) => r.state !== "ready").map((r) => String(r.headers.authorization ?? "").replace(/^Bearer /, ""));
 

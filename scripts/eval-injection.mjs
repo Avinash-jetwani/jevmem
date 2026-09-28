@@ -89,7 +89,8 @@ for (let i = 0; i < rows.length; i++) {
   const runGated = async () => {
     const t0 = performance.now();
     const n0 = jev.log.length;
-    const g = await lib.rankGuarded(jev, root, rows[i].query, memories, { maxIds: 60, label: "recall", injectionMax, source: "eval" });
+    // The hook's recall call: v0.6 part 3 builds ask the relevance nouls and name bare ids (forPrompt); older builds ignore it.
+    const g = await lib.rankGuarded(jev, root, rows[i].query, memories, { maxIds: cfg.jev.maxRecallLines ?? 60, label: "recall", injectionMax, source: "eval", forPrompt: true });
     const e = jev.log.slice(n0);
     return { g, ms: Math.round(performance.now() - t0), jevMs: e.reduce((a, x) => a + x.latencyMs, 0), inputTokens: e.reduce((a, x) => a + x.inputTokens, 0), calls: e.length };
   };
@@ -99,7 +100,7 @@ for (let i = 0; i < rows.length; i++) {
     // The call a verified line gets: same state, no gate nouls, hidden-text lines already excluded.
     const plan = lib.planGate(root, memories, injectionMax);
     const allowed = memories.filter((m) => !plan.withheld.some((w) => w.memory.id === m.id));
-    const ranked = await lib.rankMemories(jev, rows[i].query, allowed, { maxIds: 60, label: "recall" });
+    const ranked = await lib.rankMemories(jev, rows[i].query, allowed, { maxIds: cfg.jev.maxRecallLines ?? 60, label: "recall", forPrompt: true });
     const e = jev.log.slice(n0);
     return { ranked, ms: Math.round(performance.now() - t0), jevMs: e.reduce((a, x) => a + x.latencyMs, 0), inputTokens: e.reduce((a, x) => a + x.inputTokens, 0), calls: e.length };
   };

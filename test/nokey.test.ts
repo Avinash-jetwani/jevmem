@@ -16,7 +16,7 @@ import { readLog } from "../src/jev.js";
 import { MISSING_KEY_NOTICE_INIT, MISSING_KEY_NOTICE_PLUGIN } from "../src/notice.js";
 import { MemoryStore } from "../src/store.js";
 import { startFakeJev, type FakeJev } from "./fakejev.js";
-import { SAVE_DECISION } from "./helpers.js";
+import { relevance, SAVE_DECISION } from "./helpers.js";
 
 const CLI = path.resolve("dist/cli.js");
 const PLUGIN_LAUNCHER = path.resolve("plugin/hooks/jevmem-hook.sh");
@@ -79,7 +79,7 @@ async function story(run: Run, root: string, home: string, notice: string) {
   expect(readLog(root).filter((e) => /TYPESAFE_API_KEY not set/.test(e.error ?? "")).map((e) => e.error!.split(":")[0]).sort()).toEqual(["Stop", "UserPromptSubmit", "UserPromptSubmit", "UserPromptSubmit"]);
 
   // The fix the notice names for `jevmem init` (the plugin's hooks read the same file): then jevmem works.
-  fake = await startFakeJev((q: Record<string, any>) => (q.most_relevant ? { most_relevant: Object.keys(q.most_relevant.criteria).find((k) => k !== "none")! } : SAVE_DECISION));
+  fake = await startFakeJev((q: Record<string, any>) => (q.most_relevant ? { most_relevant: Object.keys(q.most_relevant.criteria).find((k) => k !== "none")!, ...relevance(q) } : SAVE_DECISION));
   fs.writeFileSync(path.join(root, ".jevmem", ".env"), `TYPESAFE_BASE_URL=${fake.url}\n`);
   const saved = saveKey(home, "typesafe-test-key-0001");
   expect([saved.status, saved.stderr]).toEqual([0, ""]);

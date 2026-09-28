@@ -8,7 +8,7 @@ import { appendLog, createJev, hasJevKey, summarizeLog, type JevCaller } from ".
 import { gatePendingRules } from "./guardrail.js";
 import { recordDecision } from "./labels.js";
 import { recordProvenance } from "./provenance.js";
-import { formatInjection, recallGuarded } from "./recall.js";
+import { formatInjection, recallGuarded, replacedTexts } from "./recall.js";
 import { drainQueue, enqueueTurn, readQueue, type QueuedTurn } from "./queue.js";
 import { MemoryStore } from "./store.js";
 import { lastTurnFromTranscript, mergeTurn } from "./transcript.js";
@@ -133,17 +133,20 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
   try {
     if (event === "UserPromptSubmit") {
       const prompt = (input.user_prompt ?? input.prompt ?? input.user_prompt_raw ?? input.message ?? "").trim();
-      const memories = store.active();
+      const all = store.list();
+      const memories = all.filter((m) => m.kind !== "superseded" && !m.supersededBy);
       if (!prompt || memories.length === 0) return { event, action: "noop", detail: "no prompt or no memories" };
       // Unverified lines (not written here by jevmem) go through the poisoning gate in the same Jev call.
-      const { ranked, withheld, gated } = await recallGuarded(jev, store.root, prompt, memories, {
+      const { ranked, withheld, gated, deferred } = await recallGuarded(jev, store.root, prompt, memories, {
         topK: cfg.thresholds.recallTopK,
         min: cfg.thresholds.recallMin,
+        relevanceMin: cfg.thresholds.recallRelevanceMin,
         injectionMax: cfg.thresholds.injectionMax,
         timeoutMs: cfg.jev.timeoutMs,
-        maxIds: cfg.jev.maxRecallCandidates,
+        maxIds: cfg.jev.maxRecallLines,
+        replaced: replacedTexts(all),
       });
-      const gate = `${gated} gated${withheld.length ? `, withheld ${withheld.map((w) => w.memory.id).join(",")}` : ""}`;
+      const gate = `${gated} gated${deferred ? `, ${deferred} left for a later prompt` : ""}${withheld.length ? `, withheld ${withheld.map((w) => w.memory.id).join(",")}` : ""}`;
       if (ranked.length === 0) return { event, action: "noop", detail: `no relevant memories (${gate})` };
       const additionalContext = formatInjection(ranked);
       const stdout = JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } });

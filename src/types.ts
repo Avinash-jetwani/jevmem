@@ -52,10 +52,15 @@ export interface Thresholds {
   contradictionMin: number;
   /** `jevmem audit` marks memories below this as `[stale?]`. */
   staleBelow: number;
-  /** How many memories to inject on UserPromptSubmit. */
+  /** How many memories to inject on UserPromptSubmit, at most. */
   recallTopK: number;
-  /** Minimum relevance probability for a memory to be injected. */
+  /**
+   * The recall choice's floor: a line whose relevance noul is under the sure level (0.97) must also have at least this
+   * probability in the "most relevant" choice to be injected.
+   */
   recallMin: number;
+  /** Jev's per-line relevance ("does memory X bear on what the query asks?") at or above which a line may be injected. */
+  recallRelevanceMin: number;
 }
 
 export interface JevmemConfig {
@@ -69,8 +74,13 @@ export interface JevmemConfig {
     timeoutMs: number;
     /** Max memory ids to include in one `touches_memory_id` choice. Pre-filtered by keyword overlap beyond this. */
     maxIdsPerCall: number;
-    /** Max candidates sent to recall/search (pre-filtered by keyword overlap beyond this). */
+    /** Max candidates sent to search, MCP `search_memory` and `jevmem search` (pre-filtered by keyword overlap beyond this). */
     maxRecallCandidates: number;
+    /**
+     * Max live lines the prompt hook sends Jev: every line up to this (Jev's choice takes 255 options), pre-filtered by
+     * keyword overlap beyond it. Until v0.6 the hook used `maxRecallCandidates` (60).
+     */
+    maxRecallLines: number;
     /** USD per million tokens, used for the cost column in `.jevmem/log.jsonl`. */
     usdPerMillionTokens: number;
     /** Cache identical (state, questions) → answers in `.jevmem/cache/`. */
@@ -173,12 +183,14 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     staleBelow: 0.4,
     recallTopK: 5,
     recallMin: 0.05,
+    recallRelevanceMin: 0.8,
   },
   jev: {
     model: "jev-latest",
     timeoutMs: 2000,
     maxIdsPerCall: 200,
     maxRecallCandidates: 60,
+    maxRecallLines: 250,
     usdPerMillionTokens: 0.042,
     cache: true,
     zeroDataRetention: "auto",

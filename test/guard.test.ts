@@ -14,7 +14,7 @@ import { isVerified, lineSha, readProvenance, recordProvenance } from "../src/pr
 import { formatInjection, MEMORY_FRAME, neutralize } from "../src/recall.js";
 import { MemoryStore } from "../src/store.js";
 import { startFakeJev } from "./fakejev.js";
-import { mockJev, SAVE_DECISION } from "./helpers.js";
+import { mockJev, relevance, SAVE_DECISION } from "./helpers.js";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-guard-"));
 const env = { JEVMEM_WRITER: "none" } as NodeJS.ProcessEnv;
@@ -23,8 +23,9 @@ function project() {
   init({ root, hooks: false });
   return { root, store: new MemoryStore(root) };
 }
-/** Answer the gate nouls from a per-id table (default clean), and pick `top` as the most relevant memory. */
+/** Answer the gate nouls from a per-id table (default clean), pick `top` as the most relevant memory, and call every line relevant. */
 const gateAnswers = (bad: Record<string, number>, top?: string) => (q: Record<string, unknown>) => ({
+  ...relevance(q, 0.9),
   ...Object.fromEntries(Object.keys(q).filter((k) => k.startsWith("inj_")).map((k) => [k, bad[k.slice(4)] ?? 0.03])),
   ...(top ? { most_relevant: { choice: top, probabilities: Object.fromEntries(Object.keys((q.most_relevant as any)?.criteria ?? {}).map((id) => [id, id === top ? 0.6 : 0.2])) } } : {}),
 });

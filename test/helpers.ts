@@ -35,6 +35,14 @@ export function makeAnswers<Q extends Questions>(questions: Q, overrides: Answer
   return { model: "jev-mock", answers, usage: { input_tokens: 500, output_tokens: 20 } } as unknown as SystemOneResult<Q>;
 }
 
+/**
+ * Recall's per-line relevance nouls (`rel_<id>`, v0.6 part 3): `value` for the lines in `ids` (every line asked when
+ * `ids` is omitted), and the default 0.05 for the others.
+ */
+export function relevance(questions: Record<string, unknown>, value = 0.98, ids?: readonly string[]): AnswerOverrides {
+  return Object.fromEntries(Object.keys(questions).filter((k) => k.startsWith("rel_")).map((k) => [k, !ids || ids.includes(k.slice(4)) ? value : 0.05]));
+}
+
 export interface MockJev extends JevCaller {
   calls: { state: EntryType; questions: Questions; opts: JevCallOptions }[];
 }

@@ -72,7 +72,7 @@ describe("real Claude Code payloads", () => {
     const root = tmp();
     const store = new MemoryStore(root);
     const a = store.add({ kind: "decision", text: "Use Postgres 16" });
-    const jev = mockJev(() => ({ most_relevant: { choice: a.id, probabilities: { [a.id]: 0.9, none: 0.1 } } }));
+    const jev = mockJev(() => ({ most_relevant: { choice: a.id, probabilities: { [a.id]: 0.9, none: 0.1 } }, [`rel_${a.id}`]: 0.98 }));
     const r = await runHook({ hook_event_name: "UserPromptSubmit", cwd: root, transcript_path: "/x", user_prompt: "how do I add a migration?", user_prompt_raw: "how do I add a migration?" }, { jev, env });
     expect(r.action).toBe("injected");
     expect((jev.calls[0]!.state as any).query).toBe("how do I add a migration?");

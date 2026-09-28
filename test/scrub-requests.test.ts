@@ -19,7 +19,7 @@ import { recordProvenance } from "../src/provenance.js";
 import { MemoryStore } from "../src/store.js";
 import { scrubSecrets as scrub057 } from "./fixtures/scrub-0.5.7/scrub.js";
 import { startFakeJev, type FakeJev } from "./fakejev.js";
-import { SAVE_DECISION } from "./helpers.js";
+import { relevance, SAVE_DECISION } from "./helpers.js";
 
 const tmp = () => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-scrubreq-")));
 let fake: FakeJev | null = null;
@@ -27,8 +27,8 @@ afterEach(async () => {
   await fake?.close();
   fake = null;
 });
-/** Decide saves a decision; recall picks the first memory; the guard says the call breaks every candidate rule. */
-const answers = (q: Record<string, any>) => (q.most_relevant ? { most_relevant: Object.keys(q.most_relevant.criteria).find((k) => k !== "none")! } : Object.keys(q).some((k) => k.startsWith("breaks_")) ? Object.fromEntries(Object.keys(q).map((k) => [k, 0.9])) : SAVE_DECISION);
+/** Decide saves a decision; recall picks the first memory and calls every line relevant; the guard says the call breaks every candidate rule. */
+const answers = (q: Record<string, any>) => (q.most_relevant ? { most_relevant: Object.keys(q.most_relevant.criteria).find((k) => k !== "none")!, ...relevance(q) } : Object.keys(q).some((k) => k.startsWith("breaks_")) ? Object.fromEntries(Object.keys(q).map((k) => [k, 0.9])) : SAVE_DECISION);
 /** What 0.5.7's createJev did to a request's state, with 0.5.7's scrubber. */
 const oldScrub = (state: unknown) => JSON.parse(scrub057(JSON.stringify(state)));
 const SECRETS = ["hunter2", "abc123", "AIzaSyD4k9ZqQ7w2Xc8vB1nM3lK5jH6gF0dS9aP", "sk_test_abcdef1234567890"];

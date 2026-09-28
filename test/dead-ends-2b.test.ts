@@ -22,7 +22,7 @@ import { recallGuarded } from "../src/recall.js";
 import { MemoryStore } from "../src/store.js";
 import { DEFAULT_CONFIG, type Memory } from "../src/types.js";
 import { composeLine } from "../src/write.js";
-import { mockJev, T1_QUIET, type AnswerOverrides } from "./helpers.js";
+import { mockJev, relevance, T1_QUIET, type AnswerOverrides } from "./helpers.js";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-2b-"));
 const env = { JEVMEM_WRITER: "none" } as NodeJS.ProcessEnv;
@@ -235,8 +235,9 @@ describe("the poisoning gate's dead-end noul", () => {
   const recall = (scores: Record<string, number>) => (q: Record<string, unknown>) => ({
     ...Object.fromEntries(Object.keys(q).filter((k) => /^(inj|skip)_/.test(k)).map((k) => [k, scores[k] ?? 0.04])),
     most_relevant: { choice: Object.keys((q.most_relevant as any).criteria)[0]!, probabilities: Object.fromEntries(Object.keys((q.most_relevant as any).criteria).map((id) => [id, id === "none" ? 0 : 0.5])) },
+    ...relevance(q, 0.9),
   });
-  const opts = { topK: 5, min: 0.05, injectionMax: 0.5 };
+  const opts = { topK: 5, min: 0.05, relevanceMin: 0.8, injectionMax: 0.5 };
 
   it("an unverified dead-end line gets the second noul and is withheld when it has agents skip a safety step; other kinds get the first only", async () => {
     const { root, store } = project();

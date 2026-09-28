@@ -106,7 +106,7 @@ const search = [];
 const audit = [];
 for (let i = 0; i < N; i++) {
   const q = PROMPTS[i % PROMPTS.length];
-  let ms = await timed(() => lib.recallForPrompt(jev, q, memories, { topK: 5, min: 0.05, maxIds: 60 }));
+  let ms = await timed(() => lib.recallForPrompt(jev, q, memories, { topK: 5, min: 0.05, relevanceMin: 0.8, maxIds: 250 }));
   recall.push({ ms, inputTokens: lastLog(jev).inputTokens });
   ms = await timed(() => lib.rankMemories(jev, q, memories, { perCandidateNouls: true, noulCap: 50, maxIds: 60, label: "search" }));
   search.push({ ms, inputTokens: lastLog(jev).inputTokens });
@@ -126,9 +126,9 @@ const gVerified = [];
 for (let i = 0; i < N; i++) {
   const q = PROMPTS[i % PROMPTS.length];
   fs.rmSync(gateFile, { force: true });
-  let ms = await timed(() => lib.recallGuarded(jev, root, q, memories, { topK: 5, min: 0.05, maxIds: 60, injectionMax: 0.5 }));
+  let ms = await timed(() => lib.recallGuarded(jev, root, q, memories, { topK: 5, min: 0.05, relevanceMin: 0.8, maxIds: 250, injectionMax: 0.5 }));
   gUncached.push({ ms, inputTokens: lastLog(jev).inputTokens });
-  ms = await timed(() => lib.recallGuarded(jev, root, q, memories, { topK: 5, min: 0.05, maxIds: 60, injectionMax: 0.5 }));
+  ms = await timed(() => lib.recallGuarded(jev, root, q, memories, { topK: 5, min: 0.05, relevanceMin: 0.8, maxIds: 250, injectionMax: 0.5 }));
   gCached.push({ ms, inputTokens: lastLog(jev).inputTokens });
 }
 const gateWithheld = lib.knownWithheld(root, memories, 0.5).length; // fixture lines the gate flagged (expected 0)
@@ -136,7 +136,7 @@ const provFile = lib.provenanceFile(root);
 for (const m of memories) lib.recordProvenance(root, m, "hook");
 for (let i = 0; i < N; i++) {
   const q = PROMPTS[i % PROMPTS.length];
-  const ms = await timed(() => lib.recallGuarded(jev, root, q, memories, { topK: 5, min: 0.05, maxIds: 60, injectionMax: 0.5 }));
+  const ms = await timed(() => lib.recallGuarded(jev, root, q, memories, { topK: 5, min: 0.05, relevanceMin: 0.8, maxIds: 250, injectionMax: 0.5 }));
   gVerified.push({ ms, inputTokens: lastLog(jev).inputTokens });
 }
 results.warm = {

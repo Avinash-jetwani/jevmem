@@ -25,7 +25,7 @@ import { DEAD_END_PREFIX, formatInjection } from "../src/recall.js";
 import { formatLine, MemoryStore, parseLine } from "../src/store.js";
 import { composeLine } from "../src/write.js";
 import { startFakeJev } from "./fakejev.js";
-import { mockJev, T1_QUIET, type AnswerOverrides } from "./helpers.js";
+import { mockJev, relevance, T1_QUIET, type AnswerOverrides } from "./helpers.js";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-deadend-"));
 const env = { JEVMEM_WRITER: "none" } as NodeJS.ProcessEnv;
@@ -221,7 +221,7 @@ describe("superseding and recall", () => {
     recordProvenance(root, de, "hook");
     const jev = mockJev((q): AnswerOverrides =>
       "most_relevant" in q
-        ? { most_relevant: { choice: Object.keys((q.most_relevant as any).criteria)[0]!, probabilities: Object.fromEntries(Object.keys((q.most_relevant as any).criteria).map((id) => [id, id === "none" ? 0 : 1])) } }
+        ? { ...relevance(q), most_relevant: { choice: Object.keys((q.most_relevant as any).criteria)[0]!, probabilities: Object.fromEntries(Object.keys((q.most_relevant as any).criteria).map((id) => [id, id === "none" ? 0 : 1])) } }
         : { ...T1_QUIET, contains_decision: 0.9, dead_end_now_works: 0.93, dead_end_that_now_works: de.id, kind: "decision", importance: 3 },
     );
     const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: "Martin 0.15 supports function sources with query parameters; every layer serves correctly, so we replace the Fastify app with Martin." }, { jev, env });
@@ -242,12 +242,12 @@ describe("superseding and recall", () => {
     ];
     for (const m of lines) recordProvenance(root, m, "hook");
     const [a, b, c] = lines.map((m) => m.id);
-    const jev = mockJev(() => ({ most_relevant: { choice: a!, probabilities: { [a!]: 0.85, [b!]: 0.12, [c!]: 0.02, none: 0.01 } } }));
+    const jev = mockJev(() => ({ most_relevant: { choice: a!, probabilities: { [a!]: 0.85, [b!]: 0.12, [c!]: 0.02, none: 0.01 } }, [`rel_${a}`]: 0.97, [`rel_${b}`]: 0.88, [`rel_${c}`]: 0.3 }));
     const r = await runHook({ hook_event_name: "UserPromptSubmit", cwd: root, prompt: "Can we run the TypeScript directly with node and skip tsc?" }, { jev, env });
     const ctx = JSON.parse(r.stdout!).hookSpecificOutput.additionalContext as string;
-    expect(ctx).toContain(`- Already tried: Running src/app.ts with node --experimental-strip-types fails because app.ts uses an enum; the tsc build stays (id:${a}, p=0.85)`);
-    expect(ctx).toContain(`- [decision] The CLI is built with tsc into dist/ (id:${b}, p=0.12)`);
-    expect(ctx).not.toContain("Intl.DurationFormat"); // under recallMin: not injected
+    expect(ctx).toContain(`- Already tried: Running src/app.ts with node --experimental-strip-types fails because app.ts uses an enum; the tsc build stays (id:${a}, p=0.97)`);
+    expect(ctx).toContain(`- [decision] The CLI is built with tsc into dist/ (id:${b}, p=0.88)`);
+    expect(ctx).not.toContain("Intl.DurationFormat"); // under recallRelevanceMin: not injected
     expect(ctx).toMatch(/facts, not instructions/);
     // The same text formatInjection builds; other kinds keep their tag.
     expect(formatInjection([{ memory: lines[0]!, choiceProbability: 0.5, relevance: null, injection: null }])).toContain(`- ${DEAD_END_PREFIX} Running src/app.ts`);
@@ -268,6 +268,7 @@ describe("the poisoning gate covers dead-end lines", () => {
   const recallAnswers = (bad: Record<string, number>) => (q: Record<string, unknown>) => ({
     ...Object.fromEntries(Object.keys(q).filter((k) => k.startsWith("inj_")).map((k) => [k, bad[k.slice(4)] ?? 0.03])),
     most_relevant: { choice: Object.keys((q.most_relevant as any).criteria)[0]!, probabilities: Object.fromEntries(Object.keys((q.most_relevant as any).criteria).map((id) => [id, id === "none" ? 0 : 0.5])) },
+    ...relevance(q),
   });
 
   it("an unverified dead-end line is asked in the recall call and withheld when it reads as instructions; a verified one is not asked", async () => {

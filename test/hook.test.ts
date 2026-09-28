@@ -120,15 +120,17 @@ describe("UserPromptSubmit hook", () => {
     const a = store.add({ kind: "decision", text: "Use Postgres for the primary store" });
     const b = store.add({ kind: "preference", text: "Prefer named exports" });
     const c = store.add({ kind: "bug", text: "Flaky test caused by shared temp dir" });
-    const jev = mockJev(() => ({ most_relevant: { choice: a.id, probabilities: { [a.id]: 0.7, [b.id]: 0.02, [c.id]: 0.25, none: 0.03 } } }));
+    // Relevance per line: a sure (0.98); c at recallRelevanceMin with the choice at recallMin; b relevant enough but
+    // under the choice's floor, and not sure.
+    const jev = mockJev(() => ({ most_relevant: { choice: a.id, probabilities: { [a.id]: 0.7, [b.id]: 0.02, [c.id]: 0.25, none: 0.03 } }, [`rel_${a.id}`]: 0.98, [`rel_${b.id}`]: 0.9, [`rel_${c.id}`]: 0.85 }));
     const r = await runHook({ hook_event_name: "UserPromptSubmit", cwd: root, prompt: "How do I add a migration?" }, { jev, env });
     expect(r.action).toBe("injected");
     const out = JSON.parse(r.stdout!);
     expect(out.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
     const ctx: string = out.hookSpecificOutput.additionalContext;
-    expect(ctx).toContain("Use Postgres");
-    expect(ctx).toContain("Flaky test");
-    expect(ctx).not.toContain("named exports"); // below recallMin
+    expect(ctx).toContain(`Use Postgres for the primary store (id:${a.id}, p=0.98)`);
+    expect(ctx).toContain(`Flaky test caused by shared temp dir (id:${c.id}, p=0.85)`);
+    expect(ctx).not.toContain("named exports"); // under the choice's recallMin, and not sure
     expect(ctx.indexOf("Use Postgres")).toBeLessThan(ctx.indexOf("Flaky test"));
     expect(jev.calls).toHaveLength(1);
     expect(jev.calls[0]!.opts.label).toBe("recall");
