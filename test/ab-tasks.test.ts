@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = path.resolve(".");
 const load = (f: string): Promise<any> => import(path.join(ROOT, f));
 const { PROJECTS, TASKS, SUBAGENT_TASKS } = await load("eval/ab/tasks.mjs");
-const { makeContext } = await load("scripts/ab-lib.mjs");
+const { makeContext, toolCallsOf } = await load("scripts/ab-lib.mjs");
 
 const git = (cwd: string, args: string[]) =>
   execFileSync("git", args, { cwd, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.com" }, stdio: ["ignore", "pipe", "pipe"] });
@@ -228,4 +228,36 @@ describe("eval/ab/tasks.mjs", () => {
       for (const [k, v] of Object.entries(c.badFlags ?? {})) expect(bad[k], `bad ${k}: ${bad.note}`).toBe(v);
     });
   }
+});
+
+describe("scripts/ab-lib.mjs toolCallsOf", () => {
+  // The event shapes of Claude Code 2.1.281's stream-json with --include-hook-events (made up here, no session).
+  const use = (id: string, name: string, parent: string | null = null) => ({ type: "assistant", parent_tool_use_id: parent, message: { content: [{ type: "tool_use", id, name, input: {} }] } });
+  const result = (id: string, isError = false) => ({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, is_error: isError, content: "" }] } });
+  const started = (hookId: string, tool: string) => ({ type: "system", subtype: "hook_started", hook_id: hookId, hook_name: `PreToolUse:${tool}`, hook_event: "PreToolUse" });
+  const response = (hookId: string, tool: string, decision?: string) => ({ type: "system", subtype: "hook_response", hook_id: hookId, hook_name: `PreToolUse:${tool}`, hook_event: "PreToolUse", output: decision ? JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: decision, permissionDecisionReason: "rule" } }) : "" });
+
+  it("pairs each PreToolUse run with its call, a subagent's included, and keeps the guard's answer", () => {
+    const calls = toolCallsOf([
+      use("a", "Agent"),
+      use("s1", "Edit", "a"),
+      started("h1", "Edit"),
+      response("h1", "Edit", "ask"),
+      result("s1", true),
+      use("s2", "Read", "a"),
+      result("s2"),
+      result("a"),
+      use("m1", "Bash"),
+      result("m1"),
+      use("m2", "Bash"),
+      started("h2", "Bash"),
+      response("h2", "Bash"),
+      result("m2"),
+    ]);
+    const by = Object.fromEntries(calls.map((c: any) => [c.id, c]));
+    expect([by.s1.parent, by.s1.hooked, by.s1.hook]).toEqual(["a", true, "ask"]);
+    expect(by.s2.hooked).toBe(false);
+    // m1 got its result with no hook run, so the later hook belongs to m2.
+    expect([by.m1.hooked, by.m2.hooked, by.m2.hook]).toEqual([false, true, "none"]);
+  });
 });

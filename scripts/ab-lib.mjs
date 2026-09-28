@@ -20,15 +20,43 @@ export function readEvents(file) {
   return ev;
 }
 
-/** Tool calls in order, with the agent that made them (null: the main session) and whether their result was an error. */
+/**
+ * Tool calls in order, with the agent that made them (null: the main session), whether their result was an error, and
+ * whether a PreToolUse hook ran on them (`hooked`) with what it answered (`hook`: none, ask, deny, warn). The stream
+ * names the hook ("PreToolUse:Bash") but not the call, so each hook start goes to the earliest call of that tool that
+ * has no hook and no result yet: a hook runs before its call's result.
+ */
 export function toolCallsOf(events) {
   const calls = [];
   const byId = new Map();
+  const byHook = new Map();
   for (const e of events) {
+    if (e.type === "system" && (e.hook_event ?? e.hook_event_name) === "PreToolUse") {
+      if (e.subtype === "hook_started") {
+        const tool = String(e.hook_name ?? "").split(":")[1];
+        const call = calls.find((c) => c.name === tool && !c.hooked && c.error === null);
+        if (call) {
+          call.hooked = true;
+          call.hook = "none";
+          byHook.set(e.hook_id, call);
+        }
+      } else if (e.subtype === "hook_response" && byHook.has(e.hook_id)) {
+        const out = String(e.stdout ?? e.output ?? "").trim();
+        if (out) {
+          try {
+            const h = JSON.parse(out).hookSpecificOutput ?? {};
+            byHook.get(e.hook_id).hook = h.permissionDecision ?? (h.additionalContext ? "warn" : "none");
+          } catch {
+            byHook.get(e.hook_id).hook = "unparsed";
+          }
+        }
+      }
+      continue;
+    }
     const content = Array.isArray(e.message?.content) ? e.message.content : [];
     for (const c of content) {
       if (e.type === "assistant" && c.type === "tool_use") {
-        const call = { id: c.id, name: c.name, input: c.input ?? {}, parent: e.parent_tool_use_id ?? null, error: null, result: null };
+        const call = { id: c.id, name: c.name, input: c.input ?? {}, parent: e.parent_tool_use_id ?? null, error: null, result: null, hooked: false, hook: null };
         calls.push(call);
         byId.set(c.id, call);
       }

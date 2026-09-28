@@ -202,7 +202,9 @@ async function session(job) {
   }
   const events = readEvents(transcript);
   const init = events.find((e) => e.type === "system" && e.subtype === "init") ?? {};
-  const result = events.find((e) => e.type === "result") ?? {};
+  // The last result event: with a background subagent, Claude Code 2.1.281 prints one when the main agent first stops
+  // and another when the session really ends (its turns, its end state).
+  const result = events.findLast((e) => e.type === "result") ?? {};
   const ctx = makeContext(root, base, events);
   let check;
   try {
@@ -241,6 +243,7 @@ async function session(job) {
     signal: r.signal,
     ms: r.ms,
     turns: result.num_turns ?? null,
+    end: result.subtype ?? null,
     costUsd: result.total_cost_usd ?? null,
     resultText: String(result.result ?? "").slice(0, 600),
     check,
@@ -252,7 +255,7 @@ async function session(job) {
     guardLog: guardLog.map((g) => ({ tool: g.tool, route: g.route, decision: g.decision, action: String(g.action ?? "").slice(0, 160), rules: (g.rules ?? []).map((x) => ({ key: keyOf.get(x.id) ?? x.id, p: x.p })) })),
     recall: recallLog,
     hookFailures: hooks.failed,
-    toolCalls: calls.map((c) => ({ name: c.name, parent: c.parent, error: c.error, arg: String(c.input.command ?? c.input.file_path ?? c.input.pattern ?? c.input.description ?? "").slice(0, 200), result: c.error ? c.result : undefined })),
+    toolCalls: calls.map((c) => ({ name: c.name, parent: c.parent, error: c.error, arg: String(c.input.command ?? c.input.file_path ?? c.input.pattern ?? c.input.description ?? "").slice(0, 200), result: c.error ? c.result : undefined, ...(c.hooked ? { hook: c.hook } : {}), ...(c.name === "Agent" || c.name === "Task" ? { prompt: String(c.input.prompt ?? "").slice(0, 1500) } : {}) })),
     subagentCalls: calls.filter((c) => c.parent).length,
     agentUsed: calls.some((c) => (c.name === "Task" || c.name === "Agent") && !c.parent),
     stderr: r.code === 0 ? undefined : r.stderr,
@@ -316,6 +319,7 @@ const out = {
   jevmem_commit: COMMIT,
   model: [...new Set(records.map((r) => r.model))].join(", "),
   sessions: records.length,
+  max_turns: MAX_TURNS,
   method: "See scripts/ab.mjs and eval/ab/tasks.mjs.",
   records,
 };
