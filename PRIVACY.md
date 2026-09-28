@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-28
 
-This page describes jevmem 0.5.8, the release on npm; parts marked "on `main`, not released yet (coming in 0.6)" describe `main`.
+This page describes jevmem 0.5.9, the release on npm, which has the same code as 0.5.8; parts marked "on `main`, not released yet (coming in 0.6)" describe `main`.
 
 jevmem reads your prompts and parts of your Claude Code conversations (and, for the guard on `main`, not released yet, the shell commands and file edits Claude is about to make). It stores some of that text on your machine and sends it to the services listed below. Prompts can contain personal data, so this page says what goes where. [SECURITY.md](SECURITY.md) has the full detail.
 
