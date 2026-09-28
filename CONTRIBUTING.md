@@ -34,7 +34,7 @@ See [DEMO.md](DEMO.md) for a scripted 60-second demo, [DECISIONS.md](DECISIONS.m
 
 ## Changes that affect numbers
 
-Every measured number in the README and `docs/` must come from a file in `results/` listed in `results/CURRENT.json`; `node scripts/check-claims.mjs` enforces it in CI. If your change moves a number, re-run the script that produces it, commit the new results file, and update the docs. Do not tune against `eval/heldout.jsonl`, `eval/memory-injection.jsonl`, `eval/guard-heldout.jsonl` or the dead-end held-out sets (`eval/dead-ends-heldout.jsonl`, `eval/dead-ends-heldout-v2.jsonl`, `eval/dead-ends-gate-heldout-v2.jsonl`): they are final exams, and a changed decide path, writer or gate needs a new held-out set. Tune on `eval/contradictions-dev.jsonl`, `eval/memory-injection-dev.jsonl`, the dead-end dev sets or a new dev set.
+Every measured number in the README and `docs/` must come from a file in `results/` listed in `results/CURRENT.json`; `node scripts/check-claims.mjs` enforces it in CI. If your change moves a number, re-run the script that produces it, commit the new results file, and update the docs. Do not tune against `eval/heldout.jsonl`, `eval/memory-injection.jsonl`, `eval/guard-heldout.jsonl` or the dead-end held-out sets (`eval/dead-ends-heldout.jsonl`, `eval/dead-ends-heldout-v2.jsonl`, `eval/dead-ends-heldout-v3.jsonl`, `eval/dead-ends-gate-heldout-v2.jsonl`): they are final exams, and a changed decide path, writer or gate needs a new held-out set. Tune on `eval/contradictions-dev.jsonl`, `eval/memory-injection-dev.jsonl`, the dead-end dev sets or a new dev set.
 
 ## Pull requests
 
@@ -50,7 +50,7 @@ Keep them focused, add a test for behaviour changes, and run `pnpm build && pnpm
 6. `.github/workflows/release.yml` then runs three jobs in order:
    - `verify`: build, lint, tests, check-claims, matching versions, check-plugin, and the packed tarball runs without `node_modules`.
    - `publish` (only when the repository variable `NPM_PUBLISH` is `true`): `npm publish` with provenance through npm trusted publishing (OIDC).
-   - `directory` (only after `publish` succeeds): fast-forwards the `directory` branch to the tagged commit. It never force-pushes, and it fails if the tagged commit isn't on `main` or isn't ahead of `directory`.
+   - `directory` (only after `publish` succeeds): fast-forwards the `directory` branch to the tagged commit. It never force-pushes, and it fails if the tagged commit isn't on `main` or isn't ahead of `directory`. On `release/0.5.x`, a `main_check` job skips it for a tag that isn't on `main`, so a 0.5.x patch is published to npm and leaves `directory` as it is.
 7. Create the GitHub release for the tag.
 8. The Claude plugin directory follows `directory`, not `main`, and picks up the new commit on its own (on a schedule, or through the push webhook if it is set up). To have it look at once, select **Check for new commits** on the plugin's page at claude.ai/directory/manage. Depending on the plugin's publish setting, select **Publish** there once the version passes.
 

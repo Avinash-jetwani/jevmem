@@ -34,7 +34,9 @@
 }
 ```
 
-`guard` (on `main`, not yet released) sets the PreToolUse guard: `mode` is `ask`, `block`, `warn` or `off`; Jev's score must reach `askMin` for the guard to act and `blockMin` to deny in `block` mode; `budgetMs` is the hook's own time budget; `maxCandidates` caps the rules asked about per call. An unknown mode or an out-of-range value makes the guard stand aside (no decision, logged). A `blockMin` below `askMin` is refused, and the guard uses the defaults for both (0.5 and 0.9), which `jevmem doctor` and `jevmem guard test` show. In `block` mode only a rule jevmem wrote on this machine can deny; a rule from an unverified line is asked about. See [Guardrails](guardrails.md).
+`thresholds.deadEndMin` and `guard` are on `main`, not released yet (coming in 0.6). 0.5.8 accepts them in the file and does nothing with them.
+
+`guard` (on `main`, not released yet; coming in 0.6) sets the PreToolUse guard: `mode` is `ask`, `block`, `warn` or `off`; Jev's score must reach `askMin` for the guard to act and `blockMin` to deny in `block` mode; `budgetMs` is the hook's own time budget; `maxCandidates` caps the rules asked about per call. An unknown mode or an out-of-range value makes the guard stand aside (no decision, logged). A `blockMin` below `askMin` is refused, and the guard uses the defaults for both (0.5 and 0.9), which `jevmem doctor` and `jevmem guard test` show. In `block` mode only a rule jevmem wrote on this machine can deny; a rule from an unverified line is asked about. See [Guardrails](guardrails.md).
 
 ### The one-line writer
 
@@ -42,14 +44,14 @@
 
 #### OpenAI-compatible endpoints
 
-With `"writer": "openai"`, `OPENAI_BASE_URL` points the writer at any OpenAI-compatible chat-completions endpoint instead of api.openai.com, with `OPENAI_API_KEY` as that endpoint's key and `JEVMEM_WRITER_MODEL` as its model id (for example `openai/gpt-5-mini` on OpenRouter). On `main` (not yet released):
+With `"writer": "openai"`, `OPENAI_BASE_URL` points the writer at any OpenAI-compatible chat-completions endpoint instead of api.openai.com, with `OPENAI_API_KEY` as that endpoint's key and `JEVMEM_WRITER_MODEL` as its model id (for example `openai/gpt-5-mini` on OpenRouter). On `main`, not released yet (coming in 0.6):
 
 - A reasoning model (a `gpt-5*` or `o`-series id, with or without a provider prefix such as `openai/`) is asked for `reasoning_effort: "minimal"` on every endpoint, as OpenRouter documents the parameter. Before, jevmem asked only api.openai.com, and through OpenRouter gpt-5-mini spent its 1,000 completion tokens on reasoning and returned an empty line for 14 of 29 dev dead ends (7 of 29 in part 2's run); with it, 0 of 29 ([results](../results/dead-ends-writer-dev-2026-09-27-gpt-5-mini-2b.json)).
 - An endpoint that rejects `reasoning_effort` with a 400 that names it gets the request once more without it.
 - When the endpoint fails or returns an empty line, jevmem writes the line itself.
 - Every such case is logged to `.jevmem/log.jsonl`, and `jevmem doctor` and `jevmem stats` list them under failures ("writer fallbacks"). `jevmem doctor` also shows the endpoint.
 
-0.5.7 asks only api.openai.com for minimal reasoning, and falls back without saying so.
+0.5.8, like 0.5.7, asks only api.openai.com for minimal reasoning, and falls back without saying so.
 
 `usdPerMillionTokens` is applied to input tokens only. `injectionMax` gates two things: a turn is not saved when its injection family reaches it, and an unverified memory line is not served to an agent when the poisoning gate's noul reaches it ([SECURITY.md](../SECURITY.md#memory-poisoning)).
 
@@ -57,7 +59,7 @@ Environment:
 
 | Variable | Purpose |
 |---|---|
-| `TYPESAFE_API_KEY` | Jev. Required for decisions, recall, search, audit and MCP `add_memory`. Also read from `<project>/.jevmem/.env` and `~/.jevmem/env` (by the MCP server too on `main`; 0.5.7's reads only its environment); the plugin's key setting comes first. |
+| `TYPESAFE_API_KEY` | Jev. Required for decisions, recall, search, audit and MCP `add_memory`. Also read from `<project>/.jevmem/.env` and `~/.jevmem/env` (by the MCP server too since 0.5.8; 0.5.7 and earlier read only its environment); the plugin's key setting comes first. |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Used only when `writer` in `jevmem.config.json` is `"openai"` or `"anthropic"`. |
 | `JEVMEM_WRITER` | `none` turns the LLM writer off. Other values are ignored: only the config turns it on. |
 | `JEVMEM_WRITER_MODEL` | Override the model (defaults: `gpt-5-mini` with minimal reasoning, `claude-haiku-4-5-20251001`). |
