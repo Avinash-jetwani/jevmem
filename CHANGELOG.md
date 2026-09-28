@@ -4,7 +4,7 @@ All notable changes to Jevmem are documented here. The format follows [Keep a Ch
 
 ## [0.5.9] - 2026-09-28
 
-Docs only: README, SECURITY and PRIVACY brought up to date; no code changes.
+Docs only: README, SECURITY, PRIVACY and `docs/` brought up to date; no code changes.
 
 ## [0.5.8] - 2026-09-28
 

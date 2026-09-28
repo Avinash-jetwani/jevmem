@@ -49,7 +49,7 @@ Keep them focused, add a test for behaviour changes, and run `pnpm build && pnpm
 5. `.github/workflows/release.yml` then runs three jobs in order:
    - `verify`: build, lint, tests, check-claims, matching versions, check-plugin, and the packed tarball runs without `node_modules`.
    - `publish` (only when the repository variable `NPM_PUBLISH` is `true`): `npm publish` with provenance through npm trusted publishing (OIDC).
-   - `directory` (only after `publish` succeeds): fast-forwards the `directory` branch to the tagged commit. It never force-pushes, and it fails if the tagged commit isn't on `main` or isn't ahead of `directory`.
+   - `directory` (only after `publish` succeeds): fast-forwards the `directory` branch to the tagged commit. It never force-pushes, and it fails if the tagged commit isn't on `main` or isn't ahead of `directory`. On `release/0.5.x`, a `main_check` job skips it for a tag that isn't on `main`, so a 0.5.x patch is published to npm and leaves `directory` as it is.
 6. Create the GitHub release for the tag.
 7. The Claude plugin directory follows `directory`, not `main`, and picks up the new commit on its own (on a schedule, or through the push webhook if it is set up). To have it look at once, select **Check for new commits** on the plugin's page at claude.ai/directory/manage. Depending on the plugin's publish setting, select **Publish** there once the version passes.
 

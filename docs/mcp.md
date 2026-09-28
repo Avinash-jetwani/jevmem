@@ -60,11 +60,11 @@ args = ["-y", "jevmem", "mcp"]
 env = { TYPESAFE_API_KEY = "your-key" }
 ```
 
-`jevmem init --tool codex` writes this section without the `env` line; the server then reads the key from `~/.jevmem/env` (jevmem does not read shell profiles). Or from the CLI: `codex mcp add jevmem -- npx -y jevmem mcp`.
+`jevmem init --tool codex` writes this section without the `env` line; the server then reads the key from `~/.jevmem/env` (jevmem does not read shell profiles). That needs jevmem 0.5.8 or later: 0.5.7's server read only its own environment, so with 0.5.7 keep the `env` line. Or from the CLI: `codex mcp add jevmem -- npx -y jevmem mcp`.
 
 ### Claude Code plugin
 
-The plugin (`claude plugin install jevmem@jevmem`, see the [README](../README.md#install-60-seconds)) declares the server itself: `sh ${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh mcp`, serving the project in `CLAUDE_PROJECT_DIR`. With the hooks recording every turn, `add_memory` is only for things the user asks to record that the conversation does not state.
+The plugin (`claude plugin install jevmem@jevmem`, see the [README](../README.md#install-60-seconds)) declares the server itself as the command `jevmem mcp`, serving the project in `CLAUDE_PROJECT_DIR`. It needs `jevmem` on the PATH Claude Code runs with; without it, `/mcp` shows the server as failed. With the hooks recording every turn, `add_memory` is only for things the user asks to record that the conversation does not state.
 
 ### Claude Code (as an MCP server, in addition to the hooks)
 

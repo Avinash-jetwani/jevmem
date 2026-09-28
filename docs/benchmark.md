@@ -1,6 +1,6 @@
 # Benchmark
 
-Method, both eval sets, pricing sources, p95 and retries. The README shows the held-out summary.
+Method, both eval sets, pricing sources, p95 and retries. The README shows the held-out summary. Everything here was measured on v0.4.2 on 2026-09-23, and has not been re-run on a 0.5.x release.
 
 ## Why Jev and not an LLM
 
