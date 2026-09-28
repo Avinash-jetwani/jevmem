@@ -4,6 +4,8 @@ All notable changes to Jevmem are documented here. The format follows [Keep a Ch
 
 ## [0.5.8] - 2026-09-28
 
+**Upgrade:** `npm install -g jevmem@latest`. Plugin users too: the plugin runs this CLI.
+
 A security fix to the secret scrubber, and fixes for turns that were dropped and for an MCP server that had no key. Cut from 0.5.7: none of the unreleased v0.6 work on `main` is in it, and the plugin's files are 0.5.7's apart from the version number.
 
 ### Security
