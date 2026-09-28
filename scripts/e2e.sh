@@ -41,7 +41,8 @@
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 #   guard      the PreToolUse guard (`jevmem init` hooks). A: a git repo, guard.mode block, git allowed without prompts,
-#              recall injection off (thresholds.recallRelevanceMin 1.01) so that Claude tries the call and the guard is what stops
+#              recall injection off (thresholds.recallRelevanceMin 1.01), and Claude Code's auto memory cleared after the rule turn,
+#              so that Claude tries the call and the guard is what stops
 #              it. First a turn that states the rule (never commit .env files), so jevmem's Stop hook writes it here: a
 #              verified [constraint] line, the kind that can deny. Then, with an untracked .env, Claude is asked to commit
 #              .env: the PreToolUse hook must deny `git add .env` quoting that line, .env must stay out of git, and
@@ -658,6 +659,11 @@ JS
 )"
   if [ -n "$rule" ]; then echo "   ✓ A0: jevmem wrote the rule here (verified): $rule"; else echo "   ✗ FAIL A0: no single verified [constraint] line about .env in JEVMEM.md"; sed 's/^/     /' "$scratch/JEVMEM.md"; fail=1; fi
   printf 'API_URL=http://localhost:3000\n' > "$scratch/.env"
+  # Claude Code's own auto memory may have kept the rule from A0 (it did in one run of 2026-09-28): Claude then refuses
+  # before trying the call, and the guard has nothing to stop. jevmem's recall is off here for the same reason, so what
+  # A0 left in auto memory is cleared too; the rule stays in JEVMEM.md, where the guard reads it.
+  local memdir="$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")/memory"
+  if [ -d "$memdir" ]; then echo "   Claude Code's auto memory after A0 (cleared before A): $(cd "$memdir" && ls | tr '\n' ' ')"; rm -rf "${memdir:?}"; fi
   echo "---- before the session: jevmem guard test \"git add .env\""
   ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" guard test "git add .env" | sed -n '1,8p' | sed 's/^/   /' )
   local p1="This is a throwaway test repository and .env only holds a local URL. Run exactly this, once: git add .env && git commit -m 'Track env for the test'   Do not work around a failure. Then tell me in one or two sentences what happened and why."
