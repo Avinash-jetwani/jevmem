@@ -11,7 +11,8 @@ import { recordProvenance } from "./provenance.js";
 import { formatInjection, recallGuarded, replacedTexts } from "./recall.js";
 import { drainQueue, enqueueTurn, readQueue, type QueuedTurn } from "./queue.js";
 import { MemoryStore } from "./store.js";
-import { lastTurnFromTranscript, mergeTurn } from "./transcript.js";
+import { mergeTurn, readTranscriptTurns } from "./transcript.js";
+import { deferTurn, isDecided, markDecided, releaseDeferred, type ReleasedTurn } from "./turns.js";
 import { writeMemory } from "./write.js";
 
 export interface HookInput {
@@ -26,6 +27,8 @@ export interface HookInput {
   /** Stop: the final assistant text of the turn (Claude Code ≥ 2.1). The user text still comes from the transcript. */
   last_assistant_message?: string;
   stop_hook_active?: boolean;
+  /** Stop (Claude Code 2.1.2xx): the session's background tasks, a subagent `running` while the main agent stops. */
+  background_tasks?: { id?: string; type?: string; status?: string }[];
   /** Simulation fields (used by tests and `jevmem hook --simulate`): bypass the transcript. */
   message?: string;
   user_message?: string;
@@ -153,12 +156,18 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       return { event, action: "injected", detail: `${ranked.length} memories: ${ranked.map((r) => r.memory.id).join(",")} (${gate})`, stdout };
     }
 
-    // Stop (and anything else): capture the latest turn, queue it, and evaluate the queue in order.
-    const cap = captureTurn(input, store.root, event, deps);
-    if ("outcome" in cap) return cap.outcome;
-    enqueueTurn(store.root, cap.turn);
+    // Stop (and anything else): capture the turns that are over (the latest, unless it is still running), queue them,
+    // and evaluate the queue in order.
+    const cap = captureTurns(input, store.root, event, deps);
+    for (const t of cap.turns) enqueueTurn(store.root, t);
+    const current = cap.turns.find((t) => t.current);
+    if (!current) {
+      if (!cap.turns.length) return cap.outcome!;
+      await drainTurns(store.root, cfg, jev, deps, { deadlineMs: 12_000 });
+      return cap.outcome!;
+    }
     const r = await drainTurns(store.root, cfg, jev, deps, { deadlineMs: 12_000 });
-    const mine = r.processed.find((p) => p.turn.hash === cap.turn.hash);
+    const mine = r.processed.find((p) => p.turn.hash === current.hash);
     if (mine) {
       const others = r.processed.length - 1;
       return others > 0 ? { ...mine.outcome, detail: `${mine.outcome.detail} (after ${others} queued turn(s))` } : mine.outcome;
@@ -167,33 +176,70 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
     const head = q[0];
     const detail = !r.ran
       ? "queued; another jevmem process is evaluating the queue"
-      : head && head.hash === cap.turn.hash && head.attempts > 0
+      : head && head.hash === current.hash && head.attempts > 0
         ? `queued for retry: Jev failed (${head.lastError ?? "unknown error"}); next try after ${head.nextAttemptAt}`
-        : `queued behind ${Math.max(0, q.findIndex((t) => t.hash === cap.turn.hash))} older turn(s)${head?.lastError ? ` (head failed: ${head.lastError})` : ""}`;
+        : `queued behind ${Math.max(0, q.findIndex((t) => t.hash === current.hash))} older turn(s)${head?.lastError ? ` (head failed: ${head.lastError})` : ""}`;
     return { event, action: "queued", detail };
   } catch (err) {
     return { event, action: "error", detail: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
   }
 }
 
+/** A turn the Stop hook hands to decide. `current`: the turn this Stop ended (the others are earlier turns now over). */
+export type CapturedTurn = Omit<QueuedTurn, "enqueuedAt" | "attempts"> & { current: boolean };
+
+const hashOf = (message: string) => crypto.createHash("sha1").update(message).digest("hex").slice(0, 16);
+
+function releasedTurn(r: ReleasedTurn): CapturedTurn | null {
+  const message = mergeTurn(r.user, r.assistant);
+  if (message.trim().length < 8) return null;
+  return { hash: hashOf(message), user: r.user, assistant: r.assistant, previous: r.previous, source: `transcript (a turn that waited for its background subagents; ${r.why})`, current: false };
+}
+
 /**
- * Read the turn a Stop event refers to. Real payloads carry no user text, only `transcript_path` (and, on newer Claude
- * Code, `last_assistant_message`); the simulated shape carries the text directly. Returns the turn with its hash, or
- * the no-op outcome (empty turn, or a turn already captured: Stop can fire more than once per turn).
+ * The turns a Stop event hands to decide, oldest first, and the outcome when the turn it ended is not among them.
+ * Real payloads carry no user text, only `transcript_path` (and, on newer Claude Code, `last_assistant_message`, the
+ * final text, which the transcript does not hold yet when the hook runs); the simulated shape carries the text directly.
+ *
+ * A turn is decided once, when it is over (src/turns.ts, v0.6 part 3b): while a background subagent it launched has not
+ * reported back, the turn is kept and nothing is decided; a turn kept earlier is handed on when a later prompt has closed
+ * it or its session has gone quiet. A turn already handed on is not decided again, nor is the same text (Stop can fire
+ * more than once per turn).
  */
-export function captureTurn(input: HookInput, root: string, event: string, deps: Pick<HookDeps, "now"> = {}): { turn: Omit<QueuedTurn, "enqueuedAt" | "attempts"> } | { outcome: HookOutcome } {
+export function captureTurns(input: HookInput, root: string, event: string, deps: Pick<HookDeps, "now"> = {}): { turns: CapturedTurn[]; outcome?: HookOutcome } {
   // `stop_hook_active` means another Stop hook already made Claude continue; we never block, so no loop is possible
-  // from here, and the turn-hash check below stops the same content being evaluated twice.
+  // from here, and the turn checks below stop the same turn being evaluated twice.
+  const now = (deps.now ?? (() => new Date()))();
   let user = input.user_message ?? input.message ?? "";
   let assistant = input.assistant_message ?? "";
   let previous = input.recent_context ?? "";
   let source = "payload";
+  let turnId: string | null = null;
+  const session = input.session_id ?? input.transcript_path ?? "";
+  const before: CapturedTurn[] = [];
   if (!user && !assistant && input.transcript_path) {
-    const t = lastTurnFromTranscript(input.transcript_path);
-    if (t) {
+    const turns = readTranscriptTurns(input.transcript_path, { lastAssistantMessage: input.last_assistant_message });
+    if (turns) {
+      for (const r of releaseDeferred(root, { now: now.getTime(), current: { session, turns } })) {
+        const t = releasedTurn(r);
+        if (t) before.push(t);
+      }
+      const t = turns[turns.length - 1]!;
       ({ user, assistant, previous } = t);
-      source = "transcript";
-    } else source = "transcript-unreadable";
+      turnId = t.id;
+      source = input.last_assistant_message ? "transcript+last_assistant_message" : "transcript";
+      if (t.waiting.length) {
+        deferTurn(root, { session, turn: t.id, transcript: input.transcript_path, user, assistant, previous, waiting: t.waiting }, now);
+        return { turns: before, outcome: { event, action: "noop", detail: `turn still running: ${t.waiting.length} background subagent(s) it launched have not reported back; it is decided once they have` } };
+      }
+      if (isDecided(root, session, t.id)) return { turns: before, outcome: { event, action: "noop", detail: "turn already decided" } };
+    } else {
+      source = "transcript-unreadable";
+      for (const r of releaseDeferred(root, { now: now.getTime() })) {
+        const t = releasedTurn(r);
+        if (t) before.push(t);
+      }
+    }
   }
   if (!assistant && input.last_assistant_message) {
     assistant = input.last_assistant_message;
@@ -203,14 +249,36 @@ export function captureTurn(input: HookInput, root: string, event: string, deps:
   if (message.trim().length < 8) {
     const detail = `empty turn (source: ${source}${input.transcript_path ? `, transcript ${fs.existsSync(input.transcript_path) ? "exists" : "missing"}` : ", no transcript_path"})`;
     if (source !== "payload") logHookProblem(root, event, detail);
-    return { outcome: { event, action: "noop", detail } };
+    return { turns: before, outcome: { event, action: "noop", detail } };
   }
-  const hash = crypto.createHash("sha1").update(message).digest("hex").slice(0, 16);
+  const hash = hashOf(message);
   const dir = path.join(root, ".jevmem");
   const state = readStateFile(dir);
-  if (state.lastTurnHash === hash) return { outcome: { event, action: "noop", detail: "turn already captured" } };
-  writeStateFile(dir, { ...state, lastTurnHash: hash, lastRunAt: (deps.now ?? (() => new Date()))().toISOString() });
-  return { turn: { hash, user, assistant, previous, source } };
+  if (state.lastTurnHash === hash) return { turns: before, outcome: { event, action: "noop", detail: "turn already captured" } };
+  writeStateFile(dir, { ...state, lastTurnHash: hash, lastRunAt: now.toISOString() });
+  if (input.transcript_path && source.startsWith("transcript")) markDecided(root, session, turnId, now);
+  return { turns: [...before, { hash, user, assistant, previous, source, current: true }] };
+}
+
+/** Queue the kept turns whose sessions have gone quiet or are gone (the daemon's timer). Returns how many were queued. */
+export function releaseQuietTurns(root: string, now: number = Date.now()): number {
+  let n = 0;
+  for (const r of releaseDeferred(root, { now })) {
+    const t = releasedTurn(r);
+    if (!t) continue;
+    enqueueTurn(root, t);
+    n++;
+  }
+  return n;
+}
+
+/** The turn a Stop event ended, or the outcome when there is none to decide (for library users; the hook uses captureTurns). */
+export function captureTurn(input: HookInput, root: string, event: string, deps: Pick<HookDeps, "now"> = {}): { turn: Omit<QueuedTurn, "enqueuedAt" | "attempts"> } | { outcome: HookOutcome } {
+  const r = captureTurns(input, root, event, deps);
+  const cur = r.turns.find((t) => t.current);
+  if (!cur) return { outcome: r.outcome! };
+  const { current: _current, ...turn } = cur;
+  return { turn };
 }
 
 /**

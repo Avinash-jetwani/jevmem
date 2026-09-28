@@ -10,7 +10,8 @@ import { isVerified, readProvenance } from "./provenance.js";
 import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
-import { captureTurn, drainTurns, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
+import { deferredTurns } from "./turns.js";
+import { captureTurns, drainTurns, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey, saveJevKey } from "./env.js";
 import { clampLine, isReasoningModel, resolveWriter } from "./llm/index.js";
@@ -914,26 +915,33 @@ function readInputFile(file: string): HookInput {
  * queue is evaluated here (the Stop hook is async, so nobody waits for it).
  */
 async function handOffStop(root: string, cfg: ReturnType<typeof loadConfig>, input: HookInput, event: string, useDaemon: boolean): Promise<HookOutcome> {
-  const cap = captureTurn(input, root, event);
-  if ("outcome" in cap) return cap.outcome;
-  const pending = enqueueTurn(root, cap.turn);
+  // The turns that are over: earlier turns that waited for their background subagents, then this one unless it is still
+  // running (src/turns.ts).
+  const cap = captureTurns(input, root, event);
+  // A turn kept while its subagents work needs a daemon to look at it if the session goes quiet (src/turns.ts).
+  if (!cap.turns.length && !(useDaemon && deferredTurns(root).length)) return cap.outcome!;
+  let pending = 0;
+  for (const t of cap.turns) pending = enqueueTurn(root, t);
+  const current = cap.turns.find((t) => t.current);
   if (!useDaemon) {
     const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, timeoutMs: cfg.jev.timeoutMs, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
     const r = await drainTurns(root, cfg, jev);
-    const mine = r.processed.find((p) => p.turn.hash === cap.turn.hash)?.outcome;
+    const mine = current ? r.processed.find((p) => p.turn.hash === current.hash)?.outcome : undefined;
     const s = summarizeLog(jev.log);
     const summary = `${s.calls} jev call(s), p50 ${s.p50LatencyMs} ms, ${s.totalTokens} tokens, $${s.totalCostUsd.toFixed(6)}`;
+    if (!current) return { ...cap.outcome!, summary, via: "inline" };
     if (mine) return { ...mine, summary, via: "inline" };
     return { event, action: "queued", detail: r.blocked ? "queued; the oldest queued turn is waiting for a retry" : "queued", summary, via: "inline" };
   }
   const res = await daemonRequest(root, { type: "drain", client: jevFingerprint() }, { connectMs: 250, responseMs: 1500 });
-  if (res && res.ok && res.type === "draining") return { event, action: "queued", detail: `handed to the daemon (${res.pending} turn(s) queued)`, via: "daemon" };
+  if (res && res.ok && res.type === "draining") return current ? { event, action: "queued", detail: `handed to the daemon (${res.pending} turn(s) queued)`, via: "daemon" } : { ...cap.outcome!, via: "daemon" };
   if (res) {
     // A daemon started with another key (it is exiting), or an older daemon (no `drain` request): replace it.
     await daemonRequest(root, { type: "stop" }, { connectMs: 250, responseMs: 1000 });
     await new Promise((r) => setTimeout(r, 200));
   }
   spawnDaemon(root, cliFile());
+  if (!current) return { ...cap.outcome!, via: "daemon" };
   return { event, action: "queued", detail: `daemon starting; it evaluates the ${pending} queued turn(s)`, via: "daemon" };
 }
 

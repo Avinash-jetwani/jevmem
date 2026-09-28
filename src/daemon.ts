@@ -11,9 +11,10 @@ import os from "node:os";
 import path from "node:path";
 import { noul } from "@typesafe-ai/sdk";
 import { loadConfig } from "./config.js";
-import { drainTurns, runHook, type HookInput, type HookOutcome } from "./hook.js";
+import { drainTurns, releaseQuietTurns, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { createJev, hasJevKey } from "./jev.js";
 import { nextDue, readQueue } from "./queue.js";
+import { deferredTurns } from "./turns.js";
 
 export const DAEMON_VERSION = 5;
 
@@ -152,6 +153,8 @@ export async function serveDaemon(root: string, opts: ServeOptions = {}): Promis
       });
   };
   const retryTimer = setInterval(() => {
+    // A turn kept while its background subagents work is decided once its session has gone quiet (src/turns.ts).
+    if (deferredTurns(root).length && releaseQuietTurns(root) > 0) drainNow();
     const due = nextDue(root);
     if (due && due.getTime() <= Date.now()) drainNow();
   }, opts.retryTickMs ?? RETRY_TICK_MS);
@@ -159,8 +162,9 @@ export async function serveDaemon(root: string, opts: ServeOptions = {}): Promis
   let idle: NodeJS.Timeout | undefined;
   const bump = () => {
     if (idle) clearTimeout(idle);
-    // Idle exit, except while turns wait in the retry queue (they are dropped after 24 h, so this ends).
-    idle = setTimeout(() => (readQueue(root).length ? bump() : shutdown()), idleMs);
+    // Idle exit, except while turns wait in the retry queue (they are dropped after 24 h, so this ends) or for their
+    // background subagents (decided when their session goes quiet, so this ends too).
+    idle = setTimeout(() => (readQueue(root).length || deferredTurns(root).length ? bump() : shutdown()), idleMs);
     idle.unref();
   };
   const shutdown = () => {

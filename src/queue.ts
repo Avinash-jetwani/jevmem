@@ -116,8 +116,8 @@ function tryLock(lock: string, staleMs: number): boolean {
   }
 }
 
-/** Run `fn` holding the short queue-file lock (waits up to 3 s). */
-function withFileLock<T>(root: string, fn: () => T): T {
+/** Run `fn` holding the short queue-file lock (waits up to 3 s). The Stop hook's turn state (src/turns.ts) uses it too. */
+export function withFileLock<T>(root: string, fn: () => T): T {
   const lock = fileLock(root);
   const until = Date.now() + 3000;
   while (!tryLock(lock, 10_000)) {

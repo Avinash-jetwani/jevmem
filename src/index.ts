@@ -20,7 +20,7 @@ export type { Features, IndexedRule, Candidate as GuardCandidate, GuardAction, G
 export type { ProvenanceRecord, ProvenanceVia } from "./provenance.js";
 export { auditMemories, applyAudit, snapshotRepo, formatAuditTable } from "./audit.js";
 export type { AuditRow } from "./audit.js";
-export { runHook, readStdinJson, hookRoot, hookEvent, debugLogPayload, logHookProblem, captureTurn, evaluateTurn, drainTurns } from "./hook.js";
+export { runHook, readStdinJson, hookRoot, hookEvent, debugLogPayload, logHookProblem, captureTurn, captureTurns, evaluateTurn, drainTurns } from "./hook.js";
 export { enqueueTurn, drainQueue, readQueue, isRetryable, queueStats, nextDue, backoffMs, QUEUE_MAX_ENTRIES, QUEUE_MAX_AGE_MS, BACKOFF_MS } from "./queue.js";
 export type { QueuedTurn, DrainResult, QueueStats } from "./queue.js";
 export { loadEnvFallbacks, parseEnvFile, envFileCandidates, KEY_VARS } from "./env.js";
@@ -31,7 +31,7 @@ export { buildMcpServer, serveMcp } from "./mcp.js";
 export { serveDaemon, daemonRequest, spawnDaemon, socketPath, daemonEnabled, DAEMON_VERSION } from "./daemon.js";
 export { loadConfig, writeDefaultConfig, CONFIG_FILE } from "./config.js";
 export { scrubSecrets, looksLikeSecret } from "./scrub.js";
-export { lastTurnFromTranscript, mergeTurn } from "./transcript.js";
+export { lastTurnFromTranscript, mergeTurn, readTranscriptTurns } from "./transcript.js";
 export { KINDS, NEW_KINDS, IMPORTANCE_LEVELS, DEFAULT_CONFIG } from "./types.js";
 export type { Kind, Importance, Memory, Thresholds, JevmemConfig, GuardConfig, GuardMode } from "./types.js";
 export { combine, defaultWeights, mergeWeights, fit, fitThresholds, sigmoid } from "./combine.js";
