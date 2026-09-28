@@ -8,7 +8,8 @@ import { appendLog, createJev, hasJevKey, summarizeLog, type JevCaller } from ".
 import { gatePendingRules } from "./guardrail.js";
 import { recordDecision } from "./labels.js";
 import { recordProvenance } from "./provenance.js";
-import { formatInjection, recallGuarded, replacedTexts } from "./recall.js";
+import { formatInjection, recallGuarded, replacedTexts, type RecallPath } from "./recall.js";
+import { DEFAULT_CONFIG } from "./types.js";
 import { drainQueue, enqueueTurn, readQueue, type QueuedTurn } from "./queue.js";
 import { MemoryStore } from "./store.js";
 import { mergeTurn, readTranscriptTurns } from "./transcript.js";
@@ -102,6 +103,26 @@ export function logHookProblem(root: string, event: string, error: string): void
   appendLog(root, { ts: new Date().toISOString(), label: "hook", ok: false, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, error: `${event}: ${error}` });
 }
 
+/**
+ * Record how a prompt's lines were picked (v0.6 part 3b): `served` events in `.jevmem/log.jsonl`, which `jevmem stats`
+ * counts. `detail` starts with "jev" or "word match" and says how many lines the prompt got; a word match also says
+ * why Jev did not answer (failed, or ran past `jev.recallTimeoutMs`).
+ */
+export function logRecallPath(root: string, served: RecallPath, lines: number, latencyMs: number, error?: string): void {
+  appendLog(root, { ts: new Date().toISOString(), label: "recall", event: "served", ok: served === "jev", latencyMs, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, detail: served === "jev" ? `jev: ${lines} line(s)` : `word match: ${lines} line(s); ${error ?? "Jev did not answer"}` });
+}
+
+/** How `served` events split: prompts whose lines Jev picked, prompts served by word match, and prompts that got no line. */
+export function recallPathStats(entries: { label?: string; event?: string; detail?: string }[]): { total: number; jev: number; wordMatch: number; noLine: number } {
+  const served = entries.filter((e) => e.label === "recall" && e.event === "served");
+  return {
+    total: served.length,
+    jev: served.filter((e) => /^jev\b/.test(e.detail ?? "")).length,
+    wordMatch: served.filter((e) => /^word match\b/.test(e.detail ?? "")).length,
+    noLine: served.filter((e) => /: 0 line\(s\)/.test(e.detail ?? "")).length,
+  };
+}
+
 /** Handle one Claude Code hook event. Never throws; never blocks longer than the configured Jev timeout. */
 export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<HookOutcome> {
   const env = deps.env ?? process.env;
@@ -139,21 +160,25 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       const all = store.list();
       const memories = all.filter((m) => m.kind !== "superseded" && !m.supersededBy);
       if (!prompt || memories.length === 0) return { event, action: "noop", detail: "no prompt or no memories" };
-      // Unverified lines (not written here by jevmem) go through the poisoning gate in the same Jev call.
-      const { ranked, withheld, gated, deferred } = await recallGuarded(jev, store.root, prompt, memories, {
+      // Unverified lines (not written here by jevmem) go through the poisoning gate in the same Jev call. When the call
+      // fails or runs past its budget, the prompt gets the lines sharing the most words with it instead (src/recall.ts).
+      const t0 = performance.now();
+      const { ranked, withheld, gated, deferred, path: served, error } = await recallGuarded(jev, store.root, prompt, memories, {
         topK: cfg.thresholds.recallTopK,
         min: cfg.thresholds.recallMin,
         relevanceMin: cfg.thresholds.recallRelevanceMin,
         injectionMax: cfg.thresholds.injectionMax,
-        timeoutMs: cfg.jev.timeoutMs,
+        timeoutMs: cfg.jev.recallTimeoutMs ?? DEFAULT_CONFIG.jev.recallTimeoutMs,
         maxIds: cfg.jev.maxRecallLines,
         replaced: replacedTexts(all),
       });
+      logRecallPath(store.root, served, ranked.length, Math.round(performance.now() - t0), error);
+      const how = served === "word-match" ? `; by word match, Jev: ${error}` : "";
       const gate = `${gated} gated${deferred ? `, ${deferred} left for a later prompt` : ""}${withheld.length ? `, withheld ${withheld.map((w) => w.memory.id).join(",")}` : ""}`;
-      if (ranked.length === 0) return { event, action: "noop", detail: `no relevant memories (${gate})` };
+      if (ranked.length === 0) return { event, action: "noop", detail: `no relevant memories (${gate}${how})` };
       const additionalContext = formatInjection(ranked);
       const stdout = JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } });
-      return { event, action: "injected", detail: `${ranked.length} memories: ${ranked.map((r) => r.memory.id).join(",")} (${gate})`, stdout };
+      return { event, action: "injected", detail: `${ranked.length} memories${served === "word-match" ? " by word match" : ""}: ${ranked.map((r) => r.memory.id).join(",")} (${gate}${how})`, stdout };
     }
 
     // Stop (and anything else): capture the turns that are over (the latest, unless it is still running), queue them,

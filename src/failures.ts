@@ -12,6 +12,8 @@
  *   setting replaced by its default (`guard-config`) is another problem: the call was still checked.
  * - Writer fallbacks: the LLM writer set in jevmem.config.json gave no line (an error, an empty line) and the line was
  *   written locally, or its request had to change (an OpenAI-compatible endpoint that rejected `reasoning_effort`).
+ * - Recalls by word match (v0.6 part 3b): the prompt's Jev call failed or ran past `jev.recallTimeoutMs`, so the prompt
+ *   got the lines sharing the most words with it instead of Jev's pick (the `served` events of src/hook.ts).
  */
 import type { JevLogEntry } from "./jev.js";
 
@@ -29,6 +31,8 @@ export interface RecentFailures {
   guard: FailureGroup;
   /** The LLM writer's fallbacks: lines written locally instead, or requests sent again without `reasoning_effort`. */
   writer: FailureGroup;
+  /** Prompts served by word match because Jev's call failed or ran late. */
+  wordMatch: FailureGroup;
   /** Other hook problems (for example the Stop drain's gate check of new rules, or an event that could not be read). */
   other: FailureGroup;
 }
@@ -63,6 +67,7 @@ export function recentFailures(entries: JevLogEntry[], opts: { now?: number; day
   const recall: { at: string; message: string }[] = [];
   const guard: { at: string; message: string }[] = [];
   const writer: { at: string; message: string }[] = [];
+  const wordMatch: { at: string; message: string }[] = [];
   const other: { at: string; message: string }[] = [];
   // The queue's drops, to recognise the same drop logged again as the hook's error (`not retryable: <error>` / `<error>`).
   const queueDrops = recent.filter((e) => e.label === "queue" && e.event === "dropped").map((e) => ({ t: Date.parse(e.ts), m: one(e.detail ?? "") }));
@@ -82,15 +87,16 @@ export function recentFailures(entries: JevLogEntry[], opts: { now?: number; day
     // A guard setting the guard replaced with the default: the call was still checked, so not a failed check.
     else if (e.label === "guard" && e.event === "guard-config") other.push({ at: e.ts, message: one(e.error ?? "guard setting not used") });
     else if (e.label === "writer" && e.event === "writer-fallback") writer.push({ at: e.ts, message: one(e.detail ?? "writer fallback") });
+    else if (e.label === "recall" && e.event === "served" && /^word match\b/.test(e.detail ?? "")) wordMatch.push({ at: e.ts, message: one((e.detail ?? "").replace(/^word match: \d+ line\(s\); /, "")) });
   }
-  return { days, since, dropped: group(dropped), recall: group(recall), guard: group(guard), writer: group(writer), other: group(other) };
+  return { days, since, dropped: group(dropped), recall: group(recall), guard: group(guard), writer: group(writer), wordMatch: group(wordMatch), other: group(other) };
 }
 
 /** Lines for doctor and stats, each starting with `indent` (the first with `head`). */
 export function formatFailures(f: RecentFailures, head: string, indent: string): string[] {
-  const total = f.dropped.count + f.recall.count + f.guard.count + f.writer.count + f.other.count;
+  const total = f.dropped.count + f.recall.count + f.guard.count + f.writer.count + f.wordMatch.count + f.other.count;
   if (!total) return [`${head}none in the last ${f.days} days: no dropped turn, failed recall, failed guard check or writer fallback in .jevmem/log.jsonl`];
-  const out = [`${head}in the last ${f.days} days: ${f.dropped.count} dropped turn(s), ${f.recall.count} failed recall(s), ${f.guard.count} guard check(s) failed or timed out${f.writer.count ? `, ${f.writer.count} writer fallback(s)` : ""}${f.other.count ? `, ${f.other.count} other hook problem(s)` : ""} (.jevmem/log.jsonl)`];
+  const out = [`${head}in the last ${f.days} days: ${f.dropped.count} dropped turn(s), ${f.recall.count} failed recall(s), ${f.guard.count} guard check(s) failed or timed out${f.wordMatch.count ? `, ${f.wordMatch.count} recall(s) by word match` : ""}${f.writer.count ? `, ${f.writer.count} writer fallback(s)` : ""}${f.other.count ? `, ${f.other.count} other hook problem(s)` : ""} (.jevmem/log.jsonl)`];
   const cut = (s: string) => (s.length > 150 ? s.slice(0, 149) + "…" : s);
   const section = (name: string, g: FailureGroup, note: string) => {
     if (!g.count) return;
@@ -101,6 +107,7 @@ export function formatFailures(f: RecentFailures, head: string, indent: string):
   section("dropped turns", f.dropped, ", never evaluated");
   section("failed recalls", f.recall, ", the prompt got no project memory");
   section("guard checks that failed or timed out", f.guard, ", the call ran unchecked");
+  section("recalls by word match", f.wordMatch, ", Jev failed or ran late, so the prompt got the lines sharing the most words with it");
   section("writer fallbacks", f.writer, ", the LLM writer set in jevmem.config.json did not give the line as asked");
   section("other hook problems", f.other, "");
   return out;

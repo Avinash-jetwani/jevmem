@@ -11,7 +11,7 @@ import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./
 import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { deferredTurns } from "./turns.js";
-import { captureTurns, drainTurns, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
+import { captureTurns, drainTurns, recallPathStats, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey, saveJevKey } from "./env.js";
 import { clampLine, isReasoningModel, resolveWriter } from "./llm/index.js";
@@ -632,6 +632,10 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         io.out(`writer: ${w.provider === "none" ? "jevmem (local, no LLM)" : `${w.provider} (${w.model})`}: ${w.reason}\n`);
         const q = queueStats(root, allEntries);
         io.out(`retry queue: ${q.queued} queued after a Jev failure, ${q.retried} retries, ${q.savedFromQueue} saved from the queue (${q.skippedFromQueue} skipped by Jev), ${q.dropped} dropped, ${q.pending} pending\n`);
+        const rp = recallPathStats(allEntries);
+        if (rp.total) io.out(`recall: ${rp.total} prompt(s): ${rp.jev} served by Jev, ${rp.wordMatch} by word match because Jev failed or ran past jev.recallTimeoutMs; ${rp.noLine} got no line\n`);
+        const waiting = deferredTurns(root).length;
+        if (waiting) io.out(`turns waiting for their background subagents: ${waiting} (decided once the subagents report back, a later prompt closes them, or their session goes quiet)\n`);
         for (const line of formatFailures(recentFailures(allEntries), "failures: ", "  ")) io.out(line + "\n");
         const withheld = new Set(allEntries.filter((e) => e.event === "withheld").map((e) => e.memoryId)).size;
         if (withheld) io.out(`poisoning gate: ${withheld} line(s) withheld from recall (see \`jevmem audit\`)\n`);

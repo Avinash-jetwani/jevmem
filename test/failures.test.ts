@@ -84,7 +84,7 @@ describe("jevmem stats and doctor show the failures the hooks logged", () => {
     return { code, out };
   }
 
-  it("a dropped turn, a failed recall, a guard check that timed out and one with Jev down, and a hook with no key", async () => {
+  it("a dropped turn, a recall served by word match, a guard check that timed out and one with Jev down, and a hook with no key", async () => {
     const root = tmp();
     init({ root, hooks: false });
     const store = new MemoryStore(root);
@@ -98,8 +98,11 @@ describe("jevmem stats and doctor show the failures the hooks logged", () => {
     const jevAt = (url: string) => createJev({ root, apiKey: "k", baseURL: url, cache: false });
     // Jev rejects the turn (not retryable): the queue drops it.
     expect((await runHook({ hook_event_name: "Stop", cwd: root, user_message: "Decision: deploys go through CI only." }, { jev: jevAt(rejecting.url), env })).action).toBe("error");
-    // Jev fails the recall request: the prompt gets no memory.
-    expect((await runHook({ hook_event_name: "UserPromptSubmit", cwd: root, prompt: "which database do we use?" }, { jev: jevAt(failing.url), env })).action).toBe("error");
+    // Jev fails the recall request (stand-in Jev answering 500): since v0.6 part 3b the prompt gets the lines sharing the
+    // most words with it instead; here none, as the only one is unverified and has no gate verdict yet.
+    const recall = await runHook({ hook_event_name: "UserPromptSubmit", cwd: root, prompt: "which Postgres version is the primary store on?" }, { jev: jevAt(failing.url), env });
+    expect(recall.action).toBe("noop");
+    expect(recall.detail).toMatch(/by word match, Jev: InternalServerError: 500/);
     // The guard: Jev too slow for the budget, then Jev down.
     const cfgFile = path.join(root, "jevmem.config.json");
     fs.writeFileSync(cfgFile, JSON.stringify({ ...JSON.parse(fs.readFileSync(cfgFile, "utf8")), guard: { mode: "ask", askMin: 0.5, blockMin: 0.9, budgetMs: 400, maxCandidates: 3 } }));
@@ -108,24 +111,25 @@ describe("jevmem stats and doctor show the failures the hooks logged", () => {
     expect((await evaluateGuard(pre("git add .env.local"), { jev: jevAt("http://127.0.0.1:9"), root })).stdout).toBe("");
     // No key anywhere (the test setup removed it from the environment): the Stop hook skips the turn.
     expect((await runHook({ hook_event_name: "Stop", cwd: root, user_message: "Decision: we use Redis for queues." }, { env })).action).toBe("noop");
-    expect(readLog(root).filter((e) => e.label === "hook" && e.ok === false).length).toBeGreaterThanOrEqual(3);
+    expect(readLog(root).filter((e) => e.label === "hook" && e.ok === false).length).toBeGreaterThanOrEqual(2);
 
     const stats = (await cli(["stats"], root)).out.split("\n");
     const at = stats.findIndex((l) => l.startsWith("failures: "));
-    expect(stats[at]).toBe("failures: in the last 7 days: 2 dropped turn(s), 1 failed recall(s), 2 guard check(s) failed or timed out (.jevmem/log.jsonl)");
+    expect(stats[at]).toBe("failures: in the last 7 days: 2 dropped turn(s), 0 failed recall(s), 2 guard check(s) failed or timed out, 1 recall(s) by word match (.jevmem/log.jsonl)");
     const block = stats.slice(at + 1, at + 9);
     expect(block[0]).toBe("  dropped turns, never evaluated:");
     expect(block.slice(1, 3).some((l) => /^ {4}1× not retryable: BadRequestError: 400 .* \(last \d{4}-\d\d-\d\d \d\d:\d\d UTC\)$/.test(l))).toBe(true);
     expect(block.slice(1, 3).some((l) => /^ {4}1× TYPESAFE_API_KEY not set/.test(l))).toBe(true);
-    expect(block[3]).toBe("  failed recalls, the prompt got no project memory:");
-    expect(block[4]).toMatch(/^ {4}1× .*500/);
-    expect(block[5]).toBe("  guard checks that failed or timed out, the call ran unchecked:");
+    expect(block[3]).toBe("  guard checks that failed or timed out, the call ran unchecked:");
     // The SDK's own timeout (at the budget) usually fires before the guard's timer (25 ms later); either counts.
-    expect(block.slice(6).some((l) => /APITimeoutError: Request timed out|timed out after \d+ ms \(guard\.budgetMs\)/.test(l))).toBe(true);
-    expect(block.slice(6).some((l) => /APIConnectionError|fetch failed|ECONNREFUSED/.test(l))).toBe(true);
+    expect(block.slice(4, 6).some((l) => /APITimeoutError: Request timed out|timed out after \d+ ms \(guard\.budgetMs\)/.test(l))).toBe(true);
+    expect(block.slice(4, 6).some((l) => /APIConnectionError|fetch failed|ECONNREFUSED/.test(l))).toBe(true);
+    expect(block[6]).toBe("  recalls by word match, Jev failed or ran late, so the prompt got the lines sharing the most words with it:");
+    expect(block[7]).toMatch(/^ {4}1× InternalServerError: 500/);
+    expect(stats).toContain("recall: 1 prompt(s): 0 served by Jev, 1 by word match because Jev failed or ran past jev.recallTimeoutMs; 1 got no line");
     // doctor: the same, under its own label.
     const doctor = (await cli(["doctor"], root)).out;
-    expect(doctor).toMatch(/^failures in the last 7 days: 2 dropped turn\(s\), 1 failed recall\(s\), 2 guard check\(s\) failed or timed out \(\.jevmem\/log\.jsonl\)$/m);
+    expect(doctor).toMatch(/^failures in the last 7 days: 2 dropped turn\(s\), 0 failed recall\(s\), 2 guard check\(s\) failed or timed out, 1 recall\(s\) by word match \(\.jevmem\/log\.jsonl\)$/m);
     expect(doctor).toMatch(/^ {9}dropped turns, never evaluated:$/m);
   }, 30_000);
 

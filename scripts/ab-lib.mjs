@@ -172,7 +172,8 @@ export function hookSummary(events) {
       /* no output */
     }
   }
-  const injected = [...context.matchAll(/\(id:([a-z0-9]+), p=([\d.]+)\)/g)].map((m) => ({ id: m[1], p: Number(m[2]) }));
+  // `p=0.97` when Jev picked the line, `word match` when the Jev call failed or ran late (since v0.6 part 3b).
+  const injected = [...context.matchAll(/\(id:([a-z0-9]+), (?:p=([\d.]+)|word match)\)/g)].map((m) => ({ id: m[1], p: m[2] === undefined ? null : Number(m[2]) }));
   const guard = [];
   for (const r of responses.filter((e) => (e.hook_event ?? e.hook_event_name) === "PreToolUse")) {
     const out = String(r.stdout ?? r.output ?? "").trim();

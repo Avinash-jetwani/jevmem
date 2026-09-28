@@ -1,6 +1,6 @@
 import { choice, noul, type ChoiceCriteria, type Questions } from "@typesafe-ai/sdk";
 import type { JevCaller } from "./jev.js";
-import { prefilterByOverlap } from "./decide.js";
+import { keywords, prefilterByOverlap } from "./decide.js";
 import { gateQuestionsFor, gateScore, hiddenTextReason, planGate, settleGate, type Withheld } from "./guard.js";
 import { scrubSecrets } from "./scrub.js";
 import { DEFAULT_CONFIG, type Memory } from "./types.js";
@@ -13,6 +13,8 @@ export interface RankedMemory {
   relevance: number | null;
   /** The poisoning gate's answer for this line when it was asked in this call (unverified, uncached); otherwise null. */
   injection: number | null;
+  /** Set when the line was picked by shared words because Jev's call failed or ran late (`wordMatch`): how many. */
+  sharedWords?: number;
 }
 
 export interface RankOptions {
@@ -164,6 +166,9 @@ export interface GuardedRank {
   deferred: number;
 }
 
+/** How the lines a prompt got were picked: by Jev, or by shared words because Jev's call failed or ran past its budget. */
+export type RecallPath = "jev" | "word-match";
+
 /**
  * At most this many unverified lines with no cached verdict are gated in one call. Each costs one or two long nouls, so
  * with every live line a candidate a freshly cloned file of a few hundred lines would pass Jev's per-request limit.
@@ -194,13 +199,45 @@ export async function rankGuarded(jev: JevCaller, root: string, query: string, m
   return { ranked: ranked.filter((r) => !bad.has(r.memory.id)), withheld: [...plan.withheld, ...settled.withheld], gated: asked.length, deferred };
 }
 
+/** A line must share at least this many words with the prompt to be picked by `wordMatch`. Tuned on eval/recall-dev.jsonl. */
+export const WORD_MATCH_MIN = 2;
+
+/**
+ * Recall without Jev (v0.6 part 3b): the lines sharing the most words with the prompt (`keywords`, as 0.5.9's pre-filter
+ * counted them), at least WORD_MATCH_MIN each, at most `topK`, the newest first on a tie. The caller passes only lines
+ * it may serve: live, and passed by the poisoning gate without a question.
+ */
+export function wordMatch(prompt: string, lines: Memory[], opts: { topK: number; min?: number }): RankedMemory[] {
+  const kw = keywords(prompt);
+  const min = opts.min ?? WORD_MATCH_MIN;
+  return lines
+    .map((m, i) => {
+      let shared = 0;
+      for (const w of keywords(m.text)) if (kw.has(w)) shared++;
+      return { m, i, shared };
+    })
+    .filter((x) => x.shared >= min)
+    .sort((a, b) => b.shared - a.shared || b.i - a.i)
+    .slice(0, opts.topK)
+    .map((x) => ({ memory: x.m, choiceProbability: 0, relevance: null, injection: null, sharedWords: x.shared }));
+}
+
 /**
  * The read side of the hook: the gated lines a prompt gets (`selectForPrompt`). Every live line is a candidate, up to
- * `maxIds` (keyword-prefiltered beyond it), with the text of the lines it replaced as context (`replaced`).
+ * `maxIds` (keyword-prefiltered beyond it), with the text of the lines it replaced as context (`replaced`). When the Jev
+ * call fails or runs past `timeoutMs`, the prompt gets `wordMatch`'s lines instead (`path: "word-match"`), with the same
+ * cap, from the lines the gate serves without asking: a line the gate withholds, or has not checked yet, is never
+ * served that way.
  */
-export async function recallGuarded(jev: JevCaller, root: string, prompt: string, memories: Memory[], opts: { topK: number; min: number; relevanceMin: number; injectionMax: number; timeoutMs?: number; maxIds?: number; replaced?: ReadonlyMap<string, readonly string[]> }): Promise<GuardedRank> {
-  const r = await rankGuarded(jev, root, prompt, memories, { maxIds: opts.maxIds, timeoutMs: opts.timeoutMs, label: "recall", injectionMax: opts.injectionMax, source: "recall", forPrompt: true, replaced: opts.replaced });
-  return { ...r, ranked: selectForPrompt(r.ranked, opts) };
+export async function recallGuarded(jev: JevCaller, root: string, prompt: string, memories: Memory[], opts: { topK: number; min: number; relevanceMin: number; injectionMax: number; timeoutMs?: number; maxIds?: number; replaced?: ReadonlyMap<string, readonly string[]> }): Promise<GuardedRank & { path: RecallPath; error?: string }> {
+  try {
+    const r = await rankGuarded(jev, root, prompt, memories, { maxIds: opts.maxIds, timeoutMs: opts.timeoutMs, label: "recall", injectionMax: opts.injectionMax, source: "recall", forPrompt: true, replaced: opts.replaced });
+    return { ...r, ranked: selectForPrompt(r.ranked, opts), path: "jev" };
+  } catch (err) {
+    const plan = planGate(root, memories, opts.injectionMax);
+    const error = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    return { ranked: wordMatch(prompt, plan.serve, { topK: opts.topK }), withheld: plan.withheld, gated: 0, deferred: plan.check.length, path: "word-match", error };
+  }
 }
 
 /** Added to every injection: assistants that find JEVMEM.md otherwise write duplicate lines into it by hand. */
@@ -220,6 +257,6 @@ export const DEAD_END_PREFIX = "Already tried:";
 
 export function formatInjection(ranked: RankedMemory[]): string {
   if (ranked.length === 0) return "";
-  const lines = ranked.map((r) => `- ${r.memory.kind === "dead-end" ? DEAD_END_PREFIX : `[${r.memory.kind}]`} ${neutralize(r.memory.text)} (id:${r.memory.id}, p=${(r.relevance ?? r.choiceProbability).toFixed(2)})`);
+  const lines = ranked.map((r) => `- ${r.memory.kind === "dead-end" ? DEAD_END_PREFIX : `[${r.memory.kind}]`} ${neutralize(r.memory.text)} (id:${r.memory.id}, ${r.sharedWords !== undefined ? "word match" : `p=${(r.relevance ?? r.choiceProbability).toFixed(2)}`})`);
   return ["<jevmem-memory>", MEMORY_FRAME, ...lines, JEVMEM_HANDS_OFF, "</jevmem-memory>"].join("\n");
 }

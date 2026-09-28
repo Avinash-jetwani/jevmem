@@ -130,8 +130,9 @@ function parseInjection(stdout) {
   }
   const lines = [];
   for (const l of context.split("\n")) {
-    const m = /^- (?:\[([a-z-]+)\]|Already tried:) (.*) \(id:([a-z0-9]+), p=([\d.]+)\)$/.exec(l);
-    if (m) lines.push({ id: m[3], kind: m[1] ?? "dead-end", p: Number(m[4]), text: m[2], chars: l.length });
+    // `p=0.97` when Jev picked the line; `word match` when the Jev call failed or ran late (v0.6 part 3b).
+    const m = /^- (?:\[([a-z-]+)\]|Already tried:) (.*) \(id:([a-z0-9]+), (?:p=([\d.]+)|word match)\)$/.exec(l);
+    if (m) lines.push({ id: m[3], kind: m[1] ?? "dead-end", p: m[4] === undefined ? null : Number(m[4]), wordMatch: m[4] === undefined, text: m[2], chars: l.length });
   }
   return { context, lines };
 }
@@ -165,6 +166,16 @@ async function countTokens(text) {
   };
   const [a, b] = await Promise.all([ask(text), ask(".")]);
   return a === null || b === null ? null : a - b;
+}
+
+// What word match (this checkout's src/recall.ts) would pick for a prompt, over the file's live lines, every one of them
+// verified as in this eval: the fallback a build since v0.6 part 3b serves when its Jev call fails or runs late.
+const here = await import(pathToFileURL(path.resolve("dist/index.js")).href);
+function wordMatchPick(f, p) {
+  if (typeof here.wordMatch !== "function") return [];
+  const live = f.lines.filter((l) => l.kind !== "superseded").map((l) => ({ id: l.id, kind: l.kind, text: l.text, ts: l.ts, conf: l.conf }));
+  const keyOf = new Map(f.lines.map((l) => [l.id, l.key]));
+  return here.wordMatch(p.prompt, live, { topK: here.DEFAULT_CONFIG.thresholds.recallTopK }).map((r) => keyOf.get(r.memory.id));
 }
 
 async function setUp(b, f) {
@@ -206,6 +217,8 @@ async function score(b, s, f, p) {
   const n0 = readLogEntries(s.root).length;
   const r = await runHookProcess(b, s.root, s.home, p.prompt);
   const e = readLogEntries(s.root).slice(n0).filter((x) => x.label === "recall" && !x.event).at(-1);
+  // Which path served the prompt (logged since v0.6 part 3b; a build before that serves nothing when Jev fails).
+  const servedEvent = readLogEntries(s.root).slice(n0).filter((x) => x.label === "recall" && x.event === "served").at(-1);
   const inj = parseInjection(r.out);
   const idOf = (k) => byKey.get(k).id;
   const want = p.want.map(idOf);
@@ -235,6 +248,8 @@ async function score(b, s, f, p) {
     lines: injected.length,
     contextChars: inj.context.length,
     contextTokens: await countTokens(inj.context),
+    path: servedEvent ? (/^word match/.test(servedEvent.detail ?? "") ? "word-match" : "jev") : e?.ok ? "jev" : "none",
+    wordMatchWouldFind: wordMatchPick(f, p).filter((k) => p.want.includes(k)),
     hookMs: r.ms,
     hookExit: r.code,
     via: /via daemon/.test(r.err) ? "daemon" : /via inline/.test(r.err) ? "inline" : null,
@@ -314,6 +329,13 @@ function summarize(rs) {
     input_tokens_per_prompt: mean(inputTok),
     cost_per_prompt_usd: mean(cost),
     via_daemon_frac: `${rs.filter((r) => r.via === "daemon").length}/${rs.length}`,
+    served_by_jev_frac: `${rs.filter((r) => r.path === "jev").length}/${rs.length}`,
+    served_by_word_match_frac: `${rs.filter((r) => r.path === "word-match").length}/${rs.length}`,
+    word_match_recall_frac: `${rs.filter((r) => r.path === "word-match").reduce((a, r) => a + r.wantHit, 0)}/${rs.filter((r) => r.path === "word-match").reduce((a, r) => a + r.want.length, 0)}`,
+    // Prompts that needed a line and got none at all; and of those, the ones where word match would have found one.
+    left_without_memory_frac: `${rs.filter((r) => r.want.length && r.lines === 0).length}/${rs.filter((r) => r.want.length).length}`,
+    left_without_memory_word_match_would_find: rs.filter((r) => r.want.length && r.lines === 0 && r.wordMatchWouldFind.length).length,
+    left_without_memory_because_jev_failed: rs.filter((r) => r.want.length && r.lines === 0 && !r.jevOk).length,
   };
 }
 
@@ -355,6 +377,6 @@ for (const b of builds) {
   fs.mkdirSync(path.dirname(b.out), { recursive: true });
   fs.writeFileSync(b.out, JSON.stringify(out, null, 2) + "\n");
   const o = out.overall;
-  console.log(`${b.label ?? "build"} (${b.version}${b.commit ? ` ${b.commit}` : ""}), ${SET}: recall ${o.recall_frac} (served ${o.served_frac}), precision ${o.precision_frac}, unrelated injected ${o.unrelated_injected_frac}, superseded leaks ${o.superseded_leak_frac}; Jev failed ${o.jev_failed_frac} (answered: recall ${o.answered_recall_frac}, precision ${o.answered_precision_frac}, unrelated ${o.answered_unrelated_frac}); ${o.lines_per_prompt?.toFixed(2)} lines/prompt, hook p50 ${o.hook_p50_ms} ms p95 ${o.hook_p95_ms} ms, $${o.cost_per_prompt_usd?.toFixed(6)}/prompt → ${b.out}`);
+  console.log(`${b.label ?? "build"} (${b.version}${b.commit ? ` ${b.commit}` : ""}), ${SET}: recall ${o.recall_frac} (served ${o.served_frac}), precision ${o.precision_frac}, unrelated injected ${o.unrelated_injected_frac}, superseded leaks ${o.superseded_leak_frac}; Jev failed ${o.jev_failed_frac} (answered: recall ${o.answered_recall_frac}, precision ${o.answered_precision_frac}, unrelated ${o.answered_unrelated_frac}); by word match ${o.served_by_word_match_frac}; left without memory ${o.left_without_memory_frac} (word match would have found a wanted line in ${o.left_without_memory_word_match_would_find}); ${o.lines_per_prompt?.toFixed(2)} lines/prompt, hook p50 ${o.hook_p50_ms} ms p95 ${o.hook_p95_ms} ms, $${o.cost_per_prompt_usd?.toFixed(6)}/prompt → ${b.out}`);
   for (const [k, v] of [...Object.entries(out.by_type), ...Object.entries(out.by_size)]) console.log(`  ${k.padEnd(10)} recall ${v.recall_frac.padEnd(7)} served ${v.served_frac.padEnd(6)} precision ${v.precision_frac.padEnd(7)} unrelated ${v.unrelated_injected_frac.padEnd(5)} jev failed ${v.jev_failed_frac}`);
 }

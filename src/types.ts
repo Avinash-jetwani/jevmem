@@ -72,6 +72,12 @@ export interface JevmemConfig {
     model: string;
     /** Per-call timeout in the hook path. Jev is skipped (never blocks) past this. */
     timeoutMs: number;
+    /**
+     * The prompt hook's budget for its Jev call (v0.6 part 3b; `timeoutMs` until then). When the call fails or runs past
+     * it, the prompt gets the lines that share the most words with it instead (src/recall.ts), so it never waits longer
+     * and never goes without memory because of Jev.
+     */
+    recallTimeoutMs: number;
     /** Max memory ids to include in one `touches_memory_id` choice. Pre-filtered by keyword overlap beyond this. */
     maxIdsPerCall: number;
     /** Max candidates sent to search, MCP `search_memory` and `jevmem search` (pre-filtered by keyword overlap beyond this). */
@@ -188,6 +194,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
   jev: {
     model: "jev-latest",
     timeoutMs: 2000,
+    recallTimeoutMs: 1000,
     maxIdsPerCall: 200,
     maxRecallCandidates: 60,
     maxRecallLines: 250,
