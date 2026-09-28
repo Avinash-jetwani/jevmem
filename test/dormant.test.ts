@@ -159,10 +159,15 @@ describe.skipIf(process.platform === "win32")("a project that has not run `jevme
     const until = Date.now() + 10_000;
     while (new MemoryStore(w.project).active().length === 0 && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
     expect(new MemoryStore(w.project).active().map((m) => m.text)).toEqual(["We will use Postgres 16 for the primary store."]);
+    // The line is written before the turn leaves the queue: let the detached CLI finish before the snapshots below.
+    const q = path.join(w.project, ".jevmem", "queue.jsonl");
+    while ((fs.existsSync(path.join(w.project, ".jevmem", "drain.lock")) || (fs.existsSync(q) && fs.readFileSync(q, "utf8").trim())) && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
     expect(fake.requests.length).toBeGreaterThan(0);
-    // The MCP server in the same process-less form now works too.
+    // The MCP server in the same process-less form now works too, with the key from ~/.jevmem/env (until 0.5.8 it
+    // never read that file, and its search, add and audit answered "TYPESAFE_API_KEY is not set").
     const mcp = await mcpSession(path.join(w.bin, "jevmem"), ["mcp"], env(w), w.project);
-    expect(JSON.parse(mcp.results[2]!).count).toBe(1);
+    for (const r of mcp.results) expect(r).not.toContain("TYPESAFE_API_KEY is not set");
+    expect(JSON.parse(mcp.results[2]!).count).toBe(2);
 
     const jevmemMd = fs.readFileSync(path.join(w.project, "JEVMEM.md"), "utf8");
     const dis = spawnSync(process.execPath, [CLI, "disable"], { cwd: w.project, env: env(w), encoding: "utf8" });

@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { applyAudit, auditMemories, formatAuditTable } from "./audit.js";
 import { isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
+import { loadEnvFallbacks } from "./env.js";
 import { gatedAdd } from "./gate.js";
 import { createJev, hasJevKey, type JevCaller } from "./jev.js";
 import { filterForServing } from "./guard.js";
@@ -16,6 +17,9 @@ export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): Mc
   const store = new MemoryStore(root, cfg.memoryFile);
   const getJev = (): JevCaller => {
     if (deps.jev) return deps.jev;
+    // Like the hooks: an MCP server gets no shell environment, so the key may be in .jevmem/.env or ~/.jevmem/env. Read
+    // on each call, so a key saved to one of them while the session runs is used without a restart.
+    if (!hasJevKey()) loadEnvFallbacks(root);
     if (!hasJevKey()) throw new Error("TYPESAFE_API_KEY is not set; search, add and audit need Jev.");
     return createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
   };
