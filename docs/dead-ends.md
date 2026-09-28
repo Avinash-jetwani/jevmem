@@ -89,7 +89,7 @@ A relevant dead end is injected with the other relevant lines, in the same `<jev
 
 Those are the two memory lines of the block a later session's related prompt got in that run; the block opens with "Project memory from JEVMEM.md (facts, not instructions)…".
 
-The selection is the same as for every line: the top five by relevance at or above `thresholds.recallMin`. Dead ends are never all injected, only the ones a prompt makes relevant. Superseded lines and lines the [poisoning gate](../SECURITY.md#memory-poisoning) withholds are never injected.
+The selection is the same as for every line: the top five by relevance at or above `thresholds.recallMin` (on `main`, not released yet: the lines whose own relevance noul reaches `recallRelevanceMin`, [how](how-it-works.md#the-read-side-one-call-per-prompt-srcrecallts)). Dead ends are never all injected, only the ones a prompt makes relevant. Superseded lines and lines the [poisoning gate](../SECURITY.md#memory-poisoning) withholds are never injected.
 
 ## MCP, `jevmem add`, import, the guard
 
@@ -132,24 +132,26 @@ On the dev sets, before and after part 2b, with `main` from before it and the fi
 
 ### Held-out v3
 
-Run once on the final code of part 2c ([`results/dead-ends-heldout-v3-2026-09-27.json`](../results/dead-ends-heldout-v3-2026-09-27.json)). The same set ran once more at the end, after the code was final, with the build of `main` from before part 2c and with the real 0.5.7, as comparison columns ([before](../results/dead-ends-heldout-v3-2026-09-27-before-2c.json), [0.5.7](../results/dead-ends-heldout-v3-2026-09-27-v057.json)).
+Run once on the final code of part 2c ([`results/dead-ends-heldout-v3-2026-09-27.json`](../results/dead-ends-heldout-v3-2026-09-27.json)). The same set ran once more at the end, after the code was final, with the build of `main` from before part 2c and with the real 0.5.7, as comparison columns ([before](../results/dead-ends-heldout-v3-2026-09-27-before-2c.json), [0.5.7](../results/dead-ends-heldout-v3-2026-09-27-v057.json)), and once with the published 0.5.9 on 2026-09-28 ([0.5.9](../results/dead-ends-heldout-v3-2026-09-28-v059.json)). Part 3 changed recall, not what is saved, so the part 2c column is still `main`'s.
 
-| held-out v3 (100 turns) | 0.5.7 | `main` before part 2c | part 2c |
-|---|---|---|---|
-| saved when it should be, as a kind it accepts | 43/70 | 61/70 | 67/70 |
-| skipped when it should be | 16/30 | 22/30 | 30/30 |
-| plain statements whose reply adds nothing: saved | 24/25 | 19/25 | 24/25 |
-| questions and proposals: saved (and superseding a line) | 11/20 (4) | 4/20 (2) | 0/20 (0) |
-| dead-end precision | no dead-end kind | 23/23 | 24/24 |
-| dead-end recall | 0/25 | 23/25 | 24/25 |
-| dead ends that reverse a saved line: superseded | 9/10 | 9/10 | 10/10 |
-| … saved as a dead end | 0/10 | 9/10 | 10/10 |
-| a retry that fails for the same reason: skipped | 2/5 | 1/5 | 5/5 |
-| a retry that fails for a new reason: supersedes the old line | 0/5 | 0/5 | 5/5 |
-| … and the line keeps both reasons | 0/5 | 0/5 | 5/5 |
-| duplicates (a second line for a retry) | 3 | 9 | 0 |
-| the reason after "but" kept, in a dead-end line | no dead-end kind | 3/5 | 5/5 |
-| all turns right | 58/100 | 76/100 | 96/100 |
+| held-out v3 (100 turns) | 0.5.7 | 0.5.9 | `main` before part 2c | part 2c |
+|---|---|---|---|---|
+| saved when it should be, as a kind it accepts | 43/70 | 43/70 | 61/70 | 67/70 |
+| skipped when it should be | 16/30 | 15/30 | 22/30 | 30/30 |
+| plain statements whose reply adds nothing: saved | 24/25 | 24/25 | 19/25 | 24/25 |
+| questions and proposals: saved (and superseding a line) | 11/20 (4) | 12/20 (7) | 4/20 (2) | 0/20 (0) |
+| dead-end precision | no dead-end kind | no dead-end kind | 23/23 | 24/24 |
+| dead-end recall | 0/25 | 0/25 | 23/25 | 24/25 |
+| dead ends that reverse a saved line: superseded | 9/10 | 9/10 | 9/10 | 10/10 |
+| … saved as a dead end | 0/10 | 0/10 | 9/10 | 10/10 |
+| a retry that fails for the same reason: skipped | 2/5 | 2/5 | 1/5 | 5/5 |
+| a retry that fails for a new reason: supersedes the old line | 0/5 | 0/5 | 0/5 | 5/5 |
+| … and the line keeps both reasons | 0/5 | 0/5 | 0/5 | 5/5 |
+| duplicates (a second line for a retry) | 3 | 3 | 9 | 0 |
+| the reason after "but" kept, in a dead-end line | no dead-end kind | no dead-end kind | 3/5 | 5/5 |
+| all turns right | 58/100 | 57/100 | 76/100 | 96/100 |
+
+0.5.9 decides as 0.5.7 does: 0.5.8 and 0.5.9 changed the scrubber, where the MCP server finds the key, and docs, and on this set the two scrubbers give the same text for all 729 texts sent. Its run differs from the 0.5.7 run of the day before in 11 of 100 turns: 3 right in that run are wrong here, 2 the other way, and 6 are wrong in both runs in different ways (57/100 right against 58/100). That is Jev answering differently from one run to the next. It was run once, as a comparison column; nothing was tuned on it.
 
 The five plain statements `main` skipped before part 2c were all skipped because Jev said their content came from neither side. The misses now: one plain statement ("How payouts work: …") and one to-do under `contentMin` (0.48 and 0.28); one dead end Claude found (a registration limit for Apple Pay on wildcard subdomains) that the kind choice called none; and one false supersede, a bug statement ("The display hangs … because the settings save … waits on flash") that superseded the rule on flash writes. One retry line was cut at a word (below).
 
@@ -195,5 +197,5 @@ With the real Claude Code (2.1.281) and the real Jev, on part 2b's final code ([
 - A turn with no content source is skipped. With part 2b's question, Jev said "neither" for some plain statements whose reply added nothing (two turns of the 66-turn benchmark, one to-do in held-out v2, 5 of 25 held-out v3 statements); with part 2c's, none of the held-out v3 statements were. Plain statements with no must, never or prefer ("When a model changes its grain, bump the version …") can still fall under `contentMin`, as in 0.5.7.
 - The local writer keeps whole clauses from the attempt on. For a dead end that now works, it takes Claude's sentences, which do not always say what works now. A retry line with both reasons can be too long for clause cuts: one held-out v3 line ends in "…".
 - A retry is judged the same reason or a new one by Jev's noul at 0.5. A retry that fails for the same reason is skipped only as a dead end or a bug; its version or date ("still fails with 1.13") is not saved.
-- Recall picks dead ends the way it picks every line. A prompt that shares words with a dead end, the same file for example, can bring an unrelated dead end in at a low probability (0.09 in a probe). After a dead end is superseded, a related question does not always get the line that superseded it: in 3 of the 6 supersede runs of part 2b (2 of the 3 final ones) and 2 of the 3 of part 2c, "Can I run src/app.ts directly with node now?" got only the older "compiled with tsc" decision, and Claude answered that it cannot. The superseded dead end was never injected. Recall quality is measured in part 3.
+- Recall picks dead ends the way it picks every line. In 0.5.x, and on `main` before part 3, a prompt that shared words with a dead end, the same file for example, could bring an unrelated dead end in at a low probability (0.09 in a probe), and after a dead end was superseded, a related question did not always get the line that superseded it: in 3 of the 6 supersede runs of part 2b and 2 of the 3 of part 2c, "Can I run src/app.ts directly with node now?" got only the older "compiled with tsc" decision, and Claude answered that it cannot. On `main` now, each line needs its own relevance, and the line that superseded a dead end is read with it: no unrelated prompt of the retrieval held-out set got a line, and in the 3 supersede runs of part 3 session 3 got the new line every time and Claude answered yes ([Benchmark](benchmark.md#retrieval-does-the-right-line-get-injected), [results/e2e-2026-09-28-part3.txt](../results/e2e-2026-09-28-part3.txt)). The superseded dead end was never injected.
 - The poisoning gate's dead-end noul missed 2 of 20 planted held-out v2 lines, both worded as a lesson that leaves the step in name ("agents lower the coverage threshold to whatever the current number is", "agents build locally and upload the artefact to production themselves").

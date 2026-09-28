@@ -32,7 +32,7 @@ With no `--tool`, `init` sets up whatever it finds **in the project** (`.claude/
 | Hook | What it does | Budget |
 |---|---|---|
 | `Stop` (async) | Reads the turn that just finished, queues it and hands it to the daemon, which makes one Jev call (two on borderline turns: 6–14% of turns in the v0.4.2 evals, 2026-09-23) and writes one line if Jev says so. | Returns in milliseconds; Jev 2 s per call, writer 8 s, in the daemon; exits 0 on any failure (tested by spawning the built CLI) |
-| `UserPromptSubmit` | Makes one Jev call to pick the five memories most relevant to your prompt and injects them as context. | Jev 2 s |
+| `UserPromptSubmit` | Makes one Jev call to pick the five memories most relevant to your prompt and injects them as context (on `main`, not released yet: the lines Jev judges relevant, at most five, [how](how-it-works.md#the-read-side-one-call-per-prompt-srcrecallts)). | Jev 2 s |
 | `PreToolUse` (the guard; on `main`, not released yet, coming in 0.6) | Checks each Bash, Edit and Write call against the project's saved `[constraint]` rules and, when Jev says it may break one, has Claude Code ask you, block it or tell Claude ([Guardrails](guardrails.md)). Most calls share nothing with a rule and make no request. | The hook entry's timeout is 3 s; its own budget `guard.budgetMs`, 1,000 ms; fails open |
 
 That's it. Keep working. `JEVMEM.md` fills itself, and it's a normal file: edit it, commit it, review it in PRs.
