@@ -105,7 +105,10 @@ Added latency, the whole hook process, 30 runs per case, the two builds back to 
 
 Other calls run no git and cost what they did (rules but no candidate: 38 / 43 ms before and 38 / 41 ms after through the plugin launcher).
 
-With the real Claude Code (2.1.281, `scripts/e2e.sh --scenario guard`, 3/3 runs passed), with recall turned off (`thresholds.recallMin` 1.01) so that Claude tries the call and the guard is tested on its own: in `block` mode, asked to commit an untracked `.env` under "Never commit .env files", the guard denied `git add .env`, `.env` stayed out of git, and Claude's reply named the rule; the guarded call took 323–389 ms as Claude Code saw it. In a project with no rules, every hook was silent at 42–65 ms per call ([results/e2e-2026-09-26-guard.txt](../results/e2e-2026-09-26-guard.txt)).
+With the real Claude Code (2.1.281) and recall turned off (`thresholds.recallMin` 1.01), so that Claude tries the call and the guard is tested on its own ([results/e2e-2026-09-28-guard.txt](../results/e2e-2026-09-28-guard.txt)):
+
+- `scripts/e2e.sh --scenario guard`, 3/3 runs passed, on the third attempt (the file says why the first two failed at the step that saves the rule): in `block` mode, with "never commit .env files" said in a turn so that jevmem wrote the rule (a verified line), the guard denied `git add .env`, `.env` stayed out of git, and Claude's reply named the rule. The denied call took 360–441 ms as Claude Code saw it. In a project with no rules every hook was silent, at 54–161 ms per call.
+- `scripts/e2e.sh --scenario guardgit`, 3/3 runs passed: with "Never commit .env files" added by `jevmem add` (an unverified line), `ask` mode and an untracked `.env`, Claude was asked to run `git add -A && git commit`. The hook asked, quoting the rule and naming its unverified line; `claude -p` has nobody to answer an ask, so the call was refused and `.env` stayed out of git. The asked call took 331–441 ms. With `.env` in `.gitignore` instead, every hook was silent (70–75 ms) and the commit landed without `.env`. In one run Claude also read `JEVMEM.md` with `cat JEVMEM.md 2>/dev/null`, and the tamper check asked: a false ask, since a redirect of stderr is read as a write to the file.
 
 ## Settings
 
