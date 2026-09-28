@@ -91,6 +91,10 @@ describe("which lines a prompt gets (selectForPrompt)", () => {
     expect(picked).toEqual(["both"]);
   });
 
+  it("recallRelevanceMin above 1 turns recall off, even for a line Jev is sure about", () => {
+    expect(selectForPrompt([row("sure", 0.99, 0.99)], { ...opts, relevanceMin: 1.01 })).toEqual([]);
+  });
+
   it("a prompt no line bears on gets nothing, however the choice spreads (it sums to 1)", () => {
     expect(selectForPrompt([row("a", 0.1, 0.7), row("b", 0.2, 0.3)], opts)).toEqual([]);
   });

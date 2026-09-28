@@ -126,20 +126,21 @@ async function rankWithModel(jev: JevCaller, query: string, memories: Memory[], 
 }
 
 /**
- * A relevance noul at or above this puts a line in the prompt's context on its own; between `recallRelevanceMin` and
- * this, the line must also have the choice's `recallMin`. Tuned on eval/recall-dev.jsonl (docs/benchmark.md).
+ * A relevance noul at or above this (and at `recallRelevanceMin`) puts a line in the prompt's context without the
+ * choice's `recallMin`. Tuned on eval/recall-dev.jsonl (docs/benchmark.md).
  */
 export const RELEVANCE_SURE = 0.97;
 
 /**
- * Which ranked lines a prompt gets (v0.6 part 3): the ones Jev is sure bear on it (relevance noul at RELEVANCE_SURE), and
- * the ones at `relevanceMin` that the choice also ranks at `min`; by relevance, at most `topK`. Relevance is asked per
- * line, so a second relevant line is never crowded out by the first, and it is a probability of its own, so a prompt
- * that no line bears on gets nothing. The choice only prunes the lines Jev is less sure about.
+ * Which ranked lines a prompt gets (v0.6 part 3): the ones at `relevanceMin` that Jev is sure bear on it (relevance noul
+ * at RELEVANCE_SURE) or that the choice also ranks at `min`; by relevance, at most `topK`. Relevance is asked per line,
+ * so a second relevant line is never crowded out by the first, and it is a probability of its own, so a prompt that no
+ * line bears on gets nothing. The choice only prunes the lines Jev is less sure about. `relevanceMin` above 1 turns
+ * recall off.
  */
 export function selectForPrompt(ranked: RankedMemory[], opts: { topK: number; min: number; relevanceMin: number }): RankedMemory[] {
   return ranked
-    .filter((r) => r.relevance !== null && (r.relevance >= RELEVANCE_SURE || (r.relevance >= opts.relevanceMin && r.choiceProbability >= opts.min)))
+    .filter((r) => r.relevance !== null && r.relevance >= opts.relevanceMin && (r.relevance >= RELEVANCE_SURE || r.choiceProbability >= opts.min))
     .sort((a, b) => b.relevance! - a.relevance! || b.choiceProbability - a.choiceProbability)
     .slice(0, opts.topK);
 }

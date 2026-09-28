@@ -41,7 +41,7 @@
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 #   guard      the PreToolUse guard (`jevmem init` hooks). A: a git repo, guard.mode block, git allowed without prompts,
-#              recall injection off (thresholds.recallMin 1.01) so that Claude tries the call and the guard is what stops
+#              recall injection off (thresholds.recallRelevanceMin 1.01) so that Claude tries the call and the guard is what stops
 #              it. First a turn that states the rule (never commit .env files), so jevmem's Stop hook writes it here: a
 #              verified [constraint] line, the kind that can deny. Then, with an untracked .env, Claude is asked to commit
 #              .env: the PreToolUse hook must deny `git add .env` quoting that line, .env must stay out of git, and
@@ -629,7 +629,7 @@ run_guard() {
     && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
   "$NODE" - "$scratch" <<'JS'
     const fs=require("fs");const f=process.argv[2]+"/jevmem.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));
-    c.guard={...c.guard,mode:"block"};c.thresholds={...c.thresholds,recallMin:1.01};fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n");
+    c.guard={...c.guard,mode:"block"};c.thresholds={...c.thresholds,recallMin:1.01,recallRelevanceMin:1.01};fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n");
 JS
   # A0: the rule is said in a turn, so jevmem's own Stop hook writes it: a verified line (only those can deny).
   # Stated plainly: a second sentence telling Claude what to do ("just acknowledge it") scored 0.51 on the decide
@@ -764,7 +764,7 @@ run_guardgit() {
       && git add -A && git commit -qm init && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
     "$NODE" - "$dir" <<'JS'
       const fs=require("fs");const f=process.argv[2]+"/jevmem.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));
-      c.thresholds={...c.thresholds,recallMin:1.01};fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n");
+      c.thresholds={...c.thresholds,recallMin:1.01,recallRelevanceMin:1.01};fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n");
 JS
     ( cd "$dir" && "$NODE" "$JEVMEM_CLI" add constraint "Never commit .env files" | sed 's/^/   /' )
     printf 'API_URL=http://localhost:3000\n' > "$dir/.env"

@@ -76,8 +76,8 @@ if (!TOKEN && !process.env.ANTHROPIC_API_KEY && fs.existsSync(tokenFile)) TOKEN 
 if (!TOKEN && !process.env.ANTHROPIC_API_KEY) throw new Error("set CLAUDE_CODE_OAUTH_TOKEN (claude setup-token) or put it in ~/.jevmem/e2e-oauth-token");
 if (!process.env.TYPESAFE_API_KEY) throw new Error("TYPESAFE_API_KEY is required (the jevmem arms)");
 const CLAUDE_VERSION = execFileSync(CLAUDE, ["--version"], { encoding: "utf8", env: { ...process.env, DISABLE_AUTOUPDATER: "1" } }).trim();
-let COMMIT = null;
-try {
+let COMMIT = opt("--build-commit", null); // the commit dist/ was built from, when HEAD has moved since
+if (!COMMIT) try {
   COMMIT = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim() + (execFileSync("git", ["status", "--porcelain", "src", "dist"], { cwd: ROOT, encoding: "utf8" }).trim() ? "+dirty" : "");
 } catch {
   /* not a checkout */
@@ -268,7 +268,9 @@ async function session(job) {
 const selected = opt("--tasks", "all") === "all" ? TASKS : TASKS.filter((t) => opt("--tasks").split(",").includes(t.id));
 const jobs = [];
 if (SUBAGENT) {
-  for (let run = 1; run <= RUNS; run++) for (const s of SUBAGENT_TASKS) jobs.push({ id: s.id, kind: "subagent", task: TASKS.find((t) => t.id === s.base), arm: "guard", run, prompt: s.prompt });
+  // The subagent check: each subagent task in each arm asked for (default: recall alone, recall with the guard, CLAUDE.md).
+  const arms = args.includes("--arms") ? ARMS : ["jevmem", "guard", "claudemd"];
+  for (let run = 1; run <= RUNS; run++) for (const s of SUBAGENT_TASKS) for (const arm of arms) jobs.push({ id: s.id, kind: "subagent", task: TASKS.find((t) => t.id === s.base), arm, run, prompt: s.prompt });
 } else {
   // Runs outermost and arms interleaved, so no arm gets a time slot to itself.
   for (let run = 1; run <= RUNS; run++)
@@ -279,12 +281,22 @@ if (SUBAGENT) {
       }
 }
 fs.mkdirSync(TRANSCRIPTS, { recursive: true });
-console.error(`${jobs.length} sessions, ${CONCURRENCY} at a time; ${CLAUDE_VERSION}; jevmem ${COMMIT}; transcripts in ${TRANSCRIPTS}`);
 
 const records = [];
 let next = 0;
 const partial = OUT.replace(/\.json$/, ".partial.jsonl");
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
+// --resume: keep the sessions already in the partial file (a run stopped part-way) and run only the others.
+if (flag("--resume") && fs.existsSync(partial)) {
+  const done = fs.readFileSync(partial, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  const key = (id, arm, run) => `${id}|${arm}|${run}`;
+  const seen = new Set(done.map((r) => key(r.id, r.arm, r.run)));
+  records.push(...done);
+  const before = jobs.length;
+  for (let i = jobs.length - 1; i >= 0; i--) if (seen.has(key(jobs[i].kind === "subagent" ? jobs[i].id : jobs[i].task.id, jobs[i].arm, jobs[i].run))) jobs.splice(i, 1);
+  console.error(`resuming: ${done.length} sessions already recorded, ${before - jobs.length} of them in this plan`);
+}
+console.error(`${jobs.length} sessions, ${CONCURRENCY} at a time; ${CLAUDE_VERSION}; jevmem ${COMMIT}; transcripts in ${TRANSCRIPTS}`);
 async function worker() {
   while (next < jobs.length) {
     const job = jobs[next++];
@@ -292,7 +304,7 @@ async function worker() {
     records.push(rec);
     fs.appendFileSync(partial, JSON.stringify(rec) + "\n");
     const c = rec.check ?? {};
-    console.error(`[${records.length}/${jobs.length}] ${rec.id} ${rec.arm} run ${rec.run}: followed=${c.followed} done=${c.done}${c.stale !== undefined ? ` stale=${c.stale}` : ""}${c.repeated !== undefined ? ` repeated=${c.repeated}` : ""}${c.attempted !== undefined ? ` attempted=${c.attempted} landed=${c.landed}` : ""}${rec.arm === "jevmem" || rec.arm === "guard" ? ` injected=${rec.lineInjected}` : ""}${rec.guard.length ? ` guard=${rec.guard.map((g) => g.decision).join(",")}` : ""} (${Math.round(rec.ms / 1000)} s, ${rec.turns} turns${c.error ? `, CHECK ERROR ${c.error.split("\n")[0]}` : ""}) ${c.note ?? ""}`);
+    console.error(`[${records.length}] ${rec.id} ${rec.arm} run ${rec.run}: followed=${c.followed} done=${c.done}${c.stale !== undefined ? ` stale=${c.stale}` : ""}${c.repeated !== undefined ? ` repeated=${c.repeated}` : ""}${c.attempted !== undefined ? ` attempted=${c.attempted} landed=${c.landed}` : ""}${rec.arm === "jevmem" || rec.arm === "guard" ? ` injected=${rec.lineInjected}` : ""}${rec.guard.length ? ` guard=${rec.guard.map((g) => g.decision).join(",")}` : ""} (${Math.round(rec.ms / 1000)} s, ${rec.turns} turns${c.error ? `, CHECK ERROR ${c.error.split("\n")[0]}` : ""}) ${c.note ?? ""}`);
   }
 }
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
