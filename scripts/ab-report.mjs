@@ -6,6 +6,7 @@
 //   (--write adds a `summary` block to the file, and with --transcripts the re-read turns and end states)
 import fs from "node:fs";
 import path from "node:path";
+import { readEvents, toolCallsOf } from "./ab-lib.mjs";
 
 const args = process.argv.slice(2);
 const file = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--transcripts");
@@ -16,6 +17,7 @@ const data = JSON.parse(fs.readFileSync(file, "utf8"));
 if (args.includes("--transcripts")) {
   const dir = args[args.indexOf("--transcripts") + 1];
   let changed = 0;
+  let hooks = 0;
   for (const r of data.records) {
     const f = path.join(dir, r.transcript ?? "");
     if (!r.transcript || !fs.existsSync(f)) continue;
@@ -30,8 +32,17 @@ if (args.includes("--transcripts")) {
     if (!last) continue;
     if (r.turns !== (last.num_turns ?? null)) changed++;
     Object.assign(r, { turns: last.num_turns ?? null, end: last.subtype ?? null, resultText: String(last.result ?? "").slice(0, 600), result_events: results.length });
+    // Which calls a PreToolUse hook ran on, paired again with scripts/ab-lib.mjs (the record keeps the calls in order).
+    const calls = toolCallsOf(readEvents(f));
+    if (calls.length === r.toolCalls.length)
+      r.toolCalls.forEach((c, i) => {
+        if (calls[i].hooked) {
+          if (c.hook !== calls[i].hook) hooks++;
+          c.hook = calls[i].hook;
+        } else delete c.hook;
+      });
   }
-  data.reread = `turns, end and resultText from the last result event of each session's transcript; turns changed in ${changed} records, the ones with two result events`;
+  data.reread = `turns, end and resultText from the last result event of each session's transcript (turns changed in ${changed} records, the ones with two result events), and the PreToolUse hook paired again with each call (${hooks} calls changed)`;
 }
 const recs = data.records.filter((r) => r.kind === "task");
 const ARMS = ["none", "jevmem", "guard", "claudemd"].filter((a) => recs.some((r) => r.arm === a));

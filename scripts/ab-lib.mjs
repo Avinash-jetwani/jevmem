@@ -24,12 +24,14 @@ export function readEvents(file) {
  * Tool calls in order, with the agent that made them (null: the main session), whether their result was an error, and
  * whether a PreToolUse hook ran on them (`hooked`) with what it answered (`hook`: none, ask, deny, warn). The stream
  * names the hook ("PreToolUse:Bash") but not the call, so each hook start goes to the earliest call of that tool that
- * has no hook and no result yet: a hook runs before its call's result.
+ * has no hook and no result yet (a hook runs before its call's result). A subagent's hook start can come before its
+ * call in the stream; it then waits for the next call of that tool.
  */
 export function toolCallsOf(events) {
   const calls = [];
   const byId = new Map();
   const byHook = new Map();
+  const early = [];
   for (const e of events) {
     if (e.type === "system" && (e.hook_event ?? e.hook_event_name) === "PreToolUse") {
       if (e.subtype === "hook_started") {
@@ -39,6 +41,10 @@ export function toolCallsOf(events) {
           call.hooked = true;
           call.hook = "none";
           byHook.set(e.hook_id, call);
+        } else {
+          const pending = { tool, hookId: e.hook_id, hook: "none" };
+          early.push(pending);
+          byHook.set(e.hook_id, pending);
         }
       } else if (e.subtype === "hook_response" && byHook.has(e.hook_id)) {
         const out = String(e.stdout ?? e.output ?? "").trim();
@@ -57,6 +63,13 @@ export function toolCallsOf(events) {
     for (const c of content) {
       if (e.type === "assistant" && c.type === "tool_use") {
         const call = { id: c.id, name: c.name, input: c.input ?? {}, parent: e.parent_tool_use_id ?? null, error: null, result: null, hooked: false, hook: null };
+        const i = early.findIndex((p) => p.tool === c.name);
+        if (i >= 0) {
+          const [pending] = early.splice(i, 1);
+          call.hooked = true;
+          call.hook = pending.hook;
+          byHook.set(pending.hookId, call);
+        }
         calls.push(call);
         byId.set(c.id, call);
       }

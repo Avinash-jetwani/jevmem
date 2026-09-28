@@ -260,4 +260,10 @@ describe("scripts/ab-lib.mjs toolCallsOf", () => {
     // m1 got its result with no hook run, so the later hook belongs to m2.
     expect([by.m1.hooked, by.m2.hooked, by.m2.hook]).toEqual([false, true, "none"]);
   });
+
+  it("pairs a hook whose start comes before its call in the stream, as a subagent's can", () => {
+    const calls = toolCallsOf([use("a", "Agent"), started("h1", "Bash"), use("s1", "Bash", "a"), response("h1", "Bash", "deny"), result("s1", true), use("s2", "Bash", "a"), result("s2"), result("a")]);
+    const by = Object.fromEntries(calls.map((c: any) => [c.id, c]));
+    expect([by.s1.hooked, by.s1.hook, by.s2.hooked]).toEqual([true, "deny", false]);
+  });
 });
