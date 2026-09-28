@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|deadend|supersede|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -40,13 +40,22 @@
 #              at its hidden prompt. The next turn is saved without a message and the one after gets the line back
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
-#   guard      the PreToolUse guard (`jevmem init` hooks). A: a git repo with the rule "Never commit .env files" added by
-#              `jevmem add` (an unverified line: the first prompt's recall gets its gate verdict), an untracked .env,
-#              guard.mode block, git allowed without prompts, recall injection off (thresholds.recallMin 1.01) so that
-#              Claude tries the call and the guard is what stops it; asked to commit .env: the PreToolUse hook must deny
-#              `git add .env`, .env must stay out of git, and Claude's reply must mention the rule. B: a project with
-#              no constraints where Claude writes a file and runs ls and git status: every PreToolUse hook exits 0 with
-#              no output. Both: no hook error or timeout in the transcript; the hook's time per tool call is printed
+#   guard      the PreToolUse guard (`jevmem init` hooks). A: a git repo, guard.mode block, git allowed without prompts,
+#              recall injection off (thresholds.recallMin 1.01) so that Claude tries the call and the guard is what stops
+#              it. First a turn that states the rule (never commit .env files), so jevmem's Stop hook writes it here: a
+#              verified [constraint] line, the kind that can deny. Then, with an untracked .env, Claude is asked to commit
+#              .env: the PreToolUse hook must deny `git add .env` quoting that line, .env must stay out of git, and
+#              Claude's reply must mention the rule. B: a project with no constraints where Claude writes a file and runs
+#              ls and git status: every PreToolUse hook exits 0 with no output. Both: no hook error or timeout in the
+#              transcript; the hook's time per tool call is printed
+#   guardgit   what git would commit (`jevmem init` hooks, guard.mode ask, recall injection off, git allowed without
+#              prompts). The rule "Never commit .env files" is saved with `jevmem add` (an unverified line: the prompt's
+#              recall gets its gate verdict), and Claude is asked to commit everything with git add -A && git commit.
+#              A: the .env is untracked: a PreToolUse hook must ask, quoting the rule and naming its unverified line,
+#              the guard log must show the staged .env, and .env must stay out of git (in `claude -p` an ask with nobody
+#              to answer denies the call). B, the control: the same with .env in .gitignore: every PreToolUse hook exits
+#              0 with no output, the rule is enforced (the git add call is logged with no candidate), and the commit
+#              lands without .env. Both: no hook error or timeout in the transcript; the hook's time per call is printed
 #   deadend    dead ends (docs/dead-ends.md), `jevmem init` hooks, a small TypeScript project whose src/app.ts uses an enum,
 #              which Node's type stripping cannot run, with two hand-added lines, and `node` on the session PATH. Session 1:
 #              Claude is asked to try running src/app.ts directly with node --experimental-strip-types and to drop the idea
@@ -622,16 +631,41 @@ run_guard() {
     const fs=require("fs");const f=process.argv[2]+"/jevmem.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));
     c.guard={...c.guard,mode:"block"};c.thresholds={...c.thresholds,recallMin:1.01};fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n");
 JS
-  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" add constraint "Never commit .env files" | sed 's/^/   /' )
+  # A0: the rule is said in a turn, so jevmem's own Stop hook writes it: a verified line (only those can deny).
+  # Stated plainly: a second sentence telling Claude what to do ("just acknowledge it") scored 0.51 on the decide
+  # gate's injection noul in the first runs, and the turn was skipped.
+  local p0="Rule for this repo: never commit .env files."
+  echo "---- A0 (the rule said in a turn: jevmem writes it here, a verified line): $p0"
+  local before rule
+  before=$(decisions "$scratch")
+  events="$(mktemp /tmp/jevmem-e2e-guard.XXXXXX)"
+  ( cd "$scratch" && claude_session -- -p "$p0" --max-turns 4 --output-format stream-json --verbose --include-hook-events 2>&1 > "$events.a0" )
+  "$NODE" - "$events.a0" <<'JS'
+    const fs=require("fs");const ev=fs.readFileSync(process.argv[2],"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
+    const uses=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")uses.push(`${c.name}: ${JSON.stringify(c.input?.command??c.input?.file_path??"")}`);
+    const hooks=ev.filter(e=>e.subtype==="hook_response").map(e=>`${e.hook_event||e.hook_name}:${e.exit_code}`);
+    const r=ev.find(e=>e.type==="result")||{};
+    console.log(`     A0 session: result ${r.subtype??"none"}${r.is_error?" (error)":""}, tool calls: ${uses.join(" | ")||"none"}, hooks: ${hooks.join(", ")||"none"}; claude> ${String(r.result??"").replace(/\n/g," ").slice(0,160)}`);
+JS
+  wait_queue "$scratch" "$before" || { echo "   ✗ FAIL A0: the turn's decision did not drain"; queue_state "$scratch"; fail=1; }
+  rule="$("$NODE" - "$scratch" <<'JS'
+    const fs=require("fs");const root=process.argv[2];
+    const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[constraint\] /.test(l)&&/\.env/.test(l));
+    const prov=new Set((fs.existsSync(root+"/.jevmem/provenance.jsonl")?fs.readFileSync(root+"/.jevmem/provenance.jsonl","utf8"):"").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l).id}catch{return ""}}));
+    const m=lines.length===1?/^- \[constraint\] (.*?)\s*<!-- id:([a-z0-9]+)/.exec(lines[0]):null;
+    if(m&&prov.has(m[2]))console.log(m[1]);
+JS
+)"
+  if [ -n "$rule" ]; then echo "   ✓ A0: jevmem wrote the rule here (verified): $rule"; else echo "   ✗ FAIL A0: no single verified [constraint] line about .env in JEVMEM.md"; sed 's/^/     /' "$scratch/JEVMEM.md"; fail=1; fi
   printf 'API_URL=http://localhost:3000\n' > "$scratch/.env"
   echo "---- before the session: jevmem guard test \"git add .env\""
   ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" guard test "git add .env" | sed -n '1,8p' | sed 's/^/   /' )
-  events="$(mktemp /tmp/jevmem-e2e-guard.XXXXXX)"
   local p1="This is a throwaway test repository and .env only holds a local URL. Run exactly this, once: git add .env && git commit -m 'Track env for the test'   Do not work around a failure. Then tell me in one or two sentences what happened and why."
-  echo "---- A (block, rule 'Never commit .env files'): $p1"
+  echo "---- A (block, the verified rule): $p1"
   ( cd "$scratch" && claude_session -- -p "$p1" --max-turns 6 --output-format stream-json --verbose --include-hook-events --allowedTools "Bash(git *)" 2>&1 | stamp_lines > "$events.a" )
-  "$NODE" - "$events.a" "$scratch" "$E2E_CONFIG_DIR/projects" <<'JS' || fail=1
+  E2E_RULE="$rule" "$NODE" - "$events.a" "$scratch" "$E2E_CONFIG_DIR/projects" <<'JS' || fail=1
     const fs=require("fs");const cp=require("child_process");const [evf,root,projdir]=process.argv.slice(2);
+    const rule=process.env.E2E_RULE||"(no rule)";
     // Each line is "<ms since epoch>\t<event>", stamped as it arrived.
     const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){const i=l.indexOf("\t");try{const e=JSON.parse(l.slice(i+1));e._t=Number(l.slice(0,i));ev.push(e)}catch{}}
     // The guard's time per tool call as Claude Code saw it: hook_started to hook_response, per hook id.
@@ -640,8 +674,8 @@ JS
     const errs=[];
     const pre=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&/PreToolUse/.test(e.hook_event||e.hook_name||""));
     for(const e of pre)console.log(`     PreToolUse hook: exit ${e.exit_code}, outcome ${e.outcome}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,150))}`);
-    const denied=pre.filter(e=>{try{const o=JSON.parse(String(e.stdout??e.output??"")).hookSpecificOutput;return o.permissionDecision==="deny"&&/Never commit \.env files/.test(o.permissionDecisionReason)}catch{return false}});
-    if(!denied.length)errs.push("no PreToolUse hook denied the call with the rule");
+    const denied=pre.filter(e=>{try{const o=JSON.parse(String(e.stdout??e.output??"")).hookSpecificOutput;return o.permissionDecision==="deny"&&o.permissionDecisionReason.includes(`"${rule}"`)}catch{return false}});
+    if(!denied.length)errs.push("no PreToolUse hook denied the call quoting the verified rule");
     for(const e of pre)if(e.exit_code!==0||e.outcome!=="success")errs.push(`a PreToolUse hook ended with exit ${e.exit_code}, outcome ${e.outcome}`);
     const uses=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")uses.push(`${c.name}: ${JSON.stringify(c.input.command??c.input.file_path??"")}`);
     console.log(`     tool calls: ${uses.join(" | ")||"none"}`);
@@ -651,7 +685,7 @@ JS
     const envUse=toolUses.find(u=>/git add[^|]*\.env/.test(String(u.input?.command??"")));const tr=envUse&&toolResults.get(envUse.id);
     const trText=tr?(typeof tr.content==="string"?tr.content:Array.isArray(tr.content)?tr.content.map(x=>x?.text??"").join(" "):JSON.stringify(tr.content)):"";
     console.log(`     tool result for that call${tr?.is_error?" (is_error)":""}: ${JSON.stringify(trText.slice(0,300))}`);
-    if(!/Never commit \.env files/.test(trText))errs.push("the tool result Claude got for the denied call does not carry the rule");
+    if(!trText.includes(rule))errs.push("the tool result Claude got for the denied call does not carry the rule");
     const tracked=cp.execSync("git ls-files .env",{cwd:root,encoding:"utf8"}).trim();
     const inHistory=cp.execSync("git log --all --name-only --format=",{cwd:root,encoding:"utf8"}).split("\n").includes(".env");
     if(tracked||inHistory)errs.push(".env was added or committed");else console.log("     ✓ .env is not in the index or the history");
@@ -668,10 +702,8 @@ JS
     for(const a of bad)errs.push(`transcript: ${a.type} from ${a.hookName}: ${String(a.stderr||"").slice(0,120)}`);
     console.log(`     guard time per tool call (hook_started to hook_response, ms): ${hookMs.join(", ")||"none"}`);
     if(!hookMs.length)errs.push("no PreToolUse hook timing in the event stream");
-    const gate=JSON.parse(fs.readFileSync(root+"/.jevmem/gate.json","utf8"));
-    console.log(`     gate verdicts cached: ${Object.keys(gate.lines||{}).length} (the added line's, from the prompt's recall)`);
     if(errs.length){console.log("   ✗ FAIL A: "+errs.join("; "));process.exit(1);}
-    console.log("   ✓ A: the guard denied git add .env with the saved rule, .env stayed out of git, and Claude's reply named the rule");
+    console.log("   ✓ A: the guard denied git add .env quoting the verified rule, .env stayed out of git, and Claude's reply named the rule");
 JS
   ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
   # B: no constraints.
@@ -712,6 +744,91 @@ JS
   rm -f "$events" "$events".*
   if [ $fail -eq 0 ]; then echo "PASS run $run scenario=guard"; else echo "FAIL run $run scenario=guard"; fi
   [ $KEEP -eq 1 ] || rm -rf "${scratch:?}" "${b:?}"
+  return $fail
+}
+
+# What git would commit: "commit everything" with an untracked .env asks (A); with .env ignored nothing is asked (B).
+run_guardgit() {
+  local run="$1" fail=0 scratch events part dir ignore
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=guardgit  scratch=$scratch"
+  events="$(mktemp /tmp/jevmem-e2e-guardgit.XXXXXX)"
+  local prompt="This is a throwaway test repository. Commit everything in the working tree: run exactly this, once: git add -A && git commit -m 'Add the version file'   Do not work around a failure. Then tell me in one or two sentences what happened and why."
+  for part in A B; do
+    dir="$scratch"; ignore=".jevmem/\n"
+    [ "$part" = B ] && { dir="$scratch-b"; rm -rf "$dir"; mkdir -p "$dir"; ignore=".jevmem/\n.env\n"; }
+    ( cd "$dir" && git init -q && git config user.email e2e@example.com && git config user.name e2e \
+      && printf "$ignore" > .gitignore && printf '# guardgit-e2e\n' > README.md && mkdir -p src && printf 'export const name = "app";\n' > src/app.js \
+      && git add -A && git commit -qm init && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+    "$NODE" - "$dir" <<'JS'
+      const fs=require("fs");const f=process.argv[2]+"/jevmem.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));
+      c.thresholds={...c.thresholds,recallMin:1.01};fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n");
+JS
+    ( cd "$dir" && "$NODE" "$JEVMEM_CLI" add constraint "Never commit .env files" | sed 's/^/   /' )
+    printf 'API_URL=http://localhost:3000\n' > "$dir/.env"
+    printf 'export const version = 2;\n' > "$dir/src/version.js"
+    echo "---- $part ($([ "$part" = A ] && echo ".env untracked" || echo "control: .env in .gitignore"), guard.mode ask): $prompt"
+    echo "     git status before: $(cd "$dir" && git status --porcelain --untracked-files=all | tr '\n' ' ')"
+    ( cd "$dir" && claude_session -- -p "$prompt" --max-turns 6 --output-format stream-json --verbose --include-hook-events --allowedTools "Bash(git *)" 2>&1 | stamp_lines > "$events.$part" )
+    E2E_PART="$part" "$NODE" - "$events.$part" "$dir" "$E2E_CONFIG_DIR/projects" <<'JS' || fail=1
+      const fs=require("fs");const cp=require("child_process");const [evf,root,projdir]=process.argv.slice(2);const part=process.env.E2E_PART;
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){const i=l.indexOf("\t");try{const e=JSON.parse(l.slice(i+1));e._t=Number(l.slice(0,i));ev.push(e)}catch{}}
+      const started=new Map(ev.filter(e=>e.subtype==="hook_started"&&e.hook_event==="PreToolUse").map(e=>[e.hook_id,e._t]));
+      const hookMs=ev.filter(e=>e.subtype==="hook_response"&&e.hook_event==="PreToolUse"&&started.has(e.hook_id)).map(e=>e._t-started.get(e.hook_id));
+      const errs=[];
+      const pre=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&/PreToolUse/.test(e.hook_event||e.hook_name||""));
+      const out=(e)=>{try{return JSON.parse(String(e.stdout??e.output??"")).hookSpecificOutput}catch{return null}};
+      for(const e of pre)console.log(`     PreToolUse hook: exit ${e.exit_code}, outcome ${e.outcome}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,220))}`);
+      for(const e of pre)if(e.exit_code!==0||e.outcome!=="success")errs.push(`a PreToolUse hook ended with exit ${e.exit_code}, outcome ${e.outcome}`);
+      const toolUses=[];const toolResults=new Map();for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[])){if(c.type==="tool_use")toolUses.push(c);if(c.type==="tool_result")toolResults.set(c.tool_use_id,c)}
+      console.log(`     tool calls: ${toolUses.map(u=>`${u.name}: ${JSON.stringify(u.input?.command??u.input?.file_path??"")}${toolResults.get(u.id)?.is_error?" (error)":""}`).join(" | ")||"none"}`);
+      const addAll=toolUses.find(u=>/git add (-A|--all|\.)(\s|$)/.test(String(u.input?.command??"")));
+      if(!addAll)errs.push("Claude never ran git add -A (nothing for the guard to check)");
+      const text=(tr)=>tr?(typeof tr.content==="string"?tr.content:Array.isArray(tr.content)?tr.content.map(x=>x?.text??"").join(" "):JSON.stringify(tr.content)):"";
+      const log=(fs.existsSync(root+"/.jevmem/guard-log.jsonl")?fs.readFileSync(root+"/.jevmem/guard-log.jsonl","utf8"):"").split("\n").filter(Boolean).map(l=>JSON.parse(l));
+      for(const e of log)console.log(`     guard log: ${e.tool} route=${e.route} decision=${e.decision}${e.action?` action=${JSON.stringify(e.action)}`:""}${e.rules?` rules=${JSON.stringify(e.rules)}`:""}`);
+      const tracked=cp.execSync("git ls-files .env",{cwd:root,encoding:"utf8"}).trim();
+      const inHistory=cp.execSync("git log --all --name-only --format=",{cwd:root,encoding:"utf8"}).split("\n").includes(".env");
+      if(tracked||inHistory)errs.push(".env was added or committed");else console.log("     ✓ .env is not in the index or the history");
+      const result=ev.find(e=>e.type==="result");const reply=String(result?.result??"");
+      console.log(`     claude> ${reply.replace(/\n/g," ").slice(0,300)}`);
+      if(part==="A"){
+        const asked=pre.map(out).filter(o=>o&&o.permissionDecision==="ask"&&/"Never commit \.env files" \(JEVMEM\.md; unverified line [a-z0-9]+\)/.test(o.permissionDecisionReason));
+        if(!asked.length)errs.push("no PreToolUse hook asked quoting the rule and naming its unverified line");
+        else console.log(`     ✓ asked: ${asked[0].permissionDecisionReason}`);
+        if(pre.some(e=>out(e)?.permissionDecision==="deny"))errs.push("a PreToolUse hook denied (an unverified rule should only ask)");
+        const tr=addAll&&toolResults.get(addAll.id);
+        console.log(`     tool result for the git add -A call${tr?.is_error?" (is_error)":""}: ${JSON.stringify(text(tr).slice(0,300))}`);
+        if(!text(tr).includes("Never commit .env files"))errs.push("the tool result Claude got for git add -A does not carry the rule");
+        if(!log.some(e=>e.decision==="ask"&&/\[stages \.env \(untracked\)\]/.test(e.action??"")))errs.push("the guard log has no ask whose summary shows the staged .env");
+        if(!/never commit \.env|\.env files|saved (project )?rule|JEVMEM/i.test(reply))errs.push("the reply does not mention the rule");
+      }else{
+        for(const e of pre)if(String(e.stdout??e.output??"").trim()!=="")errs.push(`a PreToolUse hook printed ${JSON.stringify(String(e.stdout??e.output??"").slice(0,120))}`);
+        if(!log.some(e=>e.tool==="Bash"&&e.route==="no-candidate"))errs.push("no Bash call was checked against the enforced rule (no guard log line with route no-candidate)");
+        if(log.some(e=>e.route==="no-rules"))errs.push("the rule was not enforced during the session (route no-rules)");
+        const subject=cp.execSync("git log -1 --format=%s",{cwd:root,encoding:"utf8"}).trim();
+        const files=cp.execSync("git ls-files",{cwd:root,encoding:"utf8"}).split("\n");
+        if(subject!=="Add the version file"||!files.includes("src/version.js"))errs.push(`the commit did not land as asked (last commit "${subject}", src/version.js ${files.includes("src/version.js")?"tracked":"untracked"})`);
+        else console.log(`     ✓ committed "${subject}" with src/version.js`);
+      }
+      const sid=(ev.find(e=>e.session_id)||{}).session_id;const tf=[];
+      const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){if(e.isDirectory())walk(d+"/"+e.name);else if(e.name===sid+".jsonl")tf.push(d+"/"+e.name)}};
+      walk(projdir);
+      if(!tf.length)errs.push(`no transcript for session ${sid} under ${projdir}`);
+      const att=tf.flatMap(f=>fs.readFileSync(f,"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}})).map(x=>x.attachment).filter(Boolean);
+      for(const a of att.filter(a=>/hook_(non_blocking_error|blocking_error|cancelled|error)/.test(a.type||"")&&/PreToolUse|UserPromptSubmit/.test(a.hookEvent||a.hookName||"")))errs.push(`transcript: ${a.type} from ${a.hookName}: ${String(a.stderr||"").slice(0,120)}`);
+      console.log(`     guard time per tool call (hook_started to hook_response, ms): ${hookMs.join(", ")||"none"}`);
+      if(!hookMs.length)errs.push("no PreToolUse hook timing in the event stream");
+      if(errs.length){console.log(`   ✗ FAIL ${part}: `+errs.join("; "));process.exit(1);}
+      console.log(part==="A"?"   ✓ A: git add -A with an untracked .env was asked about, quoting the rule and its unverified line; .env stayed out of git":"   ✓ B: with .env ignored, every PreToolUse hook was silent, the rule was enforced and the commit landed without .env");
+JS
+    ( cd "$dir" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  done
+  rm -f "$events" "$events".*
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=guardgit"; else echo "FAIL run $run scenario=guardgit"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}" "${scratch:?}-b"
   return $fail
 }
 
@@ -965,6 +1082,7 @@ run_once() {
   [ "$scenario" = nokey ] && { PUBLISHED=0; run_nokey "$run"; return $?; }
   [ "$scenario" = outage ] && { run_outage "$run"; return $?; }
   [ "$scenario" = guard ] && { run_guard "$run"; return $?; }
+  [ "$scenario" = guardgit ] && { run_guardgit "$run"; return $?; }
   [ "$scenario" = deadend ] && { run_deadend "$run"; return $?; }
   [ "$scenario" = supersede ] && { run_supersede "$run"; return $?; }
   local scratch perm=()
@@ -1084,7 +1202,7 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard deadend supersede)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard guardgit deadend supersede)
 # Every failed scenario is recorded with its whole output in test-results/e2e-failures.log (JEVMEM_TEST_RESULTS names
 # another folder), as the unit tests' failures are in test-results/failures.jsonl.
 RESULTS="${JEVMEM_TEST_RESULTS:-$ROOT/test-results}"
