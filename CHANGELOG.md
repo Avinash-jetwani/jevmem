@@ -2,6 +2,28 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.8] - 2026-09-28
+
+A security fix to the secret scrubber, and fixes for turns that were dropped and for an MCP server that had no key. Cut from 0.5.7: none of the unreleased v0.6 work on `main` is in it, and the plugin's files are 0.5.7's apart from the version number.
+
+### Security
+- **In 0.5.7 and earlier, secrets with names like `PGPASSWORD=` in a prompt or turn were not scrubbed, and were sent to TypeSafe.** The scrubber redacted the value after a name only when an underscore came before the word (`DB_PASSWORD=`, from v0.4.0) or the name was one of a few fixed words. So a prompt or turn with `PGPASSWORD=…`, `MYSQLPWD=…` or `"password": "…"` in it was sent with the value as written, and the same text could also be kept in `.jevmem/queue.jsonl`, `.jevmem/decisions.jsonl` and a line saved from that turn in `JEVMEM.md`. **If you used jevmem in an enabled project and your chats contained such lines, rotate those credentials**, and look for them in `JEVMEM.md` (and its git history) and in `.jevmem/`. 0.5.8 redacts the value after a name, from one character up, when a part of the name ends in PASSWORD, PASSWD, PWD, SECRET, TOKEN or KEY, with or without an underscore before it, or is PASS, in `NAME=value`, `NAME: value` and `"name": "value"`, to its closing quote when it is quoted ([SECURITY.md](SECURITY.md#what-is-scrubbed)). The scrubber still matches patterns: a secret in a form it does not know gets through. Some values that are not secrets now lose their value too, such as `token_ttl: 3600`.
+
+### Fixed
+- **Some turns ending in `KEY=value` were dropped without a message.** From v0.1.0 to 0.5.7 the Jev client scrubbed the JSON text of a request, and a `KEY=value` match at the end of a field ran on into the field's closing quote, so the request failed before it was sent. A turn ending that way, such as "For staging, set DB_PASSWORD=hunter2", was dropped with no decision, leaving only a `dropped` line in `.jevmem/log.jsonl`; a prompt ending that way got no project memory; a memory line ending that way broke the requests that included it. More endings did this from v0.4.0 (`password=`, `DB_PASSWORD=`, `STRIPE_KEY=`) than before (`token=` and `api_key:` with 8 or more characters). Nothing was sent in those requests. 0.5.8 scrubs each string of a request on its own.
+- **`jevmem audit` and MCP `audit_memory` stopped with a JSON error** in 0.5.7 on a repository whose `package.json` has a script ending in a secret, such as `vercel --token=$VERCEL_TOKEN`: they scrubbed the snapshot's JSON text, the same mistake. They scrub each string now.
+- **The MCP server didn't read the key files, which affected Codex setups.** In 0.5.7 and earlier, the MCP server did not read `<project>/.jevmem/.env` or `~/.jevmem/env`, although docs/mcp.md and docs/configuration.md said it did. A server set up by `jevmem init --tool codex`, which writes no key into Codex's config, answered search, add and audit with "TYPESAFE_API_KEY is not set", and so did any other MCP setup whose key was only in those files. 0.5.8 reads both files when a tool needs Jev and no key is set, on each call, so a key saved while it runs is used without a restart. The plugin setting and the environment still come first.
+
+### Tests
+- **The forms the scrubber catches, and near misses that must stay as they are** (`keyboard`, `tokenizer`, `monkey` and others, in each form), in `test/scrub.test.ts`. 0.5.7's scrubber is kept as a fixture (`test/fixtures/scrub-0.5.7`), checked against the v0.5.7 tag, so the tests can show what 0.5.7 sent.
+- **Requests that end a field with a secret** (`test/scrub-requests.test.ts`): a `Stop` turn and a prompt whose text or memory lines end with `KEY=value`, `KEY=[REDACTED]` or a value, a newline and one word, through the real client to a local stand-in for Jev: each request is sent, valid and scrubbed. `test/audit.test.ts` does the same for a script ending in `--token=$VERCEL_TOKEN`.
+- **The MCP server's key files** (`test/keychange.test.ts`, `test/dormant.test.ts`, against a local stand-in for Jev): a key saved in `~/.jevmem/env` while the server runs is used on the next call, and a server whose key is only in that file answers search, add and audit.
+- The tests for each fix fail on 0.5.7's code; the near misses pass on both.
+- **Tests run with a temporary HOME and no keys from the machine** (`test/setup.ts`): `TYPESAFE_*`, `OPENAI_*`, `ANTHROPIC_*`, `JEVMEM_*` and `CLAUDE_*` variables are removed before each test file. 0.5.7's tests inherited the home and keys of the machine that ran them.
+
+### Release
+- On this branch the release workflow skips the `directory` job for a tag that is not on `main`, so 0.5.8 is published to npm and the Claude plugin directory keeps its current plugin.
+
 ## [0.5.7] - 2026-09-26
 
 A privacy page for the directory listing. No change to the CLI's or the plugin's behaviour.
