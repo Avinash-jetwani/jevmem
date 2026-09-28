@@ -1,9 +1,11 @@
 /**
  * The retrieval eval sets of v0.6 part 3 (eval/recall-dev.jsonl for tuning, eval/recall-heldout.jsonl run once at the
- * end), committed before any change to recall: each holds three memory files (small, medium, large) and prompts of five
- * types, labelled with the lines they need, the lines that are fine to add, and the lines they must never get. The two
- * sets share no text with each other, with any other eval set (including the outcome A/B's memory lines), or with the
- * questions jevmem asks Jev (src/questions.ts, src/guard.ts, src/recall.ts, src/guardrail.ts).
+ * end), committed before any change to recall, and part 3b's fresh held-out set (eval/recall-heldout-v2.jsonl, the same
+ * design, committed before any change in that part): each holds three memory files (small, medium, large) and prompts of
+ * five types, labelled with the lines they need, the lines that are fine to add, and the lines they must never get. The
+ * sets share no text with each other, with any other eval set (including the outcome A/B's memory lines and the Stop
+ * hook's sessions), or with the questions jevmem asks Jev (src/questions.ts, src/guard.ts, src/recall.ts,
+ * src/guardrail.ts).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -12,7 +14,7 @@ import { parseLine } from "../src/memfile.js";
 import { formatLine } from "../src/store.js";
 
 const read = (f: string) => fs.readFileSync(path.resolve(f), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-const SETS = { dev: read("eval/recall-dev.jsonl"), heldout: read("eval/recall-heldout.jsonl") };
+const SETS = { dev: read("eval/recall-dev.jsonl"), heldout: read("eval/recall-heldout.jsonl"), heldout2: read("eval/recall-heldout-v2.jsonl") };
 const TYPES = ["direct", "indirect", "unrelated", "supersede", "dead-end"];
 const SIZES: Record<string, [number, number]> = { small: [15, 30], medium: [60, 100], large: [200, 300] };
 const MIN_PROMPTS: Record<string, number> = { small: 4, medium: 6, large: 8 };
@@ -40,7 +42,8 @@ function otherTexts(): { file: string; text: string }[] {
   for (const f of fs.readdirSync("eval").filter((f) => f.endsWith(".jsonl") && !f.startsWith("recall-"))) {
     for (const r of read(path.join("eval", f))) {
       const texts: string[] = [];
-      if (r.type === "rules") texts.push(...r.rules.map((x: any) => x.text));
+      if (r.row === "session") texts.push(...r.prompts);
+      else if (r.type === "rules") texts.push(...r.rules.map((x: any) => x.text));
       else if (r.type === "call") texts.push(...[r.command, r.file, r.old, r.new, r.content].filter(Boolean));
       else if (typeof r.text === "string") texts.push(...[r.text, r.query].filter(Boolean));
       else texts.push(...[r.user, r.assistant, r.previous, ...(r.existing ?? []).map((m: any) => m.text)].filter(Boolean));
@@ -130,16 +133,20 @@ describe("eval/recall-*.jsonl", () => {
   }
 
   it("the sets share no text with each other (normalised: no equal text, and no shared 5-word run)", () => {
-    const dev = setTexts(SETS.dev);
-    const held = setTexts(SETS.heldout);
-    const devSh = new Map<string, string>();
-    for (const t of dev) for (const s of shingles(t, 5)) devSh.set(s, t);
-    const devNorm = new Set(dev.map(norm));
+    const names = Object.keys(SETS) as (keyof typeof SETS)[];
     const hits: string[] = [];
-    for (const t of held) {
-      if (devNorm.has(norm(t))) hits.push(`equal: ${t}`);
-      for (const s of shingles(t, 5)) if (devSh.has(s)) hits.push(`"${s}" in held-out "${t}" and dev "${devSh.get(s)}"`);
-    }
+    for (let i = 0; i < names.length; i++)
+      for (let j = i + 1; j < names.length; j++) {
+        const a = setTexts(SETS[names[i]!]);
+        const b = setTexts(SETS[names[j]!]);
+        const aSh = new Map<string, string>();
+        for (const t of a) for (const s of shingles(t, 5)) aSh.set(s, t);
+        const aNorm = new Set(a.map(norm));
+        for (const t of b) {
+          if (aNorm.has(norm(t))) hits.push(`equal in ${names[i]} and ${names[j]}: ${t}`);
+          for (const s of shingles(t, 5)) if (aSh.has(s)) hits.push(`"${s}" in ${names[j]} "${t}" and ${names[i]} "${aSh.get(s)}"`);
+        }
+      }
     expect(hits).toEqual([]);
   });
 
