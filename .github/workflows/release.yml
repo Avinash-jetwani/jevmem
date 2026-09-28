@@ -15,6 +15,10 @@ name: release
 # After npm publish succeeds, the `directory` job fast-forwards the `directory` branch to the tagged commit. The
 # Claude plugin directory follows that branch, so a plugin version reaches it only once its CLI is on npm. The push
 # has no --force: if the tag is not ahead of `directory`, the job fails instead.
+#
+# On the release/0.5.x branch (0.5.x patches cut from v0.5.7): the `main_check` job says whether the tagged commit is
+# on main, and the `directory` job runs only when it is. A patch tag from this branch is published to npm and leaves
+# the `directory` branch as it is: the job shows as skipped, not failed.
 
 on:
   push:
@@ -50,6 +54,26 @@ jobs:
           tar xzf /tmp/pack/jevmem-*.tgz -C /tmp/pkg
           node /tmp/pkg/package/dist/cli.js --version
 
+  main_check:
+    # Is the tagged commit on main? Only then does the directory job run.
+    runs-on: ubuntu-latest
+    outputs:
+      on_main: ${{ steps.check.outputs.on_main }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: check
+        run: |
+          set -eu
+          git fetch origin main
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "on_main=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "on_main=false" >> "$GITHUB_OUTPUT"
+            echo "$GITHUB_REF_NAME ($GITHUB_SHA) is not on main: the directory job is skipped"
+          fi
+
   publish:
     needs: verify
     if: vars.NPM_PUBLISH == 'true'
@@ -75,7 +99,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   directory:
-    needs: publish
+    needs: [publish, main_check]
+    if: needs.main_check.outputs.on_main == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write # push the directory branch (fast-forward only)
