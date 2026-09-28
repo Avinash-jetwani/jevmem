@@ -1,0 +1,4742 @@
+{
+  "kind": "recall",
+  "set": "heldout",
+  "file": "eval/recall-heldout.jsonl",
+  "date": "2026-09-28",
+  "started_at": "2026-09-28T17:18:50.392Z",
+  "finished_at": "2026-09-28T17:26:17.551Z",
+  "jevmem_version": "0.5.9",
+  "package": "~/jevmem/node_modules/.cache/jevmem-v0.5.9-npm/node_modules/jevmem",
+  "commit": null,
+  "label": "v059",
+  "paired_with": [
+    {
+      "label": "now",
+      "version": "0.5.7",
+      "commit": "a5a8512",
+      "file": "results/recall-heldout-2026-09-28-now.json"
+    }
+  ],
+  "machine": "darwin arm64, node v22.22.0",
+  "thresholds": {
+    "recallTopK": 5,
+    "recallMin": 0.05,
+    "maxRecallCandidates": 60,
+    "hookJevTimeoutMs": 2000
+  },
+  "tokens_counted_with": "anthropic/claude-sonnet-5 (prompt tokens of the whole injected context sent as one user message, minus those of \".\", from OpenRouter's usage)",
+  "cost_method": "Jev input tokens × $0.042 per million; output tokens free",
+  "method": "Each memory file is written into a scratch project per build in jevmem's line format (superseded lines tagged, every live line recorded as written by jevmem here, so verified), jev.cache off. Each prompt is sent through the real hook (`node <pkg>/dist/cli.js hook`, the UserPromptSubmit payload on stdin) after two warm-up prompts, so the warm daemon serves it; with several builds, each prompt goes to each build in turn, alternating the order. Injected lines are read from the hook's output; the Jev call's latency and input tokens from .jevmem/log.jsonl; hook time is the hook process's wall time. recall = wanted lines injected / wanted lines; precision = injected lines that are wanted or ok / injected lines; unrelated = unrelated prompts that got any line; leaks = prompts that got a superseded line; a Jev call that failed or ran past the hook's 2-second budget injects nothing and counts as a miss (answered_* leaves those prompts out).",
+  "files": [
+    {
+      "id": "heldout-small",
+      "size": "small",
+      "project": "tallyup",
+      "lines": 20,
+      "live": 18,
+      "superseded": 2,
+      "deadEnds": 2
+    },
+    {
+      "id": "heldout-medium",
+      "size": "medium",
+      "project": "wavecast",
+      "lines": 80,
+      "live": 74,
+      "superseded": 6,
+      "deadEnds": 6
+    },
+    {
+      "id": "heldout-large",
+      "size": "large",
+      "project": "clinicrota",
+      "lines": 250,
+      "live": 220,
+      "superseded": 30,
+      "deadEnds": 20
+    }
+  ],
+  "overall": {
+    "prompts": 90,
+    "recall": 0.6666666666666666,
+    "recall_frac": "52/78",
+    "served_frac": "46/72",
+    "precision": 0.6666666666666666,
+    "precision_frac": "76/114",
+    "unrelated_injected_frac": "7/18",
+    "unrelated_injected_rate": 0.3888888888888889,
+    "superseded_leak_frac": "0/90",
+    "never_hit_frac": "0/90",
+    "jev_failures": 1,
+    "jev_failed_frac": "1/90",
+    "answered_recall_frac": "52/77",
+    "answered_recall": 0.6753246753246753,
+    "answered_precision_frac": "76/114",
+    "answered_precision": 0.6666666666666666,
+    "answered_unrelated_frac": "7/18",
+    "lines_per_prompt": 1.2666666666666666,
+    "lines_per_injecting_prompt": 1.4615384615384615,
+    "context_chars_per_prompt": 526.8555555555556,
+    "context_tokens_per_prompt": 196.72222222222223,
+    "context_tokens_counted_frac": "90/90",
+    "context_tokens_per_injecting_prompt": 226.98717948717947,
+    "hook_p50_ms": 356,
+    "hook_p95_ms": 1117,
+    "jev_p50_ms": 268,
+    "jev_p95_ms": 1022,
+    "input_tokens_per_prompt": 5317.788888888889,
+    "cost_per_prompt_usd": 0.00022585665168539323,
+    "via_daemon_frac": "89/90"
+  },
+  "by_size": {
+    "small": {
+      "prompts": 20,
+      "recall": 0.75,
+      "recall_frac": "12/16",
+      "served_frac": "12/16",
+      "precision": 0.7142857142857143,
+      "precision_frac": "15/21",
+      "unrelated_injected_frac": "1/4",
+      "unrelated_injected_rate": 0.25,
+      "superseded_leak_frac": "0/20",
+      "never_hit_frac": "0/20",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/20",
+      "answered_recall_frac": "12/16",
+      "answered_recall": 0.75,
+      "answered_precision_frac": "15/21",
+      "answered_precision": 0.7142857142857143,
+      "answered_unrelated_frac": "1/4",
+      "lines_per_prompt": 1.05,
+      "lines_per_injecting_prompt": 1.2352941176470589,
+      "context_chars_per_prompt": 463.1,
+      "context_tokens_per_prompt": 171.5,
+      "context_tokens_counted_frac": "20/20",
+      "context_tokens_per_injecting_prompt": 201.76470588235293,
+      "hook_p50_ms": 328,
+      "hook_p95_ms": 410,
+      "jev_p50_ms": 246,
+      "jev_p95_ms": 319,
+      "input_tokens_per_prompt": 1856.15,
+      "cost_per_prompt_usd": 0.00007795830000000001,
+      "via_daemon_frac": "20/20"
+    },
+    "medium": {
+      "prompts": 30,
+      "recall": 0.7307692307692307,
+      "recall_frac": "19/26",
+      "served_frac": "17/24",
+      "precision": 0.8055555555555556,
+      "precision_frac": "29/36",
+      "unrelated_injected_frac": "4/6",
+      "unrelated_injected_rate": 0.6666666666666666,
+      "superseded_leak_frac": "0/30",
+      "never_hit_frac": "0/30",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/30",
+      "answered_recall_frac": "19/26",
+      "answered_recall": 0.7307692307692307,
+      "answered_precision_frac": "29/36",
+      "answered_precision": 0.8055555555555556,
+      "answered_unrelated_frac": "4/6",
+      "lines_per_prompt": 1.2,
+      "lines_per_injecting_prompt": 1.2857142857142858,
+      "context_chars_per_prompt": 523.2333333333333,
+      "context_tokens_per_prompt": 194.83333333333334,
+      "context_tokens_counted_frac": "30/30",
+      "context_tokens_per_injecting_prompt": 208.75,
+      "hook_p50_ms": 361,
+      "hook_p95_ms": 460,
+      "jev_p50_ms": 275,
+      "jev_p95_ms": 369,
+      "input_tokens_per_prompt": 5847.466666666666,
+      "cost_per_prompt_usd": 0.0002455936,
+      "via_daemon_frac": "29/30"
+    },
+    "large": {
+      "prompts": 40,
+      "recall": 0.5833333333333334,
+      "recall_frac": "21/36",
+      "served_frac": "17/32",
+      "precision": 0.5614035087719298,
+      "precision_frac": "32/57",
+      "unrelated_injected_frac": "2/8",
+      "unrelated_injected_rate": 0.25,
+      "superseded_leak_frac": "0/40",
+      "never_hit_frac": "0/40",
+      "jev_failures": 1,
+      "jev_failed_frac": "1/40",
+      "answered_recall_frac": "21/35",
+      "answered_recall": 0.6,
+      "answered_precision_frac": "32/57",
+      "answered_precision": 0.5614035087719298,
+      "answered_unrelated_frac": "2/8",
+      "lines_per_prompt": 1.425,
+      "lines_per_injecting_prompt": 1.7272727272727273,
+      "context_chars_per_prompt": 561.45,
+      "context_tokens_per_prompt": 210.75,
+      "context_tokens_counted_frac": "40/40",
+      "context_tokens_per_injecting_prompt": 255.45454545454547,
+      "hook_p50_ms": 368,
+      "hook_p95_ms": 1321,
+      "jev_p50_ms": 281,
+      "jev_p95_ms": 1206,
+      "input_tokens_per_prompt": 6651.35,
+      "cost_per_prompt_usd": 0.0002865196923076924,
+      "via_daemon_frac": "40/40"
+    }
+  },
+  "by_type": {
+    "direct": {
+      "prompts": 18,
+      "recall": 0.9523809523809523,
+      "recall_frac": "20/21",
+      "served_frac": "17/18",
+      "precision": 1,
+      "precision_frac": "21/21",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/18",
+      "answered_recall_frac": "20/21",
+      "answered_recall": 0.9523809523809523,
+      "answered_precision_frac": "21/21",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.1666666666666667,
+      "lines_per_injecting_prompt": 1.1666666666666667,
+      "context_chars_per_prompt": 554.9444444444445,
+      "context_tokens_per_prompt": 204.72222222222223,
+      "context_tokens_counted_frac": "18/18",
+      "context_tokens_per_injecting_prompt": 204.72222222222223,
+      "hook_p50_ms": 356,
+      "hook_p95_ms": 1296,
+      "jev_p50_ms": 268,
+      "jev_p95_ms": 1206,
+      "input_tokens_per_prompt": 5395.055555555556,
+      "cost_per_prompt_usd": 0.00022659233333333334,
+      "via_daemon_frac": "17/18"
+    },
+    "indirect": {
+      "prompts": 18,
+      "recall": 0.75,
+      "recall_frac": "15/20",
+      "served_frac": "13/18",
+      "precision": 0.6,
+      "precision_frac": "18/30",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/18",
+      "answered_recall_frac": "15/20",
+      "answered_recall": 0.75,
+      "answered_precision_frac": "18/30",
+      "answered_precision": 0.6,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.6666666666666667,
+      "lines_per_injecting_prompt": 1.6666666666666667,
+      "context_chars_per_prompt": 643.8333333333334,
+      "context_tokens_per_prompt": 240.88888888888889,
+      "context_tokens_counted_frac": "18/18",
+      "context_tokens_per_injecting_prompt": 240.88888888888889,
+      "hook_p50_ms": 365,
+      "hook_p95_ms": 1321,
+      "jev_p50_ms": 273,
+      "jev_p95_ms": 1247,
+      "input_tokens_per_prompt": 5405.333333333333,
+      "cost_per_prompt_usd": 0.00022702400000000004,
+      "via_daemon_frac": "18/18"
+    },
+    "unrelated": {
+      "prompts": 18,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": 0.25,
+      "precision_frac": "2/8",
+      "unrelated_injected_frac": "7/18",
+      "unrelated_injected_rate": 0.3888888888888889,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/18",
+      "answered_recall_frac": "0/0",
+      "answered_recall": null,
+      "answered_precision_frac": "2/8",
+      "answered_precision": 0.25,
+      "answered_unrelated_frac": "7/18",
+      "lines_per_prompt": 0.4444444444444444,
+      "lines_per_injecting_prompt": 1.1428571428571428,
+      "context_chars_per_prompt": 211.5,
+      "context_tokens_per_prompt": 77.77777777777777,
+      "context_tokens_counted_frac": "18/18",
+      "context_tokens_per_injecting_prompt": 200,
+      "hook_p50_ms": 328,
+      "hook_p95_ms": 392,
+      "jev_p50_ms": 246,
+      "jev_p95_ms": 312,
+      "input_tokens_per_prompt": 5355.777777777777,
+      "cost_per_prompt_usd": 0.00022494266666666667,
+      "via_daemon_frac": "18/18"
+    },
+    "supersede": {
+      "prompts": 18,
+      "recall": 0.8947368421052632,
+      "recall_frac": "17/19",
+      "served_frac": "16/18",
+      "precision": 0.9090909090909091,
+      "precision_frac": "20/22",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 1,
+      "jev_failed_frac": "1/18",
+      "answered_recall_frac": "17/18",
+      "answered_recall": 0.9444444444444444,
+      "answered_precision_frac": "20/22",
+      "answered_precision": 0.9090909090909091,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.2222222222222223,
+      "lines_per_injecting_prompt": 1.2941176470588236,
+      "context_chars_per_prompt": 552.4444444444445,
+      "context_tokens_per_prompt": 206.83333333333334,
+      "context_tokens_counted_frac": "18/18",
+      "context_tokens_per_injecting_prompt": 219,
+      "hook_p50_ms": 368,
+      "hook_p95_ms": 2096,
+      "jev_p50_ms": 276,
+      "jev_p95_ms": 587,
+      "input_tokens_per_prompt": 5031.388888888889,
+      "cost_per_prompt_usd": 0.00022374882352941175,
+      "via_daemon_frac": "18/18"
+    },
+    "dead-end": {
+      "prompts": 18,
+      "recall": 0,
+      "recall_frac": "0/18",
+      "served_frac": "0/18",
+      "precision": 0.45454545454545453,
+      "precision_frac": "15/33",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/18",
+      "answered_recall_frac": "0/18",
+      "answered_recall": 0,
+      "answered_precision_frac": "15/33",
+      "answered_precision": 0.45454545454545453,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.8333333333333333,
+      "lines_per_injecting_prompt": 1.8333333333333333,
+      "context_chars_per_prompt": 671.5555555555555,
+      "context_tokens_per_prompt": 253.38888888888889,
+      "context_tokens_counted_frac": "18/18",
+      "context_tokens_per_injecting_prompt": 253.38888888888889,
+      "hook_p50_ms": 460,
+      "hook_p95_ms": 1141,
+      "jev_p50_ms": 369,
+      "jev_p95_ms": 1045,
+      "input_tokens_per_prompt": 5401.388888888889,
+      "cost_per_prompt_usd": 0.00022685833333333338,
+      "via_daemon_frac": "18/18"
+    }
+  },
+  "by_size_type": {
+    "small/direct": {
+      "prompts": 4,
+      "recall": 1,
+      "recall_frac": "4/4",
+      "served_frac": "4/4",
+      "precision": 1,
+      "precision_frac": "4/4",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "4/4",
+      "answered_recall": 1,
+      "answered_precision_frac": "4/4",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 507.75,
+      "context_tokens_per_prompt": 187.25,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": 187.25,
+      "hook_p50_ms": 316,
+      "hook_p95_ms": 365,
+      "jev_p50_ms": 228,
+      "jev_p95_ms": 279,
+      "input_tokens_per_prompt": 1855,
+      "cost_per_prompt_usd": 0.00007791,
+      "via_daemon_frac": "4/4"
+    },
+    "small/indirect": {
+      "prompts": 4,
+      "recall": 1,
+      "recall_frac": "4/4",
+      "served_frac": "4/4",
+      "precision": 1,
+      "precision_frac": "4/4",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "4/4",
+      "answered_recall": 1,
+      "answered_precision_frac": "4/4",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 512.25,
+      "context_tokens_per_prompt": 188,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": 188,
+      "hook_p50_ms": 402,
+      "hook_p95_ms": 410,
+      "jev_p50_ms": 311,
+      "jev_p95_ms": 319,
+      "input_tokens_per_prompt": 1858.75,
+      "cost_per_prompt_usd": 0.0000780675,
+      "via_daemon_frac": "4/4"
+    },
+    "small/unrelated": {
+      "prompts": 4,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": 1,
+      "precision_frac": "1/1",
+      "unrelated_injected_frac": "1/4",
+      "unrelated_injected_rate": 0.25,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "0/0",
+      "answered_recall": null,
+      "answered_precision_frac": "1/1",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "1/4",
+      "lines_per_prompt": 0.25,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 123.5,
+      "context_tokens_per_prompt": 45.25,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": 181,
+      "hook_p50_ms": 318,
+      "hook_p95_ms": 328,
+      "jev_p50_ms": 240,
+      "jev_p95_ms": 249,
+      "input_tokens_per_prompt": 1850.75,
+      "cost_per_prompt_usd": 0.00007773150000000001,
+      "via_daemon_frac": "4/4"
+    },
+    "small/supersede": {
+      "prompts": 4,
+      "recall": 1,
+      "recall_frac": "4/4",
+      "served_frac": "4/4",
+      "precision": 1,
+      "precision_frac": "4/4",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "4/4",
+      "answered_recall": 1,
+      "answered_precision_frac": "4/4",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 523,
+      "context_tokens_per_prompt": 191.5,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": 191.5,
+      "hook_p50_ms": 332,
+      "hook_p95_ms": 350,
+      "jev_p50_ms": 249,
+      "jev_p95_ms": 252,
+      "input_tokens_per_prompt": 1859,
+      "cost_per_prompt_usd": 0.00007807800000000001,
+      "via_daemon_frac": "4/4"
+    },
+    "small/dead-end": {
+      "prompts": 4,
+      "recall": 0,
+      "recall_frac": "0/4",
+      "served_frac": "0/4",
+      "precision": 0.25,
+      "precision_frac": "2/8",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "0/4",
+      "answered_recall": 0,
+      "answered_precision_frac": "2/8",
+      "answered_precision": 0.25,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 2,
+      "lines_per_injecting_prompt": 2,
+      "context_chars_per_prompt": 649,
+      "context_tokens_per_prompt": 245.5,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": 245.5,
+      "hook_p50_ms": 346,
+      "hook_p95_ms": 347,
+      "jev_p50_ms": 260,
+      "jev_p95_ms": 263,
+      "input_tokens_per_prompt": 1857.25,
+      "cost_per_prompt_usd": 0.00007800450000000002,
+      "via_daemon_frac": "4/4"
+    },
+    "medium/direct": {
+      "prompts": 6,
+      "recall": 0.8571428571428571,
+      "recall_frac": "6/7",
+      "served_frac": "5/6",
+      "precision": 1,
+      "precision_frac": "6/6",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "6/7",
+      "answered_recall": 0.8571428571428571,
+      "answered_precision_frac": "6/6",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 517.5,
+      "context_tokens_per_prompt": 189.83333333333334,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": 189.83333333333334,
+      "hook_p50_ms": 358,
+      "hook_p95_ms": 398,
+      "jev_p50_ms": 272,
+      "jev_p95_ms": 310,
+      "input_tokens_per_prompt": 5853.666666666667,
+      "cost_per_prompt_usd": 0.000245854,
+      "via_daemon_frac": "5/6"
+    },
+    "medium/indirect": {
+      "prompts": 6,
+      "recall": 1,
+      "recall_frac": "7/7",
+      "served_frac": "6/6",
+      "precision": 1,
+      "precision_frac": "7/7",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "7/7",
+      "answered_recall": 1,
+      "answered_precision_frac": "7/7",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.1666666666666667,
+      "lines_per_injecting_prompt": 1.1666666666666667,
+      "context_chars_per_prompt": 539,
+      "context_tokens_per_prompt": 197,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": 197,
+      "hook_p50_ms": 365,
+      "hook_p95_ms": 421,
+      "jev_p50_ms": 270,
+      "jev_p95_ms": 337,
+      "input_tokens_per_prompt": 5838.666666666667,
+      "cost_per_prompt_usd": 0.000245224,
+      "via_daemon_frac": "6/6"
+    },
+    "medium/unrelated": {
+      "prompts": 6,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": 0.2,
+      "precision_frac": "1/5",
+      "unrelated_injected_frac": "4/6",
+      "unrelated_injected_rate": 0.6666666666666666,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "0/0",
+      "answered_recall": null,
+      "answered_precision_frac": "1/5",
+      "answered_precision": 0.2,
+      "answered_unrelated_frac": "4/6",
+      "lines_per_prompt": 0.8333333333333334,
+      "lines_per_injecting_prompt": 1.25,
+      "context_chars_per_prompt": 366.8333333333333,
+      "context_tokens_per_prompt": 135.16666666666666,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": 202.75,
+      "hook_p50_ms": 347,
+      "hook_p95_ms": 392,
+      "jev_p50_ms": 269,
+      "jev_p95_ms": 312,
+      "input_tokens_per_prompt": 5855.666666666667,
+      "cost_per_prompt_usd": 0.00024593799999999996,
+      "via_daemon_frac": "6/6"
+    },
+    "medium/supersede": {
+      "prompts": 6,
+      "recall": 1,
+      "recall_frac": "6/6",
+      "served_frac": "6/6",
+      "precision": 1,
+      "precision_frac": "9/9",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "6/6",
+      "answered_recall": 1,
+      "answered_precision_frac": "9/9",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.5,
+      "lines_per_injecting_prompt": 1.5,
+      "context_chars_per_prompt": 587,
+      "context_tokens_per_prompt": 221.66666666666666,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": 221.66666666666666,
+      "hook_p50_ms": 370,
+      "hook_p95_ms": 677,
+      "jev_p50_ms": 280,
+      "jev_p95_ms": 587,
+      "input_tokens_per_prompt": 5839.833333333333,
+      "cost_per_prompt_usd": 0.000245273,
+      "via_daemon_frac": "6/6"
+    },
+    "medium/dead-end": {
+      "prompts": 6,
+      "recall": 0,
+      "recall_frac": "0/6",
+      "served_frac": "0/6",
+      "precision": 0.6666666666666666,
+      "precision_frac": "6/9",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "0/6",
+      "answered_recall": 0,
+      "answered_precision_frac": "6/9",
+      "answered_precision": 0.6666666666666666,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.5,
+      "lines_per_injecting_prompt": 1.5,
+      "context_chars_per_prompt": 605.8333333333334,
+      "context_tokens_per_prompt": 230.5,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": 230.5,
+      "hook_p50_ms": 372,
+      "hook_p95_ms": 460,
+      "jev_p50_ms": 284,
+      "jev_p95_ms": 369,
+      "input_tokens_per_prompt": 5849.5,
+      "cost_per_prompt_usd": 0.000245679,
+      "via_daemon_frac": "6/6"
+    },
+    "large/direct": {
+      "prompts": 8,
+      "recall": 1,
+      "recall_frac": "10/10",
+      "served_frac": "8/8",
+      "precision": 1,
+      "precision_frac": "11/11",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/8",
+      "answered_recall_frac": "10/10",
+      "answered_recall": 1,
+      "answered_precision_frac": "11/11",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.375,
+      "lines_per_injecting_prompt": 1.375,
+      "context_chars_per_prompt": 606.625,
+      "context_tokens_per_prompt": 224.625,
+      "context_tokens_counted_frac": "8/8",
+      "context_tokens_per_injecting_prompt": 224.625,
+      "hook_p50_ms": 360,
+      "hook_p95_ms": 1296,
+      "jev_p50_ms": 281,
+      "jev_p95_ms": 1206,
+      "input_tokens_per_prompt": 6821.125,
+      "cost_per_prompt_usd": 0.00028648724999999996,
+      "via_daemon_frac": "8/8"
+    },
+    "large/indirect": {
+      "prompts": 8,
+      "recall": 0.4444444444444444,
+      "recall_frac": "4/9",
+      "served_frac": "3/8",
+      "precision": 0.3684210526315789,
+      "precision_frac": "7/19",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/8",
+      "answered_recall_frac": "4/9",
+      "answered_recall": 0.4444444444444444,
+      "answered_precision_frac": "7/19",
+      "answered_precision": 0.3684210526315789,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 2.375,
+      "lines_per_injecting_prompt": 2.375,
+      "context_chars_per_prompt": 788.25,
+      "context_tokens_per_prompt": 300.25,
+      "context_tokens_counted_frac": "8/8",
+      "context_tokens_per_injecting_prompt": 300.25,
+      "hook_p50_ms": 368,
+      "hook_p95_ms": 1321,
+      "jev_p50_ms": 282,
+      "jev_p95_ms": 1247,
+      "input_tokens_per_prompt": 6853.625,
+      "cost_per_prompt_usd": 0.00028785225000000004,
+      "via_daemon_frac": "8/8"
+    },
+    "large/unrelated": {
+      "prompts": 8,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": 0,
+      "precision_frac": "0/2",
+      "unrelated_injected_frac": "2/8",
+      "unrelated_injected_rate": 0.25,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/8",
+      "answered_recall_frac": "0/0",
+      "answered_recall": null,
+      "answered_precision_frac": "0/2",
+      "answered_precision": 0,
+      "answered_unrelated_frac": "2/8",
+      "lines_per_prompt": 0.25,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 139,
+      "context_tokens_per_prompt": 51,
+      "context_tokens_counted_frac": "8/8",
+      "context_tokens_per_injecting_prompt": 204,
+      "hook_p50_ms": 323,
+      "hook_p95_ms": 356,
+      "jev_p50_ms": 241,
+      "jev_p95_ms": 272,
+      "input_tokens_per_prompt": 6733.375,
+      "cost_per_prompt_usd": 0.00028280175,
+      "via_daemon_frac": "8/8"
+    },
+    "large/supersede": {
+      "prompts": 8,
+      "recall": 0.7777777777777778,
+      "recall_frac": "7/9",
+      "served_frac": "6/8",
+      "precision": 0.7777777777777778,
+      "precision_frac": "7/9",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 1,
+      "jev_failed_frac": "1/8",
+      "answered_recall_frac": "7/8",
+      "answered_recall": 0.875,
+      "answered_precision_frac": "7/9",
+      "answered_precision": 0.7777777777777778,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.125,
+      "lines_per_injecting_prompt": 1.2857142857142858,
+      "context_chars_per_prompt": 541.25,
+      "context_tokens_per_prompt": 203.375,
+      "context_tokens_counted_frac": "8/8",
+      "context_tokens_per_injecting_prompt": 232.42857142857142,
+      "hook_p50_ms": 410,
+      "hook_p95_ms": 2096,
+      "jev_p50_ms": 297,
+      "jev_p95_ms": 437,
+      "input_tokens_per_prompt": 6011.25,
+      "cost_per_prompt_usd": 0.00028854000000000005,
+      "via_daemon_frac": "8/8"
+    },
+    "large/dead-end": {
+      "prompts": 8,
+      "recall": 0,
+      "recall_frac": "0/8",
+      "served_frac": "0/8",
+      "precision": 0.4375,
+      "precision_frac": "7/16",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/8",
+      "answered_recall_frac": "0/8",
+      "answered_recall": 0,
+      "answered_precision_frac": "7/16",
+      "answered_precision": 0.4375,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 2,
+      "lines_per_injecting_prompt": 2,
+      "context_chars_per_prompt": 732.125,
+      "context_tokens_per_prompt": 274.5,
+      "context_tokens_counted_frac": "8/8",
+      "context_tokens_per_injecting_prompt": 274.5,
+      "hook_p50_ms": 1091,
+      "hook_p95_ms": 1141,
+      "jev_p50_ms": 1006,
+      "jev_p95_ms": 1045,
+      "input_tokens_per_prompt": 6837.375,
+      "cost_per_prompt_usd": 0.00028716975,
+      "via_daemon_frac": "8/8"
+    }
+  },
+  "rows": [
+    {
+      "id": "heldout-small-01",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Use a float for the money amounts in the new expenses table; it's simpler.",
+      "want": [
+        "tu_cents"
+      ],
+      "ok": [
+        "tu_sqlite"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_cents",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 521,
+      "contextTokens": 188,
+      "hookMs": 316,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 226,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:04.938Z",
+      "inputTokens": 1859,
+      "costUsd": 0.00007807800000000001
+    },
+    {
+      "id": "heldout-small-02",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Add an arm64 target to the release build.",
+      "want": [
+        "tu_arm"
+      ],
+      "ok": [
+        "tu_binary"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_arm",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 507,
+      "contextTokens": 193,
+      "hookMs": 291,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 213,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:06.819Z",
+      "inputTokens": 1853,
+      "costUsd": 0.00007782600000000001
+    },
+    {
+      "id": "heldout-small-03",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Add a form where a flatmate can reset a forgotten PIN.",
+      "want": [
+        "tu_auth"
+      ],
+      "ok": [
+        "tu_pin_limit",
+        "tu_session_admin"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_auth",
+          "kind": "decision",
+          "p": 0.92
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 510,
+      "contextTokens": 190,
+      "hookMs": 365,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 279,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:13.605Z",
+      "inputTokens": 1856,
+      "costUsd": 0.000077952
+    },
+    {
+      "id": "heldout-small-04",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Switch our slog logging over to the zap library.",
+      "want": [
+        "tu_pref_log"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_pref_log",
+          "kind": "preference",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 493,
+      "contextTokens": 178,
+      "hookMs": 313,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 228,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:16.080Z",
+      "inputTokens": 1852,
+      "costUsd": 0.000077784
+    },
+    {
+      "id": "heldout-small-05",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "If the electricity bill is £100.01 and three of us share it, who covers the extra penny?",
+      "want": [
+        "tu_rounding"
+      ],
+      "ok": [
+        "tu_cents",
+        "tu_split_new"
+      ],
+      "never": [
+        "tu_split_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_rounding",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 496,
+      "contextTokens": 182,
+      "hookMs": 402,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 311,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:22.763Z",
+      "inputTokens": 1867,
+      "costUsd": 0.000078414
+    },
+    {
+      "id": "heldout-small-06",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "Someone keeps guessing codes on the sign-in page. What happens after a few failures?",
+      "want": [
+        "tu_pin_limit"
+      ],
+      "ok": [
+        "tu_auth"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_pin_limit",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 477,
+      "contextTokens": 178,
+      "hookMs": 354,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 259,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:24.792Z",
+      "inputTokens": 1859,
+      "costUsd": 0.00007807800000000001
+    },
+    {
+      "id": "heldout-small-07",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "I edited an expense and the totals page still shows what it was before.",
+      "want": [
+        "tu_bug_wal"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_bug_wal",
+          "kind": "bug",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 566,
+      "contextTokens": 208,
+      "hookMs": 410,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 319,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:30.982Z",
+      "inputTokens": 1857,
+      "costUsd": 0.000077994
+    },
+    {
+      "id": "heldout-small-08",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "How should I test the new settle-up handler?",
+      "want": [
+        "tu_pref_tests"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_pref_tests",
+          "kind": "preference",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 510,
+      "contextTokens": 184,
+      "hookMs": 270,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 204,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:33.096Z",
+      "inputTokens": 1852,
+      "costUsd": 0.000077784
+    },
+    {
+      "id": "heldout-small-09",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "Give me a recipe for banana bread.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 328,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 249,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:35.661Z",
+      "inputTokens": 1850,
+      "costUsd": 0.0000777
+    },
+    {
+      "id": "heldout-small-10",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "What is the capital of Australia?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 318,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 240,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:35.980Z",
+      "inputTokens": 1849,
+      "costUsd": 0.00007765800000000001
+    },
+    {
+      "id": "heldout-small-11",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "Explain Go's defer statement with a tiny example.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 310,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 231,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:36.888Z",
+      "inputTokens": 1853,
+      "costUsd": 0.00007782600000000001
+    },
+    {
+      "id": "heldout-small-12",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "Make the heading on the About page bold.",
+      "want": [],
+      "ok": [
+        "tu_htmx"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_htmx",
+          "kind": "decision",
+          "p": 0.76
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 494,
+      "contextTokens": 181,
+      "hookMs": 301,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 222,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:38.834Z",
+      "inputTokens": 1851,
+      "costUsd": 0.000077742
+    },
+    {
+      "id": "heldout-small-13",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "The flat has four people, but I pay half the rent. Can the app split it like that?",
+      "want": [
+        "tu_split_new"
+      ],
+      "ok": [
+        "tu_rounding"
+      ],
+      "never": [
+        "tu_split_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_split_new",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 526,
+      "contextTokens": 188,
+      "hookMs": 332,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 245,
+      "jevOk": true,
+      "at": "2026-09-28T17:19:43.689Z",
+      "inputTokens": 1863,
+      "costUsd": 0.00007824600000000001
+    },
+    {
+      "id": "heldout-small-14",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "What port does the server listen on? I'm writing the systemd unit.",
+      "want": [
+        "tu_port_new"
+      ],
+      "ok": [
+        "tu_binary"
+      ],
+      "never": [
+        "tu_port_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_port_new",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 520,
+      "contextTokens": 195,
+      "hookMs": 328,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 246,
+      "jevOk": true,
+      "at": "2026-09-28T17:20:01.202Z",
+      "inputTokens": 1859,
+      "costUsd": 0.00007807800000000001
+    },
+    {
+      "id": "heldout-small-15",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "Split the new broadband bill equally between everyone.",
+      "want": [
+        "tu_split_new"
+      ],
+      "ok": [
+        "tu_rounding",
+        "tu_todo_recurring"
+      ],
+      "never": [
+        "tu_split_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_split_new",
+          "kind": "decision",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 526,
+      "contextTokens": 188,
+      "hookMs": 350,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 252,
+      "jevOk": true,
+      "at": "2026-09-28T17:20:07.563Z",
+      "inputTokens": 1851,
+      "costUsd": 0.000077742
+    },
+    {
+      "id": "heldout-small-16",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "Open the web UI to the whole LAN on 8080 so my phone can reach it.",
+      "want": [
+        "tu_port_new"
+      ],
+      "ok": [],
+      "never": [
+        "tu_port_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "tu_port_new",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 520,
+      "contextTokens": 195,
+      "hookMs": 329,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 249,
+      "jevOk": true,
+      "at": "2026-09-28T17:20:07.892Z",
+      "inputTokens": 1863,
+      "costUsd": 0.00007824600000000001
+    },
+    {
+      "id": "heldout-small-17",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Set up Litestream to replicate the database to a USB stick on the Pi.",
+      "want": [
+        "tu_de_litestream"
+      ],
+      "ok": [
+        "tu_sqlite"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "tu_de_litestream"
+      ],
+      "injected": [
+        {
+          "key": "tu_sqlite",
+          "kind": "decision",
+          "p": 0.67
+        },
+        {
+          "key": "tu_arm",
+          "kind": "constraint",
+          "p": 0.1
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 1,
+      "missed": [
+        "tu_de_litestream"
+      ],
+      "extra": [
+        "tu_arm"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 633,
+      "contextTokens": 249,
+      "hookMs": 327,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 232,
+      "jevOk": true,
+      "at": "2026-09-28T17:20:14.542Z",
+      "inputTokens": 1859,
+      "costUsd": 0.00007807800000000001
+    },
+    {
+      "id": "heldout-small-18",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Generate the monthly statements as PDF files with gofpdf.",
+      "want": [
+        "tu_de_pdf"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [
+        "tu_de_pdf"
+      ],
+      "injected": [
+        {
+          "key": "tu_cents",
+          "kind": "constraint",
+          "p": 0.2
+        },
+        {
+          "key": "tu_todo_recurring",
+          "kind": "todo",
+          "p": 0.17
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 2,
+      "missed": [
+        "tu_de_pdf"
+      ],
+      "extra": [
+        "tu_cents",
+        "tu_todo_recurring"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 666,
+      "contextTokens": 246,
+      "hookMs": 347,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 263,
+      "jevOk": true,
+      "at": "2026-09-28T17:20:16.608Z",
+      "inputTokens": 1854,
+      "costUsd": 0.00007786800000000001
+    },
+    {
+      "id": "heldout-small-19",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "How about continuous copying of our data file to external storage plugged into the Pi?",
+      "want": [
+        "tu_de_litestream"
+      ],
+      "ok": [
+        "tu_sqlite"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "tu_de_litestream"
+      ],
+      "injected": [
+        {
+          "key": "tu_sqlite",
+          "kind": "decision",
+          "p": 0.44
+        },
+        {
+          "key": "tu_todo_recurring",
+          "kind": "todo",
+          "p": 0.4
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 1,
+      "missed": [
+        "tu_de_litestream"
+      ],
+      "extra": [
+        "tu_todo_recurring"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 658,
+      "contextTokens": 248,
+      "hookMs": 346,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 260,
+      "jevOk": true,
+      "at": "2026-09-28T17:20:22.583Z",
+      "inputTokens": 1858,
+      "costUsd": 0.00007803600000000001
+    },
+    {
+      "id": "heldout-small-20",
+      "file": "heldout-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Flatmates want a printable document for each month. Should we produce one?",
+      "want": [
+        "tu_de_pdf"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [
+        "tu_de_pdf"
+      ],
+      "injected": [
+        {
+          "key": "tu_todo_recurring",
+          "kind": "todo",
+          "p": 0.47
+        },
+        {
+          "key": "tu_htmx",
+          "kind": "decision",
+          "p": 0.14
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 2,
+      "missed": [
+        "tu_de_pdf"
+      ],
+      "extra": [
+        "tu_todo_recurring",
+        "tu_htmx"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 639,
+      "contextTokens": 239,
+      "hookMs": 297,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 214,
+      "jevOk": true,
+      "at": "2026-09-28T17:20:24.783Z",
+      "inputTokens": 1858,
+      "costUsd": 0.00007803600000000001
+    },
+    {
+      "id": "heldout-medium-01",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Change the episode `<guid>` format so it includes the show slug.",
+      "want": [
+        "wc_con_guid"
+      ],
+      "ok": [
+        "wc_feed"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_con_guid",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 547,
+      "contextTokens": 195,
+      "hookMs": 398,
+      "hookExit": 0,
+      "via": "inline",
+      "jevMs": 310,
+      "jevOk": true,
+      "at": "2026-09-28T17:20:50.527Z",
+      "inputTokens": 5834,
+      "costUsd": 0.000245028
+    },
+    {
+      "id": "heldout-medium-02",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Raise the upload size limit to 1 GB per episode file.",
+      "want": [
+        "wc_con_upload_size"
+      ],
+      "ok": [
+        "wc_timeout_upload",
+        "wc_rate_upload",
+        "wc_arch_ingest"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_con_upload_size",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 514,
+      "contextTokens": 187,
+      "hookMs": 334,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 249,
+      "jevOk": true,
+      "at": "2026-09-28T17:20:52.635Z",
+      "inputTokens": 5848,
+      "costUsd": 0.000245616
+    },
+    {
+      "id": "heldout-medium-03",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Add chapter marker support to the transcoding step.",
+      "want": [
+        "wc_bug_chapters"
+      ],
+      "ok": [
+        "wc_transcode",
+        "wc_loudness"
+      ],
+      "never": [
+        "wc_bitrate_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_bug_chapters",
+          "kind": "bug",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 565,
+      "contextTokens": 212,
+      "hookMs": 358,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 275,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:00.304Z",
+      "inputTokens": 5821,
+      "costUsd": 0.000244482
+    },
+    {
+      "id": "heldout-medium-04",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Add an Alembic revision in backend/migrations for a `season` column on the episodes table.",
+      "want": [
+        "wc_migrations",
+        "wc_con_migration_downtime"
+      ],
+      "ok": [
+        "wc_api"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_migrations",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "wc_con_migration_downtime"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 527,
+      "contextTokens": 192,
+      "hookMs": 362,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 272,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:02.749Z",
+      "inputTokens": 5874,
+      "costUsd": 0.000246708
+    },
+    {
+      "id": "heldout-medium-05",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Deploy the API to production now; it's Friday 16:30 UTC.",
+      "want": [
+        "wc_con_deploy_friday"
+      ],
+      "ok": [
+        "wc_ci"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_con_deploy_friday",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 471,
+      "contextTokens": 176,
+      "hookMs": 346,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 266,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:07.300Z",
+      "inputTokens": 5868,
+      "costUsd": 0.000246456
+    },
+    {
+      "id": "heldout-medium-06",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "The embeddable player script grew to 45 KB gzipped after adding the speed control. Is that OK?",
+      "want": [
+        "wc_con_player_size"
+      ],
+      "ok": [
+        "wc_player"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_con_player_size",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 481,
+      "contextTokens": 177,
+      "hookMs": 356,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 268,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:09.696Z",
+      "inputTokens": 5877,
+      "costUsd": 0.00024683400000000003
+    },
+    {
+      "id": "heldout-medium-07",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "When the same person grabs an episode twice in one afternoon, do we tally it as two?",
+      "want": [
+        "wc_iab"
+      ],
+      "ok": [
+        "wc_con_ip",
+        "wc_bug_bots"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_iab",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 532,
+      "contextTokens": 195,
+      "hookMs": 377,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 289,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:16.227Z",
+      "inputTokens": 5832,
+      "costUsd": 0.00024494400000000003
+    },
+    {
+      "id": "heldout-medium-08",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "For how many days are listeners' network addresses retained?",
+      "want": [
+        "wc_con_ip"
+      ],
+      "ok": [
+        "wc_logs",
+        "wc_iab"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_con_ip",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 532,
+      "contextTokens": 197,
+      "hookMs": 365,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 268,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:18.380Z",
+      "inputTokens": 5849,
+      "costUsd": 0.000245658
+    },
+    {
+      "id": "heldout-medium-09",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "A show owner wants the words of each episode written out automatically. Can we just do that for everyone?",
+      "want": [
+        "wc_con_transcript_opt",
+        "wc_transcripts"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_con_transcript_opt",
+          "kind": "constraint",
+          "p": 0.94
+        },
+        {
+          "key": "wc_transcripts",
+          "kind": "decision",
+          "p": 0.06
+        }
+      ],
+      "wantHit": 2,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 672,
+      "contextTokens": 246,
+      "hookMs": 361,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 270,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:25.642Z",
+      "inputTokens": 5854,
+      "costUsd": 0.000245868
+    },
+    {
+      "id": "heldout-medium-10",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "A creator's card was declined yesterday. Are they still able to publish new episodes?",
+      "want": [
+        "wc_con_billing_grace"
+      ],
+      "ok": [
+        "wc_billing_trial",
+        "wc_stripe"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_con_billing_grace",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 534,
+      "contextTokens": 191,
+      "hookMs": 314,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 226,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:27.440Z",
+      "inputTokens": 5813,
+      "costUsd": 0.000244146
+    },
+    {
+      "id": "heldout-medium-11",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "Can we rename `duration` in the third-party episodes response to `length_seconds`?",
+      "want": [
+        "wc_con_public_api_compat"
+      ],
+      "ok": [
+        "wc_public_api",
+        "wc_pref_api_versions"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_con_public_api_compat",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 494,
+      "contextTokens": 181,
+      "hookMs": 342,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 256,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:33.382Z",
+      "inputTokens": 5856,
+      "costUsd": 0.000245952
+    },
+    {
+      "id": "heldout-medium-12",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "How many new audio files may one creator push within sixty minutes?",
+      "want": [
+        "wc_rate_upload"
+      ],
+      "ok": [
+        "wc_con_upload_size"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_rate_upload",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 470,
+      "contextTokens": 172,
+      "hookMs": 421,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 337,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:35.301Z",
+      "inputTokens": 5828,
+      "costUsd": 0.000244776
+    },
+    {
+      "id": "heldout-medium-13",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "What rhymes with orange?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 345,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 269,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:38.196Z",
+      "inputTokens": 5844,
+      "costUsd": 0.000245448
+    },
+    {
+      "id": "heldout-medium-14",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Explain Python's GIL in simple terms.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_api",
+          "kind": "architecture",
+          "p": 0.11
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 1,
+      "missed": [],
+      "extra": [
+        "wc_api"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 516,
+      "contextTokens": 199,
+      "hookMs": 332,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 246,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:40.183Z",
+      "inputTokens": 5862,
+      "costUsd": 0.00024620400000000003
+    },
+    {
+      "id": "heldout-medium-15",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Sort this list in descending order: 4, 19, 7, 2.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 342,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 262,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:41.209Z",
+      "inputTokens": 5858,
+      "costUsd": 0.00024603600000000004
+    },
+    {
+      "id": "heldout-medium-16",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Draft a polite email declining a meeting invitation.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_emails",
+          "kind": "decision",
+          "p": 0.31
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 1,
+      "missed": [],
+      "extra": [
+        "wc_emails"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 509,
+      "contextTokens": 180,
+      "hookMs": 378,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 297,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:43.349Z",
+      "inputTokens": 5847,
+      "costUsd": 0.00024557400000000003
+    },
+    {
+      "id": "heldout-medium-17",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Add a docstring to the `slugify` helper in `backend/utils/text.py`.",
+      "want": [],
+      "ok": [
+        "wc_pref_ruff"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_pref_ruff",
+          "kind": "preference",
+          "p": 0.59
+        },
+        {
+          "key": "wc_api",
+          "kind": "architecture",
+          "p": 0.06
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 1,
+      "missed": [],
+      "extra": [
+        "wc_api"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 647,
+      "contextTokens": 244,
+      "hookMs": 392,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 312,
+      "jevOk": true,
+      "at": "2026-09-28T17:21:55.599Z",
+      "inputTokens": 5872,
+      "costUsd": 0.000246624
+    },
+    {
+      "id": "heldout-medium-18",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "What time is it in Tokyo when it's noon in London?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_sched_tz_new",
+          "kind": "decision",
+          "p": 0.26
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 1,
+      "missed": [],
+      "extra": [
+        "wc_sched_tz_new"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 529,
+      "contextTokens": 188,
+      "hookMs": 347,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 263,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:02.453Z",
+      "inputTokens": 5851,
+      "costUsd": 0.000245742
+    },
+    {
+      "id": "heldout-medium-19",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Add a new Celery task that computes waveform peaks after transcoding.",
+      "want": [
+        "wc_queue_new"
+      ],
+      "ok": [
+        "wc_todo_waveform",
+        "wc_transcode",
+        "wc_workers"
+      ],
+      "never": [
+        "wc_queue_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_queue_new",
+          "kind": "decision",
+          "p": 0.51
+        },
+        {
+          "key": "wc_todo_waveform",
+          "kind": "todo",
+          "p": 0.49
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 629,
+      "contextTokens": 242,
+      "hookMs": 370,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 280,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:06.797Z",
+      "inputTokens": 5828,
+      "costUsd": 0.000244776
+    },
+    {
+      "id": "heldout-medium-20",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Which S3 bucket and region hold the episode audio? I'm writing a cleanup script.",
+      "want": [
+        "wc_storage_new"
+      ],
+      "ok": [
+        "wc_con_delete",
+        "wc_backup_media"
+      ],
+      "never": [
+        "wc_storage_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_storage_new",
+          "kind": "decision",
+          "p": 0.9
+        },
+        {
+          "key": "wc_backup_media",
+          "kind": "decision",
+          "p": 0.08
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 663,
+      "contextTokens": 263,
+      "hookMs": 368,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 279,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:08.898Z",
+      "inputTokens": 5815,
+      "costUsd": 0.00024423
+    },
+    {
+      "id": "heldout-medium-21",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Write a SQL query against the downloads table that counts last week's plays per show.",
+      "want": [
+        "wc_analytics_new"
+      ],
+      "ok": [
+        "wc_iab",
+        "wc_arch_stats_api"
+      ],
+      "never": [
+        "wc_analytics_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_analytics_new",
+          "kind": "decision",
+          "p": 0.86
+        },
+        {
+          "key": "wc_iab",
+          "kind": "decision",
+          "p": 0.11
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 678,
+      "contextTokens": 256,
+      "hookMs": 356,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 276,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:15.452Z",
+      "inputTokens": 5848,
+      "costUsd": 0.000245616
+    },
+    {
+      "id": "heldout-medium-22",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Make the embeddable player autoplay when it scrolls into view.",
+      "want": [
+        "wc_player_new"
+      ],
+      "ok": [
+        "wc_player"
+      ],
+      "never": [
+        "wc_player_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_player_new",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 498,
+      "contextTokens": 177,
+      "hookMs": 337,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 250,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:17.351Z",
+      "inputTokens": 5880,
+      "costUsd": 0.00024696
+    },
+    {
+      "id": "heldout-medium-23",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "What bitrate do the MP3 files in the feed use?",
+      "want": [
+        "wc_transcode"
+      ],
+      "ok": [
+        "wc_de_opus_feed"
+      ],
+      "never": [
+        "wc_bitrate_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_transcode",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 525,
+      "contextTokens": 204,
+      "hookMs": 397,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 318,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:22.405Z",
+      "inputTokens": 5852,
+      "costUsd": 0.00024578400000000003
+    },
+    {
+      "id": "heldout-medium-24",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "A creator in Sydney says their scheduled episode went out at the wrong hour. How are publish times stored?",
+      "want": [
+        "wc_sched_tz_new"
+      ],
+      "ok": [
+        "wc_scheduling",
+        "wc_bug_rss_order"
+      ],
+      "never": [
+        "wc_sched_tz_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "wc_sched_tz_new",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 529,
+      "contextTokens": 188,
+      "hookMs": 677,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 587,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:24.974Z",
+      "inputTokens": 5816,
+      "costUsd": 0.000244272
+    },
+    {
+      "id": "heldout-medium-25",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Let's run ffmpeg in Lambda instead of keeping worker machines around.",
+      "want": [
+        "wc_de_lambda_ffmpeg"
+      ],
+      "ok": [
+        "wc_workers",
+        "wc_transcode"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "wc_de_lambda_ffmpeg"
+      ],
+      "injected": [
+        {
+          "key": "wc_workers",
+          "kind": "architecture",
+          "p": 0.99
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "wc_de_lambda_ffmpeg"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 514,
+      "contextTokens": 190,
+      "hookMs": 372,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 284,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:31.816Z",
+      "inputTokens": 5860,
+      "costUsd": 0.00024612
+    },
+    {
+      "id": "heldout-medium-26",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Can we serve episodes as HLS so the web player can switch quality?",
+      "want": [
+        "wc_de_hls"
+      ],
+      "ok": [
+        "wc_transcode",
+        "wc_player"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "wc_de_hls"
+      ],
+      "injected": [
+        {
+          "key": "wc_transcode",
+          "kind": "decision",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "wc_de_hls"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 525,
+      "contextTokens": 204,
+      "hookMs": 361,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 270,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:34.252Z",
+      "inputTokens": 5860,
+      "costUsd": 0.00024612
+    },
+    {
+      "id": "heldout-medium-27",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Ping a WebSub hub whenever an episode is published so apps pick it up faster.",
+      "want": [
+        "wc_de_websub"
+      ],
+      "ok": [
+        "wc_feed",
+        "wc_bug_feed_cache"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "wc_de_websub"
+      ],
+      "injected": [
+        {
+          "key": "wc_scheduling",
+          "kind": "decision",
+          "p": 0.48
+        },
+        {
+          "key": "wc_bug_feed_cache",
+          "kind": "bug",
+          "p": 0.18
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 1,
+      "missed": [
+        "wc_de_websub"
+      ],
+      "extra": [
+        "wc_scheduling"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 681,
+      "contextTokens": 259,
+      "hookMs": 460,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 369,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:46.963Z",
+      "inputTokens": 5830,
+      "costUsd": 0.00024486
+    },
+    {
+      "id": "heldout-medium-28",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Put a GraphQL layer between the dashboard and our API.",
+      "want": [
+        "wc_de_graphql"
+      ],
+      "ok": [
+        "wc_arch_stats_api"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "wc_de_graphql"
+      ],
+      "injected": [
+        {
+          "key": "wc_arch_stats_api",
+          "kind": "architecture",
+          "p": 0.69
+        },
+        {
+          "key": "wc_public_api",
+          "kind": "decision",
+          "p": 0.1
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 1,
+      "missed": [
+        "wc_de_graphql"
+      ],
+      "extra": [
+        "wc_public_api"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 690,
+      "contextTokens": 264,
+      "hookMs": 316,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 228,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:53.935Z",
+      "inputTokens": 5846,
+      "costUsd": 0.000245532
+    },
+    {
+      "id": "heldout-medium-29",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Opus files are smaller than MP3; can the feed point at those instead?",
+      "want": [
+        "wc_de_opus_feed"
+      ],
+      "ok": [
+        "wc_transcode",
+        "wc_feed"
+      ],
+      "never": [
+        "wc_bitrate_old"
+      ],
+      "wantUnparsed": [
+        "wc_de_opus_feed"
+      ],
+      "injected": [
+        {
+          "key": "wc_transcode",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "wc_de_opus_feed"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 525,
+      "contextTokens": 204,
+      "hookMs": 375,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 291,
+      "jevOk": true,
+      "at": "2026-09-28T17:22:58.692Z",
+      "inputTokens": 5857,
+      "costUsd": 0.00024599400000000003
+    },
+    {
+      "id": "heldout-medium-30",
+      "file": "heldout-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Let's put our own caching proxy in front of the audio bucket to cut costs.",
+      "want": [
+        "wc_de_self_cdn"
+      ],
+      "ok": [
+        "wc_storage_new"
+      ],
+      "never": [
+        "wc_storage_old"
+      ],
+      "wantUnparsed": [
+        "wc_de_self_cdn"
+      ],
+      "injected": [
+        {
+          "key": "wc_storage_new",
+          "kind": "decision",
+          "p": 0.52
+        },
+        {
+          "key": "wc_bug_range",
+          "kind": "bug",
+          "p": 0.44
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 1,
+      "missed": [
+        "wc_de_self_cdn"
+      ],
+      "extra": [
+        "wc_bug_range"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 700,
+      "contextTokens": 262,
+      "hookMs": 359,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 280,
+      "jevOk": true,
+      "at": "2026-09-28T17:23:02.486Z",
+      "inputTokens": 5844,
+      "costUsd": 0.000245448
+    },
+    {
+      "id": "heldout-large-01",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Add a new ShiftRule for the maximum number of consecutive long days that returns BLOCK violations, with its tests.",
+      "want": [
+        "cr_pref_rule_tests",
+        "cr_rules_package"
+      ],
+      "ok": [
+        "cr_pref_clinical_review",
+        "cr_pref_two_approvals",
+        "cr_rule_profiles"
+      ],
+      "never": [
+        "cr_rest_rule_const"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_rules_package",
+          "kind": "architecture",
+          "p": 0.59
+        },
+        {
+          "key": "cr_pref_rule_tests",
+          "kind": "preference",
+          "p": 0.4
+        }
+      ],
+      "wantHit": 2,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 737,
+      "contextTokens": 285,
+      "hookMs": 332,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 252,
+      "jevOk": true,
+      "at": "2026-09-28T17:23:25.240Z",
+      "inputTokens": 6750,
+      "costUsd": 0.0002835
+    },
+    {
+      "id": "heldout-large-02",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Raise the coordinators' API rate limit from 300 to 600 requests per minute.",
+      "want": [
+        "cr_ratelimit_coordinators"
+      ],
+      "ok": [
+        "cr_ratelimit_redis",
+        "cr_bug_ratelimit_nat"
+      ],
+      "never": [
+        "cr_ratelimit_in_memory"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_ratelimit_coordinators",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 532,
+      "contextTokens": 192,
+      "hookMs": 347,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 258,
+      "jevOk": true,
+      "at": "2026-09-28T17:23:27.077Z",
+      "inputTokens": 6986,
+      "costUsd": 0.000293412
+    },
+    {
+      "id": "heldout-large-03",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "The ICS feed shows night shifts an hour late in Outlook again.",
+      "want": [
+        "cr_bug_ics_floating"
+      ],
+      "ok": [
+        "cr_ics_signed",
+        "cr_ics_readonly",
+        "cr_dst_autumn_night"
+      ],
+      "never": [
+        "cr_ics_public"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_bug_ics_floating",
+          "kind": "bug",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 549,
+      "contextTokens": 201,
+      "hookMs": 349,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 261,
+      "jevOk": true,
+      "at": "2026-09-28T17:23:33.953Z",
+      "inputTokens": 6816,
+      "costUsd": 0.000286272
+    },
+    {
+      "id": "heldout-large-04",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Write the Flyway migration for a new `break_minutes` column on `shift`, named the usual way and compatible with the previous release.",
+      "want": [
+        "cr_pref_flyway_naming",
+        "cr_expand_contract"
+      ],
+      "ok": [
+        "cr_flyway_ddl",
+        "cr_bug_flyway_lock",
+        "cr_tenant_column"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_expand_contract",
+          "kind": "constraint",
+          "p": 0.93
+        },
+        {
+          "key": "cr_pref_flyway_naming",
+          "kind": "preference",
+          "p": 0.06
+        }
+      ],
+      "wantHit": 2,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 708,
+      "contextTokens": 257,
+      "hookMs": 356,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 281,
+      "jevOk": true,
+      "at": "2026-09-28T17:23:36.274Z",
+      "inputTokens": 6845,
+      "costUsd": 0.00028749000000000005
+    },
+    {
+      "id": "heldout-large-05",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Allow doctors in training to work 5 consecutive nights.",
+      "want": [
+        "cr_nights_max_doctors"
+      ],
+      "ok": [
+        "cr_rule_profiles",
+        "cr_rules_package",
+        "cr_pref_clinical_review"
+      ],
+      "never": [
+        "cr_night_max_7"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_nights_max_doctors",
+          "kind": "constraint",
+          "p": 0.99
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 531,
+      "contextTokens": 191,
+      "hookMs": 382,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 293,
+      "jevOk": true,
+      "at": "2026-09-28T17:23:43.089Z",
+      "inputTokens": 6744,
+      "costUsd": 0.000283248
+    },
+    {
+      "id": "heldout-large-06",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Make the Twilio auth token rotation automatic, every 30 days.",
+      "want": [
+        "cr_secret_rot_twilio"
+      ],
+      "ok": [
+        "cr_key_vault_csi",
+        "cr_sms_twilio"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_secret_rot_twilio",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 549,
+      "contextTokens": 199,
+      "hookMs": 360,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 266,
+      "jevOk": true,
+      "at": "2026-09-28T17:23:45.118Z",
+      "inputTokens": 6760,
+      "costUsd": 0.00028392000000000006
+    },
+    {
+      "id": "heldout-large-07",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Add Slovenian as a UI language to the apps/web translation files.",
+      "want": [
+        "cr_i18n_localize"
+      ],
+      "ok": [
+        "cr_i18n_three",
+        "cr_todo_polish_locale",
+        "cr_pref_ui_screenshots"
+      ],
+      "never": [
+        "cr_i18n_ngx"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_i18n_localize",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 573,
+      "contextTokens": 213,
+      "hookMs": 1296,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 1206,
+      "jevOk": true,
+      "at": "2026-09-28T17:23:52.601Z",
+      "inputTokens": 6809,
+      "costUsd": 0.000285978
+    },
+    {
+      "id": "heldout-large-08",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Scale swap-service on CPU the way roster-service does.",
+      "want": [
+        "cr_hpa_swap"
+      ],
+      "ok": [
+        "cr_hpa_roster"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_hpa_roster",
+          "kind": "architecture",
+          "p": 0.58
+        },
+        {
+          "key": "cr_hpa_swap",
+          "kind": "architecture",
+          "p": 0.42
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 674,
+      "contextTokens": 259,
+      "hookMs": 881,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 785,
+      "jevOk": true,
+      "at": "2026-09-28T17:23:55.320Z",
+      "inputTokens": 6859,
+      "costUsd": 0.000288078
+    },
+    {
+      "id": "heldout-large-09",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Can two people of the same seniority on one unit trade Saturday day duties without anybody signing it off?",
+      "want": [
+        "cr_swap_auto_same_grade"
+      ],
+      "ok": [
+        "cr_bug_swap_rule_recheck",
+        "cr_swap_flow"
+      ],
+      "never": [
+        "cr_swap_all_coordinator"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_swap_auto_same_grade",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 575,
+      "contextTokens": 208,
+      "hookMs": 386,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 293,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:02.350Z",
+      "inputTokens": 6914,
+      "costUsd": 0.00029038800000000004
+    },
+    {
+      "id": "heldout-large-10",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "How long do we hang on to people's worked-hours records?",
+      "want": [
+        "cr_timesheet_7y"
+      ],
+      "ok": [
+        "cr_retention_job"
+      ],
+      "never": [
+        "cr_timesheet_6y"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_timesheet_7y",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 559,
+      "contextTokens": 207,
+      "hookMs": 368,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 282,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:04.436Z",
+      "inputTokens": 6893,
+      "costUsd": 0.00028950600000000003
+    },
+    {
+      "id": "heldout-large-11",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "A nurse slept at the hospital during an overnight standby. Does all of that count toward her weekly limit?",
+      "want": [
+        "cr_oncall_resident"
+      ],
+      "ok": [
+        "cr_oncall_model",
+        "cr_bug_rest_callout",
+        "cr_opt_out"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_dst_autumn_night",
+          "kind": "decision",
+          "p": 0.61
+        },
+        {
+          "key": "cr_rule_profiles",
+          "kind": "architecture",
+          "p": 0.22
+        },
+        {
+          "key": "cr_oncall_nonresident",
+          "kind": "constraint",
+          "p": 0.09
+        },
+        {
+          "key": "cr_bug_rest_callout",
+          "kind": "bug",
+          "p": 0.06
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 3,
+      "missed": [
+        "cr_oncall_resident"
+      ],
+      "extra": [
+        "cr_dst_autumn_night",
+        "cr_rule_profiles",
+        "cr_oncall_nonresident"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 4,
+      "contextChars": 1051,
+      "contextTokens": 409,
+      "hookMs": 362,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 273,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:11.588Z",
+      "inputTokens": 6804,
+      "costUsd": 0.00028576800000000005
+    },
+    {
+      "id": "heldout-large-12",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Why won't the ward tablet let staff begin their day an hour early?",
+      "want": [
+        "cr_clockin_window"
+      ],
+      "ok": [
+        "cr_clockin_qr"
+      ],
+      "never": [
+        "cr_clockin_gps"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_clockin_qr",
+          "kind": "decision",
+          "p": 0.33
+        },
+        {
+          "key": "cr_opt_out",
+          "kind": "constraint",
+          "p": 0.14
+        },
+        {
+          "key": "cr_ward_timezone",
+          "kind": "decision",
+          "p": 0.11
+        },
+        {
+          "key": "cr_notification_prefs",
+          "kind": "architecture",
+          "p": 0.1
+        },
+        {
+          "key": "cr_time_storage",
+          "kind": "architecture",
+          "p": 0.06
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 4,
+      "missed": [
+        "cr_clockin_window"
+      ],
+      "extra": [
+        "cr_opt_out",
+        "cr_ward_timezone",
+        "cr_notification_prefs",
+        "cr_time_storage"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 5,
+      "contextChars": 1274,
+      "contextTokens": 503,
+      "hookMs": 345,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 262,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:13.896Z",
+      "inputTokens": 6862,
+      "costUsd": 0.000288204
+    },
+    {
+      "id": "heldout-large-13",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Can our export work out what each nurse earns for working on a national day off?",
+      "want": [
+        "cr_no_pay_calc"
+      ],
+      "ok": [
+        "cr_sf_mapping",
+        "cr_payroll_on_close"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_gw_timeout_export",
+          "kind": "decision",
+          "p": 0.37
+        },
+        {
+          "key": "cr_sf_mapping",
+          "kind": "constraint",
+          "p": 0.23
+        },
+        {
+          "key": "cr_fairness",
+          "kind": "decision",
+          "p": 0.08
+        },
+        {
+          "key": "cr_sf_odata",
+          "kind": "architecture",
+          "p": 0.06
+        },
+        {
+          "key": "cr_dst_autumn_night",
+          "kind": "decision",
+          "p": 0.05
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 4,
+      "missed": [
+        "cr_no_pay_calc"
+      ],
+      "extra": [
+        "cr_gw_timeout_export",
+        "cr_fairness",
+        "cr_sf_odata",
+        "cr_dst_autumn_night"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 5,
+      "contextChars": 1209,
+      "contextTokens": 473,
+      "hookMs": 346,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 267,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:20.607Z",
+      "inputTokens": 6862,
+      "costUsd": 0.000288204
+    },
+    {
+      "id": "heldout-large-14",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Can I still look at every request path recorded during last week's pre-production trial run?",
+      "want": [
+        "cr_otel_sampling_staging"
+      ],
+      "ok": [
+        "cr_obs_otel_grafana",
+        "cr_release_train_thu"
+      ],
+      "never": [
+        "cr_obs_app_insights"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_otel_sampling_prod",
+          "kind": "decision",
+          "p": 0.81
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 1,
+      "missed": [
+        "cr_otel_sampling_staging"
+      ],
+      "extra": [
+        "cr_otel_sampling_prod"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 540,
+      "contextTokens": 196,
+      "hookMs": 1321,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 1247,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:23.975Z",
+      "inputTokens": 6731,
+      "costUsd": 0.000282702
+    },
+    {
+      "id": "heldout-large-15",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Can a ward manager sign off the hours they worked themselves?",
+      "want": [
+        "cr_timesheet_approval",
+        "cr_bug_self_approve"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_timesheet_approval",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "cr_bug_self_approve"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 533,
+      "contextTokens": 192,
+      "hookMs": 437,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 350,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:28.968Z",
+      "inputTokens": 6930,
+      "costUsd": 0.00029106000000000005
+    },
+    {
+      "id": "heldout-large-16",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "For staff in Germany, what span of time is the 48-hour cap measured over?",
+      "want": [
+        "cr_avg_week_per_country"
+      ],
+      "ok": [
+        "cr_opt_out",
+        "cr_rule_profiles"
+      ],
+      "never": [
+        "cr_avg_week_17_all"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_avg_week_per_country",
+          "kind": "constraint",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 565,
+      "contextTokens": 214,
+      "hookMs": 343,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 248,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:32.726Z",
+      "inputTokens": 6833,
+      "costUsd": 0.000286986
+    },
+    {
+      "id": "heldout-large-17",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Suggest a name for a sourdough starter.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 343,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 257,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:37.649Z",
+      "inputTokens": 6776,
+      "costUsd": 0.000284592
+    },
+    {
+      "id": "heldout-large-18",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "What's the boiling point of water at the top of Mount Everest?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 317,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 241,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:37.966Z",
+      "inputTokens": 6698,
+      "costUsd": 0.00028131600000000004
+    },
+    {
+      "id": "heldout-large-19",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Compose a limerick about a cat who loves cardboard boxes.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 306,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 225,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:39.411Z",
+      "inputTokens": 6714,
+      "costUsd": 0.00028198800000000005
+    },
+    {
+      "id": "heldout-large-20",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "How many centimetres are in a foot?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 307,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 224,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:39.718Z",
+      "inputTokens": 6715,
+      "costUsd": 0.00028203
+    },
+    {
+      "id": "heldout-large-21",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "What does HTTP status 418 mean?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_bug_ratelimit_nat",
+          "kind": "bug",
+          "p": 0.09
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 1,
+      "missed": [],
+      "extra": [
+        "cr_bug_ratelimit_nat"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 567,
+      "contextTokens": 208,
+      "hookMs": 306,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 237,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:42.638Z",
+      "inputTokens": 6733,
+      "costUsd": 0.00028278600000000004
+    },
+    {
+      "id": "heldout-large-22",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Summarise the rules for castling in chess in two sentences.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 356,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 272,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:42.995Z",
+      "inputTokens": 6797,
+      "costUsd": 0.000285474
+    },
+    {
+      "id": "heldout-large-23",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Add a trailing newline to `docs/README.md`.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_pref_adr",
+          "kind": "preference",
+          "p": 0.14
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 1,
+      "missed": [],
+      "extra": [
+        "cr_pref_adr"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 545,
+      "contextTokens": 200,
+      "hookMs": 323,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 246,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:46.172Z",
+      "inputTokens": 6708,
+      "costUsd": 0.00028173600000000004
+    },
+    {
+      "id": "heldout-large-24",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Which planet has the most moons?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 324,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 240,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:46.497Z",
+      "inputTokens": 6726,
+      "costUsd": 0.000282492
+    },
+    {
+      "id": "heldout-large-25",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Send the new cover-request SMS through MessageBird from swap-service.",
+      "want": [
+        "cr_sms_twilio"
+      ],
+      "ok": [
+        "cr_cover_flow",
+        "cr_notification_prefs",
+        "cr_bug_sms_duplicate",
+        "cr_sms_sender_uk",
+        "cr_sms_sender_nl"
+      ],
+      "never": [
+        "cr_sms_messagebird"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_sms_twilio",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 578,
+      "contextTokens": 212,
+      "hookMs": 330,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 247,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:51.653Z",
+      "inputTokens": 6897,
+      "costUsd": 0.000289674
+    },
+    {
+      "id": "heldout-large-26",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Staff should only be able to clock in when the phone's location puts them on site; tighten that radius to 100 m.",
+      "want": [
+        "cr_clockin_qr"
+      ],
+      "ok": [
+        "cr_clockin_window",
+        "cr_bug_offline_clockin_late"
+      ],
+      "never": [
+        "cr_clockin_gps"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_clockin_qr",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 572,
+      "contextTokens": 211,
+      "hookMs": 321,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 238,
+      "jevOk": true,
+      "at": "2026-09-28T17:24:53.258Z",
+      "inputTokens": 6827,
+      "costUsd": 0.000286734
+    },
+    {
+      "id": "heldout-large-27",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "When do doctors get the rota for the next period?",
+      "want": [
+        "cr_publish_doctors_six"
+      ],
+      "ok": [
+        "cr_rota_period",
+        "cr_publish_gate",
+        "cr_nights_max_doctors"
+      ],
+      "never": [
+        "cr_publish_fortnightly",
+        "cr_publish_four_weeks"
+      ],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [
+        "cr_publish_doctors_six"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "hookMs": 2096,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 2005,
+      "jevOk": false,
+      "at": "2026-09-28T17:25:01.405Z",
+      "inputTokens": 0,
+      "costUsd": null,
+      "error": "APITimeoutError: Request timed out after 2000ms."
+    },
+    {
+      "id": "heldout-large-28",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Deploy the swap-service fix to production today at 15:00, as soon as it merges.",
+      "want": [
+        "cr_release_train_thu",
+        "cr_hotfix_policy"
+      ],
+      "ok": [
+        "cr_expand_contract"
+      ],
+      "never": [
+        "cr_release_on_demand",
+        "cr_release_train_wed"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_helm_umbrella",
+          "kind": "architecture",
+          "p": 0.49
+        },
+        {
+          "key": "cr_release_train_thu",
+          "kind": "decision",
+          "p": 0.39
+        },
+        {
+          "key": "cr_bug_swap_rule_recheck",
+          "kind": "bug",
+          "p": 0.06
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 2,
+      "missed": [
+        "cr_hotfix_policy"
+      ],
+      "extra": [
+        "cr_helm_umbrella",
+        "cr_bug_swap_rule_recheck"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 3,
+      "contextChars": 966,
+      "contextTokens": 376,
+      "hookMs": 423,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 347,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:03.779Z",
+      "inputTokens": 6892,
+      "costUsd": 0.000289464
+    },
+    {
+      "id": "heldout-large-29",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Add a feature toggle to roster-service's application.yml for the break-time rule.",
+      "want": [
+        "cr_flags_unleash"
+      ],
+      "ok": [
+        "cr_pref_flag_naming",
+        "cr_unleash_context",
+        "cr_rule_profiles"
+      ],
+      "never": [
+        "cr_flags_yaml"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_flags_unleash",
+          "kind": "decision",
+          "p": 0.99
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 550,
+      "contextTokens": 205,
+      "hookMs": 386,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 297,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:10.526Z",
+      "inputTokens": 6923,
+      "costUsd": 0.00029076600000000003
+    },
+    {
+      "id": "heldout-large-30",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Where do the Kafka brokers run? I need to raise one topic's retention.",
+      "want": [
+        "cr_kafka_confluent"
+      ],
+      "ok": [
+        "cr_kafka_topics",
+        "cr_kafka_roster_topic",
+        "cr_kafka_swap_topic",
+        "cr_bug_strimzi_disk"
+      ],
+      "never": [
+        "cr_kafka_strimzi"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_kafka_confluent",
+          "kind": "decision",
+          "p": 0.99
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 552,
+      "contextTokens": 215,
+      "hookMs": 520,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 437,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:12.411Z",
+      "inputTokens": 6906,
+      "costUsd": 0.000290052
+    },
+    {
+      "id": "heldout-large-31",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "How long do swap requests stay open before they expire?",
+      "want": [
+        "cr_swap_expiry_before_shift"
+      ],
+      "ok": [
+        "cr_swap_flow",
+        "cr_swap_auto_same_grade"
+      ],
+      "never": [
+        "cr_swap_expiry_48h"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_swap_expiry_before_shift",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 539,
+      "contextTokens": 195,
+      "hookMs": 342,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 256,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:21.296Z",
+      "inputTokens": 6832,
+      "costUsd": 0.000286944
+    },
+    {
+      "id": "heldout-large-32",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Add a key for the new overtime banner to apps/web's ngx-translate JSON files.",
+      "want": [
+        "cr_i18n_localize"
+      ],
+      "ok": [
+        "cr_i18n_three",
+        "cr_pref_ui_screenshots",
+        "cr_i18n_de_formal",
+        "cr_i18n_nl_informal"
+      ],
+      "never": [
+        "cr_i18n_ngx"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "cr_i18n_localize",
+          "kind": "decision",
+          "p": 1
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 573,
+      "contextTokens": 213,
+      "hookMs": 410,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 325,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:23.547Z",
+      "inputTokens": 6813,
+      "costUsd": 0.000286146
+    },
+    {
+      "id": "heldout-large-33",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Let's share the rules engine code with the Flutter app through Kotlin Multiplatform.",
+      "want": [
+        "cr_dead_kmp"
+      ],
+      "ok": [
+        "cr_rules_package",
+        "cr_mobile_flutter"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "cr_dead_kmp"
+      ],
+      "injected": [
+        {
+          "key": "cr_rules_package",
+          "kind": "architecture",
+          "p": 0.71
+        },
+        {
+          "key": "cr_gradle_layout",
+          "kind": "architecture",
+          "p": 0.15
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 1,
+      "missed": [
+        "cr_dead_kmp"
+      ],
+      "extra": [
+        "cr_gradle_layout"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 761,
+      "contextTokens": 293,
+      "hookMs": 1091,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 1006,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:32.046Z",
+      "inputTokens": 6779,
+      "costUsd": 0.00028471800000000005
+    },
+    {
+      "id": "heldout-large-34",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Generate whole rotas automatically with an optimisation solver instead of suggesting people per gap.",
+      "want": [
+        "cr_dead_timefold"
+      ],
+      "ok": [
+        "cr_gap_suggestions",
+        "cr_fairness"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "cr_dead_timefold"
+      ],
+      "injected": [
+        {
+          "key": "cr_rule_profiles",
+          "kind": "architecture",
+          "p": 0.27
+        },
+        {
+          "key": "cr_todo_fairness_prefs",
+          "kind": "todo",
+          "p": 0.21
+        },
+        {
+          "key": "cr_ward_requirements",
+          "kind": "architecture",
+          "p": 0.17
+        },
+        {
+          "key": "cr_hpa_roster",
+          "kind": "architecture",
+          "p": 0.06
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 4,
+      "missed": [
+        "cr_dead_timefold"
+      ],
+      "extra": [
+        "cr_rule_profiles",
+        "cr_todo_fairness_prefs",
+        "cr_ward_requirements",
+        "cr_hpa_roster"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 4,
+      "contextChars": 1061,
+      "contextTokens": 412,
+      "hookMs": 949,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 865,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:35.464Z",
+      "inputTokens": 6959,
+      "costUsd": 0.00029227800000000004
+    },
+    {
+      "id": "heldout-large-35",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Can the database itself keep trusts apart with Postgres policies?",
+      "want": [
+        "cr_dead_rls"
+      ],
+      "ok": [
+        "cr_tenant_filter",
+        "cr_tenant_column"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "cr_dead_rls"
+      ],
+      "injected": [
+        {
+          "key": "cr_tenant_model",
+          "kind": "decision",
+          "p": 0.46
+        }
+      ],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 1,
+      "missed": [
+        "cr_dead_rls"
+      ],
+      "extra": [
+        "cr_tenant_model"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 544,
+      "contextTokens": 195,
+      "hookMs": 1062,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 991,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:47.163Z",
+      "inputTokens": 6672,
+      "costUsd": 0.00028022400000000003
+    },
+    {
+      "id": "heldout-large-36",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Make swap approvals exactly-once with Kafka transactions between swap-service and roster-service.",
+      "want": [
+        "cr_dead_kafka_eos"
+      ],
+      "ok": [
+        "cr_idempotent_consumers",
+        "cr_swap_flow",
+        "cr_outbox"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "cr_dead_kafka_eos"
+      ],
+      "injected": [
+        {
+          "key": "cr_swap_flow",
+          "kind": "architecture",
+          "p": 0.82
+        },
+        {
+          "key": "cr_kafka_swap_topic",
+          "kind": "architecture",
+          "p": 0.09
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 1,
+      "missed": [
+        "cr_dead_kafka_eos"
+      ],
+      "extra": [
+        "cr_kafka_swap_topic"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 720,
+      "contextTokens": 273,
+      "hookMs": 1036,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 954,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:49.813Z",
+      "inputTokens": 6927,
+      "costUsd": 0.000290934
+    },
+    {
+      "id": "heldout-large-37",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Turn on Testcontainers reuse mode so CI gets faster.",
+      "want": [
+        "cr_dead_tc_reuse"
+      ],
+      "ok": [
+        "cr_pref_tc_per_module",
+        "cr_ci_github_actions"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "cr_dead_tc_reuse"
+      ],
+      "injected": [
+        {
+          "key": "cr_pref_tc_per_module",
+          "kind": "preference",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "cr_dead_tc_reuse"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 549,
+      "contextTokens": 203,
+      "hookMs": 1106,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 1022,
+      "jevOk": true,
+      "at": "2026-09-28T17:25:58.741Z",
+      "inputTokens": 6750,
+      "costUsd": 0.0002835
+    },
+    {
+      "id": "heldout-large-38",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Add server-side rendering to apps/web for quicker first loads.",
+      "want": [
+        "cr_dead_angular_ssr"
+      ],
+      "ok": [
+        "cr_web_angular"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "cr_dead_angular_ssr"
+      ],
+      "injected": [
+        {
+          "key": "cr_web_angular",
+          "kind": "decision",
+          "p": 0.47
+        },
+        {
+          "key": "cr_bff",
+          "kind": "architecture",
+          "p": 0.18
+        },
+        {
+          "key": "cr_web_signals",
+          "kind": "decision",
+          "p": 0.08
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 2,
+      "missed": [
+        "cr_dead_angular_ssr"
+      ],
+      "extra": [
+        "cr_bff",
+        "cr_web_signals"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 3,
+      "contextChars": 873,
+      "contextTokens": 334,
+      "hookMs": 1141,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 1045,
+      "jevOk": true,
+      "at": "2026-09-28T17:26:02.262Z",
+      "inputTokens": 6809,
+      "costUsd": 0.000285978
+    },
+    {
+      "id": "heldout-large-39",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Coordinators want a Slack bot that posts cover requests.",
+      "want": [
+        "cr_dead_slack"
+      ],
+      "ok": [
+        "cr_cover_flow",
+        "cr_notification_prefs"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "cr_dead_slack"
+      ],
+      "injected": [
+        {
+          "key": "cr_cover_flow",
+          "kind": "architecture",
+          "p": 0.62
+        },
+        {
+          "key": "cr_notification_prefs",
+          "kind": "architecture",
+          "p": 0.32
+        }
+      ],
+      "wantHit": 0,
+      "good": 2,
+      "wrong": 0,
+      "missed": [
+        "cr_dead_slack"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 772,
+      "contextTokens": 277,
+      "hookMs": 1117,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 1035,
+      "jevOk": true,
+      "at": "2026-09-28T17:26:11.853Z",
+      "inputTokens": 6819,
+      "costUsd": 0.00028639800000000005
+    },
+    {
+      "id": "heldout-large-40",
+      "file": "heldout-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Could we stream changes from the roster tables to Kafka with Debezium instead of the outbox?",
+      "want": [
+        "cr_dead_debezium"
+      ],
+      "ok": [
+        "cr_outbox",
+        "cr_kafka_topics"
+      ],
+      "never": [],
+      "wantUnparsed": [
+        "cr_dead_debezium"
+      ],
+      "injected": [
+        {
+          "key": "cr_outbox",
+          "kind": "architecture",
+          "p": 1
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "cr_dead_debezium"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 577,
+      "contextTokens": 209,
+      "hookMs": 892,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 808,
+      "jevOk": true,
+      "at": "2026-09-28T17:26:14.420Z",
+      "inputTokens": 6984,
+      "costUsd": 0.00029332800000000003
+    }
+  ]
+}
