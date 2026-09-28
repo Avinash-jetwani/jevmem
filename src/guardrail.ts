@@ -14,8 +14,9 @@
  *    left of `guard.budgetMs`. Only the command, or the file path and a short scrubbed snippet of the change, is sent,
  *    and for a git command the staged files a candidate rule names.
  *    Answers are cached in `.jevmem/guard-cache.json` by rule id, rule text and call, whatever the answer.
- * 4. Decision, by `guard.mode`: `ask` → permissionDecision "ask"; `block` → "deny" at or above `guard.blockMin`, "ask"
- *    below it; `warn` → the rule as additionalContext, no decision; `off` → nothing.
+ * 4. Decision, by `guard.mode`: `ask` → permissionDecision "ask"; `block` → "deny" at or above `guard.blockMin` for a
+ *    verified rule (jevmem wrote it on this machine), "ask" below it and for an unverified rule at any score, with the
+ *    reason naming the unverified line; `warn` → the rule as additionalContext, no decision; `off` → nothing.
  * Separately, a call that changes the guard settings in jevmem.config.json, or removes or supersedes a `[constraint]`
  * line in JEVMEM.md, is always asked (unless the mode is `off`), so the guard cannot be switched off to get past it.
  *
@@ -33,15 +34,15 @@ import { gateLines, planGate, settleGate } from "./guard.js";
 import { actionSummary, recordGuardCall, shorten, type GuardLogEntry, type GuardRoute } from "./guardlog.js";
 import { appendLog, type JevCaller } from "./jev.js";
 import { actionFeatures, DEFAULT_MATCH, matchRules, ruleFeatures, ruleNamesCommittedFiles, shellWords, snippetAround, splitCommand, type Candidate, type GuardAction, type GuardTool, type IndexedRule, type MatchOptions } from "./prefilter.js";
-import { lineSha } from "./provenance.js";
+import { isVerified, lineSha, readProvenance } from "./provenance.js";
 import { parseMemoryFile } from "./memfile.js";
 import { scrubSecrets } from "./scrub.js";
-import { GUARD_MODES, type GuardMode, type JevmemConfig, type Memory } from "./types.js";
+import { DEFAULT_CONFIG, GUARD_MODES, type GuardMode, type JevmemConfig, type Memory } from "./types.js";
 
 /** Bumped when the guard's question changes, so cached answers from an older wording are asked again. */
 export const GUARD_VERSION = 1;
-/** Bumped when the index format or the prefilter's rule features change. */
-const INDEX_VERSION = 1;
+/** Bumped when the index format or the prefilter's rule features change (2: each rule says whether it is verified). */
+const INDEX_VERSION = 2;
 
 export const GUARDED_TOOLS: readonly GuardTool[] = ["Bash", "Edit", "Write"];
 /** What the hook registration matches (Claude Code 2.1.274 and 2.1.281 have no MultiEdit tool). */
@@ -127,9 +128,13 @@ export function toAction(input: GuardInput, root: string): GuardAction | null {
 // ---------------------------------------------------------------------------------------------
 // Config
 
-export type GuardConfigResult = { ok: true; cfg: JevmemConfig; text: string } | { ok: false; error: string };
+/** `problems`: settings the guard did not use as written, and what it used instead (it still decides). */
+export type GuardConfigResult = { ok: true; cfg: JevmemConfig; text: string; problems: string[] } | { ok: false; error: string };
 
-/** jevmem.config.json for the guard: an unreadable file, bad JSON or an unknown guard setting is an error (fail open). */
+/**
+ * jevmem.config.json for the guard: an unreadable file, bad JSON or an unknown guard setting is an error (fail open).
+ * `blockMin` below `askMin` would make `block` deny wherever it asks: the two defaults are used instead, as a problem.
+ */
 export function readGuardConfig(root: string): GuardConfigResult {
   let text: string;
   try {
@@ -149,10 +154,17 @@ export function readGuardConfig(root: string): GuardConfigResult {
   for (const k of ["askMin", "blockMin"] as const) if (typeof g[k] !== "number" || !(g[k] >= 0 && g[k] <= 1)) return { ok: false, error: `guard.${k} must be a number from 0 to 1` };
   if (typeof g.budgetMs !== "number" || !(g.budgetMs > 0)) return { ok: false, error: "guard.budgetMs must be a positive number" };
   if (typeof g.maxCandidates !== "number" || !(g.maxCandidates >= 1)) return { ok: false, error: "guard.maxCandidates must be 1 or more" };
+  const problems: string[] = [];
+  if (g.blockMin < g.askMin) {
+    const d = DEFAULT_CONFIG.guard;
+    problems.push(`guard.blockMin (${g.blockMin}) is below guard.askMin (${g.askMin}) in jevmem.config.json, so block mode would deny calls it should only ask about; the guard uses the defaults instead, askMin ${d.askMin} and blockMin ${d.blockMin}`);
+    g.askMin = d.askMin;
+    g.blockMin = d.blockMin;
+  }
   // The hook entry's timeout is 3 s: a longer budget would only be cut off by Claude Code.
   g.budgetMs = Math.min(g.budgetMs, 2500);
   g.maxCandidates = Math.min(Math.floor(g.maxCandidates), 10);
-  return { ok: true, cfg, text };
+  return { ok: true, cfg, text, problems };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -215,7 +227,8 @@ export function loadRules(root: string, cfg: JevmemConfig, memoryText: string): 
   const plan = planGate(root, constraints, cfg.thresholds.injectionMax);
   for (const m of plan.check) skipped.push({ id: m.id, text: m.text, reason: "no gate verdict yet (an unverified line: checked on the next prompt or Stop, or by `jevmem audit --security`)" });
   for (const w of plan.withheld) skipped.push({ id: w.memory.id, text: w.memory.text, reason: `withheld by the poisoning gate: ${w.reason}` });
-  const enforced: IndexedRule[] = plan.serve.map((m) => ({ id: m.id, text: m.text, sha: lineSha(m.text), features: ruleFeatures(m.text) }));
+  const prov = readProvenance(root);
+  const enforced: IndexedRule[] = plan.serve.map((m) => ({ id: m.id, text: m.text, sha: lineSha(m.text), features: ruleFeatures(m.text), verified: isVerified(prov, m) }));
   writeJsonAtomic(indexFile(root), { key, builtAt: new Date().toISOString(), enforced, skipped });
   if (plan.check.length) appendLog(root, { ts: new Date().toISOString(), label: "guard", event: "guard", ok: true, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, detail: `not enforced until the poisoning gate has checked them: ${plan.check.map((m) => m.id).join(", ")}` });
   return { enforced, skipped, cached: false };
@@ -427,6 +440,8 @@ export type GuardDecision = "none" | "ask" | "deny" | "warn";
 export interface RuleCheck {
   id: string;
   text: string;
+  /** Written by jevmem on this machine (src/provenance.ts). An unverified rule is asked about, never denied. */
+  verified: boolean;
   /** Jev's probability that the call breaks the rule; null when no answer (timeout, no key, error). */
   p: number | null;
   cached: boolean;
@@ -488,11 +503,28 @@ function ruleList(checks: RuleCheck[]): string {
   return checks.slice(0, 3).map((c) => q(c.text)).join("; ") + (checks.length > 3 ? `; and ${checks.length - 3} more` : "");
 }
 
-/** Turn the answers and the tamper check into the decision and the hook's output. */
+/**
+ * The rules quoted, then where they come from: `(JEVMEM.md)`, or which of the quoted ones are unverified lines (jevmem
+ * did not write them on this machine), with their ids. `notBlocked`: in block mode, an unverified rule that reached
+ * `blockMin` is asked about instead, and the reason says so.
+ */
+function rulesWithSource(checks: RuleCheck[], notBlocked = false): string {
+  const unverified = checks.slice(0, 3).filter((c) => !c.verified).map((c) => c.id);
+  if (!unverified.length) return `${ruleList(checks)} (JEVMEM.md)`;
+  const lines = unverified.length === 1 ? `unverified line ${unverified[0]}` : `unverified lines ${unverified.join(", ")}`;
+  return `${ruleList(checks)} (JEVMEM.md; ${lines}${notBlocked ? ": asked, not blocked" : ""})`;
+}
+
+/**
+ * Turn the answers and the tamper check into the decision and the hook's output. Only a verified rule can deny: an
+ * unverified one (a hand edit, a line from git, `jevmem add`) is asked about in block mode too, since a line planted
+ * as an ordinary team rule passes the poisoning gate.
+ */
 export function decideGuard(mode: GuardMode, askMin: number, blockMin: number, checks: RuleCheck[], tamper: string | null): { decision: GuardDecision; stdout: string } {
   if (mode === "off") return { decision: "none", stdout: "" };
   const hits = checks.filter((c) => c.p !== null && c.p >= askMin).sort((a, b) => b.p! - a.p!);
-  const blocks = hits.filter((c) => c.p! >= blockMin);
+  const blocks = hits.filter((c) => c.p! >= blockMin && c.verified);
+  const notBlocked = mode === "block" && hits.some((c) => c.p! >= blockMin && !c.verified);
   const plural = (n: number) => (n === 1 ? "a saved rule" : "saved rules");
   if (mode === "block" && blocks.length) {
     const one = blocks.length === 1;
@@ -500,7 +532,7 @@ export function decideGuard(mode: GuardMode, askMin: number, blockMin: number, c
     return { decision: "deny", stdout: hookOutput("deny", reason, null) };
   }
   if (tamper) {
-    const reason = hits.length ? `${tamper} It may also break ${plural(hits.length)}: ${ruleList(hits)} (JEVMEM.md).` : tamper;
+    const reason = hits.length ? `${tamper} It may also break ${plural(hits.length)}: ${rulesWithSource(hits, notBlocked)}.` : tamper;
     return { decision: "ask", stdout: hookOutput("ask", reason, null) };
   }
   if (!hits.length) return { decision: "none", stdout: "" };
@@ -508,7 +540,7 @@ export function decideGuard(mode: GuardMode, askMin: number, blockMin: number, c
     const context = hits.length === 1 ? `Saved project rule in JEVMEM.md: ${q(hits[0]!.text)}.` : `Saved project rules in JEVMEM.md: ${ruleList(hits)}.`;
     return { decision: "warn", stdout: hookOutput("warn", "", context) };
   }
-  return { decision: "ask", stdout: hookOutput("ask", `jevmem: this may break ${plural(hits.length)}: ${ruleList(hits)} (JEVMEM.md)`, null) };
+  return { decision: "ask", stdout: hookOutput("ask", `jevmem: this may break ${plural(hits.length)}: ${rulesWithSource(hits, notBlocked)}`, null) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -559,6 +591,10 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     return failedCall();
   }
   const cfg = conf.cfg;
+  for (const problem of conf.problems) {
+    trace.notes.push(problem);
+    if (log) appendLog(root, { ts: new Date().toISOString(), label: "guard", event: "guard-config", ok: false, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, error: problem });
+  }
   trace.mode = cfg.guard.mode;
   trace.thresholds = { askMin: cfg.guard.askMin, blockMin: cfg.guard.blockMin };
   if (cfg.enabled === false) {
@@ -596,7 +632,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
       const entry: GuardLogEntry = { ts: startedAt, tool: action.tool, route: trace.route ?? "error", decision: d.decision };
       if (d.decision !== "none") {
         entry.mode = cfg.guard.mode;
-        if (hits.length) entry.rules = hits.map((c) => ({ id: c.id, p: Math.round(c.p! * 1000) / 1000, text: shorten(scrubSecrets(c.text), 200) }));
+        if (hits.length) entry.rules = hits.map((c) => ({ id: c.id, p: Math.round(c.p! * 1000) / 1000, text: shorten(scrubSecrets(c.text), 200), ...(c.verified ? {} : { unverified: true }) }));
         if (trace.tamper) entry.tamper = scrubSecrets(trace.tamper);
         entry.action = actionSummary(action, trace.payload);
       }
@@ -653,7 +689,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   const answers = deps.noCache ? {} : readAnswers(root);
   const checks: RuleCheck[] = candidates.map((c) => {
     const hit = answers[answerKey(c.rule, hash)];
-    return { id: c.rule.id, text: c.rule.text, p: hit ? hit.p : null, cached: Boolean(hit) };
+    return { id: c.rule.id, text: c.rule.text, verified: c.rule.verified === true, p: hit ? hit.p : null, cached: Boolean(hit) };
   });
   const ask = candidates.filter((_, i) => checks[i]!.p === null);
   if (!ask.length) {
@@ -811,10 +847,10 @@ export function formatGuardTrace(t: GuardTrace): string {
   const out: string[] = [];
   const a = t.action;
   out.push(`jevmem guard test: ${a ? (a.tool === "Bash" ? `Bash \`${a.command}\`` : `${a.tool} ${a.file}`) : (t.tool ?? "no call")}`);
-  if (t.mode) out.push(`mode       ${t.mode}${t.thresholds && t.mode !== "off" ? ` (acts at p ≥ ${t.thresholds.askMin.toFixed(2)}${t.mode === "block" ? `, denies at p ≥ ${t.thresholds.blockMin.toFixed(2)}` : ""})` : ""}`);
+  if (t.mode) out.push(`mode       ${t.mode}${t.thresholds && t.mode !== "off" ? ` (acts at p ≥ ${t.thresholds.askMin.toFixed(2)}${t.mode === "block" ? `, denies at p ≥ ${t.thresholds.blockMin.toFixed(2)} for a verified rule` : ""})` : ""}`);
   if (t.rules) {
     out.push(`rules      ${t.rules.enforced.length} loaded, ${t.rules.skipped.length} skipped`);
-    for (const r of t.rules.enforced) out.push(`  loaded   ${r.id}  ${r.text}`);
+    for (const r of t.rules.enforced) out.push(`  loaded   ${r.id}  ${r.text}${r.verified ? "" : "  (unverified: asked about, not denied)"}`);
     for (const r of t.rules.skipped) out.push(`  skipped  ${r.id}  ${r.text}\n             ${r.reason}`);
   }
   out.push(`tamper     ${t.tamper ?? "none"}`);

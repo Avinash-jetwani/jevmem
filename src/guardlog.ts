@@ -27,7 +27,8 @@ export interface GuardLogEntry {
   /** Asks, denials and warnings only. */
   mode?: string;
   tamper?: string;
-  rules?: { id: string; p: number; text: string }[];
+  /** `unverified`: the line was not written by jevmem on this machine, so it could only ask. */
+  rules?: { id: string; p: number; text: string; unverified?: boolean }[];
   action?: string;
 }
 
@@ -161,7 +162,7 @@ export function formatGuardLog(entries: GuardLogEntry[], n: number): string {
   const pad = " ".repeat(21);
   for (const e of shown) {
     out.push(`${localTime(e.ts)}  ${e.decision.padEnd(4)}  ${e.tool.padEnd(5)}  ${e.action ?? ""}`);
-    for (const r of e.rules ?? []) out.push(`${pad}rule ${r.id}  p=${r.p.toFixed(2)}  "${r.text}"`);
+    for (const r of e.rules ?? []) out.push(`${pad}rule ${r.id}  p=${r.p.toFixed(2)}  "${r.text}"${r.unverified ? "  (unverified line)" : ""}`);
     if (e.tamper) out.push(`${pad}tamper: ${e.tamper}`);
   }
   return out.join("\n");

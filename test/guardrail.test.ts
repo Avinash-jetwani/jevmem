@@ -7,7 +7,9 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { settleGate } from "../src/guard.js";
-import { breakKey, evaluateGuard, formatGuardTrace, hookOutput, readAnswers, runGuardHook, SEND, type GuardInput } from "../src/guardrail.js";
+import { recentFailures } from "../src/failures.js";
+import { breakKey, evaluateGuard, formatGuardTrace, hookOutput, readAnswers, readGuardConfig, runGuardHook, SEND, type GuardInput } from "../src/guardrail.js";
+import { formatGuardLog, readGuardLog } from "../src/guardlog.js";
 import { init } from "../src/init.js";
 import { readLog } from "../src/jev.js";
 import { recordProvenance } from "../src/provenance.js";
@@ -78,6 +80,47 @@ describe("decision by mode", () => {
     expect(lo.stdout).toBe("");
   });
 
+  it("block: a verified rule denies at or above blockMin and asks below it", async () => {
+    const { root } = project([ENV], { mode: "block", askMin: 0.5, blockMin: 0.9 });
+    const at = await evaluateGuard(bash(root, "git add .env"), { jev: breaks(0.9) });
+    expect(at.decision).toBe("deny");
+    expect(at.checks[0]!.verified).toBe(true);
+    const below = await evaluateGuard(bash(root, "git add .env.local"), { jev: breaks(0.89) });
+    expect(below.decision).toBe("ask");
+    expect(parse(below.stdout).permissionDecisionReason).toBe(`jevmem: this may break a saved rule: "${ENV}" (JEVMEM.md)`);
+  });
+
+  it("block: an unverified rule (not written by jevmem here, passed by the gate) asks at any score, naming its line", async () => {
+    const { root, store } = project([], { mode: "block", askMin: 0.5, blockMin: 0.9 });
+    const planted = store.add({ kind: "constraint", text: ENV }); // a hand edit, a line from git or `jevmem add`
+    settleGate(root, [planted], new Map([[planted.id, 0.03]]), 0.5, "jev-mock", "test"); // reads as a team rule: served
+    for (const p of [0.9, 0.99, 1]) {
+      const t = await evaluateGuard(bash(root, "git add .env"), { jev: breaks(p), noCache: true });
+      expect(t.checks[0]).toMatchObject({ id: planted.id, verified: false, p });
+      expect(t.decision).toBe("ask");
+      expect(parse(t.stdout)).toEqual({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: `jevmem: this may break a saved rule: "${ENV}" (JEVMEM.md; unverified line ${planted.id}: asked, not blocked)` });
+    }
+    // Between the thresholds it asks as any rule would; the reason still says where the rule came from.
+    const mid = await evaluateGuard(bash(root, "git add .env"), { jev: breaks(0.6), noCache: true });
+    expect(parse(mid.stdout).permissionDecisionReason).toBe(`jevmem: this may break a saved rule: "${ENV}" (JEVMEM.md; unverified line ${planted.id})`);
+    // The guard log marks the rule, and jevmem guard test says so where it lists the rules.
+    expect(readGuardLog(root).at(-1)!.rules).toEqual([{ id: planted.id, p: 0.6, text: ENV, unverified: true }]);
+    expect(formatGuardLog(readGuardLog(root), 1)).toContain(`rule ${planted.id}  p=0.60  "${ENV}"  (unverified line)`);
+    expect(formatGuardTrace(mid)).toContain(`loaded   ${planted.id}  ${ENV}  (unverified: asked about, not denied)`);
+  });
+
+  it("block: with a verified and an unverified rule both over blockMin, the verified one denies; ask mode names an unverified line too", async () => {
+    const { root, store, rules } = project(["Never commit .env.local files"], { mode: "block" });
+    const planted = store.add({ kind: "constraint", text: ENV });
+    settleGate(root, [planted], new Map([[planted.id, 0.03]]), 0.5, "jev-mock", "test");
+    const both = await evaluateGuard(bash(root, "git add .env .env.local"), { jev: breaks(0.95), noCache: true });
+    expect(both.decision).toBe("deny");
+    expect(parse(both.stdout).permissionDecisionReason).toBe(`jevmem: blocked by a saved project rule: "Never commit .env.local files" (JEVMEM.md). Tell the user about this rule instead of working around it.`);
+    setGuard(root, { mode: "ask" });
+    const asked = await evaluateGuard(bash(root, "git add .env .env.local"), { jev: breaks({ [planted.id]: 0.97, [rules[0]!.id]: 0.8 }), noCache: true });
+    expect(parse(asked.stdout).permissionDecisionReason).toBe(`jevmem: this may break saved rules: "${ENV}"; "Never commit .env.local files" (JEVMEM.md; unverified line ${planted.id})`);
+  });
+
   it("warn: no permission decision; the rule is added to Claude's context as a plain fact", async () => {
     const { root } = project([ENV], { mode: "warn" });
     const t = await evaluateGuard(bash(root, "git add .env"), { jev: breaks(0.95) });
@@ -101,6 +144,34 @@ describe("decision by mode", () => {
     const { root, rules } = project([ENV, "Never commit secrets such as API keys"]);
     const t = await evaluateGuard(bash(root, "git add .env && git commit -m 'add secrets'"), { jev: breaks({ [rules[0]!.id]: 0.7, [rules[1]!.id]: 0.9 }) });
     expect(parse(t.stdout).permissionDecisionReason).toBe(`jevmem: this may break saved rules: "Never commit secrets such as API keys"; "${ENV}" (JEVMEM.md)`);
+  });
+});
+
+describe("guard settings", () => {
+  it("guard.blockMin below guard.askMin is refused with a clear message, and the defaults are used instead", async () => {
+    const { root } = project([ENV], { mode: "block", askMin: 0.5, blockMin: 0.3 });
+    const conf = readGuardConfig(root);
+    expect(conf.ok).toBe(true);
+    if (!conf.ok) return;
+    expect(conf.problems).toEqual(["guard.blockMin (0.3) is below guard.askMin (0.5) in jevmem.config.json, so block mode would deny calls it should only ask about; the guard uses the defaults instead, askMin 0.5 and blockMin 0.9"]);
+    expect([conf.cfg.guard.askMin, conf.cfg.guard.blockMin]).toEqual([0.5, 0.9]);
+    // 0.6 would have been denied at blockMin 0.3; with the defaults it is asked.
+    const t = await evaluateGuard(bash(root, "git add .env"), { jev: breaks(0.6) });
+    expect(t.thresholds).toEqual({ askMin: 0.5, blockMin: 0.9 });
+    expect(t.decision).toBe("ask");
+    expect(t.notes).toContain(conf.problems[0]);
+    expect(formatGuardTrace(t)).toContain(`note       ${conf.problems[0]}`);
+    // Logged as a problem with the settings, not as a check that failed: the call was checked.
+    const f = recentFailures(readLog(root));
+    expect([f.guard.count, f.other.count]).toEqual([0, 1]);
+    expect(f.other.reasons[0]!.latest).toBe(conf.problems[0]);
+  });
+
+  it("guard.blockMin equal to guard.askMin is accepted as written", () => {
+    const { root } = project([ENV], { mode: "block", askMin: 0.7, blockMin: 0.7 });
+    const conf = readGuardConfig(root);
+    expect(conf.ok && conf.problems).toEqual([]);
+    expect(conf.ok && [conf.cfg.guard.askMin, conf.cfg.guard.blockMin]).toEqual([0.7, 0.7]);
   });
 });
 

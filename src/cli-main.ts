@@ -826,7 +826,9 @@ function guardStatus(root: string): string {
   const pending = rules.skipped.filter((r) => r.reason.startsWith("no gate verdict")).length;
   const held = rules.skipped.filter((r) => r.reason.startsWith("withheld")).length;
   const mode = cfg.guard.mode === "off" ? "off (the PreToolUse hook does nothing)" : cfg.guard.mode;
-  return `mode ${mode} (guard.mode); ${rules.enforced.length} active [constraint] rule(s) enforced${pending ? `, ${pending} not yet (no gate verdict: \`jevmem audit --security\` checks them now)` : ""}${held ? `, ${held} withheld by the poisoning gate` : ""}`;
+  const unverified = rules.enforced.filter((r) => !r.verified).length;
+  const problems = conf.problems.map((p) => `; ${p}`).join("");
+  return `mode ${mode} (guard.mode); ${rules.enforced.length} active [constraint] rule(s) enforced${unverified && cfg.guard.mode === "block" ? ` (${unverified} unverified: asked about, not denied)` : ""}${pending ? `, ${pending} not yet (no gate verdict: \`jevmem audit --security\` checks them now)` : ""}${held ? `, ${held} withheld by the poisoning gate` : ""}${problems}`;
 }
 
 /**

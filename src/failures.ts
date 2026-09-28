@@ -8,7 +8,8 @@
  * - Failed recalls: the UserPromptSubmit hook's problems (the request failed, or no key). Each failed prompt got no
  *   project memory at all. createJev also logs the failed request itself; that line is not counted again.
  * - Guard failures: the guard's own failure lines (Jev failed or timed out, no key, a bad config or input): each is a
- *   Bash, Edit or Write call that ran unchecked. createJev's line for the same request is not counted again.
+ *   Bash, Edit or Write call that ran unchecked. createJev's line for the same request is not counted again. A guard
+ *   setting replaced by its default (`guard-config`) is another problem: the call was still checked.
  * - Writer fallbacks: the LLM writer set in jevmem.config.json gave no line (an error, an empty line) and the line was
  *   written locally, or its request had to change (an OpenAI-compatible endpoint that rejected `reasoning_effort`).
  */
@@ -78,6 +79,8 @@ export function recentFailures(entries: JevLogEntry[], opts: { now?: number; day
         (/^gate check of new rules/.test(m) ? other : dropped).push({ at: e.ts, message: m });
       } else other.push({ at: e.ts, message: err });
     } else if (e.label === "guard" && e.ok === false && !e.event && !(e.questions > 0)) guard.push({ at: e.ts, message: one((e.error ?? "").replace(/^Jev check failed, no decision: /, "")) });
+    // A guard setting the guard replaced with the default: the call was still checked, so not a failed check.
+    else if (e.label === "guard" && e.event === "guard-config") other.push({ at: e.ts, message: one(e.error ?? "guard setting not used") });
     else if (e.label === "writer" && e.event === "writer-fallback") writer.push({ at: e.ts, message: one(e.detail ?? "writer fallback") });
   }
   return { days, since, dropped: group(dropped), recall: group(recall), guard: group(guard), writer: group(writer), other: group(other) };

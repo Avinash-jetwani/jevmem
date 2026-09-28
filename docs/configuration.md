@@ -34,7 +34,7 @@
 }
 ```
 
-`guard` (on `main`, not yet released) sets the PreToolUse guard: `mode` is `ask`, `block`, `warn` or `off`; Jev's score must reach `askMin` for the guard to act and `blockMin` to deny in `block` mode; `budgetMs` is the hook's own time budget; `maxCandidates` caps the rules asked about per call. An unknown mode or an out-of-range value makes the guard stand aside (no decision, logged). See [Guardrails](guardrails.md).
+`guard` (on `main`, not yet released) sets the PreToolUse guard: `mode` is `ask`, `block`, `warn` or `off`; Jev's score must reach `askMin` for the guard to act and `blockMin` to deny in `block` mode; `budgetMs` is the hook's own time budget; `maxCandidates` caps the rules asked about per call. An unknown mode or an out-of-range value makes the guard stand aside (no decision, logged). A `blockMin` below `askMin` is refused, and the guard uses the defaults for both (0.5 and 0.9), which `jevmem doctor` and `jevmem guard test` show. In `block` mode only a rule jevmem wrote on this machine can deny; a rule from an unverified line is asked about. See [Guardrails](guardrails.md).
 
 ### The one-line writer
 

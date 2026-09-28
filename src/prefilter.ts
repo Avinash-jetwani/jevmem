@@ -53,6 +53,8 @@ export interface IndexedRule {
   /** Hash of the rule's text (provenance.lineSha), so an edited rule is not served an old cached answer. */
   sha: string;
   features: Features;
+  /** Written by jevmem on this machine (src/provenance.ts). Only a verified rule can make the guard deny. */
+  verified?: boolean;
 }
 
 export interface Candidate {

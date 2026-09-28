@@ -5,6 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { settleGate } from "../src/guard.js";
 import { init } from "../src/init.js";
 import { recordProvenance } from "../src/provenance.js";
 import { MemoryStore } from "../src/store.js";
@@ -87,7 +88,15 @@ describe("jevmem guard test and doctor", () => {
     new MemoryStore(root).add({ kind: "constraint", text: "Never commit .env.staging files" });
     const r = await cli(["doctor"], root, { TYPESAFE_API_KEY: "k" });
     expect(r.out).toMatch(/^guard {4}mode block \(guard\.mode\); 2 active \[constraint\] rule\(s\) enforced, 1 not yet \(no gate verdict/m);
-    fs.writeFileSync(path.join(root, "jevmem.config.json"), '{"guard": {"mode": "loud"}}');
+    // A rule from a line jevmem did not write here, once the gate has passed it: counted, and marked as asking only.
+    const hand = new MemoryStore(root).add({ kind: "constraint", text: "Never commit .env.test files" });
+    settleGate(root, [hand], new Map([[hand.id, 0.04]]), 0.5, "jev-mock", "test");
+    expect((await cli(["doctor"], root, { TYPESAFE_API_KEY: "k" })).out).toMatch(/^guard {4}mode block \(guard\.mode\); 3 active \[constraint\] rule\(s\) enforced \(1 unverified: asked about, not denied\), 1 not yet/m);
+    const file = path.join(root, "jevmem.config.json");
+    const cfg = JSON.parse(fs.readFileSync(file, "utf8"));
+    fs.writeFileSync(file, JSON.stringify({ ...cfg, guard: { ...cfg.guard, askMin: 0.6, blockMin: 0.4 } }));
+    expect((await cli(["doctor"], root, { TYPESAFE_API_KEY: "k" })).out).toMatch(/^guard {4}mode block .*; guard\.blockMin \(0\.4\) is below guard\.askMin \(0\.6\) in jevmem\.config\.json, so block mode would deny calls it should only ask about; the guard uses the defaults instead, askMin 0\.5 and blockMin 0\.9$/m);
+    fs.writeFileSync(file, '{"guard": {"mode": "loud"}}');
     expect((await cli(["doctor"], root, { TYPESAFE_API_KEY: "k" })).out).toMatch(/^guard {4}makes no decision: guard\.mode must be one of ask, block, warn, off/m);
   });
 });
