@@ -82,13 +82,19 @@ const cut = (s: string, max: number) => (s.length > max ? s.slice(0, max - 1) + 
 export const shorten = (s: string, max: number) => cut(oneLine(s), max);
 
 /**
- * A short scrubbed summary of a call for the log: the command, or the file and the start of the new text (the snippet
- * around what matched, when one was sent). At most `max` characters.
+ * A short scrubbed summary of a call for the log: the command (and, for a git command, the staged files a rule
+ * named), or the file and the start of the new text (the snippet around what matched, when one was sent). At most
+ * `max` characters.
  */
 export function actionSummary(action: GuardAction, payload: Record<string, string> | null, max = 160): string {
   // Scrubbed before it is shortened, over a window far longer than what is kept.
   const clean = (s: string) => oneLine(scrubSecrets(s.slice(0, 20_000)));
-  if (action.tool === "Bash") return cut(clean(payload?.command ?? action.command ?? ""), max);
+  if (action.tool === "Bash") {
+    const command = clean(payload?.command ?? action.command ?? "");
+    if (!payload?.stages) return cut(command, max);
+    const stages = ` [stages ${cut(clean(payload.stages), Math.floor(max / 2))}]`;
+    return cut(command, Math.max(20, max - stages.length)) + stages;
+  }
   const text = clean((action.tool === "Edit" ? payload?.added : payload?.content) ?? action.added ?? "");
   return cut(`${action.file ?? ""}${text ? ` "${text}"` : ""}`, max);
 }

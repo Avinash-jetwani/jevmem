@@ -10,7 +10,8 @@ It is a backstop. With recall on, the relevant rules are already in Claude's con
 
 1. **Rules.** The live `[constraint]` lines of `JEVMEM.md` that have passed the [memory-poisoning gate](../SECURITY.md#memory-poisoning): lines jevmem wrote on this machine, and other lines once the gate has a clean verdict for them. The hook never asks the gate itself. Verdicts come from recall on your next prompt, from the Stop hook (which checks new rules once the turn's queue is drained), or from `jevmem audit --security`. Until then a line is not enforced; `jevmem guard test` lists it as skipped, and the log says so once. Superseded lines are ignored. The rules and their features are indexed in `.jevmem/guard-index.json`, rebuilt when `JEVMEM.md` or the gate's state changes.
 2. **Prefilter, on your machine.** Each rule and each call are reduced to paths and globs, filenames, command words (and `command subcommand` pairs such as `git push`) and keywords. A shell command line is split into its commands on `&&`, `||`, `;`, `|` and newlines, with `$( )` and backticks as commands of their own. An Edit or Write gives its path and the words of the new and replaced text. A rule that shares enough with the call is a candidate. A path, a filename, a pair, or a tool the rule names (`npm`, `psql`) does it alone; a broad directory such as `src/`, a tool nearly every session runs (git) and each keyword count for less, so one shared word is not enough. At most `guard.maxCandidates` (3) rules go further. A call with no candidate is done: no output, nothing sent.
-3. **Jev.** One request, one noul per candidate rule: "Would carrying out this tool call break saved project rule `<id>`?". It carries the command, or the file path (relative to the project) and a short snippet of the change around what matched, after the secret scrubber has run, plus the candidate rules' texts. The request gets what is left of `guard.budgetMs` (1,000 ms by default); the hook entry's own timeout is 3 s. Every answer, yes or no, is cached in `.jevmem/guard-cache.json` by rule and call, so a repeated call makes no request.
+   **What a git command would commit.** `git add .`, `git add -A` and `git commit -a` name no file, so on their own they share nothing with "Never commit .env files". For `git add`, `git stage` and `git commit`, the guard first runs one `git status` in the command's repository and works out, the way git does, the files the command would stage or commit: untracked files that are not ignored and changed tracked files under the pathspecs for `git add` (`-u`: tracked files only; `-f`: ignored files too); for `git commit`, what is already staged, plus changed tracked files with `-a` (never untracked ones). It follows `cd`, `pushd` and `git -C`, leaves a dry run alone, expands an unquoted `*` as the shell does (no dotfiles), and leaves out deletions. Those files are matched against the paths and filenames of rules about committing: rules that say commit, git, check in, push, tracked or version control. A rule about editing a path ("docs/api/ is generated; never edit it") is broken by the edit, which the guard checks when it happens, so committing the result is not asked about. `git status` runs with `--no-optional-locks`, so it never takes the index lock and cannot get in the way of a git command running at the same time; it has at most 200 ms (and a quarter of `guard.budgetMs`). A timeout, no git, not a repository, or a command it cannot follow (`cd "$DIR"`, `--git-dir`, `GIT_DIR=…`, `--pathspec-from-file`, a git alias) means the call is matched on what it names, as before.
+3. **Jev.** One request, one noul per candidate rule: "Would carrying out this tool call break saved project rule `<id>`?". It carries the command, or the file path (relative to the project) and a short snippet of the change around what matched, after the secret scrubber has run, plus the candidate rules' texts. For a git command, it also carries the files it would stage or commit that a candidate rule names, with their state: `"stages": ".env (untracked)"`. The request gets what is left of `guard.budgetMs` (1,000 ms by default); the hook entry's own timeout is 3 s. Every answer, yes or no, is cached in `.jevmem/guard-cache.json` by rule and call, so a repeated call makes no request.
 4. **Decision**, by `guard.mode`:
 
 | Mode | When Jev's score reaches `guard.askMin` (0.5) |
@@ -42,7 +43,7 @@ Some calls are asked every time, whatever Jev says and even with no rules, unles
 
 ## Limits
 
-- **The prefilter sees only the call.** `git add .` in a folder with an untracked `.env` shares nothing with "Never commit .env files". So does a script or a make target that does the forbidden thing. These are missed: none of the indirect cases was caught in either eval set.
+- **The prefilter sees the call, and for a git command what it would commit.** A script or a make target that does the forbidden thing shares nothing with the rule and is missed: every indirect case that is not `git add` or `git commit` was missed in both eval sets (6 of 10 on dev, 8 of 9 on held-out). A git alias (`git ci`), `xargs git add`, `--pathspec-from-file`, `GIT_DIR`, and a repository whose `git status` takes longer than 200 ms are matched on what the command names. The file list comes from the working tree as it is before the call: a file the same command line creates first (`touch .env && git add -A`) is not in it. A rule about committing has to say so (commit, git, check in, push, tracked, version control) to be matched against the files.
 - **One shared word is not enough.** A rule that a call touches with a single keyword is not checked. The held-out misses were `pickle.load` against "Never unpickle files that users upload", `it.only` against ".only", `newCheckout: true` against "never hardcode a flag to true", and a commit message against "Conventional Commits".
 - **It fails open.** A timeout, Jev being down, no key, a bad `jevmem.config.json`, an unreadable `JEVMEM.md` or any error means no decision, and the call goes through the normal permission flow. The failure is logged to `.jevmem/log.jsonl`, and `jevmem doctor` and `jevmem stats` list the last 7 days of them with their reasons; the hook exits 0 and prints nothing to stdout or stderr. Claude Code cuts a stalled hook at the entry's 3 s timeout, which doesn't block either.
 - **Ambiguous rules get ambiguous answers.** The same near miss scored 0.77 in one dev run and 0.93 in another. In held-out, "no rebase onto it" read as covering `git rebase main`, and "never fewer than 3 replicas" covered staging. Write rules as you mean them.
@@ -78,6 +79,32 @@ Added latency per tool call: the whole hook process as Claude Code starts it, 30
 | A candidate sent to Jev, from a new process | 349 / 436 ms | 347 / 389 ms |
 | A candidate whose answer is cached | 40 / 41 ms | 36 / 37 ms |
 
+### What git would commit (on `main`, 2026-09-28)
+
+Measured the same day on `main` before the change and after it, on sets used before, so these are not held-out results: the guard's held-out v1 had already been run once, and the 20-call git set was written with the change (it tests the cases above rather than finding new ones). A fresh held-out set comes before any of this goes in the README.
+
+| | Before | After |
+|---|---|---|
+| Dev: indirect caught, `ask` mode | 0/10 | 4/10 (the four `git add` rows; the six scripts and make targets are still missed) |
+| Dev: direct caught / false asks / false blocks | 37/38 / 2/157 / 1/157 | 37/38 / 2/157 / 1/157 |
+| Held-out v1, second look: indirect caught | 0/9 | 1/9 (`git add config`; the other eight are scripts and make targets) |
+| Held-out v1, second look: direct caught / false asks | 27/31 / 3/157 | 27/31 / 3/157 |
+| Git set: caught / false asks | 0/6 / 0/14 | 6/6 / 0/14 |
+
+Only the `git add` and `git commit` rows changed between the two runs, apart from one held-out answer that moved across `blockMin` on its own (0.88, then 0.91, `ho-ledger-05`). The git set's 14 clean calls never reached Jev: an ignored `.env`, `-u`, `commit -a`, a template, `cd` into a subfolder, the shell's `*`, regenerated docs and a new migration all end in the prefilter ([results/guard-git-dev-2026-09-28-after.json](../results/guard-git-dev-2026-09-28-after.json), dev [before](../results/guard-dev-2026-09-28-before.json) and [after](../results/guard-dev-2026-09-28-after.json), held-out [before](../results/guard-heldout-2026-09-28-before.json) and [after](../results/guard-heldout-2026-09-28-after.json)).
+
+Added latency, the whole hook process, 30 runs per case, the two builds back to back ([before](../results/guard-latency-2026-09-28-before.json), [after](../results/guard-latency-2026-09-28-after.json)):
+
+| `git add -A && git commit -m wip` | Plugin launcher, p50 / p95 | `init` launcher, p50 / p95 |
+|---|---|---|
+| Small repository, nothing a rule names: before | 39 / 41 ms | 35 / 37 ms |
+| The same, after | 49 / 54 ms | 46 / 51 ms |
+| 20,000 tracked files: before | 40 / 43 ms | 34 / 35 ms |
+| The same, after | 71 / 78 ms | 67 / 75 ms |
+| An untracked `.env` under "Never commit .env files": after (a new process asking Jev) | 359 / 457 ms | 367 / 523 ms |
+
+Other calls run no git and cost what they did (rules but no candidate: 38 / 43 ms before and 38 / 41 ms after through the plugin launcher).
+
 With the real Claude Code (2.1.281, `scripts/e2e.sh --scenario guard`, 3/3 runs passed), with recall turned off (`thresholds.recallMin` 1.01) so that Claude tries the call and the guard is tested on its own: in `block` mode, asked to commit an untracked `.env` under "Never commit .env files", the guard denied `git add .env`, `.env` stayed out of git, and Claude's reply named the rule; the guarded call took 323–389 ms as Claude Code saw it. In a project with no rules, every hook was silent at 42–65 ms per call ([results/e2e-2026-09-26-guard.txt](../results/e2e-2026-09-26-guard.txt)).
 
 ## Settings
@@ -99,7 +126,7 @@ An unknown mode or an out-of-range value is a bad config: the guard makes no dec
 
 ## What is sent
 
-Only for a call with a candidate rule: the command, or the file path plus a short scrubbed snippet of the change, and the candidate rules. Nothing is sent when there is no candidate, or when the guard is off ([PRIVACY.md](../PRIVACY.md)).
+Only for a call with a candidate rule: the command, or the file path plus a short scrubbed snippet of the change, and the candidate rules; for a git command, also the paths of the files it would stage or commit that a candidate rule names (at most 10), with their state. The rest of the file list from `git status` never leaves the machine and is not kept. Nothing is sent when there is no candidate, or when the guard is off ([PRIVACY.md](../PRIVACY.md)).
 
 ## What is kept
 

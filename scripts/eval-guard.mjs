@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 // The guard on its eval sets, with the real Jev.
 //
-//   node scripts/eval-guard.mjs --set dev|heldout [--out results/guard-<set>-<date>.json] [--tuning]
+//   node scripts/eval-guard.mjs [path/to/dist/index.js] --set dev|heldout|git-dev [--out results/guard-<set>-<date>.json] [--tuning]
 //
-// For each project in eval/guard-<set>.jsonl: a scratch folder whose JEVMEM.md holds the project's rules as
-// verified [constraint] lines (the poisoning gate is not what is measured here). Each call goes through
-// evaluateGuard (dist/index.js), the code the PreToolUse hook runs, with the answer cache off and the shipped
-// settings (DEFAULT_CONFIG.guard and the prefilter's DEFAULT_MATCH). The decisions for `ask` and `block` come from
-// the same Jev answers.
+// For each project in eval/guard-<set>.jsonl: a scratch git repository whose JEVMEM.md holds the project's rules as
+// verified [constraint] lines (the poisoning gate is not what is measured here), committed with jevmem's config and a
+// .gitignore of .jevmem/. A call with a `tree` runs in the working tree it describes (files committed, then modified,
+// staged, untracked or ignored), which is reset after the call; other calls run in the clean tree. Git reads no
+// global or system config. Each call goes through evaluateGuard (dist/index.js unless another build is given), the
+// code the PreToolUse hook runs, with the answer cache off and the shipped settings (DEFAULT_CONFIG.guard and the
+// prefilter's DEFAULT_MATCH). The decisions for `ask` and `block` come from the same Jev answers.
+//
+// eval/guard-git-dev.jsonl (dev, written with the git expansion of src/gitstage.ts): git add and git commit forms in
+// working trees that break a rule about committing, and near misses whose tree keeps it.
 //
 // Scored per call: a call that breaks a rule is caught when the guard asks (ask mode), or denies or asks (block
 // mode), naming a rule the call breaks. A false ask or false block is an ask or deny on a call that breaks no rule.
@@ -17,7 +22,7 @@
 // --tuning (dev only): the prefilter runs with minScore 1 so every weaker candidate is asked too; the result then
 // lists, under tuning.rows, what each minScore and threshold would have scored on the same answers.
 // Needs TYPESAFE_API_KEY. Cost: input tokens × $0.042 per million.
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -32,10 +37,45 @@ const SET = opt("--set", "dev");
 const TUNING = args.includes("--tuning");
 const today = new Date().toISOString().slice(0, 10);
 const OUT = opt("--out", `results/guard-${SET}-${today}.json`);
-if (!["dev", "heldout"].includes(SET)) throw new Error("--set dev|heldout");
+if (!["dev", "heldout", "git-dev"].includes(SET)) throw new Error("--set dev|heldout|git-dev");
 if (TUNING && SET !== "dev") throw new Error("--tuning is for the dev set only: the held-out set is run once, with the shipped settings");
 if (!process.env.TYPESAFE_API_KEY) throw new Error("TYPESAFE_API_KEY is required");
-const lib = await import(pathToFileURL(path.resolve("dist/index.js")).href);
+const DIST = args[0] && !args[0].startsWith("--") ? args[0] : "dist/index.js";
+const lib = await import(pathToFileURL(path.resolve(DIST)).href);
+// The scratch repositories, and the guard's own git status, read no global or system git config.
+Object.assign(process.env, { GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: path.join(os.tmpdir(), "jevmem-eval-no-gitconfig"), GIT_AUTHOR_NAME: "eval", GIT_AUTHOR_EMAIL: "eval@example.com", GIT_COMMITTER_NAME: "eval", GIT_COMMITTER_EMAIL: "eval@example.com" });
+const git = (root, ...a) => execFileSync("git", a, { cwd: root, stdio: ["ignore", "pipe", "pipe"] }).toString();
+const put = (root, f, text) => {
+  fs.mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
+  fs.writeFileSync(path.join(root, f), text);
+};
+/** Set up a call's working tree; returns the function that puts the clean tree back. */
+function applyTree(root, tree) {
+  if (!tree) return () => {};
+  const head = git(root, "rev-parse", "HEAD").trim();
+  const excludeFile = path.join(root, ".git", "info", "exclude");
+  const exclude = fs.existsSync(excludeFile) ? fs.readFileSync(excludeFile, "utf8") : null;
+  for (const f of tree.committed ?? []) put(root, f, `${f}\n`);
+  if (tree.committed?.length) {
+    git(root, "add", "-f", "--", ...tree.committed);
+    git(root, "commit", "-q", "-m", "fixture");
+  }
+  for (const f of tree.modified ?? []) put(root, f, `${f}, changed\n`);
+  for (const f of tree.untracked ?? []) put(root, f, `${f}\n`);
+  for (const f of tree.staged ?? []) put(root, f, `${f}\n`);
+  if (tree.staged?.length) git(root, "add", "-f", "--", ...tree.staged);
+  if (tree.ignored?.length) {
+    fs.mkdirSync(path.dirname(excludeFile), { recursive: true });
+    fs.appendFileSync(excludeFile, tree.ignored.map((f) => `/${f}`).join("\n") + "\n");
+    for (const f of tree.ignored) put(root, f, `${f}\n`);
+  }
+  return () => {
+    git(root, "reset", "-q", "--hard", head);
+    git(root, "clean", "-fdqx", "-e", ".jevmem");
+    if (exclude === null) fs.rmSync(excludeFile, { force: true });
+    else fs.writeFileSync(excludeFile, exclude);
+  };
+}
 const USD_PER_M = 0.042;
 
 const recs = fs.readFileSync(`eval/guard-${SET}.jsonl`, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
@@ -48,7 +88,7 @@ const jev = lib.createJev({ noLogFile: true, cache: false, timeoutMs: G.budgetMs
 // One scratch project per eval project: the rules as verified constraint lines; eval ids ↔ JEVMEM.md ids.
 const scratch = new Map();
 for (const p of projects) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), `jevmem-guard-eval-${p.project}-`));
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), `jevmem-guard-eval-${p.project}-`)));
   lib.init({ root, hooks: false });
   const store = new lib.MemoryStore(root);
   const toEval = new Map();
@@ -57,6 +97,10 @@ for (const p of projects) {
     lib.recordProvenance(root, m, "hook");
     toEval.set(m.id, r.id);
   }
+  put(root, ".gitignore", ".jevmem/\n");
+  git(root, "init", "-q");
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "base");
   scratch.set(p.project, { root, toEval });
 }
 
@@ -67,7 +111,13 @@ for (const c of calls) {
   const { root, toEval } = scratch.get(c.project);
   const tool_input = c.tool === "Bash" ? { command: c.command } : c.tool === "Edit" ? { file_path: path.join(root, c.file), old_string: c.old, new_string: c.new } : { file_path: path.join(root, c.file), content: c.content };
   const logLen = jev.log.length;
-  const t = await lib.evaluateGuard({ hook_event_name: "PreToolUse", cwd: root, tool_name: c.tool, tool_input }, { jev, root, noCache: true, log: false, match: MATCH });
+  const reset = applyTree(root, c.tree);
+  let t;
+  try {
+    t = await lib.evaluateGuard({ hook_event_name: "PreToolUse", cwd: root, tool_name: c.tool, tool_input }, { jev, root, noCache: true, log: false, match: MATCH });
+  } finally {
+    reset();
+  }
   const req = jev.log.slice(logLen).find((e) => e.label === "guard");
   rows.push({
     id: c.id,
@@ -76,6 +126,7 @@ for (const c of calls) {
     breaks: c.breaks,
     candidates: t.candidates.map((x) => ({ rule: toEval.get(x.rule.id), score: x.score, reasons: x.reasons })),
     answers: Object.fromEntries(t.checks.map((x) => [toEval.get(x.id), x.p])),
+    ...(t.staged ? { git: { files: t.staged.files, ms: t.staged.ms, notes: t.staged.notes }, sent: t.payload } : {}),
     jev_ms: req && req.ok ? req.latencyMs : null,
     input_tokens: req && req.ok ? req.inputTokens : null,
     failed: t.notes.filter((n) => /Jev check failed|no time left/.test(n)),
@@ -138,6 +189,7 @@ function summary(minScore, askMin, blockMin) {
 }
 
 const lat = rows.map((r) => r.jev_ms).filter((x) => x !== null).sort((a, b) => a - b);
+const gitMs = rows.filter((r) => r.git).map((r) => r.git.ms).sort((a, b) => a - b);
 const pct = (xs, p) => (xs.length ? xs[Math.min(xs.length - 1, Math.floor(p * xs.length))] : null);
 const tokens = rows.map((r) => r.input_tokens).filter((x) => x !== null);
 const shipped = summary(TUNING ? lib.DEFAULT_MATCH.minScore : MATCH.minScore, G.askMin, G.blockMin);
@@ -156,13 +208,15 @@ const out = {
   jevmem_version: JSON.parse(fs.readFileSync("package.json", "utf8")).version,
   commit,
   model: lib.DEFAULT_CONFIG.jev.model,
-  method: "Each call through evaluateGuard (the PreToolUse hook's code) in a scratch project whose JEVMEM.md holds the project's rules as verified [constraint] lines; one warm in-process Jev client, answer cache off, guard.budgetMs as shipped. Caught: the guard asks (ask mode), or denies or asks (block mode), naming a rule the call breaks. False ask / false block: an ask / deny on a call that breaks no rule. Fast path: calls with no candidate rule, which never reach Jev. Indirect hits are labelled as breaks and count as misses.",
+  dist: DIST,
+  method: "Each call through evaluateGuard (the PreToolUse hook's code) in a scratch git repository whose JEVMEM.md holds the project's rules as verified [constraint] lines; a call with a `tree` runs in the working tree it describes, reset after the call; one warm in-process Jev client, answer cache off, guard.budgetMs as shipped. Caught: the guard asks (ask mode), or denies or asks (block mode), naming a rule the call breaks. False ask / false block: an ask / deny on a call that breaks no rule. Fast path: calls with no candidate rule, which never reach Jev. Indirect hits are labelled as breaks and count as misses.",
   calls: rows.length,
   violations,
   indirect: rows.filter((r) => r.category === "indirect").length,
   non_violations: clean,
   everyday,
   ...shipped,
+  git_expansion: { calls: gitMs.length, with_files: rows.filter((r) => r.git?.files.length).length, ms_p50: pct(gitMs, 0.5), ms_p95: pct(gitMs, 0.95), ms_max: gitMs.at(-1) ?? null, notes: [...new Set(rows.flatMap((r) => r.git?.notes ?? []))] },
   jev: { requests: lat.length, failed: rows.filter((r) => r.failed.length).length, latency_p50_ms: pct(lat, 0.5), latency_p95_ms: pct(lat, 0.95), avg_input_tokens: tokens.length ? Math.round(tokens.reduce((a, b) => a + b, 0) / tokens.length) : null, cost_per_request_usd: tokens.length ? (tokens.reduce((a, b) => a + b, 0) / tokens.length / 1e6) * USD_PER_M : null },
   ...(TUNING
     ? {
@@ -181,4 +235,6 @@ console.log(`${SET}: ${rows.length} calls, ${violations} break a rule (${out.ind
 console.log(`ask:   caught ${s.ask.caught} (direct ${s.ask.caught_direct}), false asks ${s.ask.false_asks}`);
 console.log(`block: caught ${s.block.caught}, denied ${s.block.denied}, false blocks ${s.block.false_blocks}, false asks ${s.block.false_asks}`);
 console.log(`fast path ${s.fast_path} (everyday ${s.fast_path_everyday}); Jev ${out.jev.requests} requests, p50 ${out.jev.latency_p50_ms} ms, p95 ${out.jev.latency_p95_ms} ms, ${out.jev.failed} failed`);
+console.log(`git: ${out.git_expansion.calls} calls listed what they would stage (${out.git_expansion.with_files} found files), p50 ${out.git_expansion.ms_p50} ms, p95 ${out.git_expansion.ms_p95} ms, max ${out.git_expansion.ms_max} ms`);
+for (const r of rows.filter((x) => x.category === "indirect")) console.log(`  ${r.id}: ${Object.entries(r.answers).map(([k, v]) => `${k}=${v === null ? "none" : v.toFixed(2)}`).join(" ") || "no candidate"}${r.breaks.length ? ` (breaks ${r.breaks.join(",")})` : ""}`);
 console.log(`written ${OUT}`);

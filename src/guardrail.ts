@@ -7,9 +7,12 @@
  *    A line with no verdict yet is not enforced; the hook never asks the gate itself. The rules and their features are
  *    indexed once per JEVMEM.md (and gate state) in `.jevmem/guard-index.json`.
  * 2. Prefilter (src/prefilter.ts): the rules that share a path, filename, command word or keyword with the call, at
- *    most `guard.maxCandidates`. None: the hook prints nothing and exits; nothing leaves the machine.
+ *    most `guard.maxCandidates`. For `git add`, `git stage` and `git commit`, the files the command would stage or
+ *    commit are listed first (src/gitstage.ts, one local `git status` within GIT_BUDGET_MS) and matched against the
+ *    paths and filenames of rules about committing. None: the hook prints nothing and exits; nothing leaves the machine.
  * 3. Jev: one noul per (call, candidate rule), "would this call break this rule?", all in one request within what is
- *    left of `guard.budgetMs`. Only the command, or the file path and a short scrubbed snippet of the change, is sent.
+ *    left of `guard.budgetMs`. Only the command, or the file path and a short scrubbed snippet of the change, is sent,
+ *    and for a git command the staged files a candidate rule names.
  *    Answers are cached in `.jevmem/guard-cache.json` by rule id, rule text and call, whatever the answer.
  * 4. Decision, by `guard.mode`: `ask` → permissionDecision "ask"; `block` → "deny" at or above `guard.blockMin`, "ask"
  *    below it; `warn` → the rule as additionalContext, no decision; `off` → nothing.
@@ -25,10 +28,11 @@ import path from "node:path";
 import { noul, type Questions } from "@typesafe-ai/sdk";
 import { CONFIG_FILE, isJevmemHookCommand, parseConfig } from "./config.js";
 import { applyPluginOption, loadEnvFallbacks } from "./env.js";
+import { expandGitStaging, type GitExpansion, type StagedFile } from "./gitstage.js";
 import { gateLines, planGate, settleGate } from "./guard.js";
 import { actionSummary, recordGuardCall, shorten, type GuardLogEntry, type GuardRoute } from "./guardlog.js";
 import { appendLog, type JevCaller } from "./jev.js";
-import { actionFeatures, DEFAULT_MATCH, matchRules, ruleFeatures, shellWords, snippetAround, splitCommand, type Candidate, type GuardAction, type GuardTool, type IndexedRule, type MatchOptions } from "./prefilter.js";
+import { actionFeatures, DEFAULT_MATCH, matchRules, ruleFeatures, ruleNamesCommittedFiles, shellWords, snippetAround, splitCommand, type Candidate, type GuardAction, type GuardTool, type IndexedRule, type MatchOptions } from "./prefilter.js";
 import { lineSha } from "./provenance.js";
 import { parseMemoryFile } from "./memfile.js";
 import { scrubSecrets } from "./scrub.js";
@@ -45,8 +49,16 @@ export const GUARD_MATCHER = "Bash|Edit|Write";
 /** The PreToolUse hook's timeout in seconds, set on the hook entry. The guard's own budget is `guard.budgetMs`. */
 export const GUARD_HOOK_TIMEOUT_S = 3;
 
-/** Characters of a command sent to Jev, and of the replaced and new text of an edit. */
-export const SEND = { command: 2000, removed: 300, added: 600 } as const;
+/** Characters of a command sent to Jev, of the replaced and new text of an edit, and of the staged files named. */
+export const SEND = { command: 2000, removed: 300, added: 600, stages: 600 } as const;
+
+/**
+ * At most this long (and a quarter of `guard.budgetMs`) for listing what a git command would stage or commit
+ * (src/gitstage.ts). Past it the call is matched on what it names, as if git had not been asked.
+ */
+export const GIT_BUDGET_MS = 200;
+/** Staged files named to Jev, at most. */
+const STAGES_SENT = 10;
 
 // ---------------------------------------------------------------------------------------------
 // The question
@@ -243,14 +255,30 @@ function writeAnswers(root: string, updates: Record<string, CacheEntry>): void {
 // ---------------------------------------------------------------------------------------------
 // What is sent
 
-/** The call as Jev sees it: scrubbed, bounded, paths relative to the project. */
-export function callPayload(action: GuardAction, terms: string[]): Record<string, string> {
+/** How a staged file is named to Jev: `.env (untracked)`. */
+export function stagedLabel(f: StagedFile): string {
+  const state = { untracked: "untracked", ignored: "ignored, added with -f", changed: "changed", staged: "already staged" }[f.state];
+  return `${f.path} (${state})`;
+}
+
+/**
+ * The call as Jev sees it: scrubbed, bounded, paths relative to the project. `stages`: for a git command, the files it
+ * would stage or commit that a candidate rule names (`.env (untracked)`).
+ */
+export function callPayload(action: GuardAction, terms: string[], stages: string[] = []): Record<string, string> {
   // Scrub a slightly wider window than is kept, so a secret cut by the window's edge is still recognised whole.
   const clip = (text: string, max: number) => {
     const wide = snippetAround(text, terms, max + 400);
     return snippetAround(scrubSecrets(wide), terms, max);
   };
-  if (action.tool === "Bash") return { tool: "Bash", command: clip(action.command ?? "", SEND.command) };
+  if (action.tool === "Bash") {
+    const out: Record<string, string> = { tool: "Bash", command: clip(action.command ?? "", SEND.command) };
+    if (stages.length) {
+      const list = stages.slice(0, STAGES_SENT).join("; ") + (stages.length > STAGES_SENT ? `; and ${stages.length - STAGES_SENT} more` : "");
+      out.stages = shorten(scrubSecrets(list), SEND.stages);
+    }
+    return out;
+  }
   if (action.tool === "Edit") return { tool: "Edit", file: action.file ?? "", removed: clip(action.removed ?? "", SEND.removed), added: clip(action.added ?? "", SEND.added) };
   return { tool: "Write", file: action.file ?? "", content: clip(action.added ?? "", SEND.added) };
 }
@@ -413,6 +441,8 @@ export interface GuardTrace {
   rules: LoadedRules | null;
   candidates: Candidate[];
   payload: Record<string, string> | null;
+  /** For a git command, what it would stage or commit (src/gitstage.ts); null when git was not asked. */
+  staged: GitExpansion | null;
   checks: RuleCheck[];
   tamper: string | null;
   /** How the call was decided (src/guardlog.ts); null when the guard did not check it (not enabled, off, another tool). */
@@ -505,7 +535,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   const env = deps.env ?? process.env;
   const root = deps.root ?? guardRoot(input, env);
   const log = deps.log !== false;
-  const trace: GuardTrace = { root, mode: null, thresholds: null, tool: input.tool_name ?? null, action: null, rules: null, candidates: [], payload: null, checks: [], tamper: null, route: null, decision: "none", stdout: "", notes: [], jevMs: null, totalMs: 0 };
+  const trace: GuardTrace = { root, mode: null, thresholds: null, tool: input.tool_name ?? null, action: null, rules: null, candidates: [], payload: null, staged: null, checks: [], tamper: null, route: null, decision: "none", stdout: "", notes: [], jevMs: null, totalMs: 0 };
   const startedAt = new Date().toISOString();
   const guarded = GUARDED_TOOLS.includes(input.tool_name as GuardTool);
   const done = () => {
@@ -597,6 +627,16 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   }
 
   const features = actionFeatures(action, root);
+  // `git add .`, `git add -A`, `git commit -a`: what they would stage or commit, when a rule about committing names a path.
+  if (action.tool === "Bash" && rules.enforced.some(ruleNamesCommittedFiles)) {
+    const cwd = input.cwd && fs.existsSync(input.cwd) ? input.cwd : root;
+    const ex = expandGitStaging(action.command ?? "", { cwd, root, budgetMs: Math.min(GIT_BUDGET_MS, Math.floor(cfg.guard.budgetMs / 4)), home: env.HOME });
+    if (ex.commands.length) {
+      trace.staged = ex;
+      for (const n of ex.notes) trace.notes.push(`git: ${n}`);
+      if (ex.files.length) features.staged = ex.files.map((f) => f.path);
+    }
+  }
   const candidates = matchRules(rules.enforced, features, { ...DEFAULT_MATCH, max: cfg.guard.maxCandidates, ...deps.match });
   trace.candidates = candidates;
   if (!candidates.length) {
@@ -605,7 +645,9 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     return finish([]);
   }
 
-  const payload = callPayload(action, candidates.flatMap((c) => c.terms));
+  const named = new Set(candidates.flatMap((c) => c.staged ?? []));
+  const stages = (trace.staged?.files ?? []).filter((f) => named.has(f.path)).map(stagedLabel);
+  const payload = callPayload(action, candidates.flatMap((c) => c.terms), stages);
   trace.payload = payload;
   const hash = payloadHash(payload);
   const answers = deps.noCache ? {} : readAnswers(root);
@@ -776,6 +818,11 @@ export function formatGuardTrace(t: GuardTrace): string {
     for (const r of t.rules.skipped) out.push(`  skipped  ${r.id}  ${r.text}\n             ${r.reason}`);
   }
   out.push(`tamper     ${t.tamper ?? "none"}`);
+  if (t.staged) {
+    const files = t.staged.files;
+    const list = files.slice(0, 8).map(stagedLabel).join(", ") + (files.length > 8 ? `, and ${files.length - 8} more` : "");
+    out.push(`git        ${files.length ? `${files.length} file(s) it would stage or commit: ${list}` : "no file it would stage or commit found"} (${t.staged.ms} ms)`);
+  }
   if (t.rules && t.rules.enforced.length) {
     out.push(`prefilter  ${t.candidates.length ? `${t.candidates.length} candidate rule(s)` : "no candidate: the call shares no path, filename, command word or keyword with any rule; nothing is sent to Jev"}`);
     for (const c of t.candidates) out.push(`  ${c.rule.id}  score ${c.score}: ${c.reasons.join("; ")}`);

@@ -2,7 +2,7 @@
 // Added latency of the PreToolUse guard: wall time of the whole hook process as Claude Code runs it (spawn included),
 // through the plugin's launcher and through the one `jevmem init` registers.
 //
-//   node scripts/bench-guard.mjs [--n 30] [--out results/guard-latency-YYYY-MM-DD.json]
+//   node scripts/bench-guard.mjs [--n 30] [--cases a,b,…] [--out results/guard-latency-YYYY-MM-DD.json]
 //
 // Cases:
 //   not_enabled             a project without jevmem.config.json: the launcher's shell file check, no Node
@@ -11,6 +11,12 @@
 //   candidate_sent_to_jev   the same rules; `git add .env` is a candidate; the answer cache is cleared before each run,
 //                           so each run asks Jev from a new process (TLS included)
 //   candidate_cached_answer the same call with its answer cached (every repeat of a call)
+//   git_add_all_nothing_named  a git repository with the same rules and a work-in-progress tree (two changed source
+//                           files, a new one, a .env that .gitignore keeps out): `git add -A && git commit -m wip`
+//   git_add_all_untracked_env  the same with the .env untracked and not ignored; the answer cache is cleared before
+//                           each run (a new process asking Jev when the call is a candidate)
+//   git_add_all_large_repo  a repository of 20,000 tracked files (200 folders of 100) with the same work-in-progress
+//                           tree: `git add -A && git commit -m wip`
 // The plugin launcher runs with its data folder warm (the CLI path and its guard check cached), the CLI on PATH.
 // Needs TYPESAFE_API_KEY for the Jev case.
 import { execSync, spawn } from "node:child_process";
@@ -25,6 +31,7 @@ const opt = (n, d) => {
   return i >= 0 ? args[i + 1] : d;
 };
 const N = Number(opt("--n", "30"));
+const ONLY = opt("--cases", null)?.split(",");
 const today = new Date().toISOString().slice(0, 10);
 const OUT = opt("--out", `results/guard-latency-${today}.json`);
 if (!process.env.TYPESAFE_API_KEY) throw new Error("TYPESAFE_API_KEY is required");
@@ -47,6 +54,30 @@ function project(withRules) {
 const notEnabled = mk("jevmem-bench-guard-off-");
 const empty = project(false);
 const withRules = project(true);
+// Git projects: the rules, a committed tree, then a work in progress on top. No global or system git config.
+const gitEnv = { ...process.env, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null", GIT_AUTHOR_NAME: "bench", GIT_AUTHOR_EMAIL: "bench@example.com", GIT_COMMITTER_NAME: "bench", GIT_COMMITTER_EMAIL: "bench@example.com" };
+const git = (root, cmd) => execSync(`git ${cmd}`, { cwd: root, env: gitEnv, stdio: "ignore" });
+function gitProject({ envIgnored, folders = 0 }) {
+  const root = project(true);
+  const w = (f, text) => {
+    fs.mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
+    fs.writeFileSync(path.join(root, f), text);
+  };
+  w(".gitignore", `.jevmem/\nnode_modules/\n${envIgnored ? ".env\n" : ""}`);
+  for (const f of ["src/checkout/total.ts", "src/components/Badge.tsx", "README.md", "package.json"]) w(f, `// ${f}\n`);
+  for (let d = 0; d < folders; d++) for (let i = 0; i < 100; i++) w(`pkg/m${d}/f${i}.ts`, `export const v${i} = ${d};\n`);
+  git(root, "init -q");
+  git(root, "add -A");
+  git(root, "commit -q -m base");
+  w("src/checkout/total.ts", "// rounded to cents\n");
+  w("src/components/Badge.tsx", "// badge colours\n");
+  w("src/checkout/discount.ts", "// new\n");
+  w(".env", "STRIPE_KEY=sk_test_abcdef1234567890\n");
+  return root;
+}
+const gitWip = gitProject({ envIgnored: true });
+const gitUntrackedEnv = gitProject({ envIgnored: false });
+const gitLarge = gitProject({ envIgnored: true, folders: 200 });
 // The plugin's view of the machine: `jevmem` (→ dist/cli.js) and `node` on PATH, a data folder, a home.
 const bin = mk("jevmem-bench-guard-bin-");
 fs.symlinkSync(CLI, path.join(bin, "jevmem"));
@@ -82,7 +113,10 @@ const cases = [
   { name: "constraints_no_candidate", root: withRules, command: "ls -la" },
   { name: "candidate_sent_to_jev", root: withRules, command: "git add .env", clearCache: true },
   { name: "candidate_cached_answer", root: withRules, command: "git add .env" },
-];
+  { name: "git_add_all_nothing_named", root: gitWip, command: "git add -A && git commit -m wip" },
+  { name: "git_add_all_untracked_env", root: gitUntrackedEnv, command: "git add -A && git commit -m wip", clearCache: true },
+  { name: "git_add_all_large_repo", root: gitLarge, command: "git add -A && git commit -m wip" },
+].filter((c) => !ONLY || ONLY.includes(c.name));
 const startedAt = new Date().toISOString();
 // Warm-up: fills the plugin launcher's cache (CLI path, version, guard check) and each project's rule index.
 for (const c of cases) for (const l of Object.values(launchers)) await run(l, c.root, payload(c.root, c.command));
@@ -101,8 +135,7 @@ for (const [lname, l] of Object.entries(launchers)) {
   }
 }
 // The Jev requests the candidate case made, from the project's log (no request is made for the other cases).
-const log = lib.readLog(withRules).filter((e) => e.label === "guard" && !e.event && e.ok && !e.cacheHit);
-const jevLat = log.map((e) => e.latencyMs);
+const jevLat = [withRules, gitUntrackedEnv].flatMap((r) => lib.readLog(r).filter((e) => e.label === "guard" && !e.event && e.ok && !e.cacheHit)).map((e) => e.latencyMs);
 let commit = null;
 try {
   commit = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim() + (execSync("git status --porcelain src hooks plugin", { encoding: "utf8" }).trim() ? "+dirty" : "");
@@ -118,7 +151,8 @@ const out = {
   commit,
   machine: `${process.platform} ${process.arch}, ${os.cpus()[0]?.model ?? "cpu"}, node ${process.version}`,
   network_path: `direct HTTPS to ${process.env.TYPESAFE_BASE_URL ?? "the TypeSafe API default base URL"} (POST /v1/systemone)`,
-  method: "Wall time of one PreToolUse hook process as Claude Code starts it, from spawn to exit, stdin a real-shaped payload. plugin: sh plugin/hooks/jevmem-hook.sh --guard hook --plugin with the CLI on PATH and a warm data folder; init: sh hooks/jevmem-hook.sh --node <node> hook. Rules: the 6 [constraint] lines of eval/guard-dev.jsonl's first project, verified. candidate_sent_to_jev clears .jevmem/guard-cache.json before each run, so each run is a new process asking Jev (TLS included).",
+  method: "Wall time of one PreToolUse hook process as Claude Code starts it, from spawn to exit, stdin a real-shaped payload. plugin: sh plugin/hooks/jevmem-hook.sh --guard hook --plugin with the CLI on PATH and a warm data folder; init: sh hooks/jevmem-hook.sh --node <node> hook. Rules: the 6 [constraint] lines of eval/guard-dev.jsonl's first project, verified. candidate_sent_to_jev and git_add_all_untracked_env clear .jevmem/guard-cache.json before each run, so each run is a new process asking Jev (TLS included) when the call is a candidate. The git_* cases run in git repositories (see the script's header); both launchers run with PATH /usr/bin:/bin plus the CLI's folder, so git is /usr/bin/git.",
+  cases: cases.map((c) => c.name),
   results,
   jev_requests_in_candidate_case: { n: jevLat.length, latency_p50_ms: pct(jevLat, 0.5), latency_p95_ms: pct(jevLat, 0.95) },
 };

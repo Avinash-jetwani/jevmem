@@ -1,6 +1,7 @@
 /**
- * The guard's eval sets (eval/guard-dev.jsonl for tuning, eval/guard-heldout.jsonl run once): well formed, the mix
- * the docs describe, no text shared between the two, and none shared with the guard's own question examples.
+ * The guard's eval sets (eval/guard-dev.jsonl for tuning, eval/guard-heldout.jsonl run once, and the git staging dev
+ * set eval/guard-git-dev.jsonl): well formed, the mix the docs describe, no text shared between dev and held-out, and
+ * none shared with the guard's own question examples.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -8,6 +9,8 @@ import { describe, expect, it } from "vitest";
 
 const read = (f: string) => fs.readFileSync(path.resolve(f), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 const sets = { dev: read("eval/guard-dev.jsonl"), heldout: read("eval/guard-heldout.jsonl") };
+const gitDev = read("eval/guard-git-dev.jsonl");
+const TREE_KEYS = ["committed", "modified", "staged", "untracked", "ignored"];
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const words = (s: string) => norm(s).split(" ").filter(Boolean);
 function shingles(s: string, n: number): Set<string> {
@@ -59,6 +62,32 @@ describe("eval/guard-*.jsonl", () => {
     expect(hits).toEqual([]);
   });
 
+  it("a call's working tree (`tree`) names only known states and relative paths; every indirect git add or commit has one", () => {
+    for (const recs of [...Object.values(sets), gitDev])
+      for (const c of recs.filter((r) => r.type === "call" && r.tree)) {
+        for (const [k, v] of Object.entries(c.tree)) {
+          expect(TREE_KEYS, `${c.id} ${k}`).toContain(k);
+          for (const f of v as string[]) expect(f, c.id).toMatch(/^[^/.][^]*$|^\.[^./][^]*$/);
+        }
+      }
+    for (const recs of Object.values(sets))
+      for (const c of recs.filter((r) => r.type === "call" && r.category === "indirect" && /\bgit (?:add|commit)\b/.test(r.command ?? ""))) expect(c.tree, c.id).toBeTruthy();
+  });
+
+  it("git-dev: 20 git add and git commit calls in one project, each with a working tree; breaks are indirect", () => {
+    const rules = new Set(gitDev.filter((r) => r.type === "rules").flatMap((r) => r.rules.map((x: any) => `${r.project}/${x.id}`)));
+    const calls = gitDev.filter((r) => r.type === "call");
+    expect(calls).toHaveLength(20);
+    for (const c of calls) {
+      expect(c.tool, c.id).toBe("Bash");
+      expect(c.tree, c.id).toBeTruthy();
+      for (const b of c.breaks) expect(rules.has(`${c.project}/${b}`), `${c.id} ${b}`).toBe(true);
+      expect(c.category, c.id).toBe(c.breaks.length ? "indirect" : c.category);
+      expect(["indirect", "near-miss", "everyday"]).toContain(c.category);
+    }
+    expect(calls.filter((c) => c.breaks.length)).toHaveLength(6);
+  });
+
   it("neither set shares a run of four words with the guard's question and its examples (src/guardrail.ts)", () => {
     const src = fs.readFileSync(path.resolve("src/guardrail.ts"), "utf8");
     const noul = src.slice(src.indexOf("export function breakNoul"), src.indexOf("// Input"));
@@ -66,7 +95,7 @@ describe("eval/guard-*.jsonl", () => {
     const litSh = new Map<string, string>();
     for (const l of lits) for (const sh of shingles(l, 4)) litSh.set(sh, l);
     const hits: string[] = [];
-    for (const recs of Object.values(sets)) for (const t of texts(recs)) for (const sh of shingles(t, 4)) if (litSh.has(sh)) hits.push(`"${sh}": ${t}`);
+    for (const recs of [...Object.values(sets), gitDev]) for (const t of texts(recs)) for (const sh of shingles(t, 4)) if (litSh.has(sh)) hits.push(`"${sh}": ${t}`);
     expect(hits).toEqual([]);
   });
 });

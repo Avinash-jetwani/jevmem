@@ -9,8 +9,10 @@
  * A rule that shares a feature with the call is a candidate; the strongest few go to Jev, which decides. A call that
  * shares nothing with any rule never leaves the machine.
  *
- * The prefilter sees only the call itself: `git add .` in a folder with an untracked `.env` shares nothing with
- * "Never commit .env files", so it is not caught (docs/guardrails.md).
+ * The prefilter sees only the call itself, with one exception: for `git add`, `git stage` and `git commit`, the guard
+ * first lists the files the command would stage or commit (src/gitstage.ts), and those are matched against the paths
+ * and filenames of rules about committing, so `git add .` with an untracked `.env` meets "Never commit .env files".
+ * A script or a make target that does the forbidden thing is still not seen (docs/guardrails.md).
  */
 
 export type GuardTool = "Bash" | "Edit" | "Write";
@@ -37,6 +39,12 @@ export interface Features {
   commands: string[];
   /** Stemmed keywords. */
   keywords: string[];
+  /**
+   * Calls only: the files a `git add`, `git stage` or `git commit` in the command would put into the next commit
+   * (src/gitstage.ts), relative to the project root. Matched only against the paths and filenames of rules about
+   * committing (VCS_RULE), never against a broad directory, and they give no keywords.
+   */
+  staged?: string[];
 }
 
 export interface IndexedRule {
@@ -54,6 +62,8 @@ export interface Candidate {
   reasons: string[];
   /** The words and paths the rule shares with the call (used to centre the content snippet sent to Jev). */
   terms: string[];
+  /** Of the call's staged files, the ones this rule names. */
+  staged?: string[];
 }
 
 export interface MatchOptions {
@@ -72,6 +82,19 @@ export interface MatchOptions {
 export const WEIGHTS = { path: 3, broadPath: 1, file: 3, pair: 3, command: 2, commonCommand: 1, keyword: 1, keywordCap: 3 } as const;
 
 export const DEFAULT_MATCH: MatchOptions = { max: 3, minScore: 2 };
+
+/**
+ * A rule about what goes into git ("Never commit .env files", "secrets.local.json stays out of git", "credentials.json
+ * must never be checked in"). Only these rules are matched against the files a git command would stage or commit: a
+ * rule about editing a path ("docs/api/ is generated; never edit it") is broken by the edit, which the guard checks
+ * when it happens, not by committing the result.
+ */
+export const VCS_RULE = /\b(?:commit(?:s|ted|ting)?|git|gitignored?|push(?:es|ed|ing)?|(?:un)?tracked|version[- ]control(?:led)?)\b|\bcheck(?:ed|s|ing)?[- ]in(?:to)?\b/i;
+
+/** Does this rule need the files a git command would stage (a rule about committing that names a path or file)? */
+export function ruleNamesCommittedFiles(rule: Pick<IndexedRule, "text" | "features">): boolean {
+  return VCS_RULE.test(rule.text) && (rule.features.files.length > 0 || rule.features.paths.some((p) => !BROAD_DIRS.has(p.replace(/\/+$/, "").toLowerCase())));
+}
 
 // ---------------------------------------------------------------------------------------------
 // Words
@@ -426,24 +449,33 @@ function matchParen(s: string, open: number): number {
   return s.length;
 }
 
-/** The words of one simple command, quotes removed; redirection targets and operators (`>`, `>>`, `<`) are listed apart. */
-export function shellWords(segment: string): { words: string[]; redirects: string[]; ops: string[] } {
+/**
+ * The words of one simple command, quotes removed; redirection targets and operators (`>`, `>>`, `<`) are listed apart.
+ * With `globs`, also whether each word has a wildcard outside quotes (one the shell expands).
+ */
+export function shellWords(segment: string, opts: { globs?: boolean } = {}): { words: string[]; redirects: string[]; ops: string[]; globs?: boolean[] } {
   const out: string[] = [];
   const redirects: string[] = [];
   const ops: string[] = [];
+  const globs: boolean[] = [];
   let cur = "";
   let started = false;
+  let wild = false;
   let quote: "'" | '"' | null = null;
   // After `>`, `>>` or `<` the next word is a file; after `<<` or `<<<` it is a heredoc delimiter or a string.
   let next: "redirect" | "skip" | null = null;
   const push = () => {
     if (started) {
       if (next === "redirect") redirects.push(cur);
-      else if (next !== "skip") out.push(cur);
+      else if (next !== "skip") {
+        out.push(cur);
+        globs.push(wild);
+      }
       next = null;
     }
     cur = "";
     started = false;
+    wild = false;
   };
   for (let i = 0; i < segment.length; i++) {
     const c = segment[i]!;
@@ -485,11 +517,12 @@ export function shellWords(segment: string): { words: string[]; redirects: strin
       next = op.startsWith("<<") ? "skip" : "redirect";
       continue;
     }
+    if (c === "*" || c === "?" || c === "[") wild = true;
     cur += c;
     started = true;
   }
   push();
-  return { words: out, redirects, ops };
+  return { words: out, redirects, ops, ...(opts.globs ? { globs } : {}) };
 }
 
 /** The command word of a simple command and its subcommand (skipping `sudo`, `env`, `VAR=value` and git's `-C dir`). */
@@ -607,18 +640,32 @@ export function matchRules(rules: IndexedRule[], call: Features, opts: MatchOpti
   const callKw = new Set(call.keywords);
   const callCmds = new Set(call.commands);
   const out: Candidate[] = [];
+  const baseName = (p: string) => (p.replace(/\/+$/, "").split("/").pop() ?? p).toLowerCase();
   for (const rule of rules) {
     const f = rule.features;
     const reasons: string[] = [];
     const terms = new Set<string>();
+    const staged = new Set<string>();
+    // The files a git command would stage count for a rule about committing, as a path or filename it names.
+    const fromGit = call.staged?.length && VCS_RULE.test(rule.text) ? call.staged : [];
     let score = 0;
     for (const p of f.paths) {
       const glob = /[*?]/.test(p) ? globToRegExp(p) : null;
-      const hit = call.paths.find((c) => (glob ? glob.test(c) : pathMatches(p, c)));
+      const matches = (c: string) => (glob ? glob.test(c) : pathMatches(p, c));
+      const hit = call.paths.find(matches);
+      const broad = BROAD_DIRS.has(p.replace(/\/+$/, "").toLowerCase());
       if (hit) {
-        score += BROAD_DIRS.has(p.replace(/\/+$/, "").toLowerCase()) ? WEIGHTS.broadPath : WEIGHTS.path;
+        score += broad ? WEIGHTS.broadPath : WEIGHTS.path;
         reasons.push(`path ${p} ~ ${hit}`);
         terms.add(hit.split("/").pop() ?? hit);
+      } else if (!broad) {
+        const s = fromGit.find((c) => matches(c) || (glob !== null && c.endsWith("/") && glob.test(c.replace(/\/+$/, ""))));
+        if (s) {
+          score += WEIGHTS.path;
+          reasons.push(`path ${p} ~ ${s} (staged by git)`);
+          terms.add(baseName(s));
+          staged.add(s);
+        }
       }
     }
     for (const r of f.files) {
@@ -627,6 +674,14 @@ export function matchRules(rules: IndexedRule[], call: Features, opts: MatchOpti
         score += WEIGHTS.file;
         reasons.push(`file ${r} ~ ${hit}`);
         terms.add(hit);
+      } else {
+        const s = fromGit.find((c) => fileMatches(r, baseName(c)));
+        if (s) {
+          score += WEIGHTS.file;
+          reasons.push(`file ${r} ~ ${s} (staged by git)`);
+          terms.add(baseName(s));
+          staged.add(s);
+        }
       }
     }
     let kwScore = 0;
@@ -651,7 +706,7 @@ export function matchRules(rules: IndexedRule[], call: Features, opts: MatchOpti
       terms.add(k);
     }
     score += Math.min(kwScore, WEIGHTS.keywordCap);
-    if (score >= opts.minScore && reasons.length) out.push({ rule, score, reasons, terms: [...terms] });
+    if (score >= opts.minScore && reasons.length) out.push({ rule, score, reasons, terms: [...terms], ...(staged.size ? { staged: [...staged] } : {}) });
   }
   out.sort((a, b) => b.score - a.score || a.rule.id.localeCompare(b.rule.id));
   return out.slice(0, Math.max(0, opts.max));
