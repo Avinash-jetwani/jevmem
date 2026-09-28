@@ -362,7 +362,7 @@ for (const b of builds) {
     label: b.label,
     paired_with: builds.filter((x) => x !== b).map((x) => ({ label: x.label, version: x.version, commit: x.commit, file: x.out })),
     machine: `${process.platform} ${process.arch}, node ${process.version}`,
-    thresholds: { recallTopK: th.recallTopK, recallMin: th.recallMin, ...(th.recallRelevanceMin !== undefined ? { recallRelevanceMin: th.recallRelevanceMin, relevanceSure: b.lib.RELEVANCE_SURE } : {}), maxRecallCandidates: b.lib.DEFAULT_CONFIG.jev.maxRecallCandidates, ...(b.lib.DEFAULT_CONFIG.jev.maxRecallLines !== undefined ? { maxRecallLines: b.lib.DEFAULT_CONFIG.jev.maxRecallLines } : {}), hookJevTimeoutMs: b.lib.DEFAULT_CONFIG.jev.timeoutMs },
+    thresholds: { recallTopK: th.recallTopK, recallMin: th.recallMin, ...(th.recallChoiceMin !== undefined ? { recallChoiceMin: th.recallChoiceMin } : {}), ...(b.lib.DEFAULT_CONFIG.jev.recallTimeoutMs !== undefined ? { recallTimeoutMs: b.lib.DEFAULT_CONFIG.jev.recallTimeoutMs } : {}), ...(b.lib.WORD_MATCH_MIN !== undefined ? { wordMatchMin: b.lib.WORD_MATCH_MIN } : {}), ...(th.recallRelevanceMin !== undefined ? { recallRelevanceMin: th.recallRelevanceMin, relevanceSure: b.lib.RELEVANCE_SURE } : {}), maxRecallCandidates: b.lib.DEFAULT_CONFIG.jev.maxRecallCandidates, ...(b.lib.DEFAULT_CONFIG.jev.maxRecallLines !== undefined ? { maxRecallLines: b.lib.DEFAULT_CONFIG.jev.maxRecallLines } : {}), hookJevTimeoutMs: b.lib.DEFAULT_CONFIG.jev.timeoutMs },
     tokens_counted_with: TOKENS_MODEL && process.env.OPENROUTER_API_KEY ? `${TOKENS_MODEL} (prompt tokens of the whole injected context sent as one user message, minus those of ".", from OpenRouter's usage)` : null,
     cost_method: "Jev input tokens × $0.042 per million; output tokens free",
     method:

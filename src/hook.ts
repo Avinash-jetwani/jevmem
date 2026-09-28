@@ -165,7 +165,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       const t0 = performance.now();
       const { ranked, withheld, gated, deferred, path: served, error } = await recallGuarded(jev, store.root, prompt, memories, {
         topK: cfg.thresholds.recallTopK,
-        min: cfg.thresholds.recallMin,
+        min: cfg.thresholds.recallChoiceMin ?? DEFAULT_CONFIG.thresholds.recallChoiceMin,
         relevanceMin: cfg.thresholds.recallRelevanceMin,
         injectionMax: cfg.thresholds.injectionMax,
         timeoutMs: cfg.jev.recallTimeoutMs ?? DEFAULT_CONFIG.jev.recallTimeoutMs,

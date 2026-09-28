@@ -55,10 +55,17 @@ export interface Thresholds {
   /** How many memories to inject on UserPromptSubmit, at most. */
   recallTopK: number;
   /**
-   * The recall choice's floor: a line whose relevance noul is under the sure level (0.97) must also have at least this
-   * probability in the "most relevant" choice to be injected.
+   * The recall choice's floor until v0.6 part 3b, which gave it a key of its own (`recallChoiceMin`): every
+   * `jevmem.config.json` written by `jevmem init` holds this at 0.05, so a new default here would not reach them. The
+   * prompt hook no longer reads it.
    */
   recallMin: number;
+  /**
+   * The recall choice's floor (v0.6 part 3b): a line whose relevance noul is under the sure level (0.97) must also have at
+   * least this probability in the "most relevant" choice to be injected. 0.03, chosen on eval/recall-dev.jsonl: at 0.05 the
+   * second of two lines a prompt needed was pruned when the first took most of the choice.
+   */
+  recallChoiceMin: number;
   /** Jev's per-line relevance ("does memory X bear on what the query asks?") at or above which a line may be injected. */
   recallRelevanceMin: number;
 }
@@ -189,6 +196,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     staleBelow: 0.4,
     recallTopK: 5,
     recallMin: 0.05,
+    recallChoiceMin: 0.03,
     recallRelevanceMin: 0.8,
   },
   jev: {

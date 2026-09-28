@@ -129,7 +129,7 @@ async function rankWithModel(jev: JevCaller, query: string, memories: Memory[], 
 
 /**
  * A relevance noul at or above this (and at `recallRelevanceMin`) puts a line in the prompt's context without the
- * choice's `recallMin`. Tuned on eval/recall-dev.jsonl (docs/benchmark.md).
+ * choice's floor (`recallChoiceMin`). Tuned on eval/recall-dev.jsonl (docs/benchmark.md).
  */
 export const RELEVANCE_SURE = 0.97;
 

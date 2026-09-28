@@ -253,7 +253,7 @@ describe("superseding and recall", () => {
     expect(formatInjection([{ memory: lines[0]!, choiceProbability: 0.5, relevance: null, injection: null }])).toContain(`- ${DEAD_END_PREFIX} Running src/app.ts`);
   });
 
-  it("an unrelated prompt gets no dead end when none clears recallMin", async () => {
+  it("an unrelated prompt gets no dead end when none clears the recall thresholds", async () => {
     const { root, store } = project();
     const m = store.add({ kind: "dead-end", text: "Running src/app.ts with node --experimental-strip-types fails because app.ts uses an enum" });
     recordProvenance(root, m, "hook");

@@ -78,7 +78,7 @@ describe("recall questions (v0.6 part 3)", () => {
 });
 
 describe("which lines a prompt gets (selectForPrompt)", () => {
-  const opts = { topK: 5, min: DEFAULT_CONFIG.thresholds.recallMin, relevanceMin: DEFAULT_CONFIG.thresholds.recallRelevanceMin };
+  const opts = { topK: 5, min: DEFAULT_CONFIG.thresholds.recallChoiceMin, relevanceMin: DEFAULT_CONFIG.thresholds.recallRelevanceMin };
 
   it("a line Jev is sure about is injected even when the choice gives it almost nothing (a second relevant line)", () => {
     const picked = selectForPrompt([row("first", 0.97, 0.96), row("second", 0.98, 0.01)], opts).map((r) => r.memory.id);
@@ -86,9 +86,16 @@ describe("which lines a prompt gets (selectForPrompt)", () => {
     expect(RELEVANCE_SURE).toBe(0.97);
   });
 
-  it("below the sure level, a line needs both recallRelevanceMin and the choice's recallMin; under recallRelevanceMin, never", () => {
+  it("below the sure level, a line needs both recallRelevanceMin and the choice's recallChoiceMin; under recallRelevanceMin, never", () => {
     const picked = selectForPrompt([row("both", 0.85, 0.3), row("choiceLow", 0.9, 0.02), row("notRelevant", 0.6, 0.9)], opts).map((r) => r.memory.id);
     expect(picked).toEqual(["both"]);
+  });
+
+  it("a second line the first crowded out of the choice is kept at 0.03 (v0.6 part 3b; 0.05 before, which every existing jevmem.config.json still holds as recallMin)", () => {
+    const picked = selectForPrompt([row("first", 0.97, 0.95), row("second", 0.95, 0.03)], opts).map((r) => r.memory.id);
+    expect(picked).toEqual(["first", "second"]);
+    expect(DEFAULT_CONFIG.thresholds.recallChoiceMin).toBe(0.03);
+    expect(DEFAULT_CONFIG.thresholds.recallMin).toBe(0.05);
   });
 
   it("recallRelevanceMin above 1 turns recall off, even for a line Jev is sure about", () => {
