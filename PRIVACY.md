@@ -1,6 +1,8 @@
 # Privacy
 
-Last updated: 2026-09-26
+Last updated: 2026-09-28
+
+This page describes jevmem 0.5.9, which has the same code as 0.5.8.
 
 jevmem reads your prompts and parts of your Claude Code conversations, stores some of that text on your machine, and sends it to the services listed below. Prompts can contain personal data, so this page says what goes where. [SECURITY.md](SECURITY.md) has the full detail.
 
@@ -12,7 +14,7 @@ jevmem is an open-source tool (MIT licence) by Avinash Jetwani. It runs on your 
 
 Only from a project you have enabled (`jevmem enable` or `jevmem init`, which create `jevmem.config.json`), and only when a TypeSafe API key is set. From any other project jevmem sends nothing (tested).
 
-Before anything is sent, common secret shapes are replaced with `[REDACTED]`: API keys and tokens, passwords, credentials in connection strings, private keys, email addresses and card-shaped numbers. This is best effort. Names, phone numbers and postal addresses, for example, are not removed, so don't put anything in a prompt that you don't want sent.
+Before anything is sent, secrets are replaced with `[REDACTED]` by pattern matching: API keys and tokens in the shapes of OpenAI, Anthropic, GitHub, GitLab, Slack, AWS, Google, Stripe, npm and Hugging Face keys, JWTs and bearer tokens; the value after a name that ends in PASSWORD, PASSWD, PWD, SECRET, TOKEN or KEY, such as `DB_PASSWORD=`, `PGPASSWORD=`, `apiKey:` or `"authToken":`; passwords in connection strings; private keys; email addresses; and 16-digit, card-shaped numbers. The exact rules are in [SECURITY.md](SECURITY.md#what-is-scrubbed). Names such as `PGPASSWORD`, with no underscore before the word, and the `"name": "value"` form are caught since 0.5.8: 0.5.7 and earlier sent `PGPASSWORD=…` and `"password": "…"` as written, so if your chats in an enabled project had such lines, rotate those credentials ([advisory GHSA-2r3p-5hmg-46p5](https://github.com/Avinash-jetwani/jevmem/security/advisories/GHSA-2r3p-5hmg-46p5), [CHANGELOG](CHANGELOG.md#058---2026-09-28)). Because it only matches patterns, a secret written in a form it doesn't know can still get through, and people's names, phone numbers and postal addresses are not removed at all, so don't put anything in a prompt that you don't want sent.
 
 **To TypeSafe AI**, at `https://api.typesafe.ai/v1/systemone`, or the URL in `TYPESAFE_BASE_URL` if you set one. TypeSafe's Jev model decides what to save and what to recall.
 
@@ -42,7 +44,7 @@ All of it on your machine:
 - **`.jevmem/`**, in the project, local and gitignored: a copy of the memory lines, a log of each Jev call and of any line the poisoning check withheld, the save queue and recent decisions with the scrubbed turn text, your `right` and `wrong` labels, cached Jev answers, and hashes of the lines jevmem wrote. With `JEVMEM_DEBUG=1`, also the raw hook input.
 - **The plugin's data folder** (`~/.claude/plugins/data/…`): the paths of the jevmem CLI and Node it found and, in an enabled project without the CLI, the ids of the sessions it has shown the "CLI not found" message.
 - **The system temp folder**: the `Stop` hook's input, until jevmem reads and deletes it.
-- **Your TypeSafe API key**: entered in the plugin's settings (`/plugin configure jevmem@jevmem`), Claude Code keeps it in your system's secure credential store, and jevmem doesn't write it to a file or a log (tested). If you put it in `~/.jevmem/env` or `<project>/.jevmem/.env` instead, it is in that file.
+- **Your TypeSafe API key**: entered in the plugin's settings (`/plugin configure jevmem`), Claude Code keeps it in your system's secure credential store, and jevmem doesn't write it to a file or a log (tested). If you put it in `~/.jevmem/env` or `<project>/.jevmem/.env` instead, it is in that file.
 
 ## How to delete it
 
@@ -55,7 +57,7 @@ In each project:
 
 Then, once:
 
-- `claude plugin uninstall jevmem@jevmem` removes the plugin. When you uninstall it from the last place it's installed, Claude Code also deletes its data folder, unless you pass `--keep-data`.
+- `claude plugin uninstall jevmem` removes the plugin. When you uninstall it from the last place it's installed, Claude Code also deletes its data folder, unless you pass `--keep-data`.
 - A key you entered in the plugin's settings is held by Claude Code in the credential store, not by jevmem; remove it there. Delete `~/.jevmem/env` if you created it.
 - `npm uninstall -g jevmem` removes the CLI.
 

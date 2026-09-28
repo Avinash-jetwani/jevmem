@@ -2,6 +2,10 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.9] - 2026-09-28
+
+Docs only: README, SECURITY and PRIVACY brought up to date; no code changes.
+
 ## [0.5.8] - 2026-09-28
 
 **Upgrade:** `npm install -g jevmem@latest`. Plugin users too: the plugin runs this CLI.
