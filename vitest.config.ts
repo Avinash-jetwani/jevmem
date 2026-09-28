@@ -5,5 +5,7 @@ export default defineConfig({
     include: ["test/**/*.test.ts"],
     environment: "node",
     testTimeout: 20_000,
+    // A temporary HOME and no keys or Claude Code variables from this machine (test/setup.ts).
+    setupFiles: ["test/setup.ts"],
   },
 });
