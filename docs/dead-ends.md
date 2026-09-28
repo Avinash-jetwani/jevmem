@@ -1,6 +1,6 @@
 # Dead ends
 
-> **Unreleased.** This is on `main` and not yet in the npm release: the `jevmem` CLI on npm (0.5.7) has no `[dead-end]` kind. A `JEVMEM.md` with dead-end lines still works for teammates on 0.5.7 ([below](#teammates-on-057)).
+> **Unreleased.** This is on `main` and not yet in the npm release: the `jevmem` CLI on npm (0.5.8) has no `[dead-end]` kind. A `JEVMEM.md` with dead-end lines still works for teammates on 0.5.7 ([below](#teammates-on-057)).
 
 When a turn shows that an approach was tried and failed, or was dropped, jevmem saves one line saying what was tried and why it didn't work, tagged `[dead-end]`. When a related prompt comes later, recall adds it to Claude's context as `Already tried: <line>`. That is information for Claude, not a rule: what Claude did with it in the end-to-end runs is [below](#end-to-end). When the approach works later, told by you or made to work by Claude, the line is superseded and never injected again. When it is tried again and fails again, nothing is saved for the same reason, and a new reason goes into one line with both ([below](#when-it-is-tried-again)).
 
