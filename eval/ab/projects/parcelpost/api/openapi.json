@@ -1,0 +1,18 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "ShipCarrier status API", "version": "2.3.0" },
+  "servers": [{ "url": "https://api.shipcarrier.example" }],
+  "components": {
+    "securitySchemes": {
+      "carrierKey": { "type": "apiKey", "in": "header", "name": "X-Api-Token" }
+    }
+  },
+  "paths": {
+    "/v2/status/{tracking}": {
+      "get": { "operationId": "getStatus", "summary": "Latest status of one parcel" }
+    },
+    "/v2/events/{tracking}": {
+      "get": { "operationId": "getEvents", "summary": "Every scan event of one parcel" }
+    }
+  }
+}
