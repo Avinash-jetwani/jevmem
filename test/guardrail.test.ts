@@ -446,6 +446,18 @@ describe("tamper check (local, no Jev)", () => {
     for (const c of fine) expect((await evaluateGuard(bash(root, c), { jev })).stdout, c).toBe("");
   });
 
+  it("Bash: a redirection writes only its own target, so reading JEVMEM.md with stderr sent to /dev/null is not asked", async () => {
+    const { root } = project([ENV]);
+    const jev = breaks(0);
+    // Found in the guardgit e2e: `cat JEVMEM.md 2>/dev/null` was asked as a write to JEVMEM.md.
+    const fine = ["cat JEVMEM.md 2>/dev/null", "grep -n constraint JEVMEM.md 2>/dev/null", "head -5 JEVMEM.md 2>&1", "cat JEVMEM.md > /tmp/jevmem-copy.md", "cat < JEVMEM.md", "wc -l JEVMEM.md >/dev/null 2>&1", "cat jevmem.config.json 2>/dev/null", "ls .jevmem 2>/dev/null"];
+    for (const c of fine) expect((await evaluateGuard(bash(root, c), { jev })).stdout, c).toBe("");
+    // Real writes still ask: a redirection into the file, tee, sed -i (with or without stderr redirected).
+    const asked = ["cat /tmp/other.md > JEVMEM.md", "cat JEVMEM.md > JEVMEM.md", "printf '' > JEVMEM.md", "echo x | tee JEVMEM.md", "tee JEVMEM.md < /tmp/other.md", "sed -i '' '/env/d' JEVMEM.md", "sed -i '/env/d' JEVMEM.md 2>/dev/null", "echo '{}' > jevmem.config.json 2>/dev/null"];
+    for (const c of asked) expect(parse((await evaluateGuard(bash(root, c), { jev })).stdout).permissionDecision, c).toBe("ask");
+    expect(jev.calls).toHaveLength(0);
+  });
+
   it("the tamper check holds in warn mode, and in block mode a denied rule still wins", async () => {
     const { root } = project([ENV], { mode: "warn" });
     expect(parse((await evaluateGuard(bash(root, "rm jevmem.config.json"), { jev: breaks(0) })).stdout).permissionDecision).toBe("ask");

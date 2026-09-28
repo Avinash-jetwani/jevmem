@@ -386,7 +386,7 @@ export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction
   if (!/jevmem/i.test(cmd) && !cmd.includes(memoryName)) return null;
   const hasRules = memoryText !== null && activeConstraints(memoryText).length > 0;
   for (const seg of segmentsOf(cmd)) {
-    const { words, redirects, appendOnly } = seg;
+    const { words, writes, appendOnly } = seg;
     const cmdWord = (words[0] ?? "").split("/").pop()?.toLowerCase() ?? "";
     const sub = (words[1] ?? "").toLowerCase();
     if (cmdWord === "jevmem") {
@@ -395,15 +395,15 @@ export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction
       if (sub === "wrong" && hasRules && words.includes("none")) return `jevmem: this runs \`jevmem wrong … --should-be none\`, which can remove a saved rule from ${memoryName}.`;
       continue;
     }
-    // `cp` only writes its last argument; every other command is taken to change any file it names.
-    const all = cmdWord === "cp" ? [...words.slice(-1), ...redirects] : [...words.slice(1), ...redirects];
+    // The files a command can change: the targets of its output redirections (`2>/dev/null` writes /dev/null, not the
+    // file the command reads), and, unless the command only reads, every file it names (`cp` writes only its last one).
+    const readOnly = READ_ONLY.has(cmdWord) || (cmdWord === "git" && GIT_READ.has(sub)) || (cmdWord === "sed" && !words.some((w) => /^-[a-z]*i/.test(w) || w === "--in-place"));
+    const all = [...(readOnly ? [] : cmdWord === "cp" ? words.slice(-1) : words.slice(1)), ...writes];
     const names = (f: string) => all.some((w) => w === f || w.endsWith(`/${f}`));
     const touchesConfig = names(CONFIG_FILE);
     const touchesMemory = hasRules && names(memoryName);
     const touchesState = all.some((w) => w === ".jevmem" || w.startsWith(".jevmem/") || w.includes("/.jevmem/") || w.endsWith("/.jevmem"));
     if (!touchesConfig && !touchesMemory && !touchesState) continue;
-    const readOnly = redirects.length === 0 && (READ_ONLY.has(cmdWord) || (cmdWord === "git" && GIT_READ.has(sub)) || (cmdWord === "sed" && !words.some((w) => /^-[a-z]*i/.test(w) || w === "--in-place")));
-    if (readOnly) continue;
     // Appending (>>) cannot remove a rule from JEVMEM.md.
     if (touchesMemory && !touchesConfig && !touchesState && appendOnly) continue;
     if (touchesConfig) return "jevmem: this command changes jevmem.config.json, which holds jevmem's guard settings.";
@@ -413,10 +413,14 @@ export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction
   return null;
 }
 
-/** The simple commands of a command line, each with its words (prefixes and `VAR=value` dropped) and redirections. */
-function segmentsOf(cmd: string): { words: string[]; redirects: string[]; appendOnly: boolean }[] {
+/**
+ * The simple commands of a command line, each with its words (prefixes and `VAR=value` dropped) and the files its output
+ * redirections write (`writes`; an input redirection `<` reads).
+ */
+function segmentsOf(cmd: string): { words: string[]; writes: string[]; appendOnly: boolean }[] {
   return splitCommand(cmd).map((seg) => {
-    const { words, redirects, ops } = shellWords(seg);
+    const { words, redirects, redirectOps, ops } = shellWords(seg);
+    const writes = redirects.filter((_, i) => (redirectOps[i] ?? ">").startsWith(">"));
     let i = 0;
     for (;;) {
       const w = words[i];
@@ -428,7 +432,7 @@ function segmentsOf(cmd: string): { words: string[]; redirects: string[]; append
     const rest = words.slice(i);
     const teeAppend = (rest[0] ?? "").split("/").pop() === "tee" && rest.some((w) => w === "-a" || w === "--append");
     const fileOps = ops.filter((o) => o === ">" || o === ">>" || o === ">|");
-    return { words: rest, redirects, appendOnly: teeAppend || (fileOps.length > 0 && fileOps.every((o) => o === ">>")) };
+    return { words: rest, writes, appendOnly: teeAppend || (fileOps.length > 0 && fileOps.every((o) => o === ">>")) };
   });
 }
 

@@ -455,9 +455,12 @@ function matchParen(s: string, open: number): number {
  * The words of one simple command, quotes removed; redirection targets and operators (`>`, `>>`, `<`) are listed apart.
  * With `globs`, also whether each word has a wildcard outside quotes (one the shell expands).
  */
-export function shellWords(segment: string, opts: { globs?: boolean } = {}): { words: string[]; redirects: string[]; ops: string[]; globs?: boolean[] } {
+export function shellWords(segment: string, opts: { globs?: boolean } = {}): { words: string[]; redirects: string[]; redirectOps: string[]; ops: string[]; globs?: boolean[] } {
   const out: string[] = [];
   const redirects: string[] = [];
+  // The operator each redirection target came with (`>`, `>>`, `>|`, `<`), in the same order as `redirects`.
+  const redirectOps: string[] = [];
+  let pendingOp = "";
   const ops: string[] = [];
   const globs: boolean[] = [];
   let cur = "";
@@ -468,7 +471,10 @@ export function shellWords(segment: string, opts: { globs?: boolean } = {}): { w
   let next: "redirect" | "skip" | null = null;
   const push = () => {
     if (started) {
-      if (next === "redirect") redirects.push(cur);
+      if (next === "redirect") {
+        redirects.push(cur);
+        redirectOps.push(pendingOp);
+      }
       else if (next !== "skip") {
         out.push(cur);
         globs.push(wild);
@@ -516,6 +522,7 @@ export function shellWords(segment: string, opts: { globs?: boolean } = {}): { w
         continue;
       }
       ops.push(op);
+      pendingOp = op;
       next = op.startsWith("<<") ? "skip" : "redirect";
       continue;
     }
@@ -524,7 +531,7 @@ export function shellWords(segment: string, opts: { globs?: boolean } = {}): { w
     started = true;
   }
   push();
-  return { words: out, redirects, ops, ...(opts.globs ? { globs } : {}) };
+  return { words: out, redirects, redirectOps, ops, ...(opts.globs ? { globs } : {}) };
 }
 
 /** The command word of a simple command and its subcommand (skipping `sudo`, `env`, `VAR=value` and git's `-C dir`). */

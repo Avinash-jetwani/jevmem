@@ -84,8 +84,9 @@ describe("shell command lines", () => {
   });
 
   it("reads words, redirection targets and operators; heredoc delimiters and descriptors are not files", () => {
-    expect(shellWords('git commit -m "add env" > out.txt 2>&1')).toEqual({ words: ["git", "commit", "-m", "add env"], redirects: ["out.txt"], ops: [">"] });
-    expect(shellWords("cat <<'EOF' >> notes.md")).toEqual({ words: ["cat"], redirects: ["notes.md"], ops: ["<<", ">>"] });
+    expect(shellWords('git commit -m "add env" > out.txt 2>&1')).toEqual({ words: ["git", "commit", "-m", "add env"], redirects: ["out.txt"], redirectOps: [">"], ops: [">"] });
+    expect(shellWords("cat <<'EOF' >> notes.md")).toEqual({ words: ["cat"], redirects: ["notes.md"], redirectOps: [">>"], ops: ["<<", ">>"] });
+    expect(shellWords("sort < in.txt 2>/dev/null").redirectOps).toEqual(["<", ">"]);
     expect(shellWords("echo a\\ b 'c d'").words).toEqual(["echo", "a b", "c d"]);
   });
 
