@@ -150,6 +150,24 @@ describe("eval/recall-*.jsonl", () => {
     expect(hits).toEqual([]);
   });
 
+  it("the 500-line dev file (the dev large file with 245 lines added, for the scale check) shares no text with the held-out sets", () => {
+    const scale = read("eval/recall-dev-500.jsonl");
+    const f = scale.find((r) => r.row === "file");
+    expect(f.lines.length).toBe(500);
+    expect(new Set(f.lines.map((l: any) => l.id)).size).toBe(500);
+    expect(new Set(f.lines.map((l: any) => norm(l.text))).size).toBe(500);
+    const held = [...setTexts(SETS.heldout), ...setTexts(SETS.heldout2)];
+    const sh = new Map<string, string>();
+    for (const t of held) for (const s of shingles(t, 5)) sh.set(s, t);
+    const eq = new Set(held.map(norm));
+    const hits: string[] = [];
+    for (const t of setTexts(scale)) {
+      if (eq.has(norm(t))) hits.push(`equal: ${t}`);
+      for (const s of shingles(t, 5)) if (sh.has(s)) hits.push(`"${s}" in "${t}" and held-out "${sh.get(s)}"`);
+    }
+    expect(hits).toEqual([]);
+  });
+
   it("the sets share no text with any other eval set or the outcome A/B (no equal text, no shared 5-word run)", () => {
     const others = otherTexts();
     const sh = new Map<string, string>();
