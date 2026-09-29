@@ -2,7 +2,7 @@
 
 ## How this differs from the tools' own memory
 
-Each tool has two kinds of built-in memory, and Jevmem is not a replacement for either; it is the layer that the tools and the team share.
+There are two kinds of memory besides Jevmem, and it replaces neither. Auto memory is per tool and per machine. Project instruction files are per repository, and one of them is not tied to a tool: `AGENTS.md` is read by Claude Code (2.1.277 or later), Cursor and Codex. What Jevmem adds is a file that is kept current for you and read per prompt.
 
 | | Built-in auto memory (e.g. Claude Code's, under `~/.claude/projects/…` on your machine) | Project instruction files (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`) | Jevmem |
 |---|---|---|---|
@@ -14,7 +14,7 @@ Each tool has two kinds of built-in memory, and Jevmem is not a replacement for 
 | What happens on a reversal | Not measured here | You edit it (history if the file is in git) | The old line stays, tagged `[superseded] … → id:new`, so history and blame survive |
 | Corrections | Edit its files | Edit the file | `right` / `wrong` / `missed` labels, and `fit` retunes the thresholds to your judgement |
 
-Claude Code's auto memory and instruction files are described at https://code.claude.com/docs/en/memory (read 2026-09-28). The instruction files are shareable today; Jevmem's difference is that it **maintains** its file automatically and **scores** each line. Both can run at once; the end-to-end harness checks that Jevmem behaves the same with Claude Code's auto-memory present or cleared.
+Claude Code's auto memory and instruction files are described at https://code.claude.com/docs/en/memory (read 2026-09-28; its [AGENTS.md section](https://code.claude.com/docs/en/memory#agents-md), read 2026-09-29, gives v2.1.277 and when `AGENTS.md` loads instead of `CLAUDE.md`). `AGENTS.md` in Cursor: https://cursor.com/docs/context/rules; in Codex: https://developers.openai.com/codex/guides/agents-md; the format: https://agents.md (all read 2026-09-29). The instruction files are shareable today; Jevmem's difference is that it **maintains** its file automatically and **scores** each line. Both can run at once; the end-to-end harness checks that Jevmem behaves the same with Claude Code's auto-memory present or cleared.
 
 **Rules that must apply to every task belong in `CLAUDE.md`.** Jevmem puts a line in front of Claude when Jev judges it relevant to the prompt at hand. A rule that holds for a whole class of changes, with nothing in a given prompt pointing at it, can be missed. In the outcome A/B, the convention that every user-facing string goes through `t()` was never injected for a prompt to add a button, and Claude followed it in 0 of 3 sessions; with the same line in `CLAUDE.md` it did in 3 of 3 ([Benchmark](benchmark.md#outcome-ab-does-claude-act-on-the-memory)). So put the rules every task must follow (a convention for all code, how every commit is made, what must never be run) in `CLAUDE.md` or `AGENTS.md`, which the tools load at the start of every session. Leave the rest to Jevmem: the decisions, dead ends, bugs and facts that pile up as you work, which change as the project moves, are soon too many to load whole, and matter only when a prompt touches them. The two work side by side. Jevmem neither reads nor changes `CLAUDE.md` (only `jevmem import` reads it, when you run it).
 
