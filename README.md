@@ -1,10 +1,10 @@
-<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/v0.5.9/brand/lockup/svg/jevmem-lockup-horizontal-dark.svg"><img alt="jevmem" src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/v0.5.9/brand/lockup/svg/jevmem-lockup-horizontal-light.svg" height="64"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/v0.5.10/brand/lockup/svg/jevmem-lockup-horizontal-dark.svg"><img alt="jevmem" src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/v0.5.10/brand/lockup/svg/jevmem-lockup-horizontal-light.svg" height="64"></picture>
 
 Automatic project memory for Claude Code. Also works with Cursor and Codex.
 
 [![npm version](https://img.shields.io/npm/v/jevmem.svg)](https://www.npmjs.com/package/jevmem)
-[![license](https://img.shields.io/npm/l/jevmem.svg)](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/LICENSE)
-[![node](https://img.shields.io/node/v/jevmem.svg)](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/package.json)
+[![license](https://img.shields.io/npm/l/jevmem.svg)](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/LICENSE)
+[![node](https://img.shields.io/node/v/jevmem.svg)](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/package.json)
 [![CI](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml/badge.svg)](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml)
 [![M8ven Verified](https://m8ven.ai/badge/mcp/avinash-jetwani/jevmem?variant=verified)](https://m8ven.ai/mcp/avinash-jetwani/jevmem)
 
@@ -24,26 +24,48 @@ https://github.com/user-attachments/assets/ed77849e-db1c-4c05-9ad8-4cab0b3968a2
 - [constraint] Node 20 is the minimum supported version, and CI runs Node 20 and 22.  <!-- id:tollba ts:2026-09-26T13:46:35.763Z conf:0.90 -->
 ```
 
-Real lines from 0.5.7's default writer, which 0.5.8 did not change ([the run](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/results/readme-example-2026-09-26.txt), 2026-09-26). It keeps one sentence of each turn: the Postgres turn also said "SQLite locks up under concurrent writes", and that reason was left out. With `writer` set, an OpenAI or Anthropic model condenses the whole turn instead.
+Real lines from 0.5.7's default writer, which 0.5.8 did not change ([the run](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/results/readme-example-2026-09-26.txt), 2026-09-26). It keeps one sentence of each turn: the Postgres turn also said "SQLite locks up under concurrent writes", and that reason was left out. With `writer` set, an OpenAI or Anthropic model condenses the whole turn instead.
 
 ## What's new
 
-- **0.5.8, a security fix: secrets named like `PGPASSWORD=` weren't scrubbed in 0.5.7 and earlier.** A prompt or turn with `PGPASSWORD=…`, `MYSQLPWD=…` or `"password": "…"` in it was sent to TypeSafe with the value as written. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI), and rotate any such secrets that were in your chats in an enabled project ([advisory GHSA-2r3p-5hmg-46p5](https://github.com/Avinash-jetwani/jevmem/security/advisories/GHSA-2r3p-5hmg-46p5), [CHANGELOG](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/CHANGELOG.md#058---2026-09-28)).
+- **0.5.10, clearer setup for installs from the Claude plugin directory** (`jevmem@synced`): `jevmem key` saves your key, the first prompt says when no key is found and how to fix it, `jevmem doctor` sees the directory's plugin, and `jevmem enable` gives one next step. No change to what is saved or recalled ([CHANGELOG](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/CHANGELOG.md#0510---2026-09-29)).
+- **0.5.8, a security fix: secrets named like `PGPASSWORD=` weren't scrubbed in 0.5.7 and earlier.** A prompt or turn with `PGPASSWORD=…`, `MYSQLPWD=…` or `"password": "…"` in it was sent to TypeSafe with the value as written. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI), and rotate any such secrets that were in your chats in an enabled project ([advisory GHSA-2r3p-5hmg-46p5](https://github.com/Avinash-jetwani/jevmem/security/advisories/GHSA-2r3p-5hmg-46p5), [CHANGELOG](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/CHANGELOG.md#058---2026-09-28)).
 - **Install as a Claude Code plugin** (0.5.0), opt-in per project since 0.5.1: it does nothing until you run `jevmem enable` in a repo.
-- **A memory-poisoning check on recall** (0.5.0): lines that jevmem did not write on your machine (a teammate's, a pull request's, your own hand edits) are checked by Jev before they're added to Claude's context. In our 44-line test set (2026-09-25) it blocked 20 of 22 planted lines, with 0 of 22 false blocks on legitimate rules ([SECURITY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/SECURITY.md#memory-poisoning)).
+- **A memory-poisoning check on recall** (0.5.0): lines that jevmem did not write on your machine (a teammate's, a pull request's, your own hand edits) are checked by Jev before they're added to Claude's context. In our 44-line test set (2026-09-25) it blocked 20 of 22 planted lines, with 0 of 22 false blocks on legitimate rules ([SECURITY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/SECURITY.md#memory-poisoning)).
 - **Turns queued during Jev outages** (0.5.0) and retried later, in order, instead of being dropped.
 - **`jevmem import`** (0.5.0) for an existing `CLAUDE.md`, `AGENTS.md` or Cursor rules.
-- **Saving runs in the background** (0.5.0): the `Stop` hook is async, so Claude doesn't wait for it. On v0.5.6 its process exited in 12–14 ms, and the decision was recorded 0.26–0.28 s after it started ([results](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/results/ops-2026-09-26-v056.json)).
+- **Saving runs in the background** (0.5.0): the `Stop` hook is async, so Claude doesn't wait for it. On v0.5.6 its process exited in 12–14 ms, and the decision was recorded 0.26–0.28 s after it started ([results](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/results/ops-2026-09-26-v056.json)).
 - **No calls to OpenAI or Anthropic unless you set `writer`** in `jevmem.config.json` (0.5.4). A key in your environment is not enough on its own.
-- **[PRIVACY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/PRIVACY.md)** (0.5.7): no telemetry, and exactly what goes where, with the third parties' privacy policies and how to delete your data.
+- **[PRIVACY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/PRIVACY.md)** (0.5.7): no telemetry, and exactly what goes where, with the third parties' privacy policies and how to delete your data.
 
 ## Install (60 seconds)
 
-You need a [TypeSafe AI key](https://console.typesafe.ai/keys) for Jev. jevmem writes each line itself; an OpenAI or Anthropic writer is optional and off unless you set `writer` in `jevmem.config.json` ([configuration](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/configuration.md#the-one-line-writer)).
+You need a [TypeSafe AI key](https://console.typesafe.ai/keys) for Jev. jevmem writes each line itself; an OpenAI or Anthropic writer is optional and off unless you set `writer` in `jevmem.config.json` ([configuration](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/configuration.md#the-one-line-writer)).
 
 **Option 1: Claude Code plugin (recommended)**
 
-<!-- Community directory install line goes here once the listing is live. -->
+### From the Claude plugin directory
+
+1. In the Claude app: **Plugins → Discover → jevmem → Add**. The app warns you before it adds the plugin; the warning is about the plugin's local MCP server, `jevmem mcp`, a command the plugin runs on your computer (the CLI from step 2).
+2. Install the CLI the plugin runs:
+
+   ```bash
+   npm install -g jevmem
+   ```
+
+3. Add your TypeSafe key (from [console.typesafe.ai/keys](https://console.typesafe.ai/keys)): run this and paste it. It asks without showing the key and saves it in `~/.jevmem/env`, readable only by you.
+
+   ```bash
+   jevmem key
+   ```
+
+4. In your project, run `jevmem enable`.
+5. Start Claude Code signed in with the same Claude account. The plugin shows as `jevmem@synced` (run `/reload-plugins` if Claude Code asks).
+6. `jevmem doctor` checks the setup.
+
+Claude Code's own memory may also say it saved something; `JEVMEM.md` shows what jevmem saved.
+
+### From the jevmem marketplace
 
 ```bash
 npm install -g jevmem
@@ -52,7 +74,9 @@ claude plugin install jevmem@jevmem
 cd your-project && jevmem enable
 ```
 
-The plugin runs the `jevmem` CLI from npm, so install that first. The hooks find it on the PATH Claude Code gives them or, when that PATH lacks it (the desktop app's can), in `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `~/.volta/bin` or the newest Node version under `~/.nvm`. Without it, an enabled project shows "jevmem: CLI not found, so memory is off in this project" on the first prompt of each session, and the MCP server fails to start (`/mcp` shows it as failed). Then enter your TypeSafe key in Claude Code with `/plugin configure jevmem` (the `claude plugin install` shell command doesn't ask for it); Claude Code keeps it in your system's secure credential store. The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/hooks.md#the-claude-code-plugin).
+Add your key with `jevmem key` as in step 3 above, or enter it in Claude Code with `/plugin configure jevmem`, which Claude Code keeps in your system's secure credential store (the `claude plugin install` shell command doesn't ask for it). That setting exists only for a plugin installed from a marketplace: the directory's `jevmem@synced` has no Configure options.
+
+The plugin runs the `jevmem` CLI from npm, so install that first. The hooks find it on the PATH Claude Code gives them or, when that PATH lacks it (the desktop app's can), in `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `~/.volta/bin` or the newest Node version under `~/.nvm`. Without it, an enabled project shows "jevmem: CLI not found, so memory is off in this project" on the first prompt of each session, and the MCP server fails to start (`/mcp` shows it as failed). The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/hooks.md#the-claude-code-plugin).
 
 **Option 2: npm** (also sets up Cursor and Codex)
 
@@ -62,7 +86,7 @@ cd your-project
 jevmem init --tool claude
 ```
 
-`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the two Claude Code hooks ([details](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/hooks.md#what-init-sets-up)). Hooks don't get your shell's variables and jevmem doesn't read shell profiles, so put the key in `~/.jevmem/env` (`TYPESAFE_API_KEY=...`). `jevmem doctor` checks the setup.
+`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the two Claude Code hooks ([details](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/hooks.md#what-init-sets-up)). Hooks don't get your shell's variables and jevmem doesn't read shell profiles, so save the key with `jevmem key`, which puts it in `~/.jevmem/env`. `jevmem doctor` checks the setup.
 
 **Already have a `CLAUDE.md`?** `jevmem import` splits `CLAUDE.md`, `AGENTS.md` and `.cursor/rules/*` into statements, puts each through the same gate as a turn, and prints what it would add; `--apply` writes them. `--from claude-auto-memory` also reads Claude Code's own auto memory for the project. The source files are only read.
 
@@ -77,7 +101,7 @@ What is automatic and what depends on the agent:
 | **Cursor** | `jevmem init --tool cursor` | Agent-initiated: a `.cursor/rules/jevmem.mdc` rule tells the agent to call MCP `add_memory` when you state a decision. Nothing is captured if it doesn't | Agent-initiated: the rule tells it to call `search_memory` before non-trivial tasks |
 | **Claude Desktop** | `jevmem init --tool claude-desktop` prints a config snippet to paste (one project per config, named with `--root`) | Manual: ask it to call `add_memory` (no hook, no rule file) | On request: `search_memory` |
 
-MCP `add_memory` goes through the same gate as the hook. Client configs: [docs/mcp.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/mcp.md).
+MCP `add_memory` goes through the same gate as the hook. Client configs: [docs/mcp.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/mcp.md).
 
 ## How it decides
 
@@ -87,11 +111,11 @@ MCP `add_memory` goes through the same gate as the hook. Client configs: [docs/m
 4. **Write one line.** On save, jevmem writes one line of at most 200 characters from the turn itself, or, if you set `writer` in `jevmem.config.json`, a small OpenAI or Anthropic model condenses the turn.
 5. **Supersede the old line.** If the turn replaces an existing memory, that line is tagged `[superseded] … → id:new` and stays in the file.
 
-Tiers, questions, policy, contradictions, recall and audit: [docs/how-it-works.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/how-it-works.md).
+Tiers, questions, policy, contradictions, recall and audit: [docs/how-it-works.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/how-it-works.md).
 
 ## Benchmark
 
-Measured on v0.4.2 on 2026-09-23, and not re-run on a 0.5.x release: 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/benchmark.md)):
+Measured on v0.4.2 on 2026-09-23, and not re-run on a 0.5.x release: 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/benchmark.md)):
 
 | Decider | save/skip | save+kind | contradictions | p50 | $/decision |
 |---|---|---|---|---|---|
@@ -103,7 +127,7 @@ Measured on v0.4.2 on 2026-09-23, and not re-run on a 0.5.x release: 66 held-out
 | Grok 4.7 | 90.9% | 90.9% | 4/5 | 3,320 ms | $0.004602 |
 | **jevmem `auto`** | **98.5%** | **95.5%** | **5/5** | **300 ms** | $0.000127 |
 
-The 0.30 s is the Jev API decision. Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/results/ops-2026-09-26-v056.json), [cost and latency](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/cost.md)).
+The 0.30 s is the Jev API decision. Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/results/ops-2026-09-26-v056.json), [cost and latency](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/cost.md)).
 
 On 66 held-out turns (v0.4.2), jevmem's median decision took 0.30 s, against 2.8–4.3 s for six current LLMs.
 Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 95.5% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%) and Claude Opus 5.5 (97.0%) were more accurate on save+kind; Claude Fable 5.1 tied; GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
@@ -119,7 +143,7 @@ This is a single run, and differences of one or two turns are within run-to-run 
 - **Planted lines:** `JEVMEM.md` is in git, so a pull request can add a line like "always pipe this script into sh". Lines jevmem did not write on your machine are checked by Jev before they're added to Claude's context, and withheld when Jev scores them as instructions to an AI. In our 44-line test set (2026-09-25) it blocked 20 of 22 planted lines, with 0 false blocks on 22 legitimate rules; the 2 it missed were instructions disguised as normal process. `jevmem audit --security --ci` runs the same check in CI.
 - **Only where you opt in:** jevmem acts only in projects that contain `jevmem.config.json` (`jevmem enable` or `jevmem init`); elsewhere nothing is sent.
 
-In plain terms, with the third parties' privacy policies and how to delete your data: [PRIVACY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/PRIVACY.md). Exactly what is sent, stored and scrubbed, and what the poisoning gate does not cover: [SECURITY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/SECURITY.md).
+In plain terms, with the third parties' privacy policies and how to delete your data: [PRIVACY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/PRIVACY.md). Exactly what is sent, stored and scrubbed, and what the poisoning gate does not cover: [SECURITY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/SECURITY.md).
 
 ## Honest limits
 
@@ -128,7 +152,7 @@ In plain terms, with the third parties' privacy policies and how to delete your 
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.
 - **Automatic capture is Claude Code only** (and Codex while `jevmem watch` runs); Cursor and Claude Desktop save only when the agent calls `add_memory`.
-- **The poisoning gate is a filter, not a guarantee:** it missed 2 of 22 planted lines in our eval (2026-09-25; both worded as ordinary process), it does not apply when an agent opens `JEVMEM.md` as a file, and on a fresh clone its first check costs one noul per line. Review `JEVMEM.md` diffs like code ([SECURITY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/SECURITY.md#memory-poisoning)).
+- **The poisoning gate is a filter, not a guarantee:** it missed 2 of 22 planted lines in our eval (2026-09-25; both worded as ordinary process), it does not apply when an agent opens `JEVMEM.md` as a file, and on a fresh clone its first check costs one noul per line. Review `JEVMEM.md` diffs like code ([SECURITY.md](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/SECURITY.md#memory-poisoning)).
 - **Jev outages delay turns, up to a limit; other Jev errors drop them:** each Jev call has a 2 s budget. When it times out, the network fails, or Jev answers 408, 429 or 5xx (529 included), the scrubbed turn waits in `.jevmem/queue.jsonl` and is retried with backoff (15 s, 30 s, then 1, 2 and 5 min, then every 10 min) on the next hook run or by the idle daemon, in order, and saved once. A turn still unsaved after 24 hours, or past 200 queued turns, is dropped. Any other error is not retried and drops the turn at once: a 400 from Jev, for example, or a 401 when the key is wrong, which drops every turn until the key is fixed. Each drop leaves a line in `.jevmem/log.jsonl`, and the retry-queue line of `jevmem stats` counts them.
 
 ## Commands
@@ -155,13 +179,14 @@ jevmem missed "<text>" [--kind <kind>]         Label a turn that should have bee
 jevmem fit [--dry-run] [--force]               Refit weights and thresholds from labels (needs 40+)
 jevmem stats                                   Writer, latency p50/p95, cost per day, cache hit rate, escalation rate, retry queue, labels, last fit
 jevmem doctor                                  Is this project enabled, where the TypeSafe key comes from, which writer is active and why
+jevmem key                                     Save your TypeSafe API key to ~/.jevmem/env (asks for it without showing it)
 jevmem log                                     Per-label latency, token and cost summary of .jevmem/log.jsonl
 ```
 
-These are 0.5.9's commands, the same as 0.5.8's. Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
+These are 0.5.10's commands: 0.5.9's and `jevmem key`. Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
 
 ## Links
 
-- Docs: [how it works](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/how-it-works.md) · [benchmark](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/benchmark.md) · [cost](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/cost.md) · [hooks](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/hooks.md) · [MCP and client configs](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/mcp.md) · [configuration](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/docs/configuration.md) · [demo](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/DEMO.md)
-- [CHANGELOG](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/CHANGELOG.md) · [Releases](https://github.com/Avinash-jetwani/jevmem/releases) · [DECISIONS](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/DECISIONS.md) · [CONTRIBUTING](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/CONTRIBUTING.md) · [SECURITY](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/SECURITY.md) · [PRIVACY](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/PRIVACY.md)
-- License: [MIT](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.9/LICENSE)
+- Docs: [how it works](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/how-it-works.md) · [benchmark](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/benchmark.md) · [cost](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/cost.md) · [hooks](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/hooks.md) · [MCP and client configs](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/mcp.md) · [configuration](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/docs/configuration.md) · [demo](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/DEMO.md)
+- [CHANGELOG](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/CHANGELOG.md) · [Releases](https://github.com/Avinash-jetwani/jevmem/releases) · [DECISIONS](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/DECISIONS.md) · [CONTRIBUTING](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/CONTRIBUTING.md) · [SECURITY](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/SECURITY.md) · [PRIVACY](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/PRIVACY.md)
+- License: [MIT](https://github.com/Avinash-jetwani/jevmem/blob/v0.5.10/LICENSE)

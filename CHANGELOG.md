@@ -2,6 +2,28 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.10] - 2026-09-29
+
+0.5.10: clearer setup for installs from the Claude plugin directory; no change to what is saved or recalled.
+
+**Upgrade:** `npm install -g jevmem@latest`. The plugin from the Claude plugin directory (`jevmem@synced`, 0.5.7) runs this CLI, so it gets these changes without a plugin update. Cut from 0.5.9: none of the unreleased v0.6 work on `main` is in it.
+
+### Added
+- **`jevmem key`** saves your TypeSafe key to `~/.jevmem/env`, where the hooks, the MCP server and the commands look for it. It asks for the key without showing it (or reads it from stdin), keeps the file's other lines, makes the folder 0700 and the file 0600, and never prints or logs the key. When the file already has a key it asks before replacing it, which needs a terminal. It works for every install: the plugin from the Claude plugin directory, one from a marketplace, and the hooks `jevmem init` registers.
+- **A missing key is no longer silent.** In an enabled project where no TypeSafe key is found, the hooks do nothing, and in 0.5.9 only `.jevmem/log.jsonl` said why. The first prompt now shows one message: what is missing, where jevmem looks, and the fix, `jevmem key`. A plugin installed from a marketplace is also offered `/plugin configure jevmem`; the directory's `jevmem@synced`, which has no key setting, is not. The message is shown once per project, and again only if a key was found and later went missing. The Stop hook stays silent.
+- **`jevmem doctor` sees the plugin from the Claude plugin directory**, where Claude Code 2.1.284 keeps it (`plugins/synced/` in its config folder, read only): "hooks jevmem plugin, synced from claude.ai (0.5.7)". 0.5.9 said "no plugin setting or init hooks in this project" while those hooks worked. A marketplace install is named with its marketplace and version.
+
+### Changed
+- **The key advice leads with `jevmem key`** in doctor, `enable`, `init`, `jevmem key --help` and the MCP server's error, and offers `/plugin configure jevmem` only when a plugin installed from a marketplace is found. 0.5.9 offered `/plugin configure jevmem@jevmem`, which a directory install doesn't have.
+- **`jevmem enable` gives one next step**: `jevmem key` when no key is found, `jevmem init --tool claude` when neither a jevmem plugin nor `init` hooks are found, or "Memory starts with your next prompt in Claude Code."
+- **`jevmem stats` and doctor say why the hooks did nothing without a key.** 0.5.9's stats counted the hooks' "no key" lines as Jev calls ("2 call(s), 0 ok"); they are no longer calls, the first line says "2 skipped: no TypeSafe key", and stats and doctor add what was missed in the last 7 days (prompts that got no project memory, finished turns not saved) and the fix.
+
+### Fixed
+- **A key saved or replaced while the warm daemon runs is used from the next prompt.** The daemon kept the Jev client it started with, and every prompt kept it running, so a replaced key was not used while anyone kept working. Each hook request now carries a hash of the key and base URL it would use (never the key); a daemon holding another key steps aside and the hook starts a new one. `DAEMON_VERSION` 5.
+
+### Tests
+- `test/nokey.test.ts` (no key through both launchers, then `jevmem key`), `test/keychange.test.ts` (a key replaced while the daemon runs), `test/install.test.ts` (a fake plugin synced from claude.ai and a marketplace install in a temporary HOME: doctor, `enable`, `key --help`, the message per install, the MCP error, stats with no key), and `scripts/e2e.sh --scenario nokey`.
+
 ## [0.5.9] - 2026-09-28
 
 Docs only: README, SECURITY, PRIVACY and `docs/` brought up to date; no code changes.
