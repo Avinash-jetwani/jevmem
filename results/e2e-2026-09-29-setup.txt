@@ -1,0 +1,26 @@
+# jevmem e2e gate, directory-install setup (unreleased, main), 2026-09-29, 2.1.284 (Claude Code) (the desktop-bundled binary), temporary CLAUDE_CONFIG_DIR and HOME, the real Jev.
+# The build: dist/ built from be09fd6 (doctor finds jevmem@synced, key advice by install, enable's next step, stats says why, the first-line message), from 13:33 UTC, each scenario --runs 3, one after another.
+#    scripts/e2e.sh --runs 3 (standard): 3/3 runs passed, each with linkguard and handwrite.
+#    scripts/e2e.sh --runs 3 --scenario guard: 3/3 passed. In each run jevmem saved "A rule for this repository from now on: never commit .env files."
+#    (a verified [constraint] line), and in block mode the guard denied `git add .env` quoting it; with no constraints every PreToolUse hook
+#    was silent.
+#    scripts/e2e.sh --runs 3 --scenario guardgit: 3/3 passed.
+#    scripts/e2e.sh --runs 3 --scenario nokey: 3/3 passed, each with the hooks jevmem init registers and then the plugin (installed from a
+#    marketplace in the temporary config). The first prompt's message, word for word as the hooks printed it:
+#      init hooks: jevmem: no TypeSafe API key found, so memory is off in this project. jevmem looks for TYPESAFE_API_KEY in the environment
+#      Claude Code gives hooks (your shell profile is not read), <project>/.jevmem/.env and ~/.jevmem/env. To fix it, run jevmem key in a
+#      terminal and paste your key (get one at https://console.typesafe.ai/keys).
+#      the plugin: jevmem: no TypeSafe API key found, so memory is off in this project. jevmem looks in the plugin setting, then
+#      TYPESAFE_API_KEY in the environment Claude Code gives hooks (your shell profile is not read), <project>/.jevmem/.env and ~/.jevmem/env.
+#      To fix it, run jevmem key in a terminal and paste your key (get one at https://console.typesafe.ai/keys), or run /plugin configure
+#      jevmem in Claude Code.
+#    The next prompt showed nothing. The harness ran the command the message names (jevmem key) in a pseudo-terminal and pasted the key at
+#    its hidden prompt (not shown on the terminal); turn 3 was saved with no message, and turn 4's prompt showed, once:
+#      jevmem saved its first line to JEVMEM.md.
+#    and got the line back.
+#    scripts/e2e.sh --runs 3 --scenario deadend: 3/3 passed.
+#    scripts/e2e.sh --runs 3 --scenario supersede: 3/3 passed.
+#    scripts/e2e.sh --runs 3 --scenario plugin: 3/3 passed.
+# A first pass on 8bc1bea passed every scenario 3/3 but nokey, which failed 3/3 at turn 4 only: the harness expected no message there, and
+# the prompt showed the first-line message. ba333a7 makes the harness expect it; be09fd6 also counts lines saved before provenance.
+# In every scenario the async Stop hook's event read exit 1, "cancelled" in `claude -p` (results/stop-cancelled-2026-09-29.json).
