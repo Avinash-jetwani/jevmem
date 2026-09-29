@@ -54,10 +54,10 @@ You need a [TypeSafe AI key](https://console.typesafe.ai/keys) for Jev. jevmem w
    npm install -g jevmem
    ```
 
-3. Add your TypeSafe key: put the line `TYPESAFE_API_KEY=...` (your key from [console.typesafe.ai/keys](https://console.typesafe.ai/keys)) in `~/.jevmem/env`, then make the file readable only by you:
+3. Add your TypeSafe key (from [console.typesafe.ai/keys](https://console.typesafe.ai/keys)): run this and paste it. It asks without showing the key and saves it in `~/.jevmem/env`, readable only by you.
 
    ```bash
-   chmod 600 ~/.jevmem/env
+   jevmem key
    ```
 
 4. In your project, run `jevmem enable`.
@@ -75,7 +75,7 @@ claude plugin install jevmem@jevmem
 cd your-project && jevmem enable
 ```
 
-Add your key as in step 3 above, or enter it in Claude Code with `/plugin configure jevmem`, which Claude Code keeps in your system's secure credential store (the `claude plugin install` shell command doesn't ask for it). That setting exists only for a plugin installed from a marketplace: the directory's `jevmem@synced` has no Configure options.
+Add your key with `jevmem key` as in step 3 above, or enter it in Claude Code with `/plugin configure jevmem`, which Claude Code keeps in your system's secure credential store (the `claude plugin install` shell command doesn't ask for it). That setting exists only for a plugin installed from a marketplace: the directory's `jevmem@synced` has no Configure options.
 
 The plugin runs the `jevmem` CLI from npm, so install that first. The hooks find it on the PATH Claude Code gives them or, when that PATH lacks it (the desktop app's can), in `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `~/.volta/bin` or the newest Node version under `~/.nvm`. Without it, an enabled project shows "jevmem: CLI not found, so memory is off in this project" on the first prompt of each session, and the MCP server fails to start (`/mcp` shows it as failed). The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](docs/hooks.md#the-claude-code-plugin).
 
@@ -87,7 +87,7 @@ cd your-project
 jevmem init --tool claude
 ```
 
-`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the two Claude Code hooks ([details](docs/hooks.md#what-init-sets-up)). Hooks don't get your shell's variables and jevmem doesn't read shell profiles, so put the key in `~/.jevmem/env` (`TYPESAFE_API_KEY=...`). `jevmem doctor` checks the setup.
+`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the two Claude Code hooks ([details](docs/hooks.md#what-init-sets-up)). Hooks don't get your shell's variables and jevmem doesn't read shell profiles, so save the key with `jevmem key`, which puts it in `~/.jevmem/env`. `jevmem doctor` checks the setup.
 
 **Already have a `CLAUDE.md`?** `jevmem import` splits `CLAUDE.md`, `AGENTS.md` and `.cursor/rules/*` into statements, puts each through the same gate as a turn, and prints what it would add; `--apply` writes them. `--from claude-auto-memory` also reads Claude Code's own auto memory for the project. The source files are only read.
 
