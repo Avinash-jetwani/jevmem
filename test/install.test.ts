@@ -99,6 +99,20 @@ describe("pluginInstalls: where Claude Code records the jevmem plugin", () => {
     expect(pluginInstalls(tmp(), { HOME: home, CLAUDE_CONFIG_DIR: config }, home)).toEqual([expect.objectContaining({ kind: "synced" })]);
   });
 
+  it("reads the plugins root CLAUDE_CODE_PLUGIN_CACHE_DIR moves: synced plugins and installed_plugins.json are under it", () => {
+    const home = tmp();
+    const moved = path.join(tmp(), "plugins-elsewhere");
+    fakeSynced(home);
+    fakeMarketplace(home, "jevmem@jevmem", "0.5.7");
+    fs.renameSync(path.join(home, ".claude", "plugins"), moved);
+    // settings.json stays in the config dir; only the plugins root moves
+    expect(pluginInstalls(tmp(), { HOME: home }, home)).toEqual([expect.objectContaining({ kind: "marketplace", version: null })]);
+    const found = pluginInstalls(tmp(), { HOME: home, CLAUDE_CODE_PLUGIN_CACHE_DIR: moved }, home);
+    expect(found).toEqual([expect.objectContaining({ kind: "synced", version: "0.5.7" }), expect.objectContaining({ kind: "marketplace", version: "0.5.7" })]);
+    expect(runningPlugin({ CLAUDE_PLUGIN_ROOT: path.join(moved, "synced", "a8f4", "7d57870a"), CLAUDE_CODE_PLUGIN_CACHE_DIR: moved })).toBe("synced");
+    expect(runningPlugin({ CLAUDE_PLUGIN_ROOT: path.join(moved, "cache", "jevmem", "jevmem", "0.5.7"), CLAUDE_CODE_PLUGIN_CACHE_DIR: moved, HOME: tmp() })).toBe("marketplace");
+  });
+
   it("runningPlugin tells the install a hook runs from by CLAUDE_PLUGIN_ROOT", () => {
     expect(runningPlugin({ CLAUDE_PLUGIN_ROOT: "/Users/u/.claude/plugins/synced/a8f4_34a5/7d57870a" })).toBe("synced");
     expect(runningPlugin({ CLAUDE_PLUGIN_ROOT: "/Users/u/.claude/plugins/cache/jevmem/jevmem/0.5.7" })).toBe("marketplace");
@@ -123,6 +137,15 @@ describe.skipIf(process.platform === "win32")("jevmem doctor, enable and key --h
     expect(out).not.toContain("/plugin configure");
     // The plugin is seen, so doctor also says which jevmem its hooks would run.
     expect(out).toMatch(/^cli {6}with this PATH the plugin/m);
+  });
+
+  it("doctor finds the synced plugin when CLAUDE_CODE_PLUGIN_CACHE_DIR moves the plugins folder", () => {
+    const home = tmp();
+    const moved = path.join(tmp(), "plugins-elsewhere");
+    fakeSynced(home);
+    fs.renameSync(path.join(home, ".claude", "plugins"), moved);
+    const out = jevmem(enabled(), home, ["doctor"], { CLAUDE_CODE_PLUGIN_CACHE_DIR: moved }).stdout;
+    expect(out).toMatch(/^hooks {4}jevmem plugin, synced from claude\.ai \(0\.5\.7\)$/m);
   });
 
   it("doctor with a marketplace install offers /plugin configure after jevmem key; with no plugin it says what it checked", () => {
@@ -155,6 +178,21 @@ describe.skipIf(process.platform === "win32")("jevmem doctor, enable and key --h
     const withInit = tmp("jevmem-install-proj-");
     init({ root: withInit, hooks: true, cliPath: CLI });
     expect(next(noHooks, withInit)).toBe("jevmem is enabled in this project.\nMemory starts with your next prompt in Claude Code.\n");
+  });
+
+  it("enable says it created .jevmem/ only when it did", () => {
+    const home = tmp();
+    const root = tmp("jevmem-install-proj-");
+    const first = jevmem(root, home, ["enable"]).stdout;
+    expect(first).toMatch(/^ {2}created {2}\.jevmem\/$/m);
+    const again = jevmem(root, home, ["enable"]).stdout;
+    expect(again).toMatch(/^ {2}kept {5}\.jevmem\/$/m);
+    expect(again).not.toMatch(/created {2}\.jevmem\//);
+    // disable moves the config into .jevmem/, so enable restores it and keeps the folder
+    expect(jevmem(root, home, ["disable"]).status).toBe(0);
+    const back = jevmem(root, home, ["enable"]).stdout;
+    expect(back).toContain("restored from .jevmem/jevmem.config.json.disabled");
+    expect(back).toMatch(/^ {2}kept {5}\.jevmem\/$/m);
   });
 
   it("key --help offers /plugin configure only with a marketplace install", () => {

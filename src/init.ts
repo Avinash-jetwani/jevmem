@@ -238,8 +238,9 @@ export function init(opts: InitOptions): InitResult {
   else skipped.push("JEVMEM.md");
   if (writeDefaultConfig(root)) created.push(CONFIG_FILE);
   else skipped.push(CONFIG_FILE);
+  const hadDir = fs.existsSync(store.dir);
   store.ensureDir();
-  created.push(".jevmem/");
+  (hadDir ? skipped : created).push(".jevmem/");
   const command = opts.command ?? resolveHookCommand(root, opts.cliPath);
   const stopCommand = opts.command ?? resolveStopCommand(root, opts.cliPath);
   const guardCommand = opts.command ?? resolveGuardCommand(root, opts.cliPath);
