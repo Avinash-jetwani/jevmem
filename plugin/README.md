@@ -22,7 +22,7 @@ This plugin contains no jevmem code. It runs the `jevmem` command-line tool, a s
 
 3. Opt your project in: run `jevmem enable` in its folder.
 
-You need a TypeSafe AI key (https://console.typesafe.ai/keys): enter it with `/plugin configure jevmem` in Claude Code (see [Your API key](#your-api-key)). `jevmem doctor` checks the setup. `jevmem enable` creates `jevmem.config.json`, `JEVMEM.md` and `.jevmem/` in the project, and adds `.jevmem/` to `.gitignore`.
+You need a TypeSafe AI key (https://console.typesafe.ai/keys): put the line `TYPESAFE_API_KEY=...` in `~/.jevmem/env` and run `chmod 600 ~/.jevmem/env`, which works however you added the plugin (see [Your API key](#your-api-key)). Claude Code's own memory may also say it saved something; `JEVMEM.md` shows what jevmem saved. `jevmem doctor` checks the setup. `jevmem enable` creates `jevmem.config.json`, `JEVMEM.md` and `.jevmem/` in the project, and adds `.jevmem/` to `.gitignore`.
 
 ## What it runs
 
@@ -66,9 +66,11 @@ It writes nothing to `~/.jevmem/`. That folder is read only if you create `~/.je
 
 ## Your API key
 
-Enter your TypeSafe key in the plugin's settings: in Claude Code, run `/plugin configure jevmem` (or run `/plugin`, open the Installed tab, select jevmem and choose Configure options). The `claude plugin install` shell command doesn't ask for it. The option is marked sensitive, so Claude Code keeps the key in your system's secure credential store. jevmem uses it for the hook or MCP process and doesn't write it to a file or a log.
+Put your TypeSafe key in `~/.jevmem/env`, a line `TYPESAFE_API_KEY=...`, and make the file readable only by you (`chmod 600 ~/.jevmem/env`). This works for every install: the plugin added from the Claude directory (it shows as `jevmem@synced`) and one installed from a marketplace.
 
-If you leave it empty, jevmem looks for `TYPESAFE_API_KEY` in this order: the environment, `<project>/.jevmem/.env`, then `~/.jevmem/env`. The last two are jevmem's own files, which you create (a line `TYPESAFE_API_KEY=...`). The same files can hold `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`, which are used only when `writer` in `jevmem.config.json` chooses that provider. Only those named variables are parsed, and the files are not executed. jevmem doesn't read shell profiles such as `~/.zshrc`. `jevmem doctor` says where the key was found, without printing it.
+A plugin installed from a marketplace also has a key setting: in Claude Code, run `/plugin configure jevmem` (or run `/plugin`, open the Installed tab, select jevmem and choose Configure options). The plugin added from the Claude directory has no Configure options, so use `~/.jevmem/env` there. The `claude plugin install` shell command doesn't ask for it. The option is marked sensitive, so Claude Code keeps the key in your system's secure credential store. jevmem uses it for the hook or MCP process and doesn't write it to a file or a log.
+
+Without that setting, jevmem looks for `TYPESAFE_API_KEY` in this order: the environment, `<project>/.jevmem/.env`, then `~/.jevmem/env`. The last two are jevmem's own files, which you create (a line `TYPESAFE_API_KEY=...`). The same files can hold `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`, which are used only when `writer` in `jevmem.config.json` chooses that provider. Only those named variables are parsed, and the files are not executed. jevmem doesn't read shell profiles such as `~/.zshrc`. `jevmem doctor` says where the key was found, without printing it.
 
 ## Switching it off
 
