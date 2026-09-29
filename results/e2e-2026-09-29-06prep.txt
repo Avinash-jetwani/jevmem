@@ -1,0 +1,16 @@
+# jevmem e2e gate, 0.6 prep (unreleased, main), 2026-09-29, 2.1.284 (Claude Code) (the desktop-bundled binary), temporary CLAUDE_CONFIG_DIR and HOME, the real Jev.
+# The build: dist/ built from 527026e (enable's .jevmem/ message, the plugins root CLAUDE_CODE_PLUGIN_CACHE_DIR sets); src is the same at a6e851c, where the gate ran, from 20:15 UTC, each scenario --runs 3, one after another.
+#    scripts/e2e.sh --runs 3 (standard): 3/3 runs passed, each with linkguard and handwrite.
+#    scripts/e2e.sh --runs 3 --scenario guard: 3/3 passed.
+#    scripts/e2e.sh --runs 3 --scenario guardgit: 2/3 on the first pass. Run 2's check of `git add -A && git commit` (with an untracked .env)
+#    ended as route=jev-failed, the hook taking 1048 ms (guard.budgetMs is 1000 ms), so no decision was made, the call ran and .env was committed:
+#    the guard lets a call run when Jev fails or runs late. The error text was in the run's scratch .jevmem/, which the harness removes.
+#    No guard code changed in this work. Rerun at 20:53 UTC: 3/3 passed; in each, the guard asked, quoting the rule and naming its unverified
+#    line (p=0.94, 0.96, 0.96), in 320 to 396 ms per call.
+#    scripts/e2e.sh --runs 3 --scenario nokey: 3/3 passed, each with the hooks jevmem init registers and then the plugin; turn 4 showed
+#    "jevmem saved its first line to JEVMEM.md." once, as expected.
+#    scripts/e2e.sh --runs 3 --scenario deadend: 3/3 passed.
+#    scripts/e2e.sh --runs 3 --scenario supersede: 3/3 passed; session 3's related question got the line that superseded the dead end, and the
+#    superseded dead end was never injected.
+#    scripts/e2e.sh --runs 3 --scenario plugin: 3/3 passed.
+# In the nokey scenario the async Stop hook's event read exit 1, "cancelled" in `claude -p`, as before (results/stop-cancelled-2026-09-29.json).
