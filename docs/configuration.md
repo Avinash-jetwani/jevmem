@@ -44,7 +44,7 @@ Recall (on `main`, not released yet; coming in 0.6): each prompt's call names ev
 
 ### The one-line writer
 
-`writer.provider` is `"none"` by default: jevmem writes each line itself from the turn, and no text goes to OpenAI or Anthropic. Set `"openai"` or `"anthropic"` (or the shorthand `"writer": "openai"`) to have that provider condense the turn into the line; it then also needs `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Nothing else turns the LLM writer on: a key in your environment is not enough, and `JEVMEM_WRITER` can only turn it off. Projects set up before v0.5.4 have `"provider": "auto"`, which now means `"none"`; jevmem says so once. `jevmem doctor` and `jevmem stats` show the active writer and why.
+`writer.provider` is `"none"` by default: jevmem writes each line itself from the turn, and no text goes to OpenAI or Anthropic (on `main`, not released yet, coming in 0.6: from the sentences Jev picks, one more request per saved turn with the same TypeSafe key, within `jev.timeoutMs`; [How it works](how-it-works.md#the-line-srcpickts-srcwritets)). Set `"openai"` or `"anthropic"` (or the shorthand `"writer": "openai"`) to have that provider condense the turn into the line; it then also needs `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Nothing else turns the LLM writer on: a key in your environment is not enough, and `JEVMEM_WRITER` can only turn it off. Projects set up before v0.5.4 have `"provider": "auto"`, which now means `"none"`; jevmem says so once. `jevmem doctor` and `jevmem stats` show the active writer and why.
 
 #### OpenAI-compatible endpoints
 

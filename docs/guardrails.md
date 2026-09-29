@@ -37,7 +37,7 @@ Some calls are asked every time, whatever Jev says and even with no rules, unles
 
 - An Edit or Write to `jevmem.config.json` that changes `guard` or `enabled`, or leaves the file unreadable.
 - A shell command that writes, moves or deletes `jevmem.config.json` (`cat`, `jq`, `git diff` and the like are fine).
-- An Edit or Write to `JEVMEM.md` that removes or supersedes a `[constraint]` line, or a shell command that rewrites the file. Appending with `>>` is fine.
+- An Edit or Write to `JEVMEM.md` that removes or supersedes a `[constraint]` line, or a shell command that rewrites the file: a redirection into it (`>`, `>|`, `&>`, or `>&` before a file name), `tee`, `sed -i`, `cp` onto it and the like. Appending with `>>` or `&>>` is fine. A redirection writes only its own target, so `cat JEVMEM.md 2>/dev/null`, `cat JEVMEM.md 2>&1` and `cat < JEVMEM.md` are reads.
 - Anything that writes to `.jevmem/`, where the verdicts and cached answers live.
 - `jevmem disable`, `jevmem init --remove-hooks`, and `jevmem wrong … --should-be none` when rules exist.
 
