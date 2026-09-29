@@ -1,0 +1,4926 @@
+{
+  "kind": "recall",
+  "set": "heldout2",
+  "file": "eval/recall-heldout-v2.jsonl",
+  "date": "2026-09-28",
+  "started_at": "2026-09-28T21:15:56.531Z",
+  "finished_at": "2026-09-28T21:23:26.427Z",
+  "jevmem_version": "0.5.7",
+  "package": "this checkout (dist/ built from it)",
+  "commit": "48cc67d",
+  "label": "now",
+  "paired_with": [
+    {
+      "label": "v059",
+      "version": "0.5.9",
+      "commit": null,
+      "file": "results/recall-heldout2-2026-09-28-v059.json"
+    }
+  ],
+  "machine": "darwin arm64, node v22.22.0",
+  "thresholds": {
+    "recallTopK": 5,
+    "recallMin": 0.05,
+    "recallChoiceMin": 0.03,
+    "recallTimeoutMs": 1000,
+    "wordMatchMin": 2,
+    "recallRelevanceMin": 0.8,
+    "relevanceSure": 0.97,
+    "maxRecallCandidates": 60,
+    "maxRecallLines": 250,
+    "hookJevTimeoutMs": 2000
+  },
+  "tokens_counted_with": "anthropic/claude-sonnet-5 (prompt tokens of the whole injected context sent as one user message, minus those of \".\", from OpenRouter's usage)",
+  "cost_method": "Jev input tokens × $0.042 per million; output tokens free",
+  "method": "Each memory file is written into a scratch project per build in jevmem's line format (superseded lines tagged, every live line recorded as written by jevmem here, so verified), jev.cache off. Each prompt is sent through the real hook (`node <pkg>/dist/cli.js hook`, the UserPromptSubmit payload on stdin) after two warm-up prompts, so the warm daemon serves it; with several builds, each prompt goes to each build in turn, alternating the order. Injected lines are read from the hook's output; the Jev call's latency and input tokens from .jevmem/log.jsonl; hook time is the hook process's wall time. recall = wanted lines injected / wanted lines; precision = injected lines that are wanted or ok / injected lines; unrelated = unrelated prompts that got any line; leaks = prompts that got a superseded line; a Jev call that failed or ran past the hook's 2-second budget injects nothing and counts as a miss (answered_* leaves those prompts out).",
+  "files": [
+    {
+      "id": "heldout2-small",
+      "size": "small",
+      "project": "stagecue",
+      "lines": 20,
+      "live": 18,
+      "superseded": 2,
+      "deadEnds": 2
+    },
+    {
+      "id": "heldout2-medium",
+      "size": "medium",
+      "project": "harvestbox",
+      "lines": 80,
+      "live": 74,
+      "superseded": 6,
+      "deadEnds": 6
+    },
+    {
+      "id": "heldout2-large",
+      "size": "large",
+      "project": "voltgrid",
+      "lines": 250,
+      "live": 220,
+      "superseded": 30,
+      "deadEnds": 20
+    }
+  ],
+  "overall": {
+    "prompts": 90,
+    "recall": 0.9615384615384616,
+    "recall_frac": "75/78",
+    "served_frac": "69/72",
+    "precision": 0.9896907216494846,
+    "precision_frac": "96/97",
+    "unrelated_injected_frac": "1/18",
+    "unrelated_injected_rate": 0.05555555555555555,
+    "superseded_leak_frac": "0/90",
+    "never_hit_frac": "0/90",
+    "jev_failures": 0,
+    "jev_failed_frac": "0/90",
+    "answered_recall_frac": "75/78",
+    "answered_recall": 0.9615384615384616,
+    "answered_precision_frac": "96/97",
+    "answered_precision": 0.9896907216494846,
+    "answered_unrelated_frac": "1/18",
+    "lines_per_prompt": 1.0777777777777777,
+    "lines_per_injecting_prompt": 1.3287671232876712,
+    "context_chars_per_prompt": 506.5,
+    "context_tokens_per_prompt": 189.30337078651687,
+    "context_tokens_counted_frac": "89/90",
+    "context_tokens_per_injecting_prompt": 234,
+    "hook_p50_ms": 466,
+    "hook_p95_ms": 596,
+    "jev_p50_ms": 382,
+    "jev_p95_ms": 492,
+    "input_tokens_per_prompt": 13764.6,
+    "cost_per_prompt_usd": 0.0005781132000000002,
+    "via_daemon_frac": "87/90",
+    "served_by_jev_frac": "90/90",
+    "served_by_word_match_frac": "0/90",
+    "word_match_recall_frac": "0/0",
+    "left_without_memory_frac": "0/72",
+    "left_without_memory_word_match_would_find": 0,
+    "left_without_memory_because_jev_failed": 0
+  },
+  "by_size": {
+    "small": {
+      "prompts": 20,
+      "recall": 0.9411764705882353,
+      "recall_frac": "16/17",
+      "served_frac": "15/16",
+      "precision": 1,
+      "precision_frac": "18/18",
+      "unrelated_injected_frac": "0/4",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/20",
+      "never_hit_frac": "0/20",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/20",
+      "answered_recall_frac": "16/17",
+      "answered_recall": 0.9411764705882353,
+      "answered_precision_frac": "18/18",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/4",
+      "lines_per_prompt": 0.9,
+      "lines_per_injecting_prompt": 1.125,
+      "context_chars_per_prompt": 449.55,
+      "context_tokens_per_prompt": 165.1,
+      "context_tokens_counted_frac": "20/20",
+      "context_tokens_per_injecting_prompt": 206.375,
+      "hook_p50_ms": 366,
+      "hook_p95_ms": 596,
+      "jev_p50_ms": 274,
+      "jev_p95_ms": 506,
+      "input_tokens_per_prompt": 2084.5,
+      "cost_per_prompt_usd": 0.000087549,
+      "via_daemon_frac": "19/20",
+      "served_by_jev_frac": "20/20",
+      "served_by_word_match_frac": "0/20",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/16",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "medium": {
+      "prompts": 30,
+      "recall": 0.96,
+      "recall_frac": "24/25",
+      "served_frac": "23/24",
+      "precision": 1,
+      "precision_frac": "33/33",
+      "unrelated_injected_frac": "0/6",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/30",
+      "never_hit_frac": "0/30",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/30",
+      "answered_recall_frac": "24/25",
+      "answered_recall": 0.96,
+      "answered_precision_frac": "33/33",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/6",
+      "lines_per_prompt": 1.1,
+      "lines_per_injecting_prompt": 1.375,
+      "context_chars_per_prompt": 517.6666666666666,
+      "context_tokens_per_prompt": 195.46666666666667,
+      "context_tokens_counted_frac": "30/30",
+      "context_tokens_per_injecting_prompt": 244.33333333333334,
+      "hook_p50_ms": 393,
+      "hook_p95_ms": 569,
+      "jev_p50_ms": 303,
+      "jev_p95_ms": 473,
+      "input_tokens_per_prompt": 8092.3,
+      "cost_per_prompt_usd": 0.00033987659999999996,
+      "via_daemon_frac": "29/30",
+      "served_by_jev_frac": "30/30",
+      "served_by_word_match_frac": "0/30",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/24",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "large": {
+      "prompts": 40,
+      "recall": 0.9722222222222222,
+      "recall_frac": "35/36",
+      "served_frac": "31/32",
+      "precision": 0.9782608695652174,
+      "precision_frac": "45/46",
+      "unrelated_injected_frac": "1/8",
+      "unrelated_injected_rate": 0.125,
+      "superseded_leak_frac": "0/40",
+      "never_hit_frac": "0/40",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/40",
+      "answered_recall_frac": "35/36",
+      "answered_recall": 0.9722222222222222,
+      "answered_precision_frac": "45/46",
+      "answered_precision": 0.9782608695652174,
+      "answered_unrelated_frac": "1/8",
+      "lines_per_prompt": 1.15,
+      "lines_per_injecting_prompt": 1.393939393939394,
+      "context_chars_per_prompt": 526.6,
+      "context_tokens_per_prompt": 196.97435897435898,
+      "context_tokens_counted_frac": "39/40",
+      "context_tokens_per_injecting_prompt": 240.0625,
+      "hook_p50_ms": 545,
+      "hook_p95_ms": 681,
+      "jev_p50_ms": 458,
+      "jev_p95_ms": 506,
+      "input_tokens_per_prompt": 23858.875,
+      "cost_per_prompt_usd": 0.0010020727500000002,
+      "via_daemon_frac": "39/40",
+      "served_by_jev_frac": "40/40",
+      "served_by_word_match_frac": "0/40",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/32",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    }
+  },
+  "by_type": {
+    "direct": {
+      "prompts": 18,
+      "recall": 0.9,
+      "recall_frac": "18/20",
+      "served_frac": "16/18",
+      "precision": 1,
+      "precision_frac": "23/23",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/18",
+      "answered_recall_frac": "18/20",
+      "answered_recall": 0.9,
+      "answered_precision_frac": "23/23",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.2777777777777777,
+      "lines_per_injecting_prompt": 1.2777777777777777,
+      "context_chars_per_prompt": 603.2222222222222,
+      "context_tokens_per_prompt": 225.72222222222223,
+      "context_tokens_counted_frac": "18/18",
+      "context_tokens_per_injecting_prompt": 225.72222222222223,
+      "hook_p50_ms": 464,
+      "hook_p95_ms": 564,
+      "jev_p50_ms": 371,
+      "jev_p95_ms": 484,
+      "input_tokens_per_prompt": 13766.555555555555,
+      "cost_per_prompt_usd": 0.0005781953333333334,
+      "via_daemon_frac": "15/18",
+      "served_by_jev_frac": "18/18",
+      "served_by_word_match_frac": "0/18",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/18",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "indirect": {
+      "prompts": 18,
+      "recall": 1,
+      "recall_frac": "19/19",
+      "served_frac": "18/18",
+      "precision": 0.9655172413793104,
+      "precision_frac": "28/29",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/18",
+      "answered_recall_frac": "19/19",
+      "answered_recall": 1,
+      "answered_precision_frac": "28/29",
+      "answered_precision": 0.9655172413793104,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.6111111111111112,
+      "lines_per_injecting_prompt": 1.6111111111111112,
+      "context_chars_per_prompt": 675.3888888888889,
+      "context_tokens_per_prompt": 253.38888888888889,
+      "context_tokens_counted_frac": "18/18",
+      "context_tokens_per_injecting_prompt": 253.38888888888889,
+      "hook_p50_ms": 466,
+      "hook_p95_ms": 676,
+      "jev_p50_ms": 383,
+      "jev_p95_ms": 506,
+      "input_tokens_per_prompt": 13767.555555555555,
+      "cost_per_prompt_usd": 0.0005782373333333333,
+      "via_daemon_frac": "18/18",
+      "served_by_jev_frac": "18/18",
+      "served_by_word_match_frac": "0/18",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/18",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "unrelated": {
+      "prompts": 18,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": 1,
+      "precision_frac": "1/1",
+      "unrelated_injected_frac": "1/18",
+      "unrelated_injected_rate": 0.05555555555555555,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/18",
+      "answered_recall_frac": "0/0",
+      "answered_recall": null,
+      "answered_precision_frac": "1/1",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "1/18",
+      "lines_per_prompt": 0.05555555555555555,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 32,
+      "context_tokens_per_prompt": 11.944444444444445,
+      "context_tokens_counted_frac": "18/18",
+      "context_tokens_per_injecting_prompt": 215,
+      "hook_p50_ms": 449,
+      "hook_p95_ms": 567,
+      "jev_p50_ms": 366,
+      "jev_p95_ms": 473,
+      "input_tokens_per_prompt": 13760.333333333334,
+      "cost_per_prompt_usd": 0.000577934,
+      "via_daemon_frac": "18/18",
+      "served_by_jev_frac": "18/18",
+      "served_by_word_match_frac": "0/18",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/0",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "supersede": {
+      "prompts": 18,
+      "recall": 1,
+      "recall_frac": "19/19",
+      "served_frac": "18/18",
+      "precision": 1,
+      "precision_frac": "21/21",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/18",
+      "answered_recall_frac": "19/19",
+      "answered_recall": 1,
+      "answered_precision_frac": "21/21",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.1666666666666667,
+      "lines_per_injecting_prompt": 1.1666666666666667,
+      "context_chars_per_prompt": 589.3888888888889,
+      "context_tokens_per_prompt": 222.44444444444446,
+      "context_tokens_counted_frac": "18/18",
+      "context_tokens_per_injecting_prompt": 222.44444444444446,
+      "hook_p50_ms": 503,
+      "hook_p95_ms": 844,
+      "jev_p50_ms": 428,
+      "jev_p95_ms": 752,
+      "input_tokens_per_prompt": 13763.222222222223,
+      "cost_per_prompt_usd": 0.0005780553333333333,
+      "via_daemon_frac": "18/18",
+      "served_by_jev_frac": "18/18",
+      "served_by_word_match_frac": "0/18",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/18",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "dead-end": {
+      "prompts": 18,
+      "recall": 0.95,
+      "recall_frac": "19/20",
+      "served_frac": "17/18",
+      "precision": 1,
+      "precision_frac": "23/23",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/18",
+      "never_hit_frac": "0/18",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/18",
+      "answered_recall_frac": "19/20",
+      "answered_recall": 0.95,
+      "answered_precision_frac": "23/23",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.2777777777777777,
+      "lines_per_injecting_prompt": 1.2777777777777777,
+      "context_chars_per_prompt": 632.5,
+      "context_tokens_per_prompt": 235.58823529411765,
+      "context_tokens_counted_frac": "17/18",
+      "context_tokens_per_injecting_prompt": 235.58823529411765,
+      "hook_p50_ms": 526,
+      "hook_p95_ms": 681,
+      "jev_p50_ms": 429,
+      "jev_p95_ms": 506,
+      "input_tokens_per_prompt": 13765.333333333334,
+      "cost_per_prompt_usd": 0.000578144,
+      "via_daemon_frac": "18/18",
+      "served_by_jev_frac": "18/18",
+      "served_by_word_match_frac": "0/18",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/18",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    }
+  },
+  "by_size_type": {
+    "small/direct": {
+      "prompts": 4,
+      "recall": 1,
+      "recall_frac": "4/4",
+      "served_frac": "4/4",
+      "precision": 1,
+      "precision_frac": "4/4",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "4/4",
+      "answered_recall": 1,
+      "answered_precision_frac": "4/4",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 530.75,
+      "context_tokens_per_prompt": 192.75,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": 192.75,
+      "hook_p50_ms": 361,
+      "hook_p95_ms": 422,
+      "jev_p50_ms": 285,
+      "jev_p95_ms": 342,
+      "input_tokens_per_prompt": 2085,
+      "cost_per_prompt_usd": 0.00008757,
+      "via_daemon_frac": "3/4",
+      "served_by_jev_frac": "4/4",
+      "served_by_word_match_frac": "0/4",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/4",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "small/indirect": {
+      "prompts": 4,
+      "recall": 1,
+      "recall_frac": "4/4",
+      "served_frac": "4/4",
+      "precision": 1,
+      "precision_frac": "5/5",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "4/4",
+      "answered_recall": 1,
+      "answered_precision_frac": "5/5",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.25,
+      "lines_per_injecting_prompt": 1.25,
+      "context_chars_per_prompt": 581.5,
+      "context_tokens_per_prompt": 211.75,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": 211.75,
+      "hook_p50_ms": 397,
+      "hook_p95_ms": 596,
+      "jev_p50_ms": 310,
+      "jev_p95_ms": 506,
+      "input_tokens_per_prompt": 2085.75,
+      "cost_per_prompt_usd": 0.00008760150000000001,
+      "via_daemon_frac": "4/4",
+      "served_by_jev_frac": "4/4",
+      "served_by_word_match_frac": "0/4",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/4",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "small/unrelated": {
+      "prompts": 4,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": null,
+      "precision_frac": "0/0",
+      "unrelated_injected_frac": "0/4",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "0/0",
+      "answered_recall": null,
+      "answered_precision_frac": "0/0",
+      "answered_precision": null,
+      "answered_unrelated_frac": "0/4",
+      "lines_per_prompt": 0,
+      "lines_per_injecting_prompt": null,
+      "context_chars_per_prompt": 0,
+      "context_tokens_per_prompt": 0,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 370,
+      "hook_p95_ms": 388,
+      "jev_p50_ms": 274,
+      "jev_p95_ms": 297,
+      "input_tokens_per_prompt": 2081.75,
+      "cost_per_prompt_usd": 0.00008743350000000001,
+      "via_daemon_frac": "4/4",
+      "served_by_jev_frac": "4/4",
+      "served_by_word_match_frac": "0/4",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/0",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "small/supersede": {
+      "prompts": 4,
+      "recall": 1,
+      "recall_frac": "4/4",
+      "served_frac": "4/4",
+      "precision": 1,
+      "precision_frac": "4/4",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "4/4",
+      "answered_recall": 1,
+      "answered_precision_frac": "4/4",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 539,
+      "context_tokens_per_prompt": 199.5,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": 199.5,
+      "hook_p50_ms": 393,
+      "hook_p95_ms": 496,
+      "jev_p50_ms": 309,
+      "jev_p95_ms": 413,
+      "input_tokens_per_prompt": 2083.5,
+      "cost_per_prompt_usd": 0.00008750700000000001,
+      "via_daemon_frac": "4/4",
+      "served_by_jev_frac": "4/4",
+      "served_by_word_match_frac": "0/4",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/4",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "small/dead-end": {
+      "prompts": 4,
+      "recall": 0.8,
+      "recall_frac": "4/5",
+      "served_frac": "3/4",
+      "precision": 1,
+      "precision_frac": "5/5",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/4",
+      "never_hit_frac": "0/4",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/4",
+      "answered_recall_frac": "4/5",
+      "answered_recall": 0.8,
+      "answered_precision_frac": "5/5",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.25,
+      "lines_per_injecting_prompt": 1.25,
+      "context_chars_per_prompt": 596.5,
+      "context_tokens_per_prompt": 221.5,
+      "context_tokens_counted_frac": "4/4",
+      "context_tokens_per_injecting_prompt": 221.5,
+      "hook_p50_ms": 338,
+      "hook_p95_ms": 349,
+      "jev_p50_ms": 248,
+      "jev_p95_ms": 256,
+      "input_tokens_per_prompt": 2086.5,
+      "cost_per_prompt_usd": 0.000087633,
+      "via_daemon_frac": "4/4",
+      "served_by_jev_frac": "4/4",
+      "served_by_word_match_frac": "0/4",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/4",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "medium/direct": {
+      "prompts": 6,
+      "recall": 0.8571428571428571,
+      "recall_frac": "6/7",
+      "served_frac": "5/6",
+      "precision": 1,
+      "precision_frac": "8/8",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "6/7",
+      "answered_recall": 0.8571428571428571,
+      "answered_precision_frac": "8/8",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.3333333333333333,
+      "lines_per_injecting_prompt": 1.3333333333333333,
+      "context_chars_per_prompt": 617.6666666666666,
+      "context_tokens_per_prompt": 231.5,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": 231.5,
+      "hook_p50_ms": 403,
+      "hook_p95_ms": 464,
+      "jev_p50_ms": 314,
+      "jev_p95_ms": 371,
+      "input_tokens_per_prompt": 8093.666666666667,
+      "cost_per_prompt_usd": 0.000339934,
+      "via_daemon_frac": "5/6",
+      "served_by_jev_frac": "6/6",
+      "served_by_word_match_frac": "0/6",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/6",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "medium/indirect": {
+      "prompts": 6,
+      "recall": 1,
+      "recall_frac": "6/6",
+      "served_frac": "6/6",
+      "precision": 1,
+      "precision_frac": "10/10",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "6/6",
+      "answered_recall": 1,
+      "answered_precision_frac": "10/10",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.6666666666666667,
+      "lines_per_injecting_prompt": 1.6666666666666667,
+      "context_chars_per_prompt": 705,
+      "context_tokens_per_prompt": 262.8333333333333,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": 262.8333333333333,
+      "hook_p50_ms": 404,
+      "hook_p95_ms": 438,
+      "jev_p50_ms": 308,
+      "jev_p95_ms": 345,
+      "input_tokens_per_prompt": 8096.5,
+      "cost_per_prompt_usd": 0.00034005300000000005,
+      "via_daemon_frac": "6/6",
+      "served_by_jev_frac": "6/6",
+      "served_by_word_match_frac": "0/6",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/6",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "medium/unrelated": {
+      "prompts": 6,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": null,
+      "precision_frac": "0/0",
+      "unrelated_injected_frac": "0/6",
+      "unrelated_injected_rate": 0,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "0/0",
+      "answered_recall": null,
+      "answered_precision_frac": "0/0",
+      "answered_precision": null,
+      "answered_unrelated_frac": "0/6",
+      "lines_per_prompt": 0,
+      "lines_per_injecting_prompt": null,
+      "context_chars_per_prompt": 0,
+      "context_tokens_per_prompt": 0,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": null,
+      "hook_p50_ms": 388,
+      "hook_p95_ms": 449,
+      "jev_p50_ms": 298,
+      "jev_p95_ms": 366,
+      "input_tokens_per_prompt": 8088.166666666667,
+      "cost_per_prompt_usd": 0.000339703,
+      "via_daemon_frac": "6/6",
+      "served_by_jev_frac": "6/6",
+      "served_by_word_match_frac": "0/6",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/0",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "medium/supersede": {
+      "prompts": 6,
+      "recall": 1,
+      "recall_frac": "6/6",
+      "served_frac": "6/6",
+      "precision": 1,
+      "precision_frac": "7/7",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "6/6",
+      "answered_recall": 1,
+      "answered_precision_frac": "7/7",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.1666666666666667,
+      "lines_per_injecting_prompt": 1.1666666666666667,
+      "context_chars_per_prompt": 606.6666666666666,
+      "context_tokens_per_prompt": 228.83333333333334,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": 228.83333333333334,
+      "hook_p50_ms": 408,
+      "hook_p95_ms": 844,
+      "jev_p50_ms": 319,
+      "jev_p95_ms": 752,
+      "input_tokens_per_prompt": 8091.166666666667,
+      "cost_per_prompt_usd": 0.00033982900000000004,
+      "via_daemon_frac": "6/6",
+      "served_by_jev_frac": "6/6",
+      "served_by_word_match_frac": "0/6",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/6",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "medium/dead-end": {
+      "prompts": 6,
+      "recall": 1,
+      "recall_frac": "6/6",
+      "served_frac": "6/6",
+      "precision": 1,
+      "precision_frac": "8/8",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/6",
+      "never_hit_frac": "0/6",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/6",
+      "answered_recall_frac": "6/6",
+      "answered_recall": 1,
+      "answered_precision_frac": "8/8",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.3333333333333333,
+      "lines_per_injecting_prompt": 1.3333333333333333,
+      "context_chars_per_prompt": 659,
+      "context_tokens_per_prompt": 254.16666666666666,
+      "context_tokens_counted_frac": "6/6",
+      "context_tokens_per_injecting_prompt": 254.16666666666666,
+      "hook_p50_ms": 421,
+      "hook_p95_ms": 569,
+      "jev_p50_ms": 330,
+      "jev_p95_ms": 473,
+      "input_tokens_per_prompt": 8092,
+      "cost_per_prompt_usd": 0.00033986400000000005,
+      "via_daemon_frac": "6/6",
+      "served_by_jev_frac": "6/6",
+      "served_by_word_match_frac": "0/6",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/6",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "large/direct": {
+      "prompts": 8,
+      "recall": 0.8888888888888888,
+      "recall_frac": "8/9",
+      "served_frac": "7/8",
+      "precision": 1,
+      "precision_frac": "11/11",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/8",
+      "answered_recall_frac": "8/9",
+      "answered_recall": 0.8888888888888888,
+      "answered_precision_frac": "11/11",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.375,
+      "lines_per_injecting_prompt": 1.375,
+      "context_chars_per_prompt": 628.625,
+      "context_tokens_per_prompt": 237.875,
+      "context_tokens_counted_frac": "8/8",
+      "context_tokens_per_injecting_prompt": 237.875,
+      "hook_p50_ms": 546,
+      "hook_p95_ms": 564,
+      "jev_p50_ms": 459,
+      "jev_p95_ms": 484,
+      "input_tokens_per_prompt": 23862,
+      "cost_per_prompt_usd": 0.001002204,
+      "via_daemon_frac": "7/8",
+      "served_by_jev_frac": "8/8",
+      "served_by_word_match_frac": "0/8",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/8",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "large/indirect": {
+      "prompts": 8,
+      "recall": 1,
+      "recall_frac": "9/9",
+      "served_frac": "8/8",
+      "precision": 0.9285714285714286,
+      "precision_frac": "13/14",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/8",
+      "answered_recall_frac": "9/9",
+      "answered_recall": 1,
+      "answered_precision_frac": "13/14",
+      "answered_precision": 0.9285714285714286,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.75,
+      "lines_per_injecting_prompt": 1.75,
+      "context_chars_per_prompt": 700.125,
+      "context_tokens_per_prompt": 267.125,
+      "context_tokens_counted_frac": "8/8",
+      "context_tokens_per_injecting_prompt": 267.125,
+      "hook_p50_ms": 557,
+      "hook_p95_ms": 676,
+      "jev_p50_ms": 463,
+      "jev_p95_ms": 492,
+      "input_tokens_per_prompt": 23861.75,
+      "cost_per_prompt_usd": 0.0010021935000000001,
+      "via_daemon_frac": "8/8",
+      "served_by_jev_frac": "8/8",
+      "served_by_word_match_frac": "0/8",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/8",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "large/unrelated": {
+      "prompts": 8,
+      "recall": null,
+      "recall_frac": "0/0",
+      "served_frac": "0/0",
+      "precision": 1,
+      "precision_frac": "1/1",
+      "unrelated_injected_frac": "1/8",
+      "unrelated_injected_rate": 0.125,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/8",
+      "answered_recall_frac": "0/0",
+      "answered_recall": null,
+      "answered_precision_frac": "1/1",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "1/8",
+      "lines_per_prompt": 0.125,
+      "lines_per_injecting_prompt": 1,
+      "context_chars_per_prompt": 72,
+      "context_tokens_per_prompt": 26.875,
+      "context_tokens_counted_frac": "8/8",
+      "context_tokens_per_injecting_prompt": 215,
+      "hook_p50_ms": 525,
+      "hook_p95_ms": 567,
+      "jev_p50_ms": 429,
+      "jev_p95_ms": 473,
+      "input_tokens_per_prompt": 23853.75,
+      "cost_per_prompt_usd": 0.0010018575,
+      "via_daemon_frac": "8/8",
+      "served_by_jev_frac": "8/8",
+      "served_by_word_match_frac": "0/8",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/0",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "large/supersede": {
+      "prompts": 8,
+      "recall": 1,
+      "recall_frac": "9/9",
+      "served_frac": "8/8",
+      "precision": 1,
+      "precision_frac": "10/10",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/8",
+      "answered_recall_frac": "9/9",
+      "answered_recall": 1,
+      "answered_precision_frac": "10/10",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.25,
+      "lines_per_injecting_prompt": 1.25,
+      "context_chars_per_prompt": 601.625,
+      "context_tokens_per_prompt": 229.125,
+      "context_tokens_counted_frac": "8/8",
+      "context_tokens_per_injecting_prompt": 229.125,
+      "hook_p50_ms": 540,
+      "hook_p95_ms": 715,
+      "jev_p50_ms": 461,
+      "jev_p95_ms": 616,
+      "input_tokens_per_prompt": 23857.125,
+      "cost_per_prompt_usd": 0.0010019992500000002,
+      "via_daemon_frac": "8/8",
+      "served_by_jev_frac": "8/8",
+      "served_by_word_match_frac": "0/8",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/8",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    },
+    "large/dead-end": {
+      "prompts": 8,
+      "recall": 1,
+      "recall_frac": "9/9",
+      "served_frac": "8/8",
+      "precision": 1,
+      "precision_frac": "10/10",
+      "unrelated_injected_frac": "0/0",
+      "unrelated_injected_rate": null,
+      "superseded_leak_frac": "0/8",
+      "never_hit_frac": "0/8",
+      "jev_failures": 0,
+      "jev_failed_frac": "0/8",
+      "answered_recall_frac": "9/9",
+      "answered_recall": 1,
+      "answered_precision_frac": "10/10",
+      "answered_precision": 1,
+      "answered_unrelated_frac": "0/0",
+      "lines_per_prompt": 1.25,
+      "lines_per_injecting_prompt": 1.25,
+      "context_chars_per_prompt": 630.625,
+      "context_tokens_per_prompt": 227.71428571428572,
+      "context_tokens_counted_frac": "7/8",
+      "context_tokens_per_injecting_prompt": 227.71428571428572,
+      "hook_p50_ms": 559,
+      "hook_p95_ms": 681,
+      "jev_p50_ms": 464,
+      "jev_p95_ms": 506,
+      "input_tokens_per_prompt": 23859.75,
+      "cost_per_prompt_usd": 0.0010021095000000001,
+      "via_daemon_frac": "8/8",
+      "served_by_jev_frac": "8/8",
+      "served_by_word_match_frac": "0/8",
+      "word_match_recall_frac": "0/0",
+      "left_without_memory_frac": "0/8",
+      "left_without_memory_word_match_would_find": 0,
+      "left_without_memory_because_jev_failed": 0
+    }
+  },
+  "rows": [
+    {
+      "id": "heldout2-small-01",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Let's store cue numbers as floats so they sort properly.",
+      "want": [
+        "sc_numbering"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_numbering",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 536,
+      "contextTokens": 196,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "sc_numbering"
+      ],
+      "hookMs": 359,
+      "hookExit": 0,
+      "via": "inline",
+      "jevMs": 285,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:08.175Z",
+      "inputTokens": 2083,
+      "costUsd": 0.00008748600000000001
+    },
+    {
+      "id": "heldout2-small-02",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Load the Inter font from Google Fonts in the root layout so the operator screens look nicer.",
+      "want": [
+        "sc_offline"
+      ],
+      "ok": [
+        "sc_pref_ui"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_offline",
+          "kind": "constraint",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 524,
+      "contextTokens": 188,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 361,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 273,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:13.614Z",
+      "inputTokens": 2089,
+      "costUsd": 0.000087738
+    },
+    {
+      "id": "heldout2-small-03",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Write a test for the cue editor LiveView with a mocked Repo.",
+      "want": [
+        "sc_pref_tests"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_pref_tests",
+          "kind": "preference",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 525,
+      "contextTokens": 195,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "sc_pref_tests"
+      ],
+      "hookMs": 318,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 237,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:15.937Z",
+      "inputTokens": 2086,
+      "costUsd": 0.00008761200000000001
+    },
+    {
+      "id": "heldout2-small-04",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "direct",
+      "prompt": "Let the director edit cues after the house has opened.",
+      "want": [
+        "sc_lock"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_lock",
+          "kind": "constraint",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 538,
+      "contextTokens": 192,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 422,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 342,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:21.757Z",
+      "inputTokens": 2082,
+      "costUsd": 0.00008744400000000001
+    },
+    {
+      "id": "heldout2-small-05",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "The lighting desk sometimes responds late when we press go. What could be slowing it down?",
+      "want": [
+        "sc_latency"
+      ],
+      "ok": [
+        "sc_osc",
+        "sc_bug_double_go",
+        "sc_go_new"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_latency",
+          "kind": "constraint",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 567,
+      "contextTokens": 203,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 596,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 506,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:24.456Z",
+      "inputTokens": 2089,
+      "costUsd": 0.000087738
+    },
+    {
+      "id": "heldout2-small-06",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "An operator hit the button twice by accident last night. What happens then?",
+      "want": [
+        "sc_bug_double_go"
+      ],
+      "ok": [
+        "sc_go_new",
+        "sc_latency"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_bug_double_go",
+          "kind": "bug",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 536,
+      "contextTokens": 192,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 368,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 279,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:30.388Z",
+      "inputTokens": 2086,
+      "costUsd": 0.00008761200000000001
+    },
+    {
+      "id": "heldout2-small-07",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "Where do I find the data from last Saturday's performance?",
+      "want": [
+        "sc_backup"
+      ],
+      "ok": [
+        "sc_sqlite"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_backup",
+          "kind": "constraint",
+          "p": 0.85
+        },
+        {
+          "key": "sc_sqlite",
+          "kind": "decision",
+          "p": 0.82
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 699,
+      "contextTokens": 261,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 348,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 260,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:32.157Z",
+      "inputTokens": 2083,
+      "costUsd": 0.00008748600000000001
+    },
+    {
+      "id": "heldout2-small-08",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "indirect",
+      "prompt": "How does the sound operator get a heads-up before their cue comes?",
+      "want": [
+        "sc_standby"
+      ],
+      "ok": [
+        "sc_osc"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_standby",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 524,
+      "contextTokens": 191,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "sc_standby"
+      ],
+      "hookMs": 397,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 310,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:38.999Z",
+      "inputTokens": 2085,
+      "costUsd": 0.00008757
+    },
+    {
+      "id": "heldout2-small-09",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "What's a good vocal warm-up for actors before curtain up?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 370,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 274,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:39.369Z",
+      "inputTokens": 2084,
+      "costUsd": 0.000087528
+    },
+    {
+      "id": "heldout2-small-10",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "Convert 72 degrees Fahrenheit to Celsius.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 329,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 241,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:40.371Z",
+      "inputTokens": 2080,
+      "costUsd": 0.00008736
+    },
+    {
+      "id": "heldout2-small-11",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "Explain Elixir's pipe operator with a tiny example.",
+      "want": [],
+      "ok": [
+        "sc_stack"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 325,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 240,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:40.696Z",
+      "inputTokens": 2084,
+      "costUsd": 0.000087528
+    },
+    {
+      "id": "heldout2-small-12",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "unrelated",
+      "prompt": "Rename the Settings page title to Preferences.",
+      "want": [],
+      "ok": [
+        "sc_pref_ui"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 388,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 297,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:47.028Z",
+      "inputTokens": 2079,
+      "costUsd": 0.000087318
+    },
+    {
+      "id": "heldout2-small-13",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "Map the space bar to GO for the new operator.",
+      "want": [
+        "sc_go_new"
+      ],
+      "ok": [
+        "sc_bug_double_go"
+      ],
+      "never": [
+        "sc_go_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_go_new",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 555,
+      "contextTokens": 200,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "sc_go_new"
+      ],
+      "hookMs": 393,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 309,
+      "jevOk": true,
+      "at": "2026-09-28T21:16:49.306Z",
+      "inputTokens": 2082,
+      "costUsd": 0.00008744400000000001
+    },
+    {
+      "id": "heldout2-small-14",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "Which address and port should the crew tablets open?",
+      "want": [
+        "sc_port_new"
+      ],
+      "ok": [
+        "sc_stack"
+      ],
+      "never": [
+        "sc_port_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_port_new",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 523,
+      "contextTokens": 199,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 377,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 282,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:12.854Z",
+      "inputTokens": 2081,
+      "costUsd": 0.000087402
+    },
+    {
+      "id": "heldout2-small-15",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "How does the stage manager trigger the next cue?",
+      "want": [
+        "sc_go_new"
+      ],
+      "ok": [
+        "sc_standby",
+        "sc_bug_double_go",
+        "sc_latency"
+      ],
+      "never": [
+        "sc_go_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_go_new",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 555,
+      "contextTokens": 200,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "sc_go_new"
+      ],
+      "hookMs": 366,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 271,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:15.246Z",
+      "inputTokens": 2081,
+      "costUsd": 0.000087402
+    },
+    {
+      "id": "heldout2-small-16",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "supersede",
+      "prompt": "Make the app reachable from the lobby Wi-Fi so the box office can see the running order.",
+      "want": [
+        "sc_port_new"
+      ],
+      "ok": [
+        "sc_offline",
+        "sc_stack"
+      ],
+      "never": [
+        "sc_port_old"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_port_new",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 523,
+      "contextTokens": 199,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 496,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 413,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:19.029Z",
+      "inputTokens": 2090,
+      "costUsd": 0.00008778
+    },
+    {
+      "id": "heldout2-small-17",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Let's deploy stagecue to Fly.io so the director can follow the show from home.",
+      "want": [
+        "sc_de_cloud",
+        "sc_offline"
+      ],
+      "ok": [
+        "sc_port_new",
+        "sc_stack"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_de_cloud",
+          "kind": "dead-end",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "sc_offline"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 570,
+      "contextTokens": 208,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "sc_de_cloud"
+      ],
+      "hookMs": 335,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 248,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:21.537Z",
+      "inputTokens": 2089,
+      "costUsd": 0.000087738
+    },
+    {
+      "id": "heldout2-small-18",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Could GO use a wireless pedal so there's no cable to trip over?",
+      "want": [
+        "sc_de_bluetooth"
+      ],
+      "ok": [
+        "sc_go_new",
+        "sc_bug_double_go"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_de_bluetooth",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 539,
+      "contextTokens": 202,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 349,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 256,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:28.584Z",
+      "inputTokens": 2086,
+      "costUsd": 0.00008761200000000001
+    },
+    {
+      "id": "heldout2-small-19",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Should we move the app to a hosted server so it survives the laptop dying?",
+      "want": [
+        "sc_de_cloud"
+      ],
+      "ok": [
+        "sc_offline",
+        "sc_backup",
+        "sc_stack"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_de_cloud",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 570,
+      "contextTokens": 208,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 338,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 245,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:31.004Z",
+      "inputTokens": 2087,
+      "costUsd": 0.000087654
+    },
+    {
+      "id": "heldout2-small-20",
+      "file": "heldout2-small",
+      "size": "small",
+      "type": "dead-end",
+      "prompt": "Pair a Bluetooth clicker with the laptop for firing cues.",
+      "want": [
+        "sc_de_bluetooth"
+      ],
+      "ok": [
+        "sc_go_new"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "sc_de_bluetooth",
+          "kind": "dead-end",
+          "p": 0.95
+        },
+        {
+          "key": "sc_go_new",
+          "kind": "decision",
+          "p": 0.9
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 707,
+      "contextTokens": 268,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 316,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 231,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:36.972Z",
+      "inputTokens": 2084,
+      "costUsd": 0.000087528
+    },
+    {
+      "id": "heldout2-medium-01",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Call Stripe directly from the new AddOnsController to charge the eco bundle.",
+      "want": [
+        "hb_billing_gateway",
+        "hb_flag_charging_changes"
+      ],
+      "ok": [
+        "hb_payment_providers",
+        "hb_vat_lines",
+        "hb_stripe_setupintent"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_billing_gateway",
+          "kind": "architecture",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [
+        "hb_flag_charging_changes"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 590,
+      "contextTokens": 227,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_billing_gateway"
+      ],
+      "hookMs": 434,
+      "hookExit": 0,
+      "via": "inline",
+      "jevMs": 344,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:50.345Z",
+      "inputTokens": 8095,
+      "costUsd": 0.00033999000000000003
+    },
+    {
+      "id": "heldout2-medium-02",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Add a postcode_zones row for KW15 so Orkney customers can sign up.",
+      "want": [
+        "hb_island_postcodes"
+      ],
+      "ok": [
+        "hb_postcode_zones"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_island_postcodes",
+          "kind": "constraint",
+          "p": 0.98
+        },
+        {
+          "key": "hb_postcode_zones",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 731,
+      "contextTokens": 282,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_island_postcodes"
+      ],
+      "hookMs": 464,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 371,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:56.441Z",
+      "inputTokens": 8097,
+      "costUsd": 0.000340074
+    },
+    {
+      "id": "heldout2-medium-03",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Pass the customer's name and address into DeliveryReminderJob so the mail template can use them.",
+      "want": [
+        "hb_job_args_ids"
+      ],
+      "ok": [
+        "hb_postmark_streams"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_job_args_ids",
+          "kind": "constraint",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 563,
+      "contextTokens": 202,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 352,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 252,
+      "jevOk": true,
+      "at": "2026-09-28T21:17:58.314Z",
+      "inputTokens": 8099,
+      "costUsd": 0.000340158
+    },
+    {
+      "id": "heldout2-medium-04",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Use Time.now in the new cut-off check; it's simpler.",
+      "want": [
+        "hb_date_current"
+      ],
+      "ok": [
+        "hb_cutoff_two_days",
+        "hb_bst_cron_bug"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_date_current",
+          "kind": "preference",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 557,
+      "contextTokens": 211,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_date_current"
+      ],
+      "hookMs": 379,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 289,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:05.016Z",
+      "inputTokens": 8092,
+      "costUsd": 0.00033986400000000005
+    },
+    {
+      "id": "heldout2-medium-05",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Let customers set up to 6 dislikes on their subscription.",
+      "want": [
+        "hb_dislike_cap"
+      ],
+      "ok": [
+        "hb_exclusion_kinds",
+        "hb_allergen_hard"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_dislike_cap",
+          "kind": "constraint",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 544,
+      "contextTokens": 199,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 393,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 256,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:06.763Z",
+      "inputTokens": 8090,
+      "costUsd": 0.00033978000000000003
+    },
+    {
+      "id": "heldout2-medium-06",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "direct",
+      "prompt": "Write a controller spec for the skip-a-week endpoint.",
+      "want": [
+        "hb_request_specs"
+      ],
+      "ok": [
+        "hb_skip_a_week"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_skip_a_week",
+          "kind": "decision",
+          "p": 0.97
+        },
+        {
+          "key": "hb_request_specs",
+          "kind": "preference",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 721,
+      "contextTokens": 268,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_request_specs"
+      ],
+      "hookMs": 403,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 314,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:13.331Z",
+      "inputTokens": 8089,
+      "costUsd": 0.0003397380000000001
+    },
+    {
+      "id": "heldout2-medium-07",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "A customer with a celery allergy: what goes in their box when this week's only swap has celery in it?",
+      "want": [
+        "hb_allergen_hard"
+      ],
+      "ok": [
+        "hb_swap_pool",
+        "hb_exclusion_kinds"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_allergen_hard",
+          "kind": "constraint",
+          "p": 0.97
+        },
+        {
+          "key": "hb_exclusion_kinds",
+          "kind": "decision",
+          "p": 0.96
+        },
+        {
+          "key": "hb_swap_pool",
+          "kind": "decision",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 3,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 3,
+      "contextChars": 941,
+      "contextTokens": 355,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_allergen_hard"
+      ],
+      "hookMs": 383,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 303,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:14.899Z",
+      "inputTokens": 8101,
+      "costUsd": 0.00034024200000000004
+    },
+    {
+      "id": "heldout2-medium-08",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "The Thursday evening email to every subscriber made the webhooks queue back up. How is that handled now?",
+      "want": [
+        "hb_worker_split"
+      ],
+      "ok": [
+        "hb_sidekiq_queues",
+        "hb_postmark_streams",
+        "hb_solid_queue_dead_end",
+        "hb_postmark_batch",
+        "hb_menu_publish"
+      ],
+      "never": [
+        "hb_single_worker"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_worker_split",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 601,
+      "contextTokens": 226,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_worker_split"
+      ],
+      "hookMs": 404,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 309,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:20.538Z",
+      "inputTokens": 8100,
+      "costUsd": 0.00034020000000000003
+    },
+    {
+      "id": "heldout2-medium-09",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "Drivers lose signal on the Black Isle for hours. Can they still mark boxes as delivered?",
+      "want": [
+        "hb_offline_full_round"
+      ],
+      "ok": [
+        "hb_driver_app_rn",
+        "hb_sync_conflicts",
+        "hb_round_download",
+        "hb_duplicate_pod_bug"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_driver_app_rn",
+          "kind": "architecture",
+          "p": 0.97
+        },
+        {
+          "key": "hb_offline_full_round",
+          "kind": "constraint",
+          "p": 0.96
+        },
+        {
+          "key": "hb_sync_conflicts",
+          "kind": "decision",
+          "p": 0.94
+        }
+      ],
+      "wantHit": 1,
+      "good": 3,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 3,
+      "contextChars": 932,
+      "contextTokens": 347,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_offline_full_round"
+      ],
+      "hookMs": 367,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 273,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:22.196Z",
+      "inputTokens": 8096,
+      "costUsd": 0.00034003200000000004
+    },
+    {
+      "id": "heldout2-medium-10",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "Someone was charged twice for the same box last month. Could that still happen?",
+      "want": [
+        "hb_double_charge_bug"
+      ],
+      "ok": [
+        "hb_card_retry",
+        "hb_lock_orders"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_double_charge_bug",
+          "kind": "bug",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 590,
+      "contextTokens": 223,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_double_charge_bug"
+      ],
+      "hookMs": 369,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 278,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:27.921Z",
+      "inputTokens": 8094,
+      "costUsd": 0.000339948
+    },
+    {
+      "id": "heldout2-medium-11",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "A direct-debit customer's payment bounced after their box arrived. What happens next?",
+      "want": [
+        "hb_dd_retry"
+      ],
+      "ok": [
+        "hb_gocardless_timing",
+        "hb_mandate_cancelled"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_dd_retry",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 583,
+      "contextTokens": 200,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_dd_retry"
+      ],
+      "hookMs": 438,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 345,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:30.247Z",
+      "inputTokens": 8095,
+      "costUsd": 0.00033999000000000003
+    },
+    {
+      "id": "heldout2-medium-12",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "indirect",
+      "prompt": "Is the eco-cleaning bundle taxed the same way as the vegetables?",
+      "want": [
+        "hb_vat_lines"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_vat_lines",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 583,
+      "contextTokens": 226,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_vat_lines"
+      ],
+      "hookMs": 404,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 308,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:37.122Z",
+      "inputTokens": 8093,
+      "costUsd": 0.000339906
+    },
+    {
+      "id": "heldout2-medium-13",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "How long should I blanch kale before freezing it?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 427,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 331,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:37.550Z",
+      "inputTokens": 8089,
+      "costUsd": 0.0003397380000000001
+    },
+    {
+      "id": "heldout2-medium-14",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "What does Ruby's safe navigation operator do?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 360,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 274,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:38.689Z",
+      "inputTokens": 8087,
+      "costUsd": 0.00033965400000000005
+    },
+    {
+      "id": "heldout2-medium-15",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Write a haiku about autumn leaves.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 449,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 366,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:39.139Z",
+      "inputTokens": 8086,
+      "costUsd": 0.000339612
+    },
+    {
+      "id": "heldout2-medium-16",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Change the footer copyright year to 2027.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 371,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 276,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:40.171Z",
+      "inputTokens": 8090,
+      "costUsd": 0.00033978000000000003
+    },
+    {
+      "id": "heldout2-medium-17",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "How does git rebase differ from git merge?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 364,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 270,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:40.537Z",
+      "inputTokens": 8088,
+      "costUsd": 0.000339696
+    },
+    {
+      "id": "heldout2-medium-18",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "unrelated",
+      "prompt": "Make the shop's primary button colour a darker green.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 388,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 298,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:44.086Z",
+      "inputTokens": 8089,
+      "costUsd": 0.0003397380000000001
+    },
+    {
+      "id": "heldout2-medium-19",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "How long are the doorstep photos kept before they are deleted?",
+      "want": [
+        "hb_photo_retention_60d"
+      ],
+      "ok": [
+        "hb_gdpr_erasure"
+      ],
+      "never": [
+        "hb_photo_retention_12m"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_photo_retention_60d",
+          "kind": "constraint",
+          "p": 0.99
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 573,
+      "contextTokens": 214,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_photo_retention_60d"
+      ],
+      "hookMs": 408,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 327,
+      "jevOk": true,
+      "at": "2026-09-28T21:18:46.990Z",
+      "inputTokens": 8090,
+      "costUsd": 0.00033978000000000003
+    },
+    {
+      "id": "heldout2-medium-20",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Until when can a customer still change a Tuesday box?",
+      "want": [
+        "hb_cutoff_two_days"
+      ],
+      "ok": [
+        "hb_skip_a_week",
+        "hb_lock_orders",
+        "hb_delivery_days"
+      ],
+      "never": [
+        "hb_cutoff_three_days",
+        "hb_cutoff_friday"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_cutoff_two_days",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 569,
+      "contextTokens": 212,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_cutoff_two_days"
+      ],
+      "hookMs": 418,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 319,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:09.249Z",
+      "inputTokens": 8089,
+      "costUsd": 0.0003397380000000001
+    },
+    {
+      "id": "heldout2-medium-21",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Update the pricing page: what does the medium box cost per week?",
+      "want": [
+        "hb_medium_price_2600"
+      ],
+      "ok": [],
+      "never": [
+        "hb_medium_price_2450"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_medium_price_2600",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 571,
+      "contextTokens": 201,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_medium_price_2600"
+      ],
+      "hookMs": 364,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 270,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:11.870Z",
+      "inputTokens": 8092,
+      "costUsd": 0.00033986400000000005
+    },
+    {
+      "id": "heldout2-medium-22",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "At what time are the delivery rounds planned?",
+      "want": [
+        "hb_plan_rounds_0630"
+      ],
+      "ok": [
+        "hb_wayfinch_rounds",
+        "hb_packing_order"
+      ],
+      "never": [
+        "hb_plan_rounds_0530"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_plan_rounds_0630",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 564,
+      "contextTokens": 209,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 844,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 752,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:18.699Z",
+      "inputTokens": 8087,
+      "costUsd": 0.00033965400000000005
+    },
+    {
+      "id": "heldout2-medium-23",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Bump the Sidekiq concurrency on the single worker process to 20.",
+      "want": [
+        "hb_worker_split"
+      ],
+      "ok": [
+        "hb_sidekiq_queues"
+      ],
+      "never": [
+        "hb_single_worker"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_worker_split",
+          "kind": "decision",
+          "p": 0.95
+        },
+        {
+          "key": "hb_sidekiq_queues",
+          "kind": "architecture",
+          "p": 0.94
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 794,
+      "contextTokens": 325,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_worker_split"
+      ],
+      "hookMs": 354,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 259,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:20.282Z",
+      "inputTokens": 8095,
+      "costUsd": 0.00033999000000000003
+    },
+    {
+      "id": "heldout2-medium-24",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "supersede",
+      "prompt": "Lock customer edits on the Friday before the delivery week, as we used to.",
+      "want": [
+        "hb_cutoff_two_days"
+      ],
+      "ok": [
+        "hb_lock_orders",
+        "hb_skip_a_week"
+      ],
+      "never": [
+        "hb_cutoff_friday",
+        "hb_cutoff_three_days"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_cutoff_two_days",
+          "kind": "constraint",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 569,
+      "contextTokens": 212,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_cutoff_two_days"
+      ],
+      "hookMs": 353,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 265,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:25.545Z",
+      "inputTokens": 8094,
+      "costUsd": 0.000339948
+    },
+    {
+      "id": "heldout2-medium-25",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Let's move card customers onto Stripe Billing subscriptions to cut down our own charging code.",
+      "want": [
+        "hb_stripe_billing_dead_end"
+      ],
+      "ok": [
+        "hb_payment_providers",
+        "hb_billing_gateway",
+        "hb_lock_orders",
+        "hb_stripe_setupintent"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_stripe_billing_dead_end",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 597,
+      "contextTokens": 221,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_stripe_billing_dead_end"
+      ],
+      "hookMs": 370,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 272,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:28.001Z",
+      "inputTokens": 8095,
+      "costUsd": 0.00033999000000000003
+    },
+    {
+      "id": "heldout2-medium-26",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Could customers pick every item in their box themselves?",
+      "want": [
+        "hb_byo_box_dead_end"
+      ],
+      "ok": [
+        "hb_swap_pool",
+        "hb_weekly_menu",
+        "hb_exclusion_kinds"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_byo_box_dead_end",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 594,
+      "contextTokens": 214,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_byo_box_dead_end"
+      ],
+      "hookMs": 569,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 473,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:34.041Z",
+      "inputTokens": 8088,
+      "costUsd": 0.000339696
+    },
+    {
+      "id": "heldout2-medium-27",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Switch background jobs to Solid Queue now that Rails 8 ships with it.",
+      "want": [
+        "hb_solid_queue_dead_end"
+      ],
+      "ok": [
+        "hb_sidekiq_queues",
+        "hb_worker_split"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_solid_queue_dead_end",
+          "kind": "dead-end",
+          "p": 0.97
+        },
+        {
+          "key": "hb_sidekiq_queues",
+          "kind": "architecture",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 781,
+      "contextTokens": 332,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_solid_queue_dead_end"
+      ],
+      "hookMs": 387,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 298,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:36.294Z",
+      "inputTokens": 8093,
+      "costUsd": 0.000339906
+    },
+    {
+      "id": "heldout2-medium-28",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Use Realm for the driver app's local database.",
+      "want": [
+        "hb_realm_dead_end"
+      ],
+      "ok": [
+        "hb_driver_app_rn",
+        "hb_offline_full_round"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_driver_app_rn",
+          "kind": "architecture",
+          "p": 0.96
+        },
+        {
+          "key": "hb_realm_dead_end",
+          "kind": "dead-end",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 794,
+      "contextTokens": 308,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_realm_dead_end"
+      ],
+      "hookMs": 528,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 418,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:43.435Z",
+      "inputTokens": 8088,
+      "costUsd": 0.000339696
+    },
+    {
+      "id": "heldout2-medium-29",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "Can we print crate labels straight from the tablets over Bluetooth?",
+      "want": [
+        "hb_web_bluetooth_dead_end"
+      ],
+      "ok": [
+        "hb_shed_app",
+        "hb_crate_barcodes"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_web_bluetooth_dead_end",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 594,
+      "contextTokens": 230,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_web_bluetooth_dead_end"
+      ],
+      "hookMs": 421,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 330,
+      "jevOk": true,
+      "at": "2026-09-28T21:19:45.242Z",
+      "inputTokens": 8090,
+      "costUsd": 0.00033978000000000003
+    },
+    {
+      "id": "heldout2-medium-30",
+      "file": "heldout2-medium",
+      "size": "medium",
+      "type": "dead-end",
+      "prompt": "We could solve the delivery rounds ourselves with an open-source optimiser instead of paying for routing.",
+      "want": [
+        "hb_ortools_dead_end"
+      ],
+      "ok": [
+        "hb_wayfinch_rounds",
+        "hb_wayfinch_limit",
+        "hb_todo_wayfinch_gem"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "hb_ortools_dead_end",
+          "kind": "dead-end",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 594,
+      "contextTokens": 220,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "hb_ortools_dead_end"
+      ],
+      "hookMs": 384,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 285,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:07.552Z",
+      "inputTokens": 8098,
+      "costUsd": 0.000340116
+    },
+    {
+      "id": "heldout2-large-01",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Store the tariff price per kWh as a float64 in the new tariff element struct.",
+      "want": [
+        "vg_tariff_micro",
+        "vg_money_cents"
+      ],
+      "ok": [
+        "vg_price_rounding",
+        "vg_pref_unit_suffixes"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_tariff_micro",
+          "kind": "constraint",
+          "p": 0.9
+        },
+        {
+          "key": "vg_pref_unit_suffixes",
+          "kind": "preference",
+          "p": 0.9
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [
+        "vg_money_cents"
+      ],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 760,
+      "contextTokens": 300,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_tariff_micro"
+      ],
+      "hookMs": 558,
+      "hookExit": 0,
+      "via": "inline",
+      "jevMs": 474,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:21.137Z",
+      "inputTokens": 23861,
+      "costUsd": 0.001002162
+    },
+    {
+      "id": "heldout2-large-02",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Name the new column `energy` in the session summary table; the unit is obvious.",
+      "want": [
+        "vg_pref_unit_suffixes"
+      ],
+      "ok": [
+        "vg_energy_wh"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_energy_wh",
+          "kind": "constraint",
+          "p": 0.96
+        },
+        {
+          "key": "vg_pref_unit_suffixes",
+          "kind": "preference",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 735,
+      "contextTokens": 293,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_pref_unit_suffixes"
+      ],
+      "hookMs": 560,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 459,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:27.159Z",
+      "inputTokens": 23860,
+      "costUsd": 0.00100212
+    },
+    {
+      "id": "heldout2-large-03",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Run the Terraform apply for prod from my laptop; the approval flow is too slow today.",
+      "want": [
+        "vg_tf_apply_path"
+      ],
+      "ok": [
+        "vg_tf_env_dirs"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_tf_apply_path",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 553,
+      "contextTokens": 205,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_tf_apply_path"
+      ],
+      "hookMs": 545,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 446,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:29.338Z",
+      "inputTokens": 23861,
+      "costUsd": 0.001002162
+    },
+    {
+      "id": "heldout2-large-04",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Add testify to the Go tests in sessiond so the assertions are shorter.",
+      "want": [
+        "vg_pref_table_tests"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_pref_table_tests",
+          "kind": "preference",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 555,
+      "contextTokens": 203,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_pref_table_tests"
+      ],
+      "hookMs": 531,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 454,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:35.744Z",
+      "inputTokens": 23858,
+      "costUsd": 0.001002036
+    },
+    {
+      "id": "heldout2-large-05",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Let OCPP 1.6 chargers connect without the ocpp1.6 subprotocol; some older units don't send it.",
+      "want": [
+        "vg_ocpp16_endpoint"
+      ],
+      "ok": [
+        "vg_ocpp_schema_validation",
+        "vg_ocpp201_endpoint"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_ocpp16_endpoint",
+          "kind": "architecture",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 571,
+      "contextTokens": 238,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_ocpp16_endpoint"
+      ],
+      "hookMs": 564,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 484,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:37.644Z",
+      "inputTokens": 23871,
+      "costUsd": 0.0010025820000000001
+    },
+    {
+      "id": "heldout2-large-06",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Edit invoice VG-NL-2026-000123 directly to fix the customer's address.",
+      "want": [
+        "vg_invoice_immutable"
+      ],
+      "ok": [
+        "vg_invoice_gapless"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_invoice_immutable",
+          "kind": "constraint",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 554,
+      "contextTokens": 193,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 546,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 462,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:43.626Z",
+      "inputTokens": 23867,
+      "costUsd": 0.001002414
+    },
+    {
+      "id": "heldout2-large-07",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Put the Kontant API key in an environment variable on the billd Deployment.",
+      "want": [
+        "vg_secrets"
+      ],
+      "ok": [
+        "vg_psp_kontant"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_secrets",
+          "kind": "decision",
+          "p": 0.95
+        },
+        {
+          "key": "vg_psp_kontant",
+          "kind": "decision",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 759,
+      "contextTokens": 281,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 475,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 391,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:45.607Z",
+      "inputTokens": 23858,
+      "costUsd": 0.001002036
+    },
+    {
+      "id": "heldout2-large-08",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "direct",
+      "prompt": "Bring back Options API support for the old portal components; converting them is too much work.",
+      "want": [
+        "vg_composition_api"
+      ],
+      "ok": [
+        "vg_pinia",
+        "vg_portal_stack"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_composition_api",
+          "kind": "preference",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 542,
+      "contextTokens": 190,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_composition_api"
+      ],
+      "hookMs": 530,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 433,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:51.360Z",
+      "inputTokens": 23860,
+      "costUsd": 0.00100212
+    },
+    {
+      "id": "heldout2-large-09",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "A German driver left the car plugged in at an AC charger for five hours. What extra do they pay for that?",
+      "want": [
+        "vg_idle_de"
+      ],
+      "ok": [
+        "vg_idle_nl_v3",
+        "vg_idle_be",
+        "vg_price_display_gross"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_idle_de",
+          "kind": "constraint",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 542,
+      "contextTokens": 209,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 466,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 383,
+      "jevOk": true,
+      "at": "2026-09-28T21:20:53.437Z",
+      "inputTokens": 23866,
+      "costUsd": 0.001002372
+    },
+    {
+      "id": "heldout2-large-10",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "The dashboard figure for kWh looked a thousand times too big for one vendor's units. Has that come up before?",
+      "want": [
+        "vg_bug_meter_units"
+      ],
+      "ok": [
+        "vg_energy_wh"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_bug_meter_units",
+          "kind": "bug",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 573,
+      "contextTokens": 221,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_bug_meter_units"
+      ],
+      "hookMs": 676,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 479,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:08.845Z",
+      "inputTokens": 23866,
+      "costUsd": 0.001002372
+    },
+    {
+      "id": "heldout2-large-11",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Someone in finance asked how long we must keep the PDF copies of what we bill. What's the answer?",
+      "want": [
+        "vg_invoice_retention"
+      ],
+      "ok": [
+        "vg_invoice_pdf"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_invoice_retention",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 552,
+      "contextTokens": 209,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 567,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 492,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:10.836Z",
+      "inputTokens": 23864,
+      "costUsd": 0.001002288
+    },
+    {
+      "id": "heldout2-large-12",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "A partner complained that start requests from their app get no answer for ages. How long do we wait for the charging station to respond?",
+      "want": [
+        "vg_ocpp_call_timeout"
+      ],
+      "ok": [
+        "vg_ocpi_commands_path",
+        "vg_ocpi_client_timeout",
+        "vg_ocpi_realtime_auth"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_ocpp_call_timeout",
+          "kind": "constraint",
+          "p": 0.95
+        },
+        {
+          "key": "vg_ocpi_commands_path",
+          "kind": "architecture",
+          "p": 0.92
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 753,
+      "contextTokens": 296,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 585,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 490,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:16.611Z",
+      "inputTokens": 23869,
+      "costUsd": 0.001002498
+    },
+    {
+      "id": "heldout2-large-13",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "How do we avoid billing a driver twice when the payment provider repeats a notification?",
+      "want": [
+        "vg_bug_webhook_dupe",
+        "vg_webhook_store_first"
+      ],
+      "ok": [
+        "vg_idempotent_consumers"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_bug_webhook_dupe",
+          "kind": "bug",
+          "p": 0.96
+        },
+        {
+          "key": "vg_webhook_store_first",
+          "kind": "decision",
+          "p": 0.93
+        },
+        {
+          "key": "vg_idempotent_consumers",
+          "kind": "constraint",
+          "p": 0.91
+        },
+        {
+          "key": "vg_bug_double_stop",
+          "kind": "bug",
+          "p": 0.8
+        }
+      ],
+      "wantHit": 2,
+      "good": 3,
+      "wrong": 1,
+      "missed": [],
+      "extra": [
+        "vg_bug_double_stop"
+      ],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 4,
+      "contextChars": 1125,
+      "contextTokens": 436,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 542,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 463,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:18.917Z",
+      "inputTokens": 23858,
+      "costUsd": 0.001002036
+    },
+    {
+      "id": "heldout2-large-14",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Which timezone decides when the cheaper night rate begins at a site?",
+      "want": [
+        "vg_bug_dst_tariff"
+      ],
+      "ok": [
+        "vg_utc_storage",
+        "vg_bq_partition_utc",
+        "vg_tariff_snapshot"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_bug_dst_tariff",
+          "kind": "bug",
+          "p": 0.96
+        },
+        {
+          "key": "vg_utc_storage",
+          "kind": "constraint",
+          "p": 0.83
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 743,
+      "contextTokens": 275,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 557,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 458,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:25.432Z",
+      "inputTokens": 23855,
+      "costUsd": 0.0010019100000000002
+    },
+    {
+      "id": "heldout2-large-15",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Is there anything special about how German stations prove their meter readings to drivers?",
+      "want": [
+        "vg_eichrecht"
+      ],
+      "ok": [
+        "vg_bug_ocmf_truncated",
+        "vg_todo_ocmf_pdf"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_eichrecht",
+          "kind": "constraint",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 568,
+      "contextTokens": 202,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_eichrecht"
+      ],
+      "hookMs": 549,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 456,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:27.724Z",
+      "inputTokens": 23857,
+      "costUsd": 0.001001994
+    },
+    {
+      "id": "heldout2-large-16",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "indirect",
+      "prompt": "Our operations lead wants to know when we're allowed to put a backend release live.",
+      "want": [
+        "vg_release_days"
+      ],
+      "ok": [
+        "vg_argo_prod_manual"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_release_days",
+          "kind": "decision",
+          "p": 0.97
+        },
+        {
+          "key": "vg_argo_prod_manual",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 745,
+      "contextTokens": 289,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 544,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 449,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:33.509Z",
+      "inputTokens": 23859,
+      "costUsd": 0.0010020780000000002
+    },
+    {
+      "id": "heldout2-large-17",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Suggest three names for a tabby kitten.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 525,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 436,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:34.036Z",
+      "inputTokens": 23852,
+      "costUsd": 0.0010017840000000001
+    },
+    {
+      "id": "heldout2-large-18",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "In two sentences, how does TCP differ from UDP?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 567,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 469,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:36.849Z",
+      "inputTokens": 23853,
+      "costUsd": 0.001001826
+    },
+    {
+      "id": "heldout2-large-19",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Write a short poem about rain on a tin roof.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 512,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 424,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:37.363Z",
+      "inputTokens": 23853,
+      "costUsd": 0.001001826
+    },
+    {
+      "id": "heldout2-large-20",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "How many minutes should I boil an egg for a runny yolk?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 483,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 392,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:38.642Z",
+      "inputTokens": 23857,
+      "costUsd": 0.001001994
+    },
+    {
+      "id": "heldout2-large-21",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "How do you say 'thank you very much' in Japanese?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 473,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 382,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:39.116Z",
+      "inputTokens": 23855,
+      "costUsd": 0.0010019100000000002
+    },
+    {
+      "id": "heldout2-large-22",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Change the portal's login page background to a lighter grey.",
+      "want": [],
+      "ok": [
+        "vg_portal_stack",
+        "vg_composition_api"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_portal_stack",
+          "kind": "architecture",
+          "p": 0.89
+        }
+      ],
+      "wantHit": 0,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 576,
+      "contextTokens": 215,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 510,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 412,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:44.710Z",
+      "inputTokens": 23854,
+      "costUsd": 0.0010018680000000002
+    },
+    {
+      "id": "heldout2-large-23",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "In what year did the first electric car appear?",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 536,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 429,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:45.250Z",
+      "inputTokens": 23852,
+      "costUsd": 0.0010017840000000001
+    },
+    {
+      "id": "heldout2-large-24",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "unrelated",
+      "prompt": "Summarise the plot of Hamlet in three lines.",
+      "want": [],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [],
+      "wantHit": 0,
+      "good": 0,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 0,
+      "contextChars": 0,
+      "contextTokens": 0,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 545,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 473,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:46.509Z",
+      "inputTokens": 23854,
+      "costUsd": 0.0010018680000000002
+    },
+    {
+      "id": "heldout2-large-25",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Which Go version do the services build with? I'm setting up my machine.",
+      "want": [
+        "vg_go_126"
+      ],
+      "ok": [
+        "vg_renovate"
+      ],
+      "never": [
+        "vg_go_123",
+        "vg_go_124"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_go_126",
+          "kind": "decision",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 552,
+      "contextTokens": 202,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_go_126"
+      ],
+      "hookMs": 562,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 472,
+      "jevOk": true,
+      "at": "2026-09-28T21:21:48.338Z",
+      "inputTokens": 23858,
+      "costUsd": 0.001002036
+    },
+    {
+      "id": "heldout2-large-26",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "How much does the app hold on the driver's card when a DC session starts?",
+      "want": [
+        "vg_preauth_dynamic"
+      ],
+      "ok": [
+        "vg_bug_preauth_expiry",
+        "vg_psp_kontant"
+      ],
+      "never": [
+        "vg_preauth_25",
+        "vg_preauth_ac_dc"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_preauth_dynamic",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 563,
+      "contextTokens": 216,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 715,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 616,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:04.232Z",
+      "inputTokens": 23859,
+      "costUsd": 0.0010020780000000002
+    },
+    {
+      "id": "heldout2-large-27",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "What's the idle fee at Dutch sites right now?",
+      "want": [
+        "vg_idle_nl_v3"
+      ],
+      "ok": [
+        "vg_idle_de",
+        "vg_idle_be",
+        "vg_bug_idle_trickle",
+        "vg_price_display_gross",
+        "vg_host_revshare"
+      ],
+      "never": [
+        "vg_idle_nl_v1",
+        "vg_idle_nl_v2"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_idle_de",
+          "kind": "constraint",
+          "p": 0.97
+        },
+        {
+          "key": "vg_idle_nl_v3",
+          "kind": "constraint",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 731,
+      "contextTokens": 290,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_idle_nl_v3"
+      ],
+      "hookMs": 526,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 428,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:06.138Z",
+      "inputTokens": 23853,
+      "costUsd": 0.001001826
+    },
+    {
+      "id": "heldout2-large-28",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Could a first-line support agent refund €40 for a failed session on their own?",
+      "want": [
+        "vg_l1_refund_25"
+      ],
+      "ok": [
+        "vg_backoffice_iap",
+        "vg_backoffice_audit",
+        "vg_l1_remote_actions"
+      ],
+      "never": [
+        "vg_l1_refund_50"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_l1_refund_25",
+          "kind": "constraint",
+          "p": 0.98
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 550,
+      "contextTokens": 200,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 561,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 462,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:11.867Z",
+      "inputTokens": 23860,
+      "costUsd": 0.00100212
+    },
+    {
+      "id": "heldout2-large-29",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "How do the apps get the live kWh while a session runs?",
+      "want": [
+        "vg_app_push_updates"
+      ],
+      "ok": [
+        "vg_bug_push_order",
+        "vg_notifyd_role",
+        "vg_bug_sse_timeout",
+        "vg_todo_live_activity"
+      ],
+      "never": [
+        "vg_app_poll_5s",
+        "vg_app_sse_stream"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_app_push_updates",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 572,
+      "contextTokens": 215,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_app_push_updates"
+      ],
+      "hookMs": 527,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 434,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:13.947Z",
+      "inputTokens": 23856,
+      "costUsd": 0.001001952
+    },
+    {
+      "id": "heldout2-large-30",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Deploy the new tariffd image to prod the usual way, straight after the tests pass.",
+      "want": [
+        "vg_argo_prod_manual",
+        "vg_release_days"
+      ],
+      "ok": [
+        "vg_ci_workflow",
+        "vg_bug_argo_revert"
+      ],
+      "never": [
+        "vg_deploy_kubectl",
+        "vg_argo_autosync_all"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_argo_prod_manual",
+          "kind": "decision",
+          "p": 0.95
+        },
+        {
+          "key": "vg_release_days",
+          "kind": "decision",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 2,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 745,
+      "contextTokens": 289,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_argo_prod_manual"
+      ],
+      "hookMs": 503,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 432,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:19.113Z",
+      "inputTokens": 23861,
+      "costUsd": 0.001002162
+    },
+    {
+      "id": "heldout2-large-31",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Send partners yesterday's CDRs in the nightly batch, as before.",
+      "want": [
+        "vg_cdr_5min"
+      ],
+      "ok": [
+        "vg_ocpi_push_retry"
+      ],
+      "never": [
+        "vg_cdr_nightly"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_cdr_5min",
+          "kind": "constraint",
+          "p": 0.95
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 575,
+      "contextTokens": 211,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_cdr_5min"
+      ],
+      "hookMs": 521,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 454,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:21.214Z",
+      "inputTokens": 23857,
+      "costUsd": 0.001001994
+    },
+    {
+      "id": "heldout2-large-32",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "supersede",
+      "prompt": "Which OCPI version should the new roaming partner implement?",
+      "want": [
+        "vg_ocpi_221_only"
+      ],
+      "ok": [
+        "vg_ocpi_partner_onboarding",
+        "vg_ocpi_parties"
+      ],
+      "never": [
+        "vg_ocpi_211"
+      ],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_ocpi_221_only",
+          "kind": "decision",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 525,
+      "contextTokens": 210,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 540,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 461,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:28.024Z",
+      "inputTokens": 23853,
+      "costUsd": 0.001001826
+    },
+    {
+      "id": "heldout2-large-33",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Let's move cpgw to Cloud Run and stop running a cluster for it.",
+      "want": [
+        "vg_x_cloud_run_cpgw"
+      ],
+      "ok": [
+        "vg_autopilot_deadend",
+        "vg_cpgw_role"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_x_cloud_run_cpgw",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 566,
+      "contextTokens": 214,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_x_cloud_run_cpgw"
+      ],
+      "hookMs": 566,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 465,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:30.840Z",
+      "inputTokens": 23859,
+      "costUsd": 0.0010020780000000002
+    },
+    {
+      "id": "heldout2-large-34",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Could we generate the OCPP 2.0.1 Go types from the official schemas instead of writing them?",
+      "want": [
+        "vg_x_ocpp_codegen"
+      ],
+      "ok": [],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_x_ocpp_codegen",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 596,
+      "contextTokens": 220,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_x_ocpp_codegen"
+      ],
+      "hookMs": 525,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 429,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:36.596Z",
+      "inputTokens": 23865,
+      "costUsd": 0.00100233
+    },
+    {
+      "id": "heldout2-large-35",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Should driverapi move to GraphQL so the apps fetch only the fields they need?",
+      "want": [
+        "vg_x_graphql"
+      ],
+      "ok": [
+        "vg_openapi_contract",
+        "vg_driverapi_role"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_x_graphql",
+          "kind": "dead-end",
+          "p": 0.97
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 587,
+      "contextTokens": 214,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_x_graphql"
+      ],
+      "hookMs": 526,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 432,
+      "jevOk": true,
+      "at": "2026-09-28T21:22:39.020Z",
+      "inputTokens": 23861,
+      "costUsd": 0.001002162
+    },
+    {
+      "id": "heldout2-large-36",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Let chargers register themselves the first time they boot, to save the installer a step.",
+      "want": [
+        "vg_x_self_register",
+        "vg_boot_unknown_rejected"
+      ],
+      "ok": [
+        "vg_host_onboarding"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_x_self_register",
+          "kind": "dead-end",
+          "p": 0.97
+        },
+        {
+          "key": "vg_boot_unknown_rejected",
+          "kind": "decision",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 2,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 748,
+      "contextTokens": null,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_x_self_register",
+        "vg_boot_unknown_rejected"
+      ],
+      "hookMs": 681,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 506,
+      "jevOk": true,
+      "at": "2026-09-28T21:23:07.524Z",
+      "inputTokens": 23860,
+      "costUsd": 0.00100212
+    },
+    {
+      "id": "heldout2-large-37",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Add a CPU-based autoscaler to the charger gateway so it grows with load.",
+      "want": [
+        "vg_x_hpa_cpgw"
+      ],
+      "ok": [
+        "vg_autopilot_deadend",
+        "vg_cpgw_drain",
+        "vg_loadtest_gate"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_x_hpa_cpgw",
+          "kind": "dead-end",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 585,
+      "contextTokens": 225,
+      "path": "jev",
+      "wordMatchWouldFind": [],
+      "hookMs": 573,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 473,
+      "jevOk": true,
+      "at": "2026-09-28T21:23:09.592Z",
+      "inputTokens": 23858,
+      "costUsd": 0.001002036
+    },
+    {
+      "id": "heldout2-large-38",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "How about one shared Kotlin Multiplatform library so both apps run the same session code?",
+      "want": [
+        "vg_x_kmp"
+      ],
+      "ok": [
+        "vg_android_stack",
+        "vg_ios_stack"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_x_kmp",
+          "kind": "dead-end",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 592,
+      "contextTokens": 212,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_x_kmp"
+      ],
+      "hookMs": 559,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 464,
+      "jevOk": true,
+      "at": "2026-09-28T21:23:15.861Z",
+      "inputTokens": 23861,
+      "costUsd": 0.001002162
+    },
+    {
+      "id": "heldout2-large-39",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Keep every meter sample in Postgres so the dispute team can query them directly.",
+      "want": [
+        "vg_x_meter_samples_pg"
+      ],
+      "ok": [
+        "vg_todo_dispute_view",
+        "vg_frames_bq_90d"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_x_meter_samples_pg",
+          "kind": "dead-end",
+          "p": 0.96
+        }
+      ],
+      "wantHit": 1,
+      "good": 1,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 1,
+      "contextChars": 601,
+      "contextTokens": 227,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_x_meter_samples_pg"
+      ],
+      "hookMs": 554,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 464,
+      "jevOk": true,
+      "at": "2026-09-28T21:23:18.798Z",
+      "inputTokens": 23858,
+      "costUsd": 0.001002036
+    },
+    {
+      "id": "heldout2-large-40",
+      "file": "heldout2-large",
+      "size": "large",
+      "type": "dead-end",
+      "prompt": "Start the idle-fee clock when the charger reports SuspendedEV.",
+      "want": [
+        "vg_x_idle_suspendedev"
+      ],
+      "ok": [
+        "vg_bug_idle_trickle",
+        "vg_idle_nl_v3",
+        "vg_idle_de"
+      ],
+      "never": [],
+      "wantUnparsed": [],
+      "injected": [
+        {
+          "key": "vg_x_idle_suspendedev",
+          "kind": "dead-end",
+          "p": 0.96
+        },
+        {
+          "key": "vg_bug_idle_trickle",
+          "kind": "bug",
+          "p": 0.91
+        }
+      ],
+      "wantHit": 1,
+      "good": 2,
+      "wrong": 0,
+      "missed": [],
+      "extra": [],
+      "supersededInjected": [],
+      "neverInjected": [],
+      "lines": 2,
+      "contextChars": 770,
+      "contextTokens": 282,
+      "path": "jev",
+      "wordMatchWouldFind": [
+        "vg_x_idle_suspendedev"
+      ],
+      "hookMs": 537,
+      "hookExit": 0,
+      "via": "daemon",
+      "jevMs": 438,
+      "jevOk": true,
+      "at": "2026-09-28T21:23:25.648Z",
+      "inputTokens": 23856,
+      "costUsd": 0.001001952
+    }
+  ]
+}

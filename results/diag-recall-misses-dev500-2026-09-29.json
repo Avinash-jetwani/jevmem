@@ -1,0 +1,507 @@
+{
+ "kind": "diag-recall-misses",
+ "run_file": "results/recall-dev500-2026-09-28-now.json",
+ "set": "eval/recall-dev-500.jsonl",
+ "run_commit": "48cc67d",
+ "asked_with_commit": "48cc67d",
+ "date": "2026-09-29T10:02:31.071Z",
+ "repeat": 3,
+ "runs_rule": {
+  "relevanceMin": 0.8,
+  "sure": 0.97,
+  "floor": 0.03
+ },
+ "current_rule": {
+  "relevanceMin": 0.8,
+  "sure": 0.97,
+  "floor": 0.03
+ },
+ "prompts": 8,
+ "missed_lines": 9,
+ "causes": {
+  "not sent": 8,
+  "picked when asked again": 1
+ },
+ "method": "Every prompt of the run that missed a wanted line, asked again in process with the hook's own questions (lib.rankMemories, forPrompt, every live line, `replaces` context; cache off, 15 s timeout), --repeat times. A cause per missed line: timeout (the run's call failed or ran past the budget), not sent (more than jev.maxRecallLines live lines, and the line was not among those sharing the most words with the prompt), relevance (under recallRelevanceMin in every ask), threshold (relevance at or over recallRelevanceMin but under the sure level, and the choice under its floor, in every ask), or picked when asked again (Jev's answers vary).",
+ "rows": [
+  {
+   "id": "dev-500-09",
+   "type": "indirect",
+   "size": "xlarge",
+   "prompt": "Can a café that still owes money on a bill from three weeks ago keep ordering from that shop?",
+   "live_lines": 445,
+   "lines_sent": 250,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 450,
+    "error": null,
+    "injected": [
+     {
+      "key": "gl2_credit_hold_cutoff",
+      "kind": "constraint",
+      "p": 0.95
+     },
+     {
+      "key": "gl2_credit_hold",
+      "kind": "decision",
+      "p": 0.88
+     }
+    ]
+   },
+   "lines": [
+    {
+     "key": "gl_terms_overdue_block",
+     "kind": "constraint",
+     "text": "A buyer with an invoice more than 14 days overdue cannot place new orders with that supplier until it is paid",
+     "missed": true,
+     "sent_to_jev": false,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "not sent"
+    }
+   ]
+  },
+  {
+   "id": "dev-500-10",
+   "type": "indirect",
+   "size": "xlarge",
+   "prompt": "If the shop swaps an out-of-stock item for something that contains nuts, is that OK?",
+   "live_lines": 445,
+   "lines_sent": 250,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 416,
+    "error": null,
+    "injected": [
+     {
+      "key": "gl_bug_allergen_label",
+      "kind": "bug",
+      "p": 0.86
+     },
+     {
+      "key": "gl2_search_facets",
+      "kind": "decision",
+      "p": 0.83
+     }
+    ]
+   },
+   "lines": [
+    {
+     "key": "gl_substitution_allergen",
+     "kind": "constraint",
+     "text": "A substitution must never add an allergen the original product lacked unless the buyer explicitly accepts it",
+     "missed": true,
+     "sent_to_jev": false,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "not sent"
+    }
+   ]
+  },
+  {
+   "id": "dev-500-12",
+   "type": "indirect",
+   "size": "xlarge",
+   "prompt": "A new teammate asked how many people have to sign off before a change to how we compute what things cost can go in.",
+   "live_lines": 445,
+   "lines_sent": 250,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 427,
+    "error": null,
+    "injected": []
+   },
+   "lines": [
+    {
+     "key": "gl_review_two",
+     "kind": "constraint",
+     "text": "Every PR needs one approval; changes under `app/models/pricing/` or `app/models/invoicing/` need two",
+     "missed": true,
+     "sent_to_jev": false,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "not sent"
+    }
+   ]
+  },
+  {
+   "id": "dev-500-13",
+   "type": "indirect",
+   "size": "xlarge",
+   "prompt": "Could a bakery ever be shown a rival firm's purchase history if a background worker forgets which firm it's serving?",
+   "live_lines": 445,
+   "lines_sent": 250,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 457,
+    "error": null,
+    "injected": [
+     {
+      "key": "gl_current_attributes",
+      "kind": "architecture",
+      "p": 0.83
+     }
+    ]
+   },
+   "lines": [
+    {
+     "key": "gl_bug_tenant_leak_job",
+     "kind": "bug",
+     "text": "One supplier's export briefly included another's orders because `Current.tenant` leaked between Sidekiq jobs on a thread; a server middleware now resets `Current`",
+     "missed": true,
+     "sent_to_jev": false,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "not sent"
+    },
+    {
+     "key": "gl_current_attributes",
+     "kind": "architecture",
+     "text": "`Current.tenant` is set in `ApplicationController` from the subdomain; background jobs get the tenant id as an argument through `TenantJob`",
+     "missed": false,
+     "sent_to_jev": true,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": 0.82,
+       "choice": 0.4
+      },
+      {
+       "relevance": 0.84,
+       "choice": 0.36
+      },
+      {
+       "relevance": 0.82,
+       "choice": 0.35000000000000003
+      }
+     ],
+     "picked_by_the_runs_rule": 3,
+     "picked_by_the_current_rule": 3
+    }
+   ]
+  },
+  {
+   "id": "dev-500-15",
+   "type": "indirect",
+   "size": "xlarge",
+   "prompt": "The couriers' phones stopped opening our tool after we shipped an over-the-air JavaScript fix. What's our rule for those?",
+   "live_lines": 445,
+   "lines_sent": 250,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 417,
+    "error": null,
+    "injected": [
+     {
+      "key": "gl2_csp",
+      "kind": "constraint",
+      "p": 0.85
+     }
+    ]
+   },
+   "lines": [
+    {
+     "key": "gl_expo_update_scope",
+     "kind": "decision",
+     "text": "JS-only driver app fixes ship through EAS Update on the `production` channel; anything touching a native module needs a new store build",
+     "missed": true,
+     "sent_to_jev": false,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "not sent"
+    },
+    {
+     "key": "gl_bug_eas_crash",
+     "kind": "bug",
+     "text": "An EAS Update that needed a newer native module crashed drivers still on the old binary; `runtimeVersion` now follows the app version policy",
+     "missed": true,
+     "sent_to_jev": false,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "not sent"
+    }
+   ]
+  },
+  {
+   "id": "dev-500-16",
+   "type": "indirect",
+   "size": "xlarge",
+   "prompt": "How quickly must placing an order respond before someone gets paged?",
+   "live_lines": 445,
+   "lines_sent": 250,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 578,
+    "error": null,
+    "injected": []
+   },
+   "lines": [
+    {
+     "key": "gl_slo_checkout",
+     "kind": "constraint",
+     "text": "Checkout (`POST /orders`) must stay under 800 ms at p95; the Datadog monitor pages after 10 minutes above that",
+     "missed": true,
+     "sent_to_jev": false,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "not sent"
+    }
+   ]
+  },
+  {
+   "id": "dev-500-41",
+   "type": "direct",
+   "size": "xlarge",
+   "prompt": "Add a column with a default value to order_lines in the next deploy.",
+   "live_lines": 445,
+   "lines_sent": 250,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 408,
+    "error": null,
+    "injected": [
+     {
+      "key": "gl_migration_strong",
+      "kind": "constraint",
+      "p": 0.98
+     }
+    ]
+   },
+   "lines": [
+    {
+     "key": "gl_migration_strong",
+     "kind": "constraint",
+     "text": "Migrations must pass `strong_migrations`; adding a column with a default to `order_lines` needs a separate backfill",
+     "missed": false,
+     "sent_to_jev": true,
+     "word_match_finds": true,
+     "asks": [
+      {
+       "relevance": 0.98,
+       "choice": 0.98
+      },
+      {
+       "relevance": 0.98,
+       "choice": 0.97
+      },
+      {
+       "relevance": 0.98,
+       "choice": 0.97
+      }
+     ],
+     "picked_by_the_runs_rule": 3,
+     "picked_by_the_current_rule": 3
+    },
+    {
+     "key": "gl_migration_compat",
+     "kind": "constraint",
+     "text": "Each deploy's code must work against both the old and new schema, because migrations run in a one-off task before web tasks roll",
+     "missed": true,
+     "sent_to_jev": true,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": 0.97,
+       "choice": 0.01
+      },
+      {
+       "relevance": 0.97,
+       "choice": 0.01
+      },
+      {
+       "relevance": 0.97,
+       "choice": 0.01
+      }
+     ],
+     "picked_by_the_runs_rule": 3,
+     "picked_by_the_current_rule": 3,
+     "cause": "picked when asked again"
+    }
+   ]
+  },
+  {
+   "id": "dev-500-46",
+   "type": "indirect",
+   "size": "xlarge",
+   "prompt": "What happens to the pictures drivers take at the door, and when are they deleted?",
+   "live_lines": 445,
+   "lines_sent": 250,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 421,
+    "error": null,
+    "injected": [
+     {
+      "key": "gl_retention_pod_photos",
+      "kind": "constraint",
+      "p": 0.95
+     }
+    ]
+   },
+   "lines": [
+    {
+     "key": "gl_pod_photos_s3",
+     "kind": "architecture",
+     "text": "POD photos upload from the driver app straight to S3 `grainline-pod-prod` via presigned PUT URLs; base64 blobs in `deliveries.pod_photo` were migrated out",
+     "missed": true,
+     "sent_to_jev": false,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      },
+      {
+       "relevance": null,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "not sent"
+    },
+    {
+     "key": "gl_retention_pod_photos",
+     "kind": "constraint",
+     "text": "POD photos are deleted after 13 months by an S3 lifecycle rule on `grainline-pod-prod`",
+     "missed": false,
+     "sent_to_jev": true,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": 0.94,
+       "choice": 0.91
+      },
+      {
+       "relevance": 0.93,
+       "choice": 0.85
+      },
+      {
+       "relevance": 0.92,
+       "choice": 0.86
+      }
+     ],
+     "picked_by_the_runs_rule": 3,
+     "picked_by_the_current_rule": 3
+    }
+   ]
+  }
+ ]
+}

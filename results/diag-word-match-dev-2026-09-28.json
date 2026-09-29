@@ -1,0 +1,103 @@
+{
+ "kind": "diag-word-match",
+ "set": "eval/recall-dev.jsonl",
+ "date": "2026-09-28",
+ "prompts": 102,
+ "shipped": {
+  "min": 2,
+  "topK": 5
+ },
+ "method": "Offline, no Jev call: src/recall.ts wordMatch over each prompt's file's live lines (every line served, as all are verified in this eval), scored as if every prompt had fallen back. recall = wanted lines picked / wanted lines; precision = picked lines that are wanted or fine / picked lines; unrelated = unrelated prompts that got any line.",
+ "rules": [
+  {
+   "min": 1,
+   "topK": 3,
+   "recall": "62/101",
+   "prompts_with_a_wanted_line_that_got_one": "60/84",
+   "precision": "101/265",
+   "unrelated": "11/18",
+   "lines_per_prompt": 2.6,
+   "recall_by_type": {
+    "direct": "24/32",
+    "indirect": "8/33",
+    "supersede": "13/18",
+    "dead-end": "17/18"
+   }
+  },
+  {
+   "min": 1,
+   "topK": 5,
+   "recall": "70/101",
+   "prompts_with_a_wanted_line_that_got_one": "65/84",
+   "precision": "120/411",
+   "unrelated": "11/18",
+   "lines_per_prompt": 4.03,
+   "recall_by_type": {
+    "direct": "27/32",
+    "indirect": "12/33",
+    "supersede": "14/18",
+    "dead-end": "17/18"
+   }
+  },
+  {
+   "min": 2,
+   "topK": 3,
+   "recall": "51/101",
+   "prompts_with_a_wanted_line_that_got_one": "49/84",
+   "precision": "82/136",
+   "unrelated": "2/18",
+   "lines_per_prompt": 1.33,
+   "recall_by_type": {
+    "direct": "23/32",
+    "indirect": "2/33",
+    "supersede": "10/18",
+    "dead-end": "16/18"
+   }
+  },
+  {
+   "min": 2,
+   "topK": 5,
+   "recall": "55/101",
+   "prompts_with_a_wanted_line_that_got_one": "51/84",
+   "precision": "92/164",
+   "unrelated": "2/18",
+   "lines_per_prompt": 1.61,
+   "recall_by_type": {
+    "direct": "25/32",
+    "indirect": "3/33",
+    "supersede": "11/18",
+    "dead-end": "16/18"
+   }
+  },
+  {
+   "min": 3,
+   "topK": 3,
+   "recall": "37/101",
+   "prompts_with_a_wanted_line_that_got_one": "36/84",
+   "precision": "52/64",
+   "unrelated": "0/18",
+   "lines_per_prompt": 0.63,
+   "recall_by_type": {
+    "direct": "18/32",
+    "indirect": "2/33",
+    "supersede": "4/18",
+    "dead-end": "13/18"
+   }
+  },
+  {
+   "min": 3,
+   "topK": 5,
+   "recall": "38/101",
+   "prompts_with_a_wanted_line_that_got_one": "36/84",
+   "precision": "54/70",
+   "unrelated": "0/18",
+   "lines_per_prompt": 0.69,
+   "recall_by_type": {
+    "direct": "18/32",
+    "indirect": "3/33",
+    "supersede": "4/18",
+    "dead-end": "13/18"
+   }
+  }
+ ]
+}

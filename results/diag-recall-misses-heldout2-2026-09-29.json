@@ -1,0 +1,249 @@
+{
+ "kind": "diag-recall-misses",
+ "run_file": "results/recall-heldout2-2026-09-28-now.json",
+ "set": "eval/recall-heldout-v2.jsonl",
+ "run_commit": "48cc67d",
+ "asked_with_commit": "48cc67d",
+ "date": "2026-09-29T10:02:19.868Z",
+ "repeat": 3,
+ "runs_rule": {
+  "relevanceMin": 0.8,
+  "sure": 0.97,
+  "floor": 0.03
+ },
+ "current_rule": {
+  "relevanceMin": 0.8,
+  "sure": 0.97,
+  "floor": 0.03
+ },
+ "prompts": 3,
+ "missed_lines": 3,
+ "causes": {
+  "threshold": 2,
+  "relevance": 1
+ },
+ "method": "Every prompt of the run that missed a wanted line, asked again in process with the hook's own questions (lib.rankMemories, forPrompt, every live line, `replaces` context; cache off, 15 s timeout), --repeat times. A cause per missed line: timeout (the run's call failed or ran past the budget), not sent (more than jev.maxRecallLines live lines, and the line was not among those sharing the most words with the prompt), relevance (under recallRelevanceMin in every ask), threshold (relevance at or over recallRelevanceMin but under the sure level, and the choice under its floor, in every ask), or picked when asked again (Jev's answers vary).",
+ "rows": [
+  {
+   "id": "heldout2-small-17",
+   "type": "dead-end",
+   "size": "small",
+   "prompt": "Let's deploy stagecue to Fly.io so the director can follow the show from home.",
+   "live_lines": 18,
+   "lines_sent": 18,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 248,
+    "error": null,
+    "injected": [
+     {
+      "key": "sc_de_cloud",
+      "kind": "dead-end",
+      "p": 0.96
+     }
+    ]
+   },
+   "lines": [
+    {
+     "key": "sc_de_cloud",
+     "kind": "dead-end",
+     "text": "Hosting stagecue on Fly.io was dropped after the venue's internet went down mid-show and nobody could fire cues; it runs on the local laptop only",
+     "missed": false,
+     "sent_to_jev": true,
+     "word_match_finds": true,
+     "asks": [
+      {
+       "relevance": 0.97,
+       "choice": 1
+      },
+      {
+       "relevance": 0.97,
+       "choice": 1
+      },
+      {
+       "relevance": 0.97,
+       "choice": 1
+      }
+     ],
+     "picked_by_the_runs_rule": 3,
+     "picked_by_the_current_rule": 3
+    },
+    {
+     "key": "sc_offline",
+     "kind": "constraint",
+     "text": "The app must run with no internet connection at all: no CDN assets, web fonts or analytics at runtime",
+     "missed": true,
+     "sent_to_jev": true,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": 0.96,
+       "choice": 0
+      },
+      {
+       "relevance": 0.96,
+       "choice": 0
+      },
+      {
+       "relevance": 0.96,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "threshold"
+    }
+   ]
+  },
+  {
+   "id": "heldout2-medium-01",
+   "type": "direct",
+   "size": "medium",
+   "prompt": "Call Stripe directly from the new AddOnsController to charge the eco bundle.",
+   "live_lines": 74,
+   "lines_sent": 74,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 344,
+    "error": null,
+    "injected": [
+     {
+      "key": "hb_billing_gateway",
+      "kind": "architecture",
+      "p": 0.97
+     }
+    ]
+   },
+   "lines": [
+    {
+     "key": "hb_billing_gateway",
+     "kind": "architecture",
+     "text": "Nothing but `Billing::Gateway.for(subscription)` may call Stripe or GoCardless; it returns `Billing::StripeGateway` or `Billing::GoCardlessGateway` by payment method",
+     "missed": false,
+     "sent_to_jev": true,
+     "word_match_finds": true,
+     "asks": [
+      {
+       "relevance": 0.97,
+       "choice": 0.99
+      },
+      {
+       "relevance": 0.97,
+       "choice": 0.99
+      },
+      {
+       "relevance": 0.97,
+       "choice": 0.99
+      }
+     ],
+     "picked_by_the_runs_rule": 3,
+     "picked_by_the_current_rule": 3
+    },
+    {
+     "key": "hb_flag_charging_changes",
+     "kind": "preference",
+     "text": "Anything that touches charging or `LockOrdersJob` ships behind a Flipper flag, off by default, and is turned on for staff subscriptions first",
+     "missed": true,
+     "sent_to_jev": true,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": 0.94,
+       "choice": 0
+      },
+      {
+       "relevance": 0.94,
+       "choice": 0
+      },
+      {
+       "relevance": 0.94,
+       "choice": 0
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "threshold"
+    }
+   ]
+  },
+  {
+   "id": "heldout2-large-01",
+   "type": "direct",
+   "size": "large",
+   "prompt": "Store the tariff price per kWh as a float64 in the new tariff element struct.",
+   "live_lines": 220,
+   "lines_sent": 220,
+   "in_the_run": {
+    "path": "jev",
+    "jev_ok": true,
+    "jev_ms": 474,
+    "error": null,
+    "injected": [
+     {
+      "key": "vg_tariff_micro",
+      "kind": "constraint",
+      "p": 0.9
+     },
+     {
+      "key": "vg_pref_unit_suffixes",
+      "kind": "preference",
+      "p": 0.9
+     }
+    ]
+   },
+   "lines": [
+    {
+     "key": "vg_tariff_micro",
+     "kind": "constraint",
+     "text": "Tariff unit prices are now int64 micro-euros per kWh in `tariff_elements.price_micros`, because partners quote prices like €0.4589/kWh that cents can't hold",
+     "missed": false,
+     "sent_to_jev": true,
+     "word_match_finds": true,
+     "asks": [
+      {
+       "relevance": 0.91,
+       "choice": 0.92
+      },
+      {
+       "relevance": 0.91,
+       "choice": 0.92
+      },
+      {
+       "relevance": 0.91,
+       "choice": 0.91
+      }
+     ],
+     "picked_by_the_runs_rule": 3,
+     "picked_by_the_current_rule": 3
+    },
+    {
+     "key": "vg_money_cents",
+     "kind": "constraint",
+     "text": "Invoice and payment amounts are int64 euro cents end to end; `float64` never holds money, and JSON carries amounts as integers, not decimal strings",
+     "missed": true,
+     "sent_to_jev": true,
+     "word_match_finds": false,
+     "asks": [
+      {
+       "relevance": 0.71,
+       "choice": 0.05
+      },
+      {
+       "relevance": 0.75,
+       "choice": 0.05
+      },
+      {
+       "relevance": 0.75,
+       "choice": 0.060000000000000005
+      }
+     ],
+     "picked_by_the_runs_rule": 0,
+     "picked_by_the_current_rule": 0,
+     "cause": "relevance"
+    }
+   ]
+  }
+ ]
+}
