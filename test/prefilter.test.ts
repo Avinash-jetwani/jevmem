@@ -90,6 +90,19 @@ describe("shell command lines", () => {
     expect(shellWords("echo a\\ b 'c d'").words).toEqual(["echo", "a b", "c d"]);
   });
 
+  it("reads >|, &>, &>> and >& as writes to their target, and >&2, 2>&-, <&0 as descriptors (v0.6 part 3c)", () => {
+    expect(splitCommand("cat x >| JEVMEM.md")).toEqual(["cat x >| JEVMEM.md"]);
+    expect(splitCommand("sort <&0 && ls")).toEqual(["sort <&0", "ls"]);
+    expect(shellWords("cat x >| JEVMEM.md")).toEqual({ words: ["cat", "x"], redirects: ["JEVMEM.md"], redirectOps: [">|"], ops: [">|"] });
+    expect(shellWords("cat x 2>|out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: [">|"], ops: [">|"] });
+    expect(shellWords("cat x &> out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: ["&>"], ops: ["&>"] });
+    expect(shellWords("cat x &>>out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: ["&>>"], ops: ["&>>"] });
+    expect(shellWords("cat x >& out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: [">&"], ops: [">&"] });
+    expect(shellWords("cat x >&out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: [">&"], ops: [">&"] });
+    for (const c of ["make >&2", "make 2>&1", "make 2>&-", "make >& 2", "sort <&0", "sort <&-"]) expect(shellWords(c), c).toEqual({ words: [c.split(" ")[0]], redirects: [], redirectOps: [], ops: [] });
+    expect(shellWords("cat < in.txt").redirectOps).toEqual(["<"]);
+  });
+
   it("finds the command word past sudo, env and VAR=value, and git's subcommand past -C", () => {
     const f = actionFeatures(bash("FOO=1 sudo git -C app push --force origin main"));
     expect(f.commands).toEqual(expect.arrayContaining(["git", "git push"]));

@@ -413,6 +413,11 @@ export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction
   return null;
 }
 
+/** Does a redirection operator write its target: `>`, `>>`, `>|`, `>&` (before a file), `&>` and `&>>`; `<` and `<&` read. */
+const writesTarget = (op: string) => op.includes(">") && !op.startsWith("<");
+/** Does it only append: `>>` and `&>>`. Appending cannot remove a line from a file. */
+const appends = (op: string) => op === ">>" || op === "&>>";
+
 /**
  * The simple commands of a command line, each with its words (prefixes and `VAR=value` dropped) and the files its output
  * redirections write (`writes`; an input redirection `<` reads).
@@ -420,7 +425,7 @@ export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction
 function segmentsOf(cmd: string): { words: string[]; writes: string[]; appendOnly: boolean }[] {
   return splitCommand(cmd).map((seg) => {
     const { words, redirects, redirectOps, ops } = shellWords(seg);
-    const writes = redirects.filter((_, i) => (redirectOps[i] ?? ">").startsWith(">"));
+    const writes = redirects.filter((_, i) => writesTarget(redirectOps[i] ?? ">"));
     let i = 0;
     for (;;) {
       const w = words[i];
@@ -431,8 +436,8 @@ function segmentsOf(cmd: string): { words: string[]; writes: string[]; appendOnl
     }
     const rest = words.slice(i);
     const teeAppend = (rest[0] ?? "").split("/").pop() === "tee" && rest.some((w) => w === "-a" || w === "--append");
-    const fileOps = ops.filter((o) => o === ">" || o === ">>" || o === ">|");
-    return { words: rest, writes, appendOnly: teeAppend || (fileOps.length > 0 && fileOps.every((o) => o === ">>")) };
+    const fileOps = ops.filter(writesTarget);
+    return { words: rest, writes, appendOnly: teeAppend || (fileOps.length > 0 && fileOps.every(appends)) };
   });
 }
 

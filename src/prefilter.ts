@@ -418,8 +418,12 @@ export function splitCommand(cmd: string): string[] {
       i = nl < 0 ? cmd.length : nl - 1;
       continue;
     }
-    if (c === "&" && (cmd[i - 1] === ">" || cmd[i + 1] === ">")) {
-      cur += c; // 2>&1, &>file
+    if (c === "&" && (cmd[i - 1] === ">" || cmd[i - 1] === "<" || cmd[i + 1] === ">")) {
+      cur += c; // 2>&1, <&0, &>file
+      continue;
+    }
+    if (c === "|" && cmd[i - 1] === ">") {
+      cur += c; // >|file writes the file even with noclobber set; it is not a pipe
       continue;
     }
     if (c === ";" || c === "\n" || c === "(" || c === ")" || c === "|" || c === "&") {
@@ -452,13 +456,15 @@ function matchParen(s: string, open: number): number {
 }
 
 /**
- * The words of one simple command, quotes removed; redirection targets and operators (`>`, `>>`, `<`) are listed apart.
- * With `globs`, also whether each word has a wildcard outside quotes (one the shell expands).
+ * The words of one simple command, quotes removed; redirection targets and operators are listed apart. The operators
+ * that write their target: `>`, `>>`, `>|` (past noclobber), `&>` and `&>>` (stdout and stderr), and `>&` before a word
+ * that is not a descriptor number or `-` (as `&>`); `2>&1`, `>&2` and `2>&-` copy or close a descriptor and have no
+ * target. `<` and `<&` read. With `globs`, also whether each word has a wildcard outside quotes (one the shell expands).
  */
 export function shellWords(segment: string, opts: { globs?: boolean } = {}): { words: string[]; redirects: string[]; redirectOps: string[]; ops: string[]; globs?: boolean[] } {
   const out: string[] = [];
   const redirects: string[] = [];
-  // The operator each redirection target came with (`>`, `>>`, `>|`, `<`), in the same order as `redirects`.
+  // The operator each redirection target came with (`>`, `>>`, `>|`, `&>`, `&>>`, `>&`, `<`), in the same order as `redirects`.
   const redirectOps: string[] = [];
   let pendingOp = "";
   const ops: string[] = [];
@@ -507,19 +513,32 @@ export function shellWords(segment: string, opts: { globs?: boolean } = {}): { w
       push();
       continue;
     }
-    if (c === ">" || c === "<") {
-      // `2>&1` and `>&2` redirect to a descriptor, not a file.
-      if (/^\d*$/.test(cur)) {
+    // `&>` and `&>>` send stdout and stderr to their target: the `&` opens the operator, it is not a word.
+    const both = c === "&" && segment[i + 1] === ">";
+    if (c === ">" || c === "<" || both) {
+      if (both) {
+        push();
+        i++;
+      } else if (/^\d*$/.test(cur)) {
+        // A descriptor number before the operator (`2>`), not a word.
         cur = "";
         started = false;
       } else push();
-      let op = c;
+      const first = segment[i]!;
+      let op = both ? "&>" : first;
       while (segment[i + 1] === ">" || segment[i + 1] === "<") op += segment[++i];
       if (segment[i + 1] === "-" && op === "<<") i++; // <<-EOF
-      if (segment[i + 1] === "&") {
+      if (segment[i + 1] === "|" && op === ">") op += segment[++i]; // >|
+      if (segment[i + 1] === "&" && !both && (op === ">" || op === "<")) {
+        // `2>&1`, `>&2`, `2>&-` and `<&0` copy or close a descriptor; `>& file` writes the file, as `&>` does.
         i++;
-        while (/\d|-/.test(segment[i + 1] ?? "")) i++;
-        continue;
+        const rest = segment.slice(i + 1);
+        const fd = /^\s*(?:\d+|-)(?=$|[\s;&|<>)])/.exec(rest);
+        if (fd) {
+          i += fd[0].length;
+          continue;
+        }
+        op += "&";
       }
       ops.push(op);
       pendingOp = op;

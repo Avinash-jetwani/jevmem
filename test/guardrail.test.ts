@@ -458,6 +458,34 @@ describe("tamper check (local, no Jev)", () => {
     expect(jev.calls).toHaveLength(0);
   });
 
+  it("Bash: >|, &>, &>> and >& write their target like > and >>; descriptor copies and reads stay silent (v0.6 part 3c)", async () => {
+    const { root } = project([ENV]);
+    const jev = breaks(0);
+    // `cat x >| JEVMEM.md` was not seen as a write: the `|` split it into `cat x >` and a command named JEVMEM.md.
+    const asked = [
+      "cat /tmp/x >| JEVMEM.md",
+      "cat /tmp/x >|JEVMEM.md",
+      "cat /tmp/x 2>| JEVMEM.md",
+      "cat /tmp/x &> JEVMEM.md",
+      "cat /tmp/x &>JEVMEM.md",
+      "cat /tmp/x >& JEVMEM.md",
+      "cat /tmp/x >&JEVMEM.md",
+      "echo '{}' >| jevmem.config.json",
+      "echo '{}' &> jevmem.config.json",
+      "echo '{}' &>> jevmem.config.json",
+      "echo '{}' >& jevmem.config.json",
+      "echo x >| .jevmem/guard-cache.json",
+      "echo x &>> .jevmem/guard-cache.json",
+      "make 2>&1 >| JEVMEM.md",
+    ];
+    for (const c of asked) expect(parse((await evaluateGuard(bash(root, c), { jev })).stdout).permissionDecision, c).toBe("ask");
+    // `&>>` appends, as `>>` does: it cannot remove a rule from JEVMEM.md. Descriptor copies and closes have no file;
+    // reads (`<`, `<&`, stderr to /dev/null) write nothing.
+    const fine = ["echo '- [decision] x' &>> JEVMEM.md", "cat JEVMEM.md 2>/dev/null", "cat JEVMEM.md &>/dev/null", "cat JEVMEM.md >& /dev/null", "cat < JEVMEM.md", "cat JEVMEM.md 2>&1", "cat JEVMEM.md >&2", "cat JEVMEM.md 2>&-", "grep -c rule JEVMEM.md <&0", "grep rule JEVMEM.md >| /tmp/rules.txt"];
+    for (const c of fine) expect((await evaluateGuard(bash(root, c), { jev })).stdout, c).toBe("");
+    expect(jev.calls).toHaveLength(0);
+  });
+
   it("the tamper check holds in warn mode, and in block mode a denied rule still wins", async () => {
     const { root } = project([ENV], { mode: "warn" });
     expect(parse((await evaluateGuard(bash(root, "rm jevmem.config.json"), { jev: breaks(0) })).stdout).permissionDecision).toBe("ask");
