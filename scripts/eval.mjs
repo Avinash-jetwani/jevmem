@@ -5,6 +5,10 @@
 //   --set regression  eval/transcript.jsonl: the original 50 turns; many overlap jevmem's own few-shot examples
 // Runs each tier mode with a warm in-process client (same as the daemon path), no cache.
 // Cost = input tokens × $0.042/M (Jev output tokens are free), the same method as `jevmem stats` and bench-llm.mjs.
+// A saved turn's line is written as the hook writes it (writeMemory with jevmem's own writer, given the client: from
+// v0.6 part 3c that asks Jev which sentences the line is made from; an older build ignores the client and asks nothing),
+// into a scratch JEVMEM.md holding the turn's lines. `costPerTurn` is decide's alone, as in every earlier run;
+// `costPerTurnWithLine` adds the line's request.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -29,6 +33,7 @@ const turns = fs.readFileSync(path.resolve(SET_FILE), "utf8").split("\n").filter
 const DEFAULT_EXISTING = [{ id: "sqlite1", kind: "decision", text: "Use SQLite as the single-file primary store; no server" }];
 const USD_PER_M_INPUT = 0.042;
 
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-eval-"));
 async function runMode(mode) {
   const jev = lib.createJev({ noLogFile: true, cache: false });
   // Warm the connection once so the p50 reflects the daemon path, not the first TLS handshake.
@@ -44,12 +49,25 @@ async function runMode(mode) {
     const t0 = performance.now();
     const existing = t.existing ?? DEFAULT_EXISTING;
     const d = await lib.decide(jev, { userMessage: t.user, assistantReply: t.assistant, recentContext: t.previous, existingMemories: existing }, { tiers: { mode } });
+    const ms = Math.round(performance.now() - t0);
+    let written = null;
+    if (d.save) {
+      const root = fs.mkdtempSync(path.join(tmp, "p-"));
+      const store = new lib.MemoryStore(root);
+      for (const m of existing) store.add({ id: m.id, kind: m.kind, text: m.text, conf: 0.9, ts: "2026-09-01T00:00:00.000Z" });
+      const at = jev.log.length;
+      const w0 = performance.now();
+      const w = await lib.writeMemory(store, d.sourceText || lib.mergeTurn(t.user, t.assistant), d, { writer: { provider: "none", maxChars: 200, timeoutMs: 1000 }, env: {}, jev });
+      const entries = jev.log.slice(at).filter((e) => !e.event);
+      written = { line: w.line, pick: w.pick?.chosen ?? null, pickOf: w.pick?.sentences?.length ?? null, pickError: w.pick?.error ?? null, ms: Math.round(performance.now() - w0), calls: entries.length, inputTokens: entries.reduce((a, e) => a + (e.inputTokens ?? 0), 0) };
+    }
     rows.push({
       tag: t.tag,
       user: t.user.slice(0, 80),
       want: { ...t.label, contradicts: t.contradicts ?? null },
       got: { save: d.save, kind: d.save ? d.kind : "none", contradicts: d.contradiction ? d.touchesMemoryId : null },
-      ms: Math.round(performance.now() - t0),
+      ms,
+      line: written,
       inputTokens: d.usage.inputTokens,
       outputTokens: d.usage.outputTokens,
       escalated: Boolean(d.escalated),
@@ -73,6 +91,7 @@ async function runMode(mode) {
   const lat = rows.map((r) => r.ms).sort((a, b) => a - b);
   const pct = (p) => lat[Math.min(lat.length - 1, Math.floor(p * lat.length))];
   const avgIn = rows.reduce((a, r) => a + r.inputTokens, 0) / n;
+  const avgLineIn = rows.reduce((a, r) => a + (r.line?.inputTokens ?? 0), 0) / n;
   const avgOut = rows.reduce((a, r) => a + r.outputTokens, 0) / n;
   const contra = rows.filter((r) => r.want.contradicts);
   const falseContra = rows.filter((r) => r.got.contradicts && r.got.contradicts !== r.want.contradicts).length;
@@ -88,6 +107,9 @@ async function runMode(mode) {
     p50ms: pct(0.5), p95ms: pct(0.95),
     avgInputTokens: Math.round(avgIn), avgOutputTokens: Math.round(avgOut), avgTokens: Math.round(avgIn + avgOut),
     costPerTurn: (avgIn / 1e6) * USD_PER_M_INPUT,
+    costPerTurnWithLine: ((avgIn + avgLineIn) / 1e6) * USD_PER_M_INPUT,
+    lineCallsPerTurn: rows.reduce((a, r) => a + (r.line?.calls ?? 0), 0) / n,
+    lineP50ms: (() => { const l = rows.filter((r) => r.line).map((r) => r.line.ms).sort((a, b) => a - b); return l.length ? l[Math.floor(0.5 * l.length)] : null; })(),
     escalationRate: rows.filter((r) => r.escalated).length / n,
     lineErrors,
     errors: rows.filter((r) => r.got.save !== r.want.save || (r.want.save && r.got.kind !== r.want.kind)).map((r) => ({ tag: r.tag, user: r.user, want: r.want, got: r.got, reason: r.reason })),
@@ -113,6 +135,7 @@ const report = {
   cost_method: "input tokens × $0.042 per million; output tokens free (https://typesafe.ai/blog/introducing-system-one-models-and-jev)",
   results,
 };
+fs.rmSync(tmp, { recursive: true, force: true });
 if (OUT) {
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify(report, null, 2) + "\n");
@@ -120,8 +143,8 @@ if (OUT) {
 if (asJson) { console.log(JSON.stringify(report, null, 2)); process.exit(0); }
 const p = (x) => (x * 100).toFixed(1).padStart(5) + "%";
 console.log(`${report.dist}  set=${SET_FILE} (n=${turns.length}), warm in-process client, no cache${commit ? `, commit ${commit}` : ""}`);
-console.log("mode    save/skip  save+kind  F1      in-tok/turn  cost/turn    p50     p95    escalated  contra  inj-not-saved");
-for (const r of results) console.log(`${r.mode.padEnd(7)} ${p(r.saveAccuracy)}     ${p(r.accuracy)}    ${p(r.f1)}  ${String(r.avgInputTokens).padStart(8)}     $${r.costPerTurn.toFixed(6)}  ${String(r.p50ms).padStart(4)} ms ${String(r.p95ms).padStart(5)} ms  ${r.mode === "auto" ? p(r.escalationRate) : "   –  "}     ${r.contradictionsDetected.padEnd(6)}  ${r.injectionNotSaved}`);
+console.log("mode    save/skip  save+kind  F1      in-tok/turn  cost/turn    +line        p50     p95    escalated  contra  inj-not-saved");
+for (const r of results) console.log(`${r.mode.padEnd(7)} ${p(r.saveAccuracy)}     ${p(r.accuracy)}    ${p(r.f1)}  ${String(r.avgInputTokens).padStart(8)}     $${r.costPerTurn.toFixed(6)}  $${r.costPerTurnWithLine.toFixed(6)}  ${String(r.p50ms).padStart(4)} ms ${String(r.p95ms).padStart(5)} ms  ${r.mode === "auto" ? p(r.escalationRate) : "   –  "}     ${r.contradictionsDetected.padEnd(6)}  ${r.injectionNotSaved}`);
 for (const r of results) for (const e of r.errors) console.log(`  ✗ [${r.mode}] ${e.tag.padEnd(14)} want ${e.want.save ? e.want.kind : "skip"} got ${e.got.save ? e.got.kind : "skip"}  ${e.user}`);
 const le = results[0].lineErrors ?? [];
 if (turns.some((t) => t.expectLine)) console.log(`writer (fallback) expectLine checks: ${turns.filter((t) => t.expectLine).length - le.length}/${turns.filter((t) => t.expectLine).length} ok`);

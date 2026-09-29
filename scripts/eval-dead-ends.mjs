@@ -8,7 +8,8 @@
 //   node scripts/eval-dead-ends.mjs --writer-only [--set …] [--writer none|openai|anthropic] [--model <id>] [--out …]
 //
 // Pipeline (the default): every turn goes through the hook's path with the real Jev: `decide` (warm in-process client,
-// no cache), then `writeMemory` with the local writer into a scratch JEVMEM.md that holds the turn's existing lines, so
+// no cache), then `writeMemory` with the local writer (given the client, as the hook gives it: from v0.6 part 3c it asks
+// Jev which sentences the line is made from) into a scratch JEVMEM.md that holds the turn's existing lines, so
 // supersedes and the no-reason refusal happen as in the hook. Reported: dead-end precision and recall (a turn counts as
 // saved as a dead end when a [dead-end] line was written), per tag; on the dead-end lines written, whether the line
 // keeps what was tried and why (the labelled keys, case-insensitive); the supersede cases (the dead end that now works,
@@ -164,9 +165,13 @@ async function pipeline() {
     const d = await lib.decide(jev, { userMessage: r.user, assistantReply: r.assistant, recentContext: r.previous, existingMemories: store.active() }, { tiers: { mode: MODE } });
     const ms = Math.round(performance.now() - t0);
     let got = { save: false, kind: "none", line: null, superseded: null, refused: null };
+    let lineTokens = 0;
     if (d.save) {
-      const w = await lib.writeMemory(store, d.sourceText || lib.mergeTurn(r.user, r.assistant), d, { writer: { provider: "none", maxChars: MAX, timeoutMs: 1000 }, env: {} });
-      got = w.saved ? { save: true, kind: w.saved.kind, line: w.line, superseded: w.superseded?.id ?? null, refused: null } : { save: false, kind: "none", line: w.line, superseded: null, refused: w.refused };
+      // The hook's writer: given the client, a build from v0.6 part 3c on asks Jev which sentences the line is made from.
+      const at = jev.log.length;
+      const w = await lib.writeMemory(store, d.sourceText || lib.mergeTurn(r.user, r.assistant), d, { writer: { provider: "none", maxChars: MAX, timeoutMs: 1000 }, env: {}, jev });
+      lineTokens = jev.log.slice(at).filter((e) => !e.event).reduce((a, e) => a + (e.inputTokens ?? 0), 0);
+      got = w.saved ? { save: true, kind: w.saved.kind, line: w.line, superseded: w.superseded?.id ?? null, refused: null, pick: w.pick?.chosen ?? null } : { save: false, kind: "none", line: w.line, superseded: null, refused: w.refused };
     }
     const deadEnd = r.deadEnd && got.kind === "dead-end" ? { triedKept: keeps(got.line, r.deadEnd.triedKeys), reasonKept: keeps(got.line, r.deadEnd.whyKeys), workedKept: r.deadEnd.worked ? keeps(got.line, r.deadEnd.workedKeys) : null } : null;
     const retest = r.retest ? { of: r.retest.of, same: r.retest.same, oldReasonKept: r.retest.oldWhyKeys && got.line ? keeps(got.line, r.retest.oldWhyKeys) : null, newReasonKept: r.retest.newWhyKeys && got.line ? keeps(got.line, r.retest.newWhyKeys) : null } : null;
@@ -176,7 +181,7 @@ async function pipeline() {
       want: { ...r.label, contradicts: r.contradicts ?? null, accept: r.accept },
       got, deadEnd, retest,
       ok: r.accept.includes(got.save ? got.kind : "skip") && (r.contradicts ? got.superseded === r.contradicts : !got.superseded),
-      ms, inputTokens: d.usage.inputTokens, outputTokens: d.usage.outputTokens, escalated: Boolean(d.escalated), assistantIncluded: d.assistantIncluded, source: d.source,
+      ms, inputTokens: d.usage.inputTokens, outputTokens: d.usage.outputTokens, lineInputTokens: lineTokens, escalated: Boolean(d.escalated), assistantIncluded: d.assistantIncluded, source: d.source,
       reason: d.reason,
       deadEndNoul: { tier1: d.tier1?.nouls?.contains_dead_end ?? null, tier2: d.tier2?.nouls?.tried_an_approach_that_failed_or_was_dropped ?? null },
       worksNow: d.worksNow ?? null,
@@ -279,6 +284,7 @@ async function pipeline() {
     allCorrect: `${out.filter((o) => o.ok).length}/${out.length}`,
     byTag,
     p50ms: p(0.5), p95ms: p(0.95), avgInputTokens: Math.round(avgIn), costPerDecision: (avgIn / 1e6) * USD_PER_M_INPUT,
+    costPerDecisionWithLine: ((avgIn + out.reduce((a, o) => a + (o.lineInputTokens ?? 0), 0) / out.length) / 1e6) * USD_PER_M_INPUT,
     escalationRate: MODE === "auto" ? out.filter((o) => o.escalated).length / out.length : null,
     assistantIncludedRate: out.filter((o) => o.assistantIncluded).length / out.length,
     ...(v3 ? { v3 } : {}),
