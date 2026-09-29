@@ -632,10 +632,11 @@ run_guard() {
     const fs=require("fs");const f=process.argv[2]+"/jevmem.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));
     c.guard={...c.guard,mode:"block"};c.thresholds={...c.thresholds,recallMin:1.01,recallRelevanceMin:1.01};fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n");
 JS
-  # A0: the rule is said in a turn, so jevmem's own Stop hook writes it: a verified line (only those can deny).
-  # Stated plainly: a second sentence telling Claude what to do ("just acknowledge it") scored 0.51 on the decide
-  # gate's injection noul in the first runs, and the turn was skipped.
-  local p0="Rule for this repo: never commit .env files."
+  # A0: the rule is said in a turn, so jevmem's own Stop hook writes it: a verified line (only those can deny). This
+  # turn scored 0.51 on decide's injection check in the first runs of 2026-09-28 and was skipped, so the harness said
+  # "Rule for this repo: never commit .env files." instead. The cause was "from now on", read as an order about the AI's
+  # own memory; v0.6 part 3c fixed the question, so the turn is back as it was written, instruction and all.
+  local p0="A rule for this repository from now on: never commit .env files. Nothing to do right now; just acknowledge it."
   echo "---- A0 (the rule said in a turn: jevmem writes it here, a verified line): $p0"
   local before rule
   before=$(decisions "$scratch")
