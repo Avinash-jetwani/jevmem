@@ -448,7 +448,7 @@ run_nokey_variant() {
   "$NODE" - "$events" "$scratch" "$variant" "$ROOT/dist/index.js" <<'JS' || fail=1
     const fs=require("fs");const [base,root,variant,lib]=process.argv.slice(2);
     const errs=[];const shown=[];const sessions=[];
-    const built=require(lib);const expected=variant==="plugin"?built.MISSING_KEY_NOTICE_PLUGIN:built.MISSING_KEY_NOTICE_INIT;
+    const built=require(lib);const expected=variant==="plugin"?built.MISSING_KEY_NOTICE_MARKETPLACE:built.MISSING_KEY_NOTICE_INIT; // the plugin is installed from a marketplace here
     for(const t of [0,1]){
       const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
       sessions.push((ev.find(e=>e.session_id)||{}).session_id);

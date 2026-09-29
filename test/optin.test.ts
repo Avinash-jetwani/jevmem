@@ -17,7 +17,7 @@ import path from "node:path";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { init } from "../src/init.js";
 import { MemoryStore } from "../src/store.js";
-import { WRITER_OPT_IN_NOTICE } from "../src/notice.js";
+import { firstLineMessage, WRITER_OPT_IN_NOTICE } from "../src/notice.js";
 import { startFakeJev, type FakeJev } from "./fakejev.js";
 import { SAVE_DECISION } from "./helpers.js";
 
@@ -146,7 +146,8 @@ describe.skipIf(process.platform === "win32")("the LLM writer is opt-in per proj
     expect(r.writer).toBe("fallback");
     expect(llm.requests).toHaveLength(0);
     const first = await run(process.execPath, [CLI, "hook"], { cwd: root, env: env(root, home), input: ups(root) });
-    expect(JSON.parse(first.stdout).systemMessage).toBe(WRITER_OPT_IN_NOTICE);
+    // The Stop hook above saved jevmem's first line in this project, so that is announced on the same prompt.
+    expect(JSON.parse(first.stdout).systemMessage).toBe(`${WRITER_OPT_IN_NOTICE}\n${firstLineMessage()}`);
     const second = await run(process.execPath, [CLI, "hook"], { cwd: root, env: env(root, home), input: ups(root) });
     expect(second.stdout).not.toContain("opt-in");
     // A CLI command in the same project stays quiet too: the notice is once per project.
@@ -220,7 +221,7 @@ describe("jevmem doctor", () => {
     expect(r.stdout + r.stderr).not.toContain("secret-");
   });
 
-  it("with no key: names jevmem key, ~/.jevmem/env and the plugin setting (no marketplace name); init says the same", () => {
+  it("with no key: names jevmem key and ~/.jevmem/env, and no plugin setting without a plugin from a marketplace; init says the same", () => {
     const root = project({});
     const e = { PATH: "/usr/bin:/bin", HOME: tmp() };
     const d = spawnSync(process.execPath, [CLI, "doctor"], { cwd: root, env: e, encoding: "utf8" });
@@ -228,7 +229,7 @@ describe("jevmem doctor", () => {
     for (const out of [d.stdout, i.stdout]) {
       expect(out).toContain("run jevmem key in a terminal and paste your key");
       expect(out).toContain("~/.jevmem/env");
-      expect(out).toContain("/plugin configure jevmem ");
+      expect(out).not.toContain("/plugin configure");
       expect(out).not.toContain("jevmem@jevmem");
       expect(out).toContain("https://console.typesafe.ai/keys");
     }

@@ -166,7 +166,7 @@ describe("jevmem doctor: the jevmem each hook runs, and whether it has the guard
     const old = oldCli("0.5.2");
     fs.symlinkSync(old, path.join(bin, "jevmem"));
     const lines = await doctor(root, { HOME: home, CLAUDE_CONFIG_DIR: undefined, PATH: `${bin}:/usr/bin:/bin` });
-    expect(lines).toContain(`hooks    plugin enabled in ${path.join(home, ".claude", "settings.json")}`);
+    expect(lines).toContain("hooks    jevmem plugin jevmem@jevmem, installed from a marketplace, enabled in ~/.claude/settings.json");
     expect(lines).toContain(`cli      with this PATH the plugin runs ${path.join(bin, "jevmem")} (→ ${old}): jevmem 0.5.2, too old for the guard, so it skips its PreToolUse hook: no guard in plugin sessions`);
     // With the current CLI on PATH instead: it has the guard.
     fs.rmSync(path.join(bin, "jevmem"));

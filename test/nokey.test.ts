@@ -90,7 +90,8 @@ async function story(run: Run, root: string, home: string, notice: string) {
   const u = await run("ups", ups(root, "s3"));
   expect(u.stderr).toBe("");
   const out = JSON.parse(u.stdout);
-  expect(out.systemMessage).toBeUndefined();
+  // No missing-key notice now; jevmem's first line in this project is announced instead, once.
+  expect(out.systemMessage).toBe("jevmem saved its first line to JEVMEM.md.");
   expect(out.hookSpecificOutput.additionalContext).toContain("Postgres 16");
   expect(state(root).missingKeyNotice).toBeUndefined();
 

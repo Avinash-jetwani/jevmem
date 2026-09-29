@@ -3,9 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import { applyAudit, auditMemories, formatAuditTable, formatSecurityTable, securityAudit } from "./audit.js";
 import { knownWithheld, planGate } from "./guard.js";
-import { formatFailures, recentFailures } from "./failures.js";
+import { formatFailures, isNoKey, recentFailures } from "./failures.js";
 import { formatGuardLog, formatGuardStats, guardLogStats, readGuardLog } from "./guardlog.js";
-import { checkCli, initHookClis, pluginLauncherCli, userEnablesPlugin } from "./hookcli.js";
+import { checkCli, initHookClis, pluginLauncherCli } from "./hookcli.js";
 import { isVerified, readProvenance } from "./provenance.js";
 import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { PACKAGE_VERSION } from "./version.js";
@@ -13,11 +13,12 @@ import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, 
 import { deferredTurns } from "./turns.js";
 import { captureTurns, drainTurns, recallPathStats, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
-import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, MISSING_KEY_HELP, resolveJevKey, saveJevKey } from "./env.js";
+import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, missingKeyHelp, PLUGIN_CONFIGURE_HINT, resolveJevKey, saveJevKey } from "./env.js";
+import { canConfigure, describeInstall, hasActivePlugin, pluginInstalls, runningPlugin } from "./install.js";
 import { clampLine, isReasoningModel, resolveWriter } from "./llm/index.js";
-import { keyFound, missingKeyNotice, writerOptInNotice } from "./notice.js";
+import { firstLineNotice, keyFound, missingKeyNotice, writerOptInNotice } from "./notice.js";
 import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
-import { disableProject, enableProject, init, projectEnablesPlugin, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
+import { disableProject, enableProject, init, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
 import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong, MIN_LABELS, readFitInfo, readLabels, runFit } from "./labels.js";
 import { detectTools, setupClaudeDesktop, setupCodex, setupCursor, TOOLS, type Tool } from "./tools.js";
 import { watchCodex } from "./watch.js";
@@ -239,7 +240,8 @@ Checks this project's setup and prints it. Never prints a key.
             ~/.jevmem/env, and where to put it when none is found
   writer    which one-line writer is active and why. The LLM writer runs only when jevmem.config.json sets
             "writer": "openai" or "anthropic" and that provider's key is set; otherwise jevmem writes the line itself
-  hooks     the Claude Code plugin enabled in project or user settings, and hooks registered by \`jevmem init\`
+  hooks     the jevmem plugin: synced from claude.ai (added in the Claude app, jevmem@synced) or installed from a
+            marketplace and enabled in the project or user settings; and hooks registered by \`jevmem init\`
   guard     the PreToolUse guard's mode and how many [constraint] rules it enforces (docs/guardrails.md)
   cli       the jevmem each hook runs (the path \`jevmem init\` registered, or the \`jevmem\` the plugin finds with this
             PATH), its version, whether it has the guard (asked \`guard --help\` from /, as the plugin does), and
@@ -254,8 +256,8 @@ Checks this project's setup and prints it. Never prints a key.
 Save your TypeSafe API key to ~/.jevmem/env, where jevmem's hooks, MCP server and commands look when their environment
 has no key. It asks for the key without showing it, or reads it from stdin (jevmem key < file). When the file already
 has a key, it asks before replacing it, which needs a terminal; other lines are kept. The folder is readable only by
-you (700) and so is the file (600). The key is never printed or logged. With the Claude Code plugin you can keep it in
-your system's credential store instead: run /plugin configure jevmem in Claude Code.
+you (700) and so is the file (600). The key is never printed or logged. This works for every install: the plugin added
+in the Claude app (jevmem@synced), one installed from a marketplace, and the hooks \`jevmem init\` registers.
 `,
   log: `jevmem log
 
@@ -282,6 +284,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
   // `<cmd> --help` / `-h`: print that command's help and stop before anything runs.
   if (cmd && (COMMANDS as readonly string[]).includes(cmd) && wantsHelp(args)) {
     io.out(COMMAND_HELP[cmd as (typeof COMMANDS)[number]]);
+    // The plugin's key setting, only where it exists: a jevmem plugin installed from a marketplace (src/install.ts).
+    if (cmd === "key" && canConfigure(pluginInstalls(root))) io.out(PLUGIN_CONFIGURE_HINT + "\n");
     return 0;
   }
 
@@ -311,8 +315,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const r = enableProject(root);
       for (const c of r.created) io.out(`  created  ${c}\n`);
       for (const k of r.skipped) io.out(`  kept     ${k}\n`);
-      io.out(`\njevmem is enabled in this project. With the Claude Code plugin installed, it starts with your next prompt; without it, run \`jevmem init\` to register the hooks.\n`);
-      if (!resolveJevKey(root)) io.out(`\n! ${MISSING_KEY_HELP.replace(/\n/g, "\n  ")}\n`);
+      io.out(`\njevmem is enabled in this project.\n${enableNextStep(root)}\n`);
       return 0;
     }
     case "disable": {
@@ -367,7 +370,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       if (tools.includes("claude") && !noHooks) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n  PreToolUse        ${r.guardCommand}  (matcher ${r.guardMatcher})\n`);
       for (const n of notes) io.out(`\n${n}\n`);
       for (const w of r.warnings) io.out(`\n! ${w}\n`);
-      if (!resolveJevKey(root)) io.out(`\n! ${MISSING_KEY_HELP.replace(/\n/g, "\n  ")}\n`);
+      // `jevmem init`'s hooks have no plugin setting, so the one fix alone.
+      if (!resolveJevKey(root)) io.out(`\n! ${missingKeyHelp().replace(/\n/g, "\n  ")}\n`);
       io.out(`\nNext: keep working. JEVMEM.md fills itself. Try \`jevmem list\`, \`jevmem search "<query>"\`, \`jevmem why <id>\`, \`jevmem stats\`.\n`);
       return 0;
     }
@@ -404,9 +408,12 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         // No key: the hooks do nothing, so say so, once per project until a key is found. Notices are shown to the user
         // on a prompt only (the Stop hook's output is not shown).
         if (hasJevKey()) keyFound(projectRoot);
-        const keyNotice = !hasJevKey() && event === "UserPromptSubmit" ? missingKeyNotice(projectRoot, viaPlugin ? "plugin" : "init") : null;
+        // The plugin's words depend on how it was installed: only one from a marketplace has a key setting.
+        const keyNotice = !hasJevKey() && event === "UserPromptSubmit" ? missingKeyNotice(projectRoot, viaPlugin ? (runningPlugin(process.env, projectRoot) ?? "plugin") : "init") : null;
         const writerNotice = event === "UserPromptSubmit" ? writerOptInNotice(projectRoot) : null;
-        const notice = [keyNotice, writerNotice].filter(Boolean).join("\n");
+        // jevmem's first line in this project, once, so it is not mistaken for Claude Code's own memory.
+        const firstNotice = event === "UserPromptSubmit" ? firstLineNotice(projectRoot, cfg.memoryFile) : null;
+        const notice = [keyNotice, writerNotice, firstNotice].filter(Boolean).join("\n");
         const verbose = process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1";
         let out = null as Awaited<ReturnType<typeof runHook>> | null;
         const useDaemon = daemonEnabled(cfg) && hasJevKey();
@@ -616,11 +623,14 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
     case "log":
     case "stats": {
       const allEntries = readLog(root);
-      const entries = allEntries.filter((e) => !e.event); // Jev calls only; queue and gate events are counted below
+      // Jev calls only: queue and gate events are counted below, and so are the hooks' own problem lines (no key, for
+      // example), which are not calls.
+      const entries = allEntries.filter((e) => !e.event && e.label !== "hook");
+      const skippedNoKey = allEntries.filter((e) => e.label === "hook" && e.ok === false && !e.event && isNoKey(e.error ?? "")).length;
       const s = summarizeLog(entries);
       const byLabel = new Map<string, typeof entries>();
       for (const e of entries) byLabel.set(e.label, [...(byLabel.get(e.label) ?? []), e]);
-      io.out(`${s.calls} call(s), ${s.ok} ok, ${s.cacheHits} cache hit(s) (${(s.cacheHitRate * 100).toFixed(0)}%), p50 ${s.p50LatencyMs} ms, p95 ${s.p95LatencyMs} ms, ${s.totalTokens} tokens, $${s.totalCostUsd.toFixed(6)} total\n`);
+      io.out(`${s.calls} call(s), ${s.ok} ok, ${s.cacheHits} cache hit(s) (${(s.cacheHitRate * 100).toFixed(0)}%), p50 ${s.p50LatencyMs} ms, p95 ${s.p95LatencyMs} ms, ${s.totalTokens} tokens, $${s.totalCostUsd.toFixed(6)} total${skippedNoKey ? `; ${skippedNoKey} skipped: no TypeSafe key` : ""}\n`);
       for (const [label, es] of byLabel) {
         const ls = summarizeLog(es);
         io.out(`  ${label.padEnd(8)} ${String(ls.calls).padStart(4)} calls  p50 ${String(ls.p50LatencyMs).padStart(5)} ms  p95 ${String(ls.p95LatencyMs).padStart(5)} ms  ${String(ls.totalTokens).padStart(7)} tokens  $${ls.totalCostUsd.toFixed(6)}  cache ${(ls.cacheHitRate * 100).toFixed(0)}%\n`);
@@ -659,7 +669,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       io.out(`jevmem ${PACKAGE_VERSION}\n`);
       io.out(`project  ${root}: ${enabled ? "enabled (jevmem.config.json)" : "not enabled: run `jevmem enable`"}\n`);
       const source = resolveJevKey(root);
-      io.out(source ? `key      TypeSafe key found (${source})\n` : `key      ${MISSING_KEY_HELP.replace(/\n/g, "\n         ")}\n`);
+      const installs = pluginInstalls(root);
+      io.out(source ? `key      TypeSafe key found (${source})\n` : `key      ${missingKeyHelp({ configure: canConfigure(installs) }).replace(/\n/g, "\n         ")}\n`);
       loadEnvFallbacks(root); // the writer keys may live in .jevmem/.env or ~/.jevmem/env even when TYPESAFE_API_KEY doesn't
       const w = resolveWriter(loadConfig(root).writer);
       io.out(`writer   ${w.provider === "none" ? "jevmem (local, no LLM)" : `${w.provider} (${w.model})`}: ${w.reason}\n`);
@@ -669,10 +680,9 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const forced = process.env.JEVMEM_WRITER?.trim().toLowerCase();
       if (forced && forced !== "none") io.out(`         JEVMEM_WRITER=${forced} is ignored: only "writer" in jevmem.config.json turns the LLM writer on\n`);
       if (configuredWriter(root) === "auto") io.out(`         jevmem.config.json has the pre-0.5.4 "writer": {"provider": "auto"}, which now means no LLM writer\n`);
-      const userPlugin = userEnablesPlugin();
-      const plugin = projectEnablesPlugin(root) || Boolean(userPlugin);
-      const hooks = [projectEnablesPlugin(root) ? "plugin enabled in project settings" : null, userPlugin ? `plugin enabled in ${userPlugin}` : null, projectHasInitHooks(root) ? `\`jevmem init\` hooks in .claude/settings.local.json${projectHasInitGuardHook(root) ? " (with the PreToolUse guard)" : " (no PreToolUse guard: `jevmem init` with a jevmem that has the guard adds it)"}` : null].filter(Boolean);
-      io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no jevmem plugin in the project or user settings, and no init hooks in this project"}\n`);
+      const plugin = hasActivePlugin(installs);
+      const hooks = [...installs.map(describeInstall), projectHasInitHooks(root) ? `\`jevmem init\` hooks in .claude/settings.local.json${projectHasInitGuardHook(root) ? " (with the PreToolUse guard)" : " (no PreToolUse guard: `jevmem init` with a jevmem that has the guard adds it)"}` : null].filter(Boolean);
+      io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no jevmem plugin found (checked the plugins synced from claude.ai and the user and project settings), and no init hooks in this project: run `jevmem init --tool claude`, or add the plugin"}\n`);
       if (enabled) io.out(`guard    ${guardStatus(root)}\n`);
       for (const line of hookCliLines(root, plugin)) io.out(line + "\n");
       for (const line of formatFailures(recentFailures(readLog(root)), "failures ", "         ")) io.out(line + "\n");
@@ -813,6 +823,16 @@ function standDown(root: string, input: HookInput, event: string): string | null
     /* best effort */
   }
   return warning;
+}
+
+/**
+ * `jevmem enable`'s one next step: the key when none is found (the one fix for every install), the hooks when neither a
+ * jevmem plugin nor `jevmem init` hooks are found, or nothing to do.
+ */
+function enableNextStep(root: string): string {
+  if (!resolveJevKey(root)) return "Next: run jevmem key in a terminal and paste your TypeSafe API key (get one at https://console.typesafe.ai/keys).";
+  if (!hasActivePlugin(pluginInstalls(root)) && !projectHasInitHooks(root)) return "Next: run jevmem init --tool claude to register the Claude Code hooks (no jevmem plugin or init hooks found).";
+  return "Memory starts with your next prompt in Claude Code.";
 }
 
 /** `jevmem doctor`'s guard line: the mode and how many [constraint] lines are enforced. */
@@ -1003,7 +1023,7 @@ function fail(msg: string): number {
 class MissingKey extends Error {}
 function requireKey(): void {
   if (!hasJevKey()) loadEnvFallbacks(io.cwd ?? process.cwd());
-  if (!hasJevKey()) throw new MissingKey(MISSING_KEY_HELP);
+  if (!hasJevKey()) throw new MissingKey(missingKeyHelp({ configure: canConfigure(pluginInstalls(io.cwd ?? process.cwd())) }));
 }
 function printJevSummary(log: ReturnType<typeof readLog>): void {
   if (process.env.JEVMEM_VERBOSE !== "1") return;

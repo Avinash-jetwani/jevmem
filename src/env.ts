@@ -139,10 +139,19 @@ export function saveJevKey(key: string, home: string = os.homedir()): string {
   return file;
 }
 
-/** What to do when no TypeSafe key is found: the one command, and the plugin's own setting. Never prints a key. */
-export const MISSING_KEY_HELP = [
-  "No TypeSafe API key found, so jevmem does nothing yet. To fix it, run jevmem key in a terminal and paste your key.",
-  "It is saved in ~/.jevmem/env, readable only by you.",
-  "With the Claude Code plugin you can instead run /plugin configure jevmem in Claude Code (kept in your system's credential store).",
-  "Get a key at https://console.typesafe.ai/keys",
-].join("\n");
+/** The plugin's key option, offered only for a plugin installed from a marketplace (not `jevmem@synced`, which has none). */
+export const PLUGIN_CONFIGURE_HINT = "With the jevmem plugin installed from a marketplace you can instead run /plugin configure jevmem in Claude Code (kept in your system's credential store).";
+
+/**
+ * What to do when no TypeSafe key is found: the one command, which works for every install, and the plugin's own
+ * setting only when `configure` (a plugin from a marketplace was found). Never prints a key.
+ */
+export function missingKeyHelp(opts: { configure?: boolean } = {}): string {
+  return [
+    "No TypeSafe API key found, so jevmem does nothing yet. To fix it, run jevmem key in a terminal and paste your key.",
+    "It is saved in ~/.jevmem/env, readable only by you.",
+    ...(opts.configure ? [PLUGIN_CONFIGURE_HINT] : []),
+    "Get a key at https://console.typesafe.ai/keys",
+  ].join("\n");
+}
+export const MISSING_KEY_HELP = missingKeyHelp();

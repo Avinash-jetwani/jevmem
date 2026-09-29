@@ -42,6 +42,15 @@ export function recordProvenance(root: string, mem: Pick<Memory, "id" | "text">,
   }
 }
 
+/** Has jevmem's hook saved a line in this project before (a provenance record via "hook")? */
+export function hasHookProvenance(root: string): boolean {
+  try {
+    return fs.readFileSync(provenanceFile(root), "utf8").includes('"via":"hook"');
+  } catch {
+    return false;
+  }
+}
+
 /** id → set of text hashes jevmem wrote under that id on this machine. */
 export function readProvenance(root: string): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();

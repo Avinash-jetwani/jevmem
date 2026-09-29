@@ -7,7 +7,8 @@ import { loadEnvFallbacks } from "./env.js";
 import { appendLog, createJev, hasJevKey, summarizeLog, type JevCaller } from "./jev.js";
 import { gatePendingRules } from "./guardrail.js";
 import { recordDecision } from "./labels.js";
-import { recordProvenance } from "./provenance.js";
+import { hasHookProvenance, recordProvenance } from "./provenance.js";
+import { noteFirstLine } from "./notice.js";
 import { formatInjection, recallGuarded, replacedTexts, type RecallPath } from "./recall.js";
 import { DEFAULT_CONFIG } from "./types.js";
 import { drainQueue, enqueueTurn, readQueue, type QueuedTurn } from "./queue.js";
@@ -340,6 +341,8 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
     store.remove(result.saved.id);
     return { event, action: "skipped", detail: `duplicate of ${dup.id}`, decision };
   }
+  // The project's first line saved by jevmem is announced on the next prompt (src/notice.ts).
+  noteFirstLine(store.root, hasHookProvenance(store.root));
   recordProvenance(store.root, result.saved, "hook");
   const sup = result.superseded ? ` (supersedes ${result.superseded.id})` : "";
   return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}${pick && !pick.error ? ` (${describePick(pick)})` : ""}${result.writerNote ? ` (${result.writerNote})` : ""}`, decision };

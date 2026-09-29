@@ -50,19 +50,20 @@ describe("recentFailures", () => {
       ],
       { now: NOW },
     );
-    expect([f.dropped.count, f.recall.count, f.guard.count, f.other.count]).toEqual([5, 2, 3, 1]);
+    // The hooks' "no key" lines are counted apart, as skipped, not as drops or failed checks.
+    expect([f.dropped.count, f.recall.count, f.guard.count, f.other.count]).toEqual([4, 2, 2, 1]);
+    expect(f.noKey).toEqual({ prompts: 0, turns: 1, guard: 1 });
     expect(f.dropped.reasons.map((r) => [r.count, r.latest])).toEqual([
       [2, `not retryable: ${syntax(173)}`],
-      [1, "TYPESAFE_API_KEY not set (checked the plugin setting, env, .jevmem/.env, ~/.jevmem/env); jevmem skipped"],
       [1, "empty turn (source: transcript-unreadable, transcript missing)"],
       [1, "older than 24 h (7 failed attempt(s); last error: APIConnectionTimeoutError: Request timed out.)"],
     ]);
     expect(f.guard.reasons.map((r) => [r.count, r.latest])).toEqual([
       [2, "Error: timed out after 958 ms (guard.budgetMs)"], // same time: the later line is the latest
-      [1, "no TypeSafe API key (checked the plugin setting, env, .jevmem/.env, ~/.jevmem/env): no decision"],
     ]);
     const lines = formatFailures(f, "failures: ", "  ");
-    expect(lines[0]).toBe("failures: in the last 7 days: 5 dropped turn(s), 2 failed recall(s), 3 guard check(s) failed or timed out, 1 other hook problem(s) (.jevmem/log.jsonl)");
+    expect(lines[0]).toBe("failures: in the last 7 days: 4 dropped turn(s), 2 failed recall(s), 2 guard check(s) failed or timed out, 1 other hook problem(s) (.jevmem/log.jsonl)");
+    expect(lines[1]).toBe("  2 skipped: no TypeSafe key (1 finished turn(s) not saved, 1 Bash, Edit or Write call(s) not checked). To fix it, run jevmem key in a terminal and paste your key");
     expect(lines).toContain("  dropped turns, never evaluated:");
     expect(lines).toContain(`    2× not retryable: ${syntax(173)} (last ${at(2).slice(0, 16).replace("T", " ")} UTC)`);
     expect(lines).toContain("  failed recalls, the prompt got no project memory:");
@@ -115,11 +116,13 @@ describe("jevmem stats and doctor show the failures the hooks logged", () => {
 
     const stats = (await cli(["stats"], root)).out.split("\n");
     const at = stats.findIndex((l) => l.startsWith("failures: "));
-    expect(stats[at]).toBe("failures: in the last 7 days: 2 dropped turn(s), 0 failed recall(s), 2 guard check(s) failed or timed out, 1 recall(s) by word match (.jevmem/log.jsonl)");
+    // The hook with no key is not a Jev call: the first line counts it as skipped, with the reason.
+    expect(stats[0]).toMatch(/; 1 skipped: no TypeSafe key$/);
+    expect(stats[at]).toBe("failures: in the last 7 days: 1 dropped turn(s), 0 failed recall(s), 2 guard check(s) failed or timed out, 1 recall(s) by word match (.jevmem/log.jsonl)");
     const block = stats.slice(at + 1, at + 9);
-    expect(block[0]).toBe("  dropped turns, never evaluated:");
-    expect(block.slice(1, 3).some((l) => /^ {4}1× not retryable: BadRequestError: 400 .* \(last \d{4}-\d\d-\d\d \d\d:\d\d UTC\)$/.test(l))).toBe(true);
-    expect(block.slice(1, 3).some((l) => /^ {4}1× TYPESAFE_API_KEY not set/.test(l))).toBe(true);
+    expect(block[0]).toBe("  1 skipped: no TypeSafe key (1 finished turn(s) not saved). To fix it, run jevmem key in a terminal and paste your key");
+    expect(block[1]).toBe("  dropped turns, never evaluated:");
+    expect(block[2]).toMatch(/^ {4}1× not retryable: BadRequestError: 400 .* \(last \d{4}-\d\d-\d\d \d\d:\d\d UTC\)$/);
     expect(block[3]).toBe("  guard checks that failed or timed out, the call ran unchecked:");
     // The SDK's own timeout (at the budget) usually fires before the guard's timer (25 ms later); either counts.
     expect(block.slice(4, 6).some((l) => /APITimeoutError: Request timed out|timed out after \d+ ms \(guard\.budgetMs\)/.test(l))).toBe(true);
@@ -129,7 +132,7 @@ describe("jevmem stats and doctor show the failures the hooks logged", () => {
     expect(stats).toContain("recall: 1 prompt(s): 0 served by Jev, 1 by word match because Jev failed or ran past jev.recallTimeoutMs; 1 got no line");
     // doctor: the same, under its own label.
     const doctor = (await cli(["doctor"], root)).out;
-    expect(doctor).toMatch(/^failures in the last 7 days: 2 dropped turn\(s\), 0 failed recall\(s\), 2 guard check\(s\) failed or timed out, 1 recall\(s\) by word match \(\.jevmem\/log\.jsonl\)$/m);
+    expect(doctor).toMatch(/^failures in the last 7 days: 1 dropped turn\(s\), 0 failed recall\(s\), 2 guard check\(s\) failed or timed out, 1 recall\(s\) by word match \(\.jevmem\/log\.jsonl\)$/m);
     expect(doctor).toMatch(/^ {9}dropped turns, never evaluated:$/m);
   }, 30_000);
 

@@ -13,6 +13,8 @@
  * - Writer fallbacks: the LLM writer set in jevmem.config.json gave no line (an error, an empty line) and the line was
  *   written locally, or its request had to change (an OpenAI-compatible endpoint that rejected `reasoning_effort`); or
  *   (v0.6 part 3c) Jev's pick of the line's sentences failed, and jevmem's own writer chose one by its words.
+ * - Skipped for want of a TypeSafe key: the hooks' "no key" lines, counted apart from the rest (prompts that got no
+ *   memory, finished turns not saved, tool calls not checked), with the one fix, `jevmem key`.
  * - Recalls by word match (v0.6 part 3b): the prompt's Jev call failed or ran past `jev.recallTimeoutMs`, so the prompt
  *   got the lines sharing the most words with it instead of Jev's pick (the `served` events of src/hook.ts).
  */
@@ -36,13 +38,18 @@ export interface RecentFailures {
   wordMatch: FailureGroup;
   /** Other hook problems (for example the Stop drain's gate check of new rules, or an event that could not be read). */
   other: FailureGroup;
+  /** Hook events skipped because no TypeSafe key was found (not in the groups above). */
+  noKey: { prompts: number; turns: number; guard: number };
 }
 
 const one = (s: string) => s.replace(/\s+/g, " ").trim();
 
+/** A hook's "no TypeSafe key" problem line. */
+export const isNoKey = (s: string) => /TYPESAFE_API_KEY not set|no TypeSafe API key/.test(s);
+
 /** Messages that differ only in numbers (a JSON position, a time in ms, an attempt count) are one reason. */
 const reasonKey = (s: string) => {
-  if (/TYPESAFE_API_KEY not set|no TypeSafe API key/.test(s)) return "no key";
+  if (isNoKey(s)) return "no key";
   return s.replace(/\d+/g, "N");
 };
 
@@ -70,6 +77,7 @@ export function recentFailures(entries: JevLogEntry[], opts: { now?: number; day
   const writer: { at: string; message: string }[] = [];
   const wordMatch: { at: string; message: string }[] = [];
   const other: { at: string; message: string }[] = [];
+  const noKey = { prompts: 0, turns: 0, guard: 0 };
   // The queue's drops, to recognise the same drop logged again as the hook's error (`not retryable: <error>` / `<error>`).
   const queueDrops = recent.filter((e) => e.label === "queue" && e.event === "dropped").map((e) => ({ t: Date.parse(e.ts), m: one(e.detail ?? "") }));
   const alsoQueued = (at: string, m: string) => queueDrops.some((d) => d.m === `not retryable: ${m}` && Math.abs(d.t - Date.parse(at)) < 10_000);
@@ -77,27 +85,39 @@ export function recentFailures(entries: JevLogEntry[], opts: { now?: number; day
     if (e.label === "queue" && e.event === "dropped") dropped.push({ at: e.ts, message: one(e.detail ?? "dropped") });
     else if (e.label === "hook" && e.ok === false && !e.event) {
       const err = one(e.error ?? "");
-      if (err.startsWith("UserPromptSubmit: ")) recall.push({ at: e.ts, message: err.slice("UserPromptSubmit: ".length) });
+      if (isNoKey(err)) {
+        if (err.startsWith("UserPromptSubmit: ")) noKey.prompts++;
+        else if (err.startsWith("Stop: ")) noKey.turns++;
+        else other.push({ at: e.ts, message: err });
+      } else if (err.startsWith("UserPromptSubmit: ")) recall.push({ at: e.ts, message: err.slice("UserPromptSubmit: ".length) });
       else if (err.startsWith("Stop: ")) {
         const m = err.slice("Stop: ".length);
         // Read fine, nothing to save: not a drop. The drain's gate check of new rules is not about the turn.
         if (/^empty turn \(source: transcript(\+last_assistant_message)?,/.test(m) || alsoQueued(e.ts, m)) continue;
         (/^gate check of new rules/.test(m) ? other : dropped).push({ at: e.ts, message: m });
       } else other.push({ at: e.ts, message: err });
-    } else if (e.label === "guard" && e.ok === false && !e.event && !(e.questions > 0)) guard.push({ at: e.ts, message: one((e.error ?? "").replace(/^Jev check failed, no decision: /, "")) });
+    } else if (e.label === "guard" && e.ok === false && !e.event && !(e.questions > 0) && isNoKey(e.error ?? "")) noKey.guard++;
+    else if (e.label === "guard" && e.ok === false && !e.event && !(e.questions > 0)) guard.push({ at: e.ts, message: one((e.error ?? "").replace(/^Jev check failed, no decision: /, "")) });
     // A guard setting the guard replaced with the default: the call was still checked, so not a failed check.
     else if (e.label === "guard" && e.event === "guard-config") other.push({ at: e.ts, message: one(e.error ?? "guard setting not used") });
     else if (e.label === "writer" && e.event === "writer-fallback") writer.push({ at: e.ts, message: one(e.detail ?? "writer fallback") });
     else if (e.label === "recall" && e.event === "served" && /^word match\b/.test(e.detail ?? "")) wordMatch.push({ at: e.ts, message: one((e.detail ?? "").replace(/^word match: \d+ line\(s\); /, "")) });
   }
-  return { days, since, dropped: group(dropped), recall: group(recall), guard: group(guard), writer: group(writer), wordMatch: group(wordMatch), other: group(other) };
+  return { days, since, dropped: group(dropped), recall: group(recall), guard: group(guard), writer: group(writer), wordMatch: group(wordMatch), other: group(other), noKey };
 }
 
 /** Lines for doctor and stats, each starting with `indent` (the first with `head`). */
 export function formatFailures(f: RecentFailures, head: string, indent: string): string[] {
   const total = f.dropped.count + f.recall.count + f.guard.count + f.writer.count + f.wordMatch.count + f.other.count;
-  if (!total) return [`${head}none in the last ${f.days} days: no dropped turn, failed recall, failed guard check or writer fallback in .jevmem/log.jsonl`];
+  const k = f.noKey;
+  const skipped = k.prompts + k.turns + k.guard;
+  // No key: say so first, with what it cost and the one fix.
+  const noKeyLine = skipped
+    ? `${skipped} skipped: no TypeSafe key (${[k.prompts ? `${k.prompts} prompt(s) got no project memory` : "", k.turns ? `${k.turns} finished turn(s) not saved` : "", k.guard ? `${k.guard} Bash, Edit or Write call(s) not checked` : ""].filter(Boolean).join(", ")}). To fix it, run jevmem key in a terminal and paste your key`
+    : "";
+  if (!total) return [skipped ? `${head}in the last ${f.days} days: ${noKeyLine}` : `${head}none in the last ${f.days} days: no dropped turn, failed recall, failed guard check or writer fallback in .jevmem/log.jsonl`];
   const out = [`${head}in the last ${f.days} days: ${f.dropped.count} dropped turn(s), ${f.recall.count} failed recall(s), ${f.guard.count} guard check(s) failed or timed out${f.wordMatch.count ? `, ${f.wordMatch.count} recall(s) by word match` : ""}${f.writer.count ? `, ${f.writer.count} writer fallback(s)` : ""}${f.other.count ? `, ${f.other.count} other hook problem(s)` : ""} (.jevmem/log.jsonl)`];
+  if (skipped) out.push(`${indent}${noKeyLine}`);
   const cut = (s: string) => (s.length > 150 ? s.slice(0, 149) + "…" : s);
   const section = (name: string, g: FailureGroup, note: string) => {
     if (!g.count) return;

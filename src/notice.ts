@@ -1,6 +1,7 @@
 /**
  * One-time notices, each recorded in `.jevmem/state.json` and shown once per project:
  * - no TypeSafe key found, so the hooks do nothing (again after a key was found and went missing);
+ * - jevmem saved its first line in the project, shown on the next prompt;
  * - for projects set up before 0.5.4, when the LLM writer turned itself on whenever an OpenAI or Anthropic key was
  *   found: shown only where the old behaviour could have applied (the config does not choose a writer, `"auto"` or no
  *   field, and an OpenAI or Anthropic key is set, or an earlier line was written by an LLM writer).
@@ -40,12 +41,22 @@ function readState(root: string): Record<string, unknown> {
 }
 
 const WHERE = "TYPESAFE_API_KEY in the environment Claude Code gives hooks (your shell profile is not read), <project>/.jevmem/.env and ~/.jevmem/env";
-/** The one fix, for both kinds of hooks: `jevmem key` saves to ~/.jevmem/env, which the plugin's hooks read too. */
-const FIX = "To fix it, run jevmem key in a terminal and paste your key (get one at https://console.typesafe.ai/keys).";
-/** What the plugin's hooks show when no key is found: what is missing, where jevmem looks, and the one command that fixes it. */
-export const MISSING_KEY_NOTICE_PLUGIN = `jevmem: no TypeSafe API key found, so memory is off in this project. jevmem looks in the plugin setting, then ${WHERE}. ${FIX}`;
-/** The same for the hooks `jevmem init` registers, which have no plugin setting. */
-export const MISSING_KEY_NOTICE_INIT = `jevmem: no TypeSafe API key found, so memory is off in this project. jevmem looks for ${WHERE}. ${FIX}`;
+/** The one fix, for every install: `jevmem key` saves to ~/.jevmem/env, which the plugin's hooks read too. */
+const FIX = "To fix it, run jevmem key in a terminal and paste your key (get one at https://console.typesafe.ai/keys)";
+const HEAD = "jevmem: no TypeSafe API key found, so memory is off in this project.";
+/** The plugin installed from a marketplace: it has a key setting, so `/plugin configure jevmem` is offered after the one fix. */
+export const MISSING_KEY_NOTICE_MARKETPLACE = `${HEAD} jevmem looks in the plugin setting, then ${WHERE}. ${FIX}, or run /plugin configure jevmem in Claude Code.`;
+/** A plugin whose install could not be told (loaded with --plugin-dir, for example): the plugin setting is not offered. */
+export const MISSING_KEY_NOTICE_PLUGIN = `${HEAD} jevmem looks in the plugin setting, then ${WHERE}. ${FIX}.`;
+/** The plugin added in the Claude app (`jevmem@synced`), which has no key setting, and the hooks `jevmem init` registers. */
+export const MISSING_KEY_NOTICE_INIT = `${HEAD} jevmem looks for ${WHERE}. ${FIX}.`;
+export const MISSING_KEY_NOTICE_SYNCED = MISSING_KEY_NOTICE_INIT;
+
+/** Which hooks show the notice: `jevmem init`'s, or the plugin's, by how it was installed (src/install.ts). */
+export type NoticeVia = "init" | "plugin" | "synced" | "marketplace";
+export function missingKeyNoticeText(via: NoticeVia): string {
+  return via === "marketplace" ? MISSING_KEY_NOTICE_MARKETPLACE : via === "plugin" ? MISSING_KEY_NOTICE_PLUGIN : MISSING_KEY_NOTICE_INIT;
+}
 
 /**
  * The notice for an enabled project where no TypeSafe key was found: the hooks then do nothing, and only `jevmem
@@ -53,10 +64,32 @@ export const MISSING_KEY_NOTICE_INIT = `jevmem: no TypeSafe API key found, so me
  * `.jevmem/state.json` until a hook finds a key (`keyFound`), so a key that goes missing later is announced again.
  * Returns the notice the first time; otherwise null.
  */
-export function missingKeyNotice(root: string, via: "plugin" | "init"): string | null {
+export function missingKeyNotice(root: string, via: NoticeVia): string | null {
   if (readState(root).missingKeyNotice) return null;
   patchState(root, { missingKeyNotice: new Date().toISOString() });
-  return via === "plugin" ? MISSING_KEY_NOTICE_PLUGIN : MISSING_KEY_NOTICE_INIT;
+  return missingKeyNoticeText(via);
+}
+
+/** jevmem's first saved line in a project, so the user can tell it from Claude Code's own memory. */
+export const firstLineMessage = (memoryFile = "JEVMEM.md") => `jevmem saved its first line to ${memoryFile}.`;
+
+/**
+ * Called just before a turn's line is recorded as jevmem's (`.jevmem/provenance.jsonl`, via "hook"): when jevmem has
+ * saved no line in this project before, remember that its first one is to be announced. A project that already had
+ * lines saved by the hooks (an upgrade) is never told.
+ */
+export function noteFirstLine(root: string, hadHookLine: boolean): void {
+  if (hadHookLine) return;
+  const s = readState(root);
+  if (!s.firstLineNotice && !s.firstLinePending) patchState(root, { firstLinePending: new Date().toISOString() });
+}
+
+/** On a prompt: the first-line message, once per project, after the first line was saved. Otherwise null. */
+export function firstLineNotice(root: string, memoryFile = "JEVMEM.md"): string | null {
+  const s = readState(root);
+  if (!s.firstLinePending || s.firstLineNotice) return null;
+  patchState(root, { firstLineNotice: new Date().toISOString(), firstLinePending: null });
+  return firstLineMessage(memoryFile);
 }
 
 /** A hook found a key: forget that the missing-key notice was shown (a read, and a write only when it had been). */
