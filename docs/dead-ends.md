@@ -1,6 +1,6 @@
 # Dead ends
 
-> **On `main`, not released yet (coming in 0.6).** The `jevmem` CLI on npm (0.5.9) has no `[dead-end]` kind. A `JEVMEM.md` with dead-end lines still works for teammates on 0.5.7 to 0.5.9 ([below](#teammates-on-057-to-059)).
+> **On `main`, not released yet (coming in 0.6).** The `jevmem` CLI on npm (0.5.10) has no `[dead-end]` kind. A `JEVMEM.md` with dead-end lines still works for teammates on 0.5.7 to 0.5.10 ([below](#teammates-on-057-to-0510)).
 
 When a turn shows that an approach was tried and failed, or was dropped, jevmem saves one line saying what was tried and why it didn't work, tagged `[dead-end]`. When a related prompt comes later, recall adds it to Claude's context as `Already tried: <line>`. That is information for Claude, not a rule: what Claude did with it in the end-to-end runs is [below](#end-to-end). When the approach works later, told by you or made to work by Claude, the line is superseded and never injected again. When it is tried again and fails again, nothing is saved for the same reason, and a new reason goes into one line with both ([below](#when-it-is-tried-again)).
 
@@ -99,9 +99,9 @@ The selection is the same as for every line: the top five by relevance at or abo
 - The [guard](guardrails.md) enforces `[constraint]` lines only. Dead ends don't feed it.
 - The poisoning gate asks unverified dead-end lines a second noul ([SECURITY.md](../SECURITY.md#memory-poisoning)).
 
-## Teammates on 0.5.7 to 0.5.9
+## Teammates on 0.5.7 to 0.5.10
 
-The CLI on npm reads a kind as lowercase letters only, so to 0.5.7 a `[dead-end]` line is not a memory: it never sends it to Jev and never injects it, and it keeps the line in the file word for word. When 0.5.7 writes the file, a dead-end line above its first memory line stays where it is, and the others move to the end of the file; `main` reads them all back. A superseded line that points at a dead end stays as it is. `test/old-cli-deadend.test.ts` runs the real 0.5.7 CLI, built from its tag, on such a file: decide, recall and doctor exit 0 with nothing on stderr, and every dead-end line is still there. 0.5.8 changed only the scrubber (`src/scrub.ts`, and how `src/jev.ts` and `src/audit.ts` call it) and where the MCP server finds the key, none of the code that reads or writes `JEVMEM.md`, so the same holds for it. 0.5.9 changed no code, only docs and version numbers, so it behaves as 0.5.8 does.
+The CLI on npm reads a kind as lowercase letters only, so to 0.5.7 a `[dead-end]` line is not a memory: it never sends it to Jev and never injects it, and it keeps the line in the file word for word. When 0.5.7 writes the file, a dead-end line above its first memory line stays where it is, and the others move to the end of the file; `main` reads them all back. A superseded line that points at a dead end stays as it is. `test/old-cli-deadend.test.ts` runs the real 0.5.7 CLI, built from its tag, on such a file: decide, recall and doctor exit 0 with nothing on stderr, and every dead-end line is still there. 0.5.8 changed only the scrubber (`src/scrub.ts`, and how `src/jev.ts` and `src/audit.ts` call it) and where the MCP server finds the key, none of the code that reads or writes `JEVMEM.md`, so the same holds for it. 0.5.9 changed no code, only docs and version numbers, so it behaves as 0.5.8 does. 0.5.10 changed the setup messages, `jevmem key`, `jevmem doctor`, `jevmem enable`, stats and the daemon's key check, none of the code that reads or writes `JEVMEM.md` (`src/store.ts`, `src/recall.ts`, `src/decide.ts` and `src/write.ts` are as in 0.5.9), so it behaves as 0.5.9 does.
 
 ## Measured
 

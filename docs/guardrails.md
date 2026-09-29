@@ -1,6 +1,6 @@
 # Guardrails
 
-> **On `main`, not released yet (coming in 0.6).** The `jevmem` CLI on npm (0.5.9) does not have the guard, and the plugin's launcher runs the guard's hook only with a CLI that has it.
+> **On `main`, not released yet (coming in 0.6).** The `jevmem` CLI on npm (0.5.10) does not have the guard, and the plugin's launcher runs the guard's hook only with a CLI that has it.
 
 jevmem saves rules from your conversations as `[constraint]` lines in `JEVMEM.md` ("Never commit .env files"). The guard is a `PreToolUse` hook that checks each Bash, Edit and Write call against those rules before it runs. When Jev says a call may break one, the guard has Claude Code ask you (the default), block the call, or tell Claude the rule.
 

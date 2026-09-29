@@ -28,6 +28,7 @@ Real lines from 0.5.7's default writer, which 0.5.8 did not change ([the run](re
 
 ## What's new
 
+- **0.5.10, clearer setup for installs from the Claude plugin directory** (`jevmem@synced`): `jevmem key` saves your key, the first prompt says when no key is found and how to fix it, `jevmem doctor` sees the directory's plugin, and `jevmem enable` gives one next step. No change to what is saved or recalled. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI) ([CHANGELOG](CHANGELOG.md#0510---2026-09-29)).
 - **0.5.8, a security fix: secrets named like `PGPASSWORD=` weren't scrubbed in 0.5.7 and earlier.** A prompt or turn with `PGPASSWORD=…`, `MYSQLPWD=…` or `"password": "…"` in it was sent to TypeSafe with the value as written. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI), and rotate any such secrets that were in your chats in an enabled project ([advisory GHSA-2r3p-5hmg-46p5](https://github.com/Avinash-jetwani/jevmem/security/advisories/GHSA-2r3p-5hmg-46p5), [CHANGELOG](CHANGELOG.md#058---2026-09-28)).
 - **Install as a Claude Code plugin** (0.5.0), opt-in per project since 0.5.1: it does nothing until you run `jevmem enable` in a repo.
 - **A memory-poisoning check on recall** (0.5.0): lines that jevmem did not write on your machine (a teammate's, a pull request's, your own hand edits) are checked by Jev before they're added to Claude's context. In our 44-line test set (2026-09-25) it blocked 20 of 22 planted lines, with 0 of 22 false blocks on legitimate rules ([SECURITY.md](SECURITY.md#memory-poisoning)).
@@ -46,6 +47,8 @@ You need a [TypeSafe AI key](https://console.typesafe.ai/keys) for Jev. jevmem w
 **Option 1: Claude Code plugin (recommended)**
 
 ### From the Claude plugin directory
+
+This needs Claude Code 2.1.273 or later: earlier versions don't sync the plugins you add in the Claude app ([Claude Code docs](https://code.claude.com/docs/en/plugins/loading#synced-plugins)).
 
 1. In the Claude app: **Plugins → Discover → jevmem → Add**. The app warns you before it adds the plugin; the warning is about the plugin's local MCP server, `jevmem mcp`, a command the plugin runs on your computer (the CLI from step 2).
 2. Install the CLI the plugin runs:
@@ -180,10 +183,11 @@ jevmem missed "<text>" [--kind <kind>]         Label a turn that should have bee
 jevmem fit [--dry-run] [--force]               Refit weights and thresholds from labels (needs 40+)
 jevmem stats                                   Writer, latency p50/p95, cost per day, cache hit rate, escalation rate, retry queue, labels, last fit
 jevmem doctor                                  Is this project enabled, where the TypeSafe key comes from, which writer is active and why
+jevmem key                                     Save your TypeSafe API key to ~/.jevmem/env (asks for it without showing it)
 jevmem log                                     Per-label latency, token and cost summary of .jevmem/log.jsonl
 ```
 
-These are 0.5.8's commands. Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
+These are 0.5.10's commands: 0.5.9's (the same as 0.5.8's) and `jevmem key`. Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
 
 ## Links
 
