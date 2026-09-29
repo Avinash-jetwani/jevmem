@@ -42,13 +42,22 @@ export function recordProvenance(root: string, mem: Pick<Memory, "id" | "text">,
   }
 }
 
-/** Has jevmem's hook saved a line in this project before (a provenance record via "hook")? */
-export function hasHookProvenance(root: string): boolean {
-  try {
-    return fs.readFileSync(provenanceFile(root), "utf8").includes('"via":"hook"');
-  } catch {
-    return false;
-  }
+/**
+ * Had jevmem's hooks saved a line in this project before the one with id `current`? A provenance record via "hook"
+ * (since v0.5.0) or, for a project set up earlier, a decision in `.jevmem/decisions.jsonl` (since v0.3.0) that saved
+ * another line.
+ */
+export function savedBefore(root: string, current: string): boolean {
+  const read = (f: string) => {
+    try {
+      return fs.readFileSync(path.join(root, ".jevmem", f), "utf8");
+    } catch {
+      return "";
+    }
+  };
+  if (read("provenance.jsonl").includes('"via":"hook"')) return true;
+  for (const m of read("decisions.jsonl").matchAll(/"memoryId":"([^"]+)"/g)) if (m[1] !== current) return true;
+  return false;
 }
 
 /** id → set of text hashes jevmem wrote under that id on this machine. */

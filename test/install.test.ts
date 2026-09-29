@@ -15,6 +15,7 @@ import { PLUGIN_CONFIGURE_HINT } from "../src/env.js";
 import { init } from "../src/init.js";
 import { canConfigure, describeInstall, hasActivePlugin, pluginInstalls, runningPlugin } from "../src/install.js";
 import { MCP_NO_KEY } from "../src/mcp.js";
+import { recordProvenance, savedBefore } from "../src/provenance.js";
 import { MemoryStore } from "../src/store.js";
 import { firstLineMessage, firstLineNotice, MISSING_KEY_NOTICE_MARKETPLACE, MISSING_KEY_NOTICE_PLUGIN, MISSING_KEY_NOTICE_SYNCED, noteFirstLine } from "../src/notice.js";
 
@@ -234,5 +235,24 @@ describe("the first line jevmem saves in a project", () => {
     noteFirstLine(upgraded, true);
     expect(firstLineNotice(upgraded)).toBeNull();
     expect(firstLineMessage("docs/MEMORY.md")).toBe("jevmem saved its first line to docs/MEMORY.md.");
+  });
+
+  it("a line saved before counts from provenance (since v0.5.0) or from decisions.jsonl (a project set up earlier)", () => {
+    const root = tmp();
+    fs.mkdirSync(path.join(root, ".jevmem"));
+    const decisions = path.join(root, ".jevmem", "decisions.jsonl");
+    // The decision for the line being saved now is already recorded when this is asked.
+    fs.writeFileSync(decisions, JSON.stringify({ ts: "t", hash: "h1", memoryId: "new1", message: "m" }) + "\n");
+    expect(savedBefore(root, "new1")).toBe(false);
+    fs.appendFileSync(decisions, JSON.stringify({ ts: "t", hash: "h0", message: "skipped turn" }) + "\n");
+    expect(savedBefore(root, "new1")).toBe(false);
+    fs.appendFileSync(decisions, JSON.stringify({ ts: "t", hash: "h2", memoryId: "old1", message: "m" }) + "\n");
+    expect(savedBefore(root, "new1")).toBe(true);
+    const other = tmp();
+    recordProvenance(other, { id: "x1", text: "Use Postgres 16" }, "hook");
+    expect(savedBefore(other, "new1")).toBe(true);
+    const imported = tmp();
+    recordProvenance(imported, { id: "x1", text: "Use Postgres 16" }, "import");
+    expect(savedBefore(imported, "new1")).toBe(false);
   });
 });
