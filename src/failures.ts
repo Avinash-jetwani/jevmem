@@ -11,7 +11,8 @@
  *   Bash, Edit or Write call that ran unchecked. createJev's line for the same request is not counted again. A guard
  *   setting replaced by its default (`guard-config`) is another problem: the call was still checked.
  * - Writer fallbacks: the LLM writer set in jevmem.config.json gave no line (an error, an empty line) and the line was
- *   written locally, or its request had to change (an OpenAI-compatible endpoint that rejected `reasoning_effort`).
+ *   written locally, or its request had to change (an OpenAI-compatible endpoint that rejected `reasoning_effort`); or
+ *   (v0.6 part 3c) Jev's pick of the line's sentences failed, and jevmem's own writer chose one by its words.
  * - Recalls by word match (v0.6 part 3b): the prompt's Jev call failed or ran past `jev.recallTimeoutMs`, so the prompt
  *   got the lines sharing the most words with it instead of Jev's pick (the `served` events of src/hook.ts).
  */
@@ -29,7 +30,7 @@ export interface RecentFailures {
   dropped: FailureGroup;
   recall: FailureGroup;
   guard: FailureGroup;
-  /** The LLM writer's fallbacks: lines written locally instead, or requests sent again without `reasoning_effort`. */
+  /** Writer fallbacks: the LLM writer's (lines written locally, requests sent again without `reasoning_effort`), and failed picks of a line's sentences. */
   writer: FailureGroup;
   /** Prompts served by word match because Jev's call failed or ran late. */
   wordMatch: FailureGroup;
@@ -108,7 +109,7 @@ export function formatFailures(f: RecentFailures, head: string, indent: string):
   section("failed recalls", f.recall, ", the prompt got no project memory");
   section("guard checks that failed or timed out", f.guard, ", the call ran unchecked");
   section("recalls by word match", f.wordMatch, ", Jev failed or ran late, so the prompt got the lines sharing the most words with it");
-  section("writer fallbacks", f.writer, ", the LLM writer set in jevmem.config.json did not give the line as asked");
+  section("writer fallbacks", f.writer, ", the line was not written as configured: the LLM writer set in jevmem.config.json did not give it as asked, or Jev's pick of its sentences failed");
   section("other hook problems", f.other, "");
   return out;
 }

@@ -60,15 +60,16 @@ const SENTENCE_END = /(?<=[.!?])(?<!\b(?:e\.g|i\.e|vs|etc|approx|cf)\.)\s+(?=[A-
 /**
  * The sentences of a writer's input, in order: a merged turn (`USER: … ASSISTANT: …`) is split back into its sides, code
  * blocks go, every line of a list or a heading is its own sentence without its bullet, number or `#`, and bold markers
- * go. Each side is cut where decide cuts it, so Jev picks from the text decide judged. Fragments without letters go.
+ * go. Each side is cut where decide cuts it, so Jev picks from the text decide judged: plain text is the user message,
+ * or with `fromReply` the assistant reply (a line whose content came from the reply alone). Fragments without letters go.
  */
-export function candidateSentences(text: string): Sentence[] {
+export function candidateSentences(text: string, opts: { fromReply?: boolean } = {}): Sentence[] {
   const clean = scrubSecrets(text).replace(/```[\s\S]*?```/g, "\n");
   const sides: { from: Sentence["from"]; text: string }[] = [];
   for (const chunk of clean.split(/(?=^|\n)\s*(?=(?:USER|ASSISTANT):)/)) {
     const m = /^\s*(USER|ASSISTANT):\s*([\s\S]*)$/.exec(chunk);
     if (m) sides.push({ from: m[1] === "USER" ? "user" : "assistant", text: m[2]! });
-    else if (chunk.trim()) sides.push({ from: "user", text: chunk });
+    else if (chunk.trim()) sides.push({ from: opts.fromReply ? "assistant" : "user", text: chunk });
   }
   const out: Sentence[] = [];
   for (const side of sides) {

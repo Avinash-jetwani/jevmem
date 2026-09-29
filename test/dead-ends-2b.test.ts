@@ -224,7 +224,7 @@ describe("the LLM writer on OpenAI-compatible endpoints (stand-in endpoint)", ()
     }
     expect(out.join("")).toMatch(/^writer {3}openai \(openai\/gpt-5-mini\): .*\n {9}endpoint https:\/\/openrouter\.ai\/api\/v1 \(OPENAI_BASE_URL, OpenAI-compatible\): openai\/gpt-5-mini is asked for reasoning_effort minimal, and the request is sent again without it if the endpoint rejects it; a line written locally instead is listed under failures$/m);
     expect(out.join("")).toMatch(/1 writer fallback\(s\)/);
-    expect(out.join("")).toMatch(/writer fallbacks, the LLM writer set in jevmem.config.json did not give the line as asked:\n.*1× the line was written locally: openai\/gpt-5-mini at https:\/\/openrouter\.ai\/api\/v1 returned an empty line/);
+    expect(out.join("")).toMatch(/writer fallbacks, the line was not written as configured: the LLM writer set in jevmem.config.json did not give it as asked, or Jev's pick of its sentences failed:\n.*1× the line was written locally: openai\/gpt-5-mini at https:\/\/openrouter\.ai\/api\/v1 returned an empty line/);
   });
 
   it("composeLine says nothing when no LLM writer is set", async () => {

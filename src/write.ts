@@ -55,7 +55,7 @@ export const DEAD_END_NO_REASON = "a dead end must say why it failed or was drop
  * together), else one sentence chosen by the words the writer looks for per kind. `note` says why the LLM writer's line
  * was not used, what its request needed, or why Jev's pick was not; it is absent when all went as configured.
  */
-export async function composeLine(message: string, kind: Kind, opts: WriteOptions, extra: { worksNow?: boolean; deadEnd?: string; retestOf?: string } = {}): Promise<{ line: string; writerUsed: WriteResult["writerUsed"]; note?: string; pick?: Pick }> {
+export async function composeLine(message: string, kind: Kind, opts: WriteOptions, extra: { worksNow?: boolean; deadEnd?: string; retestOf?: string; fromReply?: boolean } = {}): Promise<{ line: string; writerUsed: WriteResult["writerUsed"]; note?: string; pick?: Pick }> {
   const env = opts.env ?? process.env;
   const w = resolveWriter(opts.writer, env);
   const safe = scrubSecrets(message).slice(0, 8000);
@@ -84,7 +84,7 @@ export async function composeLine(message: string, kind: Kind, opts: WriteOption
   let pick: Pick | undefined;
   let pickWhy: string | undefined;
   if (opts.jev) {
-    const sentences = candidateSentences(safe);
+    const sentences = candidateSentences(safe, { fromReply: extra.fromReply });
     try {
       pick = await pickSentences(opts.jev, sentences, kind, { timeoutMs: opts.jevTimeoutMs, worksNow, retest: Boolean(retest) });
     } catch (err) {
@@ -125,7 +125,8 @@ export async function writeMemory(store: MemoryStore, message: string, decision:
   // A listed dead end tried again that failed for a new reason: the new line carries the earlier reason too.
   const retestId = kind === "dead-end" && decision.contradiction && decision.retest?.id && !decision.retest.same && decision.touchesMemoryId === decision.retest.id ? decision.retest.id : null;
   const retestOf = retestId ? store.list().find((m) => m.id === retestId)?.text : undefined;
-  const { line, writerUsed, note, pick } = await composeLine(message, kind, opts, { worksNow: Boolean(worksNow), deadEnd, retestOf });
+  // The text is the assistant reply alone when the content came from it (decide's `sourceText`).
+  const { line, writerUsed, note, pick } = await composeLine(message, kind, opts, { worksNow: Boolean(worksNow), deadEnd, retestOf, fromReply: decision.source === "assistant_reply" });
   const saved = store.add({ kind, text: line, conf: decision.confidence });
   const superseded = decision.contradiction && decision.touchesMemoryId ? store.supersede(decision.touchesMemoryId, saved.id) : null;
   return { saved, superseded, writerUsed, line, ...(note ? { writerNote: note } : {}), ...(pick ? { pick } : {}) };

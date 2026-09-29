@@ -136,7 +136,8 @@ for (const r of rows) {
     if (!RULES) {
       const w0 = performance.now();
       const at = jev.log.length;
-      const c = await lib.composeLine(writerInput(r), r.label.kind, { writer, env: {}, jev });
+      // As writeMemory calls it: a text from the reply alone is cut where decide cuts the reply (an older build ignores it).
+      const c = await lib.composeLine(writerInput(r), r.label.kind, { writer, env: {}, jev }, { fromReply: r.source === "assistant" });
       const entries = jev.log.slice(at).filter((e) => !e.event);
       row.writer = { ...judge(r, c.line), pick: c.pick ?? null, pickJudged: judgePick(r, c.pick), note: c.note ?? null, ms: Math.round(performance.now() - w0), calls: entries.length, inputTokens: entries.reduce((a, e) => a + (e.inputTokens ?? 0), 0), failedCalls: entries.filter((e) => !e.ok).length };
     }

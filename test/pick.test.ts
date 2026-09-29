@@ -47,8 +47,12 @@ describe("candidateSentences", () => {
 
   it("sends at most MAX_SENTENCES, from the text decide judged (the reply cut at 2,000 characters)", () => {
     expect(candidateSentences(Array.from({ length: 100 }, (_, i) => `Sentence number ${i} is here.`).join(" "))).toHaveLength(MAX_SENTENCES);
-    const reply = `${"Filler words go here. ".repeat(100)}The real cause is at the end.`;
+    const reply = `${"These filler words take up a lot of room in the reply. ".repeat(45)}The real cause is at the end.`;
     expect(candidateSentences(`USER: why?\n\nASSISTANT: ${reply}`).some((x) => /real cause/.test(x.text))).toBe(false);
+    // The reply alone (a line whose content came from it): cut at 2,000 too, not at the user message's 6,000.
+    expect(candidateSentences(reply, { fromReply: true }).some((x) => /real cause/.test(x.text))).toBe(false);
+    expect(candidateSentences(reply).some((x) => /real cause/.test(x.text))).toBe(true);
+    expect(candidateSentences("It leaked. I removed it.", { fromReply: true }).map((x) => x.from)).toEqual(["assistant", "assistant"]);
   });
 });
 
