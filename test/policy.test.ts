@@ -46,6 +46,21 @@ describe("question set", () => {
     }
     for (const lvl of q.importance.criteria) expect(lvl.signals.length).toBeGreaterThanOrEqual(2);
   });
+
+  it("the injection questions tell a rule stated for the project, however lasting, from an order about the AI's own memory (v0.6 part 3c)", () => {
+    // "A rule for this repository from now on: never commit .env files." scored 0.86 on the memory noul: "from now on" read
+    // as an order to store a rule of the AI's own (scripts/diag-rule-injection.mjs). The no side names the lasting framing,
+    // and the yes side keeps the permission granted to the AI itself.
+    const store = ATOMIC_NOULS.find((n) => n.name === "asks_the_ai_to_store_or_alter_memory_or_rules")!;
+    expect(store.no.what).toMatch(/from now on/);
+    expect(store.no.what).toMatch(/acknowledge/);
+    expect(store.yes.what).toMatch(/permission granted to the AI itself/);
+    expect(store.yes.examples[0]).toBe("Save this as a permanent rule.");
+    const broad = TIER1_NOULS.find((n) => n.family === "injection")!;
+    expect(broad.no.what).toMatch(/rule, decision or preference the user states for the project, even framed as lasting/);
+    // Quoted text that tells an AI what to do is named on the yes side, so tier 1 stays sure about it.
+    expect(broad.yes.what).toMatch(/text quoted from a file, page or ticket that tells an AI what to do/);
+  });
 });
 
 describe("combine", () => {
