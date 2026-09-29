@@ -37,7 +37,9 @@
 #              that fixes it), the next prompt (--continue) shows nothing, the Stop hooks print nothing and nothing is
 #              saved. Then the harness does what the message says, as written: it takes the command from the message,
 #              runs it in a terminal (a pseudo-terminal, with the session's HOME and `jevmem` on PATH) and pastes the key
-#              at its hidden prompt. The next turn is saved without a message and the one after gets the line back
+#              at its hidden prompt. The next turn is saved without a message, and the one after gets the line back and,
+#              once, "jevmem saved its first line to JEVMEM.md." (the plugin here is installed from a marketplace, so its
+#              message also offers /plugin configure jevmem)
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 #   guard      the PreToolUse guard (`jevmem init` hooks). A: a git repo, guard.mode block, git allowed without prompts,
@@ -499,13 +501,19 @@ JS
   if [ $fail -eq 0 ]; then
     echo "---- turn 4 (--continue, recall): ${prompts[3]}"
     ( cd "$scratch" && claude_session -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[3]}" > "$events.3" 2>&1 )
-    "$NODE" - "$events" "$scratch" <<'JS' || fail=1
-      const fs=require("fs");const [base,root]=process.argv.slice(2);
+    "$NODE" - "$events" "$scratch" "$ROOT/dist/index.js" <<'JS' || fail=1
+      const fs=require("fs");const [base,root,lib]=process.argv.slice(2);
       const errs=[];
+      // With the key saved: no missing-key message again. Turn 3's prompt comes before any line; turn 3's Stop saves the
+      // project's first line, so turn 4's prompt says so, once, word for word as built.
+      const first=require(lib).firstLineMessage();
       for(const t of [2,3]){
         const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
         const ups=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="UserPromptSubmit");
-        for(const e of ups){let m;try{m=JSON.parse(String(e.stdout??"")).systemMessage}catch{}if(m)errs.push(`turn ${t+1}: a message after the key was saved: ${m.slice(0,80)}`)}
+        const shown=ups.map(e=>{try{return JSON.parse(String(e.stdout??"")).systemMessage}catch{return undefined}}).filter(Boolean);
+        const want=t===3?[first]:[];
+        if(JSON.stringify(shown)!==JSON.stringify(want))errs.push(`turn ${t+1}: messages ${JSON.stringify(shown).slice(0,160)}, expected ${JSON.stringify(want)}`);
+        else if(t===3)console.log(`     turn 4's message, as the hook printed it: ${first}`);
         if(t===3){const r=String((ev.find(e=>e.type==="result")||{}).result??"");console.log(`     claude> ${r.replace(/\n/g," ").slice(0,200)}`);if(!/original payment method/i.test(r))errs.push("turn 4: the reply does not use the saved line")}
       }
       const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
@@ -516,7 +524,7 @@ JS
       let st={};try{st=JSON.parse(fs.readFileSync(root+"/.jevmem/state.json","utf8"))}catch{}
       if(st.missingKeyNotice)errs.push("state.json still records the missing-key message after a key was found");
       if(errs.length){console.log("   ✗ FAIL: "+errs.join("; "));process.exit(1);}
-      console.log("   ✓ turns 3-4: with the key saved by jevmem key, no message, turn 3's line saved, and recall gave it back");
+      console.log("   ✓ turns 3-4: with the key saved by jevmem key, no missing-key message, turn 3's line saved, turn 4 told once that it was jevmem's first line, and recall gave it back");
 JS
   fi
   ( cd "$scratch" && env HOME="$home" "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )

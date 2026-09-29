@@ -24,7 +24,7 @@ export { runHook, readStdinJson, hookRoot, hookEvent, debugLogPayload, logHookPr
 export { enqueueTurn, drainQueue, readQueue, isRetryable, queueStats, nextDue, backoffMs, QUEUE_MAX_ENTRIES, QUEUE_MAX_AGE_MS, BACKOFF_MS } from "./queue.js";
 export type { QueuedTurn, DrainResult, QueueStats } from "./queue.js";
 export { loadEnvFallbacks, parseEnvFile, envFileCandidates, KEY_VARS } from "./env.js";
-export { MISSING_KEY_NOTICE_INIT, MISSING_KEY_NOTICE_MARKETPLACE, MISSING_KEY_NOTICE_PLUGIN, MISSING_KEY_NOTICE_SYNCED } from "./notice.js";
+export { firstLineMessage, MISSING_KEY_NOTICE_INIT, MISSING_KEY_NOTICE_MARKETPLACE, MISSING_KEY_NOTICE_PLUGIN, MISSING_KEY_NOTICE_SYNCED } from "./notice.js";
 export type { HookInput, HookOutcome } from "./hook.js";
 export { init, registerClaudeHooks, resolveHookCommand } from "./init.js";
 export { buildMcpServer, serveMcp } from "./mcp.js";
