@@ -256,7 +256,8 @@ async function score(b, s, f, p) {
     jevMs: e?.latencyMs ?? null,
     jevOk: e ? e.ok : false,
     at: new Date().toISOString(),
-    inputTokens: e?.inputTokens ?? null,
+    // A call that failed or ran late is logged with 0 tokens; its tokens are unknown, as its cost is.
+    inputTokens: e?.ok ? (e.inputTokens ?? null) : null,
     costUsd: e?.ok ? (e.inputTokens / 1e6) * USD_PER_M_INPUT : null,
     error: inj.error ?? (e && !e.ok ? e.error : e ? undefined : "no recall call logged"),
   };
