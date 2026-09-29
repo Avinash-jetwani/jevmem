@@ -1,0 +1,56 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Avinash-jetwani/jevmem",
+  "title": "jevmem",
+  "description": "Automatic project memory for Claude Code. Also works with Cursor and Codex.",
+  "repository": {
+    "url": "https://github.com/Avinash-jetwani/jevmem",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/Avinash-jetwani/jevmem#readme",
+  "version": "0.5.7",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "jevmem",
+      "version": "0.5.7",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "TYPESAFE_API_KEY",
+          "description": "TypeSafe API key for Jev, which add_memory, search_memory and audit_memory use. If unset, the server reads it from <project>/.jevmem/.env or ~/.jevmem/env.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "JEVMEM_ROOT",
+          "description": "Project root, for clients that start the server without a project working directory (Claude Desktop). One server entry serves one project.",
+          "isRequired": false,
+          "format": "filepath"
+        },
+        {
+          "name": "TYPESAFE_BASE_URL",
+          "description": "Send Jev requests through a proxy or gateway instead of api.typesafe.ai.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "JEVMEM_CACHE",
+          "description": "0 turns off the answer cache in .jevmem/.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
