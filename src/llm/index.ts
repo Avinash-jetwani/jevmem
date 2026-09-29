@@ -266,10 +266,34 @@ export function extractDeadEnd(message: string, maxChars: number): string {
   if (!pool.length) return extractFirstSentence(message, maxChars);
   // From the sentence that names the attempt; with none, from the first statement, which usually says what was run
   // ("I ran X once. It fails because Y.").
-  const [first, ...rest] = pool.slice(Math.max(0, pool.findIndex((s) => ATTEMPT.test(s))));
+  return composeDeadEnd(pool.slice(Math.max(0, pool.findIndex((s) => ATTEMPT.test(s)))), maxChars);
+}
+
+/**
+ * A dead-end line from its sentences, in order (the first says what was tried): the clauses while they fit in `maxChars`,
+ * keeping the reason. Used on the sentences `extractDeadEnd` takes from the turn, and on the ones Jev picked (v0.6 part 3c).
+ */
+export function composeDeadEnd(sentences: string[], maxChars: number): string {
+  const [first, ...rest] = sentences;
+  if (first === undefined) return "";
   // Without "I tried" first, so what follows has that much more room.
-  const attempt = leadingTried(first!);
+  const attempt = leadingTried(first);
   let line = clampLine([attempt, ...rest].join(" "), maxChars);
+  // The same in the attempt's own sentence, when it is too long to keep whole: "Parsing the files with a generic CSV
+  // library seemed the fast way, and it handled the big four, but three banks put separators inside amounts" keeps what
+  // was tried (its longest cut at a clause's end) and the reason after the "but", and the upside between them goes.
+  const own = afterBut(attempt);
+  if (own && !line.includes(own.slice(0, 24))) {
+    const before = attempt.slice(0, attempt.length - own.length).replace(/,\s*but\s*$/i, "");
+    const heads = [before, ...clauseEnds(before).map((e) => before.slice(0, e.at).replace(/[\s,;:—–-]+$/, ""))].filter((h) => h.length >= 20).sort((a, b) => b.length - a.length);
+    for (const h of heads) {
+      const cut = fitClause(own, maxChars - h.length - ", but ".length);
+      if (cut && cut.length >= 30) {
+        line = `${h}, but ${cut}`;
+        break;
+      }
+    }
+  }
   // A cut that drops the clause after a "but" in a later sentence drops the reason ("It made each path four times
   // faster, but the pool stole cores from the tick thread"), so the upside before the "but" goes instead.
   for (let k = 0; k < rest.length; k++) {
@@ -366,11 +390,12 @@ function reasonCuts(text: string): string[] {
  * earlier line without its closing ", so …", then "retried:" and the new reason, so the line keeps both. The new
  * reason is the clause after the turn's first "but" ("the drift is gone, but its UDP wrapper copies every packet"),
  * else the turn's dead-end text after the sentence that names the attempt. When both do not fit, each is cut at a
- * clause's end.
+ * clause's end. With `picked`, the sentences Jev picked (v0.6 part 3c), the turn's dead-end text is made from those.
  */
-export function combineRetest(earlier: string, message: string, maxChars: number): string {
+export function combineRetest(earlier: string, message: string, maxChars: number, picked?: string[]): string {
   const head = withoutConclusion(earlier);
-  const text = extractDeadEnd(message, 4000);
+  // The turn's dead-end text: from the sentences Jev picked when there are any (v0.6 part 3c), else from the turn.
+  const text = picked?.length ? composeDeadEnd(picked, 4000) : extractDeadEnd(message, 4000);
   const sentences = deadEndSentences(text);
   const but = sentences.map(afterBut).find((r) => r !== null);
   const reason = withoutConclusion(but ?? (sentences.length > 1 && ATTEMPT.test(sentences[0]!) ? sentences.slice(1).join(" ") : text));
@@ -389,6 +414,15 @@ export function combineRetest(earlier: string, message: string, maxChars: number
   return join(heads.find((h) => h.length <= room - r.length) ?? clampLine(head, room - r.length), r);
 }
 
+/**
+ * A line from the sentences Jev picked for a kind other than a dead end (v0.6 part 3c): the sentences as written, in text
+ * order, when they fit in `maxChars` (after the leading filler goes), else the one that states the memory alone.
+ */
+export function joinPicked(picked: string[], main: string, maxChars: number): string {
+  const joined = picked.join(" ");
+  return stripFiller(joined).replace(/\s+/g, " ").trim().length <= maxChars ? joined : main;
+}
+
 const COMMON = new Set("the and for with that this from into was were are has have had not but its now can also then than when they them there".split(" "));
 /** Distinct words of three letters or more, lowercased, without the most common ones: what two sentences share. */
 const wordsOf = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9_]+/).filter((w) => w.length > 2 && !COMMON.has(w)));
@@ -398,14 +432,18 @@ const wordsOf = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9_]+/).filt
  * it has any (Claude made it work), else the user's, while they fit, past a bare "It works now.". The sentence that
  * names the approach of the dead end (the most words in common with the dead-end line's first clause, what was tried,
  * at least three) goes first, so the line says what works now and then what changed, and a later prompt about that
- * approach finds it.
+ * approach finds it. With `picked`, the sentences Jev picked (v0.6 part 3c), those are the statements.
  */
-export function extractWorksNow(message: string, maxChars: number, deadEnd?: string): string {
-  const { roles } = splitRoles(message);
-  const reply = roles.filter((r) => r.role === "assistant").flatMap((r) => factsOf(r.text));
-  let pool = reply.length ? reply : roles.filter((r) => r.role === "user").flatMap((r) => factsOf(r.text));
-  if (!pool.length) return extractFirstSentence(message, maxChars, "decision");
-  if (pool.length > 1 && pool[0]!.split(/\s+/).length <= 3) pool = pool.slice(1);
+export function extractWorksNow(message: string, maxChars: number, deadEnd?: string, picked?: string[]): string {
+  let pool: string[];
+  if (picked?.length) pool = picked;
+  else {
+    const { roles } = splitRoles(message);
+    const reply = roles.filter((r) => r.role === "assistant").flatMap((r) => factsOf(r.text));
+    pool = reply.length ? reply : roles.filter((r) => r.role === "user").flatMap((r) => factsOf(r.text));
+    if (!pool.length) return extractFirstSentence(message, maxChars, "decision");
+    if (pool.length > 1 && pool[0]!.split(/\s+/).length <= 3) pool = pool.slice(1);
+  }
   if (deadEnd && pool.length > 1) {
     const firstEnd = clauseEnds(deadEnd).find((e) => e.strong);
     const de = wordsOf(firstEnd ? deadEnd.slice(0, firstEnd.at) : deadEnd);

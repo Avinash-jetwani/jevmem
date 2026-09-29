@@ -1,5 +1,7 @@
 import type { Decision } from "./decide.js";
-import { callAnthropic, callOpenAI, clampLine, combineRetest, extractFirstSentence, extractWorksNow, resolveWriter, stripFiller, systemPrompt, type WriterConfig } from "./llm/index.js";
+import type { JevCaller } from "./jev.js";
+import { callAnthropic, callOpenAI, clampLine, combineRetest, composeDeadEnd, extractFirstSentence, extractWorksNow, joinPicked, resolveWriter, stripFiller, systemPrompt, type WriterConfig } from "./llm/index.js";
+import { candidateSentences, pickedTexts, pickSentences, type Pick } from "./pick.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
 import type { Kind, Memory } from "./types.js";
@@ -8,6 +10,13 @@ export interface WriteOptions {
   writer: WriterConfig & { maxChars: number };
   env?: NodeJS.ProcessEnv;
   fetchImpl?: typeof fetch;
+  /**
+   * Jev, to pick the sentences jevmem's own writer makes the line from (v0.6 part 3c, src/pick.ts). Without it (or when
+   * its request fails) the writer chooses one sentence by the words it looks for per kind, as before.
+   */
+  jev?: JevCaller;
+  /** The pick request's budget, in milliseconds (the hook passes `jev.timeoutMs`). */
+  jevTimeoutMs?: number;
 }
 
 export interface WriteResult {
@@ -16,10 +25,13 @@ export interface WriteResult {
   writerUsed: "openai" | "anthropic" | "fallback";
   line: string;
   /**
-   * Set when the configured LLM writer's line was not used (an error, an empty line), or when its request had to change
-   * to get one (an endpoint that rejected `reasoning_effort`). The hook logs it; `jevmem doctor` and `stats` show it.
+   * Set when the configured LLM writer's line was not used (an error, an empty line), when its request had to change
+   * to get one (an endpoint that rejected `reasoning_effort`), or when Jev's pick of the sentences failed. The hook logs
+   * it; `jevmem doctor` and `stats` show it.
    */
   writerNote?: string;
+  /** The sentences Jev picked for jevmem's own writer, when it was given Jev (absent with an LLM writer's line). */
+  pick?: Pick;
 }
 
 /** Added to the LLM writer's input for a dead end (the system prompt is the same for every kind). */
@@ -38,10 +50,12 @@ export const RETEST_WRITER_NOTE =
 export const DEAD_END_NO_REASON = "a dead end must say why it failed or was dropped, and Jev found no reason in this line";
 
 /**
- * Turn a message into one memory line (max `maxChars`). Uses the configured LLM, else the local writer. `note` says why
- * the LLM writer's line was not used, or what its request needed; it is absent when no LLM writer is configured.
+ * Turn a message into one memory line (max `maxChars`). Uses the configured LLM, else jevmem's own writer: with `jev`,
+ * the one or two sentences Jev picks (the one that states the memory, and another that gives its reason when they fit
+ * together), else one sentence chosen by the words the writer looks for per kind. `note` says why the LLM writer's line
+ * was not used, what its request needed, or why Jev's pick was not; it is absent when all went as configured.
  */
-export async function composeLine(message: string, kind: Kind, opts: WriteOptions, extra: { worksNow?: boolean; deadEnd?: string; retestOf?: string } = {}): Promise<{ line: string; writerUsed: WriteResult["writerUsed"]; note?: string }> {
+export async function composeLine(message: string, kind: Kind, opts: WriteOptions, extra: { worksNow?: boolean; deadEnd?: string; retestOf?: string } = {}): Promise<{ line: string; writerUsed: WriteResult["writerUsed"]; note?: string; pick?: Pick }> {
   const env = opts.env ?? process.env;
   const w = resolveWriter(opts.writer, env);
   const safe = scrubSecrets(message).slice(0, 8000);
@@ -64,8 +78,38 @@ export async function composeLine(message: string, kind: Kind, opts: WriteOption
       why = `${w.provider} (${w.model}) failed: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
-  const local = retest ? combineRetest(retest, message, opts.writer.maxChars) : extra.worksNow && kind !== "dead-end" ? extractWorksNow(message, opts.writer.maxChars, extra.deadEnd) : extractFirstSentence(message, opts.writer.maxChars, kind);
-  return { line: clampLine(stripFiller(local), opts.writer.maxChars), writerUsed: "fallback", ...(why ? { note: scrubSecrets(`the line was written locally: ${why}`) } : {}) };
+  const max = opts.writer.maxChars;
+  const worksNow = Boolean(extra.worksNow) && kind !== "dead-end";
+  // Which sentences the line is made from: Jev's pick (v0.6 part 3c), asked only here, for a turn that is saved.
+  let pick: Pick | undefined;
+  let pickWhy: string | undefined;
+  if (opts.jev) {
+    const sentences = candidateSentences(safe);
+    try {
+      pick = await pickSentences(opts.jev, sentences, kind, { timeoutMs: opts.jevTimeoutMs, worksNow, retest: Boolean(retest) });
+    } catch (err) {
+      const error = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      pick = { asked: false, sentences, chosen: [], main: null, second: null, error };
+      pickWhy = `Jev's pick of the line's sentences failed (${error}), so the writer chose one by the words it looks for`;
+    }
+  }
+  const picked = pick?.chosen.length ? pickedTexts(pick) : null;
+  const main = pick?.main ? (pick.sentences.find((s) => s.id === pick!.main)?.text ?? "") : "";
+  const local = picked
+    ? retest
+      ? combineRetest(retest, message, max, picked)
+      : worksNow
+        ? extractWorksNow(message, max, extra.deadEnd, picked)
+        : kind === "dead-end"
+          ? composeDeadEnd(picked, max)
+          : joinPicked(picked, main, max)
+    : retest
+      ? combineRetest(retest, message, max)
+      : worksNow
+        ? extractWorksNow(message, max, extra.deadEnd)
+        : extractFirstSentence(message, max, kind);
+  const note = [why ? `the line was written locally: ${why}` : null, pickWhy].filter(Boolean).join("; ");
+  return { line: clampLine(stripFiller(local), max), writerUsed: "fallback", ...(note ? { note: scrubSecrets(note) } : {}), ...(pick ? { pick } : {}) };
 }
 
 /**
@@ -81,8 +125,8 @@ export async function writeMemory(store: MemoryStore, message: string, decision:
   // A listed dead end tried again that failed for a new reason: the new line carries the earlier reason too.
   const retestId = kind === "dead-end" && decision.contradiction && decision.retest?.id && !decision.retest.same && decision.touchesMemoryId === decision.retest.id ? decision.retest.id : null;
   const retestOf = retestId ? store.list().find((m) => m.id === retestId)?.text : undefined;
-  const { line, writerUsed, note } = await composeLine(message, kind, opts, { worksNow: Boolean(worksNow), deadEnd, retestOf });
+  const { line, writerUsed, note, pick } = await composeLine(message, kind, opts, { worksNow: Boolean(worksNow), deadEnd, retestOf });
   const saved = store.add({ kind, text: line, conf: decision.confidence });
   const superseded = decision.contradiction && decision.touchesMemoryId ? store.supersede(decision.touchesMemoryId, saved.id) : null;
-  return { saved, superseded, writerUsed, line, ...(note ? { writerNote: note } : {}) };
+  return { saved, superseded, writerUsed, line, ...(note ? { writerNote: note } : {}), ...(pick ? { pick } : {}) };
 }

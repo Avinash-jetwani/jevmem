@@ -117,11 +117,12 @@ describe("a listed dead end tried again that fails again", () => {
     expect(r1.action).toBe("skipped");
     expect(r1.detail).toMatch(/retest of \w+: failed again for the reason it gives/);
     expect(store.active().map((m) => m.id)).toEqual([de.id]);
-    const fresh = mockJev(() => ({ ...DEAD_END, content_source: "assistant_reply", [RETEST_NOUL]: 0.93, [RETEST_CHOICE]: de.id, [NEW_REASON_NOUL]: 0.91 }));
+    // The mock stands in for Jev's pick of the line's sentences (src/pick.ts) too: what was tried again, s1, and why it failed, s2.
+    const fresh = mockJev(() => ({ ...DEAD_END, content_source: "assistant_reply", [RETEST_NOUL]: 0.93, [RETEST_CHOICE]: de.id, [NEW_REASON_NOUL]: 0.91, states_the_memory: "s1", gives_the_reason: "s2" }));
     const reply = "I tried Brotli with passthrough on. The CDN left the tiles alone this time, but Safari 15 on older iPads failed to decode them and showed blank map areas, so the tiles are back on gzip.";
     const r2 = await runHook({ hook_event_name: "Stop", cwd: root, user_message: user, assistant_message: reply }, { jev: fresh, env });
     expect(r2.action).toBe("saved");
-    expect(r2.detail).toMatch(new RegExp(`\\(supersedes ${de.id}\\) via fallback$`));
+    expect(r2.detail).toMatch(new RegExp(`\\(supersedes ${de.id}\\) via fallback \\(sentences s1\\+s2 of 2, picked by Jev\\)$`));
     const live = store.active();
     expect(live.map((m) => m.kind)).toEqual(["dead-end"]);
     expect(live[0]!.text).toBe("Brotli for the tile responses: the CDN re-compressed them and edge CPU doubled; retried: Safari 15 on older iPads failed to decode them and showed blank map areas");

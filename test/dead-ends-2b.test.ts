@@ -85,7 +85,8 @@ describe("superseding: a dead-end line only when it works now; other lines only 
     expect(buildDecideState({ userMessage: user, assistantReply: reply, existingMemories: store.active() }).assistantIncluded).toBe(true);
     expect(buildDecideState({ userMessage: user, assistantReply: reply, existingMemories: [] }).assistantIncluded).toBe(false);
     // Jev's kind choice says dead-end (a failed attempt, then a fix): judged as its most likely of decision, architecture, bug.
-    const jev = mockJev(() => ({ ...T1_QUIET, contains_dead_end: 0.9, contains_bug_finding: 0.6, kind: { choice: "dead-end", probabilities: { "dead-end": 0.6, decision: 0.3, bug: 0.1 } }, importance: 3, content_source: "assistant_reply", [WORKS_NOW_NOUL]: 0.95, [WORKS_NOW_CHOICE]: de.id }));
+    // The mock stands in for Jev's pick of the line's sentences (src/pick.ts) too: the change that made it work, s2.
+    const jev = mockJev(() => ({ ...T1_QUIET, contains_dead_end: 0.9, contains_bug_finding: 0.6, kind: { choice: "dead-end", probabilities: { "dead-end": 0.6, decision: 0.3, bug: 0.1 } }, importance: 3, content_source: "assistant_reply", [WORKS_NOW_NOUL]: 0.95, [WORKS_NOW_CHOICE]: de.id, states_the_memory: "s2" }));
     const r = await runHook({ hook_event_name: "Stop", cwd: root, user_message: user, assistant_message: reply }, { jev, env });
     expect(r.action).toBe("saved");
     expect(r.detail).toMatch(new RegExp(`^\\[decision\\] .*\\(supersedes ${de.id}\\)`));

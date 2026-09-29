@@ -8,6 +8,7 @@ import { fit, fitThresholds, type FitResult, type LabelledExample } from "./comb
 import { CONFIG_FILE, loadConfig } from "./config.js";
 import { decide, NEW_REASON_MIN, resolveWeights, type Decision } from "./decide.js";
 import type { JevCaller } from "./jev.js";
+import { describePick, type PickRecord } from "./pick.js";
 import { ATOMIC_NOULS, FAMILIES, TIER1_NOULS } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
 import { IMPORTANCE_LEVELS, type JevmemConfig, type Memory } from "./types.js";
@@ -20,8 +21,10 @@ export interface DecisionRecord {
   message: string;
   decision: Decision;
   via?: string;
-  /** Which writer produced the saved line: openai, anthropic, or fallback (the deterministic extract). */
+  /** Which writer produced the saved line: openai, anthropic, or fallback (jevmem's own writer). */
   writer?: string;
+  /** Which sentences jevmem's own writer made the line from, and whether Jev picked them (v0.6 part 3c on). */
+  pick?: PickRecord;
 }
 
 export interface LabelRecord {
@@ -284,6 +287,7 @@ export function formatWhy(rec: DecisionRecord): string {
     out.push(
       `a listed dead end tried again and failed again: ${d.retest.noul.toFixed(2)} (min ${t.contradictionMin}), which: ${d.retest.choice}, a new reason: ${d.retest.newReason.toFixed(2)} (min ${NEW_REASON_MIN})  ${!d.retest.id ? "✗" : d.retest.same ? `✓ the same reason as ${d.retest.id}: nothing new` : d.contradiction && d.touchesMemoryId === d.retest.id ? `✓ supersedes ${d.retest.id}, both reasons in the new line` : `✓ ${d.retest.id}, a new reason`}`,
     );
+  if (rec.pick) out.push(`line: ${describePick(rec.pick)}`);
   out.push(`tokens: ${d.usage.inputTokens + d.usage.outputTokens}${d.cacheHit ? " (cache hit)" : ""}`);
   return out.join("\n");
 }

@@ -22,7 +22,7 @@ const RULES = { dev: read("eval/rules-dev.jsonl"), heldout: read("eval/rules-hel
 const OWN = ["lines-dev.jsonl", "lines-heldout.jsonl", "rules-dev.jsonl", "rules-heldout.jsonl"];
 const LINE_TAGS = ["request", "dead-end-but", "reply-bug", "ordinary"];
 /** Where jevmem's questions to Jev live: an eval set must not echo them. */
-const QUESTION_SOURCES = ["src/questions.ts", "src/guard.ts", "src/recall.ts", "src/guardrail.ts"];
+const QUESTION_SOURCES = ["src/questions.ts", "src/guard.ts", "src/recall.ts", "src/guardrail.ts", "src/pick.ts"];
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const words = (s: string) => norm(s).split(" ").filter(Boolean);
@@ -148,6 +148,15 @@ describe("part 3c sets: no shared text", () => {
     for (const o of otherTexts()) for (const s of shingles(o.text, 5)) other.set(s, o.file);
     const hits: string[] = [];
     for (const r of [...LINES.dev, ...LINES.heldout, ...RULES.dev, ...RULES.heldout]) for (const t of rowTexts(r)) for (const s of shingles(t, 5)) if (other.has(s)) hits.push(`"${s}" in ${r.id} and ${other.get(s)}`);
+    expect(hits).toEqual([]);
+  });
+
+  it("the pick's questions (src/pick.ts) share no 5-word run with any eval set", () => {
+    const sets = new Map<string, string>();
+    for (const o of otherTexts()) for (const s of shingles(o.text, 5)) sets.set(s, o.file);
+    for (const r of [...LINES.dev, ...LINES.heldout, ...RULES.dev, ...RULES.heldout]) for (const t of rowTexts(r)) for (const s of shingles(t, 5)) sets.set(s, r.id);
+    const hits: string[] = [];
+    for (const l of literals(fs.readFileSync("src/pick.ts", "utf8"))) for (const s of shingles(l, 5)) if (sets.has(s)) hits.push(`"${s}" in src/pick.ts and ${sets.get(s)}`);
     expect(hits).toEqual([]);
   });
 

@@ -121,8 +121,11 @@ describe("the Stop hook with background subagents", () => {
     expect(deferredTurns(root)).toHaveLength(1);
     const b = await runHook(stopAt(root, s, 1), { jev, env });
     expect(b.action).toBe("saved");
-    expect(jev.calls).toHaveLength(1);
-    const state: any = jev.calls[0]!.state;
+    // One decide request, then the pick of the saved line's sentences (src/pick.ts).
+    const decides = () => jev.calls.filter((c) => c.opts.label === "decide");
+    expect(decides()).toHaveLength(1);
+    expect(jev.calls.map((c) => c.opts.label)).toEqual(["decide", "line"]);
+    const state: any = decides()[0]!.state;
     expect(state.user_message).toBe(s.prompts[0]);
     expect(JSON.stringify(state)).not.toContain("task-notification");
     expect(deferredTurns(root)).toHaveLength(0);
@@ -132,7 +135,7 @@ describe("the Stop hook with background subagents", () => {
     const c = await runHook({ ...again, last_assistant_message: `${again.last_assistant_message} And one more thing.` }, { jev, env });
     expect(c.action).toBe("noop");
     expect(c.detail).toBe("turn already decided");
-    expect(jev.calls).toHaveLength(1);
+    expect(decides()).toHaveLength(1);
   });
 
   it("a turn the user moved on from is decided at the next Stop, before the new turn", async () => {
@@ -146,7 +149,7 @@ describe("the Stop hook with background subagents", () => {
     const second = await runHook({ hook_event_name: "Stop", session_id: "s1", cwd: root, transcript_path: file, last_assistant_message: "You're welcome." }, { jev, env });
     expect(second.action).toBe("skipped");
     expect(second.detail).toMatch(/after 1 queued turn/);
-    expect(jev.calls.map((c: any) => c.state.user_message)).toEqual(["We decided on UTC everywhere. Have a subagent check the parser.", "thanks, that's all"]);
+    expect(jev.calls.filter((c) => c.opts.label === "decide").map((c: any) => c.state.user_message)).toEqual(["We decided on UTC everywhere. Have a subagent check the parser.", "thanks, that's all"]);
     expect(new MemoryStore(root).active().map((m) => m.kind)).toEqual(["decision"]);
     expect(deferredTurns(root)).toHaveLength(0);
   });

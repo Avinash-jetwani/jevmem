@@ -287,6 +287,8 @@ describe("assistant reply handling", () => {
     const root = tmp();
     const seen: any[] = [];
     const jev = mockJev((q, state: any) => {
+      // The pick of a saved line's sentences (src/pick.ts): the mock's default, the first sentence and no reason.
+      if ("states_the_memory" in q) return {};
       seen.push({ keys: Object.keys(state), hasMeta: "assistant_reply_is_meta" in q || "assistant_lists_options_or_next_steps" in q });
       if (/thanks/.test(state.user_message)) return CHIT_CHAT;
       if (/why is the login test flaky/.test(state.user_message)) return { ...T1_QUIET, contains_bug_finding: 0.95, kind: "bug", importance: 3, content_source: "assistant_reply", assistant_reply_is_meta: 0.05 };

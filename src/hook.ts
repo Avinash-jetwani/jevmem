@@ -13,6 +13,7 @@ import { DEFAULT_CONFIG } from "./types.js";
 import { drainQueue, enqueueTurn, readQueue, type QueuedTurn } from "./queue.js";
 import { MemoryStore } from "./store.js";
 import { mergeTurn, readTranscriptTurns } from "./transcript.js";
+import { describePick, pickRecord } from "./pick.js";
 import { deferTurn, isDecided, markDecided, releaseDeferred, type ReleasedTurn } from "./turns.js";
 import { writeMemory } from "./write.js";
 
@@ -326,10 +327,13 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
     return { event, action: "skipped", detail: decision.reason, decision };
   }
 
-  const result = await writeMemory(store, decision.sourceText || message, decision, { writer: cfg.writer, env, fetchImpl: deps.fetchImpl });
-  // The LLM writer could not give its line (or needed its request changed): say so in the log, which doctor and stats read.
-  if (result.writerNote) appendLog(store.root, { ts: new Date().toISOString(), label: "writer", event: "writer-fallback", ok: result.writerUsed !== "fallback", latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, memoryId: result.saved.id, detail: result.writerNote });
-  recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision, writer: result.writerUsed });
+  // Jev picks the sentences jevmem's own writer makes the line from: one more request, only for a turn that is saved.
+  const result = await writeMemory(store, decision.sourceText || message, decision, { writer: cfg.writer, env, fetchImpl: deps.fetchImpl, jev, jevTimeoutMs: cfg.jev.timeoutMs });
+  // The LLM writer could not give its line (or needed its request changed), or Jev's pick failed: say so in the log,
+  // which doctor and stats read.
+  if (result.writerNote) appendLog(store.root, { ts: new Date().toISOString(), label: "writer", event: "writer-fallback", ok: result.writerUsed !== "fallback" && !result.pick?.error, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, memoryId: result.saved.id, detail: result.writerNote });
+  const pick = result.pick ? pickRecord(result.pick) : undefined;
+  recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision, writer: result.writerUsed, ...(pick ? { pick } : {}) });
   // Exact duplicate of a live memory: drop the new line again.
   const dup = existing.find((m) => m.text.toLowerCase() === result.line.toLowerCase());
   if (dup && !result.superseded) {
@@ -338,7 +342,7 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
   }
   recordProvenance(store.root, result.saved, "hook");
   const sup = result.superseded ? ` (supersedes ${result.superseded.id})` : "";
-  return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}${result.writerNote ? ` (${result.writerNote})` : ""}`, decision };
+  return { event, action: "saved", detail: `[${result.saved.kind}] ${result.line} id:${result.saved.id}${sup} via ${result.writerUsed}${pick && !pick.error ? ` (${describePick(pick)})` : ""}${result.writerNote ? ` (${result.writerNote})` : ""}`, decision };
 }
 
 /**
