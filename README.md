@@ -2,6 +2,8 @@
 
 Automatic project memory for Claude Code. Also works with Cursor and Codex.
 
+**Now in Anthropic's Claude plugin directory:** in the Claude app, Plugins → Discover → jevmem → Add, then follow [the setup steps](#from-the-claude-plugin-directory).
+
 [![npm version](https://img.shields.io/npm/v/jevmem.svg)](https://www.npmjs.com/package/jevmem)
 [![license](https://img.shields.io/npm/l/jevmem.svg)](LICENSE)
 [![node](https://img.shields.io/node/v/jevmem.svg)](package.json)
@@ -28,6 +30,7 @@ Real lines from 0.5.7's default writer, which 0.5.8 did not change ([the run](re
 
 ## What's new
 
+- **In the Claude plugin directory** (2026-09-29): add jevmem from the Claude app. The plugin runs the `jevmem` CLI from npm, so setup takes three commands.
 - **0.5.10, clearer setup for installs from the Claude plugin directory** (`jevmem@synced`): `jevmem key` saves your key, the first prompt says when no key is found and how to fix it, `jevmem doctor` sees the directory's plugin, and `jevmem enable` gives one next step. No change to what is saved or recalled. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI) ([CHANGELOG](CHANGELOG.md#0510---2026-09-29)).
 - **0.5.8, a security fix: secrets named like `PGPASSWORD=` weren't scrubbed in 0.5.7 and earlier.** A prompt or turn with `PGPASSWORD=…`, `MYSQLPWD=…` or `"password": "…"` in it was sent to TypeSafe with the value as written. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI), and rotate any such secrets that were in your chats in an enabled project ([advisory GHSA-2r3p-5hmg-46p5](https://github.com/Avinash-jetwani/jevmem/security/advisories/GHSA-2r3p-5hmg-46p5), [CHANGELOG](CHANGELOG.md#058---2026-09-28)).
 - **Install as a Claude Code plugin** (0.5.0), opt-in per project since 0.5.1: it does nothing until you run `jevmem enable` in a repo.
@@ -57,15 +60,15 @@ This needs Claude Code 2.1.273 or later: earlier versions don't sync the plugins
    npm install -g jevmem
    ```
 
-3. Add your TypeSafe key (from [console.typesafe.ai/keys](https://console.typesafe.ai/keys)): run this and paste it. It asks without showing the key and saves it in `~/.jevmem/env`, readable only by you.
+3. Add your TypeSafe key (from [console.typesafe.ai/keys](https://console.typesafe.ai/keys)): run this, then paste the key when it asks. It doesn't show the key as you paste, and saves it in `~/.jevmem/env`, readable only by you.
 
    ```bash
    jevmem key
    ```
 
-4. In your project, run `jevmem enable`.
-5. Start Claude Code signed in with the same Claude account. The plugin shows as `jevmem@synced` (run `/reload-plugins` if Claude Code asks).
-6. `jevmem doctor` checks the setup.
+4. In a terminal, in your project's folder, run `jevmem enable`. The plugin does nothing in a project until you do.
+5. Start Claude Code in that project, signed in with the same Claude account as the app. The plugin shows as `jevmem@synced` (run `/reload-plugins` if Claude Code asks).
+6. `jevmem doctor` checks the setup. If Claude Code shows "jevmem: CLI not found", see [if the plugin can't find the CLI](#if-the-plugin-cant-find-the-cli).
 
 Claude Code's own memory may also say it saved something; `JEVMEM.md` shows what jevmem saved.
 
@@ -79,6 +82,8 @@ cd your-project && jevmem enable
 ```
 
 Add your key with `jevmem key` as in step 3 above, or enter it in Claude Code with `/plugin configure jevmem`, which Claude Code keeps in your system's secure credential store (the `claude plugin install` shell command doesn't ask for it). That setting exists only for a plugin installed from a marketplace: the directory's `jevmem@synced` has no Configure options.
+
+### If the plugin can't find the CLI
 
 The plugin runs the `jevmem` CLI from npm, so install that first. The hooks find it on the PATH Claude Code gives them or, when that PATH lacks it (the desktop app's can), in `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `~/.volta/bin` or the newest Node version under `~/.nvm`. Without it, an enabled project shows "jevmem: CLI not found, so memory is off in this project" on the first prompt of each session, and the MCP server fails to start (`/mcp` shows it as failed). The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](docs/hooks.md#the-claude-code-plugin).
 
