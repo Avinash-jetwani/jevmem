@@ -6,7 +6,9 @@ All notable changes to Jevmem are documented here. The format follows [Keep a Ch
 
 0.5.10: clearer setup for installs from the Claude plugin directory; no change to what is saved or recalled.
 
-**Upgrade:** `npm install -g jevmem@latest`. The plugin from the Claude plugin directory (`jevmem@synced`, 0.5.7) runs this CLI, so it gets these changes without a plugin update. Cut from 0.5.9: none of the unreleased v0.6 work on `main` is in it.
+**Upgrade:** `npm install -g jevmem@latest`. Plugin users too: the plugin runs this CLI.
+
+The plugin from the Claude plugin directory (`jevmem@synced`, 0.5.7) gets these changes without a plugin update. Cut from 0.5.9: none of the unreleased v0.6 work on `main` is in it.
 
 ### Added
 - **`jevmem key`** saves your TypeSafe key to `~/.jevmem/env`, where the hooks, the MCP server and the commands look for it. It asks for the key without showing it (or reads it from stdin), keeps the file's other lines, makes the folder 0700 and the file 0600, and never prints or logs the key. When the file already has a key it asks before replacing it, which needs a terminal. It works for every install: the plugin from the Claude plugin directory, one from a marketplace, and the hooks `jevmem init` registers.
