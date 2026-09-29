@@ -1,0 +1,41 @@
+{
+  "date": "2026-09-29",
+  "claudeCode": "2.1.284",
+  "runsPerPlugin": 6,
+  "plugins": {
+    "ctlsync": {
+      "n": 6,
+      "cancelled": 0,
+      "success": 6,
+      "stopReachedCli": 0
+    },
+    "ctlasync": {
+      "n": 6,
+      "cancelled": 4,
+      "success": 2,
+      "stopReachedCli": 0
+    },
+    "j057": {
+      "n": 6,
+      "cancelled": 1,
+      "success": 5,
+      "stopReachedCli": 6
+    },
+    "jmain": {
+      "n": 6,
+      "cancelled": 4,
+      "success": 2,
+      "stopReachedCli": 6
+    }
+  },
+  "about": "scripts/diag-stop-cancelled.sh: the Stop hook's hook_response in `claude -p --include-hook-events`, per plugin loaded with --plugin-dir, in a temporary config. ctlasync/ctlsync: control plugins whose Stop hook runs `true` (async / not). j057: the plugin the Claude plugin directory serves (0.5.7) with the jevmem CLI 0.5.9. jmain: main's plugin and CLI. No TypeSafe key, so stopReachedCli counts runs where the Stop hook's CLI logged its no-key line.",
+  "interactive": {
+    "method": "one prompt in an interactive session in a pseudo-terminal (temporary config), then /exit; screen text and the session transcript read",
+    "plugins": [
+      "ctlasync",
+      "j057",
+      "jmain"
+    ],
+    "seen": "the spinner shows '(running Stop hook \u00b7 1s)', then 'Worked for 1s \u00b7 done'; no 'cancelled' and no hook error on screen, no hook_cancelled attachment in the transcript; the jevmem CLI logged the Stop turn (j057, jmain)"
+  }
+}
