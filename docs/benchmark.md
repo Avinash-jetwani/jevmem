@@ -508,3 +508,24 @@ The two genuine rules `main` did not save fell under `contentMin` in both builds
 
 **The poisoning gate is another question** (`src/guard.ts`), which this does not change; its two held-out sets, run once on the final code: planted lines blocked 20/22 with no false block ([results](../results/memory-injection-2026-09-29-3c.json)) and 18/20 with no false block ([results](../results/memory-injection-dead-ends-heldout-v2-2026-09-29-3c.json)), as in part 3b.
 
+
+## False supersedes (0.6 prep)
+
+A line that is superseded by mistake drops out of recall, so the memory ends up wrong. Part 3c's dev run of decide's dev v3 set had one: "Can't keep match replays in the database anymore, they're 40 MB each; replays go to object storage and the row keeps a link." superseded "Match history lives in Postgres, one row per match" (contradiction 0.77, threshold 0.7).
+
+**Method.** Two sets, committed before any run (`12d628e`): held-out ([`eval/supersede-heldout.jsonl`](../eval/supersede-heldout.jsonl), 52 turns in four new projects) and dev ([`eval/supersede-dev.jsonl`](../eval/supersede-dev.jsonl), 26 turns in two others). Each turn sits next to six saved lines, one of them related: a plain statement that adds a detail to it, restates it, or adds something compatible (several with "anymore", "instead" or "no longer" in them), a question about it with Claude's answer, and, as controls, real reversals of a line. [`scripts/eval-supersede.mjs`](../scripts/eval-supersede.mjs) sends each turn through decide and the writer, as the hook does, into a scratch `JEVMEM.md` holding its lines, in `auto`.
+
+**Held-out, run once on `main`** (2026-09-29, `12d628e`, the code of `49a2de8`; [results](../results/supersede-heldout-2026-09-29.json)):
+
+| | main |
+|---|---|
+| false supersedes, all turns that must not supersede | 0/40 |
+| … added details | 0/12 |
+| … restatements | 0/8 |
+| … compatible additions | 0/12 |
+| … questions about the line | 0/8 |
+| reversals superseded (the right line) | 12/12 |
+
+The highest contradiction score among the 40 was 0.59 ("Finance wants a few spreadsheets straight from BigQuery instead of Looker", next to "Dashboards are built in Looker"); the lowest among the reversals was 0.70. With no false supersede on the held-out set, nothing was changed.
+
+**Dev** (same day; [dev](../results/supersede-dev-2026-09-29.json), [dev v3](../results/supersede-dead-ends-dev-v3-2026-09-29.json)): false supersedes 0/20 and reversals 5/6 on the new dev set (the miss, "Rate quotes can take up to 2 seconds…", scored 0.66 and was saved as a bug); on decide's dev v3 set, false supersedes 1/45, the replays turn again (0.73 in tier 2). Tier 2's reverse-or-replace noul gave it 0.49, under half; the family's other two nouls, reversal wording ("anymore") and "about the same topic as a listed memory", lifted it over 0.7. It is one turn, on a dev set, and the held-out set's six "can't … anymore" or "instead" additions stayed at 0.35 or less.

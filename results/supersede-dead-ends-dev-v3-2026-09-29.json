@@ -1,0 +1,1837 @@
+{
+ "kind": "supersede",
+ "date": "2026-09-29",
+ "commit": "12d628e",
+ "dist": "dist/index.js",
+ "set": "eval/dead-ends-dev-v3.jsonl",
+ "mode": "auto",
+ "turns": 60,
+ "machine": "darwin arm64, node v22.22.0, Apple M4",
+ "cost_method": "input tokens × $0.042/M (decide and the line's request)",
+ "summary": {
+  "started_at": "2026-09-29T19:49:18.545Z",
+  "finished_at": "2026-09-29T19:49:49.015Z",
+  "falseSupersedes": "1/45",
+  "falseBySubtype": {
+   "when": {
+    "cases": 3,
+    "superseded": 0
+   },
+   "do-not": {
+    "cases": 3,
+    "superseded": 0
+   },
+   "bug": {
+    "cases": 3,
+    "superseded": 0
+   },
+   "how": {
+    "cases": 3,
+    "superseded": 0
+   },
+   "todo": {
+    "cases": 3,
+    "superseded": 0
+   },
+   "cant": {
+    "cases": 1,
+    "superseded": 1
+   },
+   "question": {
+    "cases": 11,
+    "superseded": 0
+   },
+   "options": {
+    "cases": 3,
+    "superseded": 0
+   },
+   "proposal": {
+    "cases": 1,
+    "superseded": 0
+   },
+   "assistant": {
+    "cases": 3,
+    "superseded": 0
+   },
+   "user": {
+    "cases": 3,
+    "superseded": 0
+   },
+   "but": {
+    "cases": 6,
+    "superseded": 0
+   },
+   "what": {
+    "cases": 2,
+    "superseded": 0
+   }
+  },
+  "reversals": {
+   "cases": 15,
+   "found": 13,
+   "wrongId": 0,
+   "missed": 2
+  },
+  "reversalsFound": "13/15",
+  "kindAsLabelled": "56/60",
+  "p50ms": 498,
+  "costPerDecisionUsd": 0.0003166
+ },
+ "rows": [
+  {
+   "id": "dv3-kestrel-001",
+   "tag": "plain-statement",
+   "subtype": "when",
+   "user": "When a match ends, write its history row before tearing down the room; a crash between the two lost results twice last month.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "decision",
+     "bug"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "bug",
+    "line": "When a match ends, write its history row before tearing down the room; a crash between the two lost results twice last month.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 261,
+   "inputTokens": 3306,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=bug content=0.80 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.14,
+   "tier1Contradicts": 0.14,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-kestrel-002",
+   "tag": "plain-statement",
+   "subtype": "do-not",
+   "user": "Do not allocate in the tick loop; use the per-match arena for anything that lives longer than a packet.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "preference"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Do not allocate in the tick loop; use the per-match arena for anything that lives longer than a packet.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 228,
+   "inputTokens": 3301,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.94 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.06,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-kestrel-003",
+   "tag": "plain-statement",
+   "subtype": "bug",
+   "user": "The spectator view is wrong whenever the server drops below 50 ticks a second: players teleport because interpolation assumes a fixed 16 ms step.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "bug"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "bug",
+    "line": "The spectator view is wrong whenever the server drops below 50 ticks a second: players teleport because interpolation assumes a fixed 16 ms step.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 282,
+   "inputTokens": 3314,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=bug content=0.94 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.2,
+   "tier1Contradicts": 0.2,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-kestrel-004",
+   "tag": "plain-statement",
+   "subtype": "how",
+   "user": "How matchmaking works now: the lobby service groups players by region and skill band, then asks the fleet API for a server with a free slot.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "How matchmaking works now: the lobby service groups players by region and skill band, then asks the fleet API for a server with a free slot.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 518,
+   "inputTokens": 9670,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.88 importance=useful [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.08317269649392238,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.04
+  },
+  {
+   "id": "dv3-kestrel-005",
+   "tag": "plain-statement",
+   "subtype": "todo",
+   "user": "Fix the flaky reconnect test before we cut the next build; it fails about one run in ten on CI.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "todo",
+     "bug"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "bug",
+    "line": "Fix the flaky reconnect test before we cut the next build; it fails about one run in ten on CI.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 519,
+   "inputTokens": 9658,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=bug content=0.66 importance=useful [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.08166025546159467,
+   "tier1Contradicts": 0.04,
+   "tier2Reverses": 0.03
+  },
+  {
+   "id": "dv3-kestrel-006",
+   "tag": "plain-statement",
+   "subtype": "cant",
+   "user": "Can't keep match replays in the database anymore, they're 40 MB each; replays go to object storage and the row keeps a link.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "architecture"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "Can't keep match replays in the database anymore, they're 40 MB each; replays go to object storage and the row keeps a link.",
+    "superseded": "ks4"
+   },
+   "ok": false,
+   "kindOk": true,
+   "ms": 519,
+   "inputTokens": 9674,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.89 importance=important supersedes=ks4 [tier 2, escalated]",
+   "touches": "ks4",
+   "contradictionFamily": 0.725119497789823,
+   "tier1Contradicts": 0.63,
+   "tier2Reverses": 0.49
+  },
+  {
+   "id": "dv3-kestrel-007",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "maybe match history should go to ClickHouse instead of Postgres? the table is at 90 million rows",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 520,
+   "inputTokens": 9726,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project) [tier 2, escalated]",
+   "touches": "ks4",
+   "contradictionFamily": 0.7119759194127935,
+   "tier1Contradicts": 0.26,
+   "tier2Reverses": 0.39
+  },
+  {
+   "id": "dv3-kestrel-008",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "What if the tick ran at 30 Hz instead of 64 for the casual modes? would players notice?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 575,
+   "inputTokens": 9700,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project), content=0.21<0.5 [tier 2, escalated]",
+   "touches": "ks3",
+   "contradictionFamily": 0.40251423417298393,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": 0.09
+  },
+  {
+   "id": "dv3-kestrel-009",
+   "tag": "question-proposal",
+   "subtype": "options",
+   "user": "Options for server-side anti-cheat: 1) keep the plugin 2) buy a vendor SDK 3) statistical checks after the match. Which would you pick?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 485,
+   "inputTokens": 9880,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: content=0.47<0.5, source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+   "touches": "ks9",
+   "contradictionFamily": 0.17008852523532642,
+   "tier1Contradicts": 0.13,
+   "tier2Reverses": 0.1
+  },
+  {
+   "id": "dv3-kestrel-010",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "I'm wondering whether thiserror everywhere is overkill for the tools crate. Thoughts?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 501,
+   "inputTokens": 9688,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project) [tier 2, escalated]",
+   "touches": "ks5",
+   "contradictionFamily": 0.27888482197713693,
+   "tier1Contradicts": 0.25,
+   "tier2Reverses": 0.25
+  },
+  {
+   "id": "dv3-kestrel-011",
+   "tag": "question-proposal",
+   "subtype": "proposal",
+   "user": "Could be worth moving the lobby to its own region someday, not sure yet.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 243,
+   "inputTokens": 3315,
+   "escalated": false,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project) [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.06,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-kestrel-012",
+   "tag": "dead-end-reversal",
+   "subtype": "user",
+   "user": "Delta compression has been a mess: one dropped packet desyncs a client until the next full state, and players on mobile networks see rubber-banding every few seconds. Match state moves to full snapshots at 20 Hz with client-side interpolation.",
+   "want": {
+    "contradicts": "ks6",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Delta compression has been a mess: one dropped packet desyncs a client until the next full state, and players on mobile networks see rubber-banding every few seconds.",
+    "superseded": "ks6"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 540,
+   "inputTokens": 9138,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.86 importance=important supersedes=ks6 [tier 2, escalated]",
+   "touches": "ks6",
+   "contradictionFamily": 0.8234647252208833,
+   "tier1Contradicts": 0.85,
+   "tier2Reverses": 0.86
+  },
+  {
+   "id": "dv3-kestrel-013",
+   "tag": "dead-end-reversal",
+   "subtype": "user",
+   "user": "The server-side anti-cheat plugin has cost us more than it saves: it adds 3 ms to every tick at 64 players and flagged a dozen legit players for fast movement on high-refresh monitors. It comes out; we'll use post-match statistics instead.",
+   "want": {
+    "contradicts": "ks9",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "The server-side anti-cheat plugin has cost us more than it saves: it adds 3 ms to every tick at 64 players and flagged a dozen legit players for fast movement on high-refresh monitors.",
+    "superseded": "ks9"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 226,
+   "inputTokens": 3429,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.97 importance=important supersedes=ks9 [tier 1]",
+   "touches": "ks9",
+   "contradictionFamily": 0.94,
+   "tier1Contradicts": 0.94,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-kestrel-014",
+   "tag": "dead-end-reversal",
+   "subtype": "user",
+   "user": "One row per match in Postgres stopped working at our volume: the inserts at the end of a big tournament lock the table for seconds and the leaderboard page times out. Match history moves to an append-only event table that a job rolls up into the leaderboard every minute.",
+   "want": {
+    "contradicts": "ks4",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "One row per match in Postgres stopped working at our volume: the inserts at the end of a big tournament lock the table for seconds and the leaderboard page times out.",
+    "superseded": "ks4"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 214,
+   "inputTokens": 3881,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.95 importance=important supersedes=ks4 [tier 1]",
+   "touches": "ks4",
+   "contradictionFamily": 0.93,
+   "tier1Contradicts": 0.93,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-kestrel-015",
+   "tag": "retest-same",
+   "subtype": "assistant",
+   "user": "Try async-std for the tick loop again with the new release.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 612,
+   "inputTokens": 11603,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: retest of ks7: failed again for the reason it gives (nothing new) [tier 2, escalated]",
+   "touches": "ks7",
+   "contradictionFamily": 0.2839402061842902,
+   "tier1Contradicts": 0.17,
+   "tier2Reverses": 0.24
+  },
+  {
+   "id": "dv3-kestrel-016",
+   "tag": "retest-same",
+   "subtype": "user",
+   "user": "I gave Quinn another go on the staging fleet this week. The extra handshake round trips are still there and the players behind carrier-grade NAT still time out, so it stays off.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 519,
+   "inputTokens": 11579,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: retest of ks8: failed again for the reason it gives (nothing new) [tier 2, escalated]",
+   "touches": "ks8",
+   "contradictionFamily": 0.1915453485614675,
+   "tier1Contradicts": 0.09,
+   "tier2Reverses": 0.12
+  },
+  {
+   "id": "dv3-kestrel-017",
+   "tag": "retest-new",
+   "subtype": "assistant",
+   "user": "Did the timer fix in async-std 1.13 help the tick loop?",
+   "want": {
+    "contradicts": "ks7",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Async-std for the tick loop: its timers drifted by 3 to 5 ms per tick under load; retried: its UDP socket wrapper copies every packet into a new buffer",
+    "superseded": "ks7"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 225,
+   "inputTokens": 4812,
+   "escalated": false,
+   "source": "assistant_reply",
+   "reason": "save kind=dead-end content=0.97 importance=important source=assistant_reply supersedes=ks7 (failed again, new reason) [tier 1]",
+   "touches": "ks7",
+   "contradictionFamily": 0.3,
+   "tier1Contradicts": 0.3,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-kestrel-018",
+   "tag": "retest-new",
+   "subtype": "user",
+   "user": "Retried Quinn now that we have a relay for NAT. The timeouts are gone, but QUIC's congestion control halves our send rate on every lost packet, and on lossy mobile links the match state arrives in bursts. Staying on our UDP channel.",
+   "want": {
+    "contradicts": "ks8",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Quinn (QUIC) for the transport: the handshake added 2 round trips and players behind carrier-grade NAT timed out; retried: QUIC's congestion control halves our send rate on every lost packet",
+    "superseded": "ks8"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 518,
+   "inputTokens": 12172,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.93 importance=useful supersedes=ks8 (failed again, new reason) [tier 2, escalated]",
+   "touches": "ks8",
+   "contradictionFamily": 0.23505219623623524,
+   "tier1Contradicts": 0.15,
+   "tier2Reverses": 0.15
+  },
+  {
+   "id": "dv3-kestrel-019",
+   "tag": "dead-end",
+   "subtype": "but",
+   "user": "Can the server encode state faster?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "I tried bincode's varint encoding for the state packets. Packets got about 30% smaller, but encoding took 2.4 ms per tick at 64 players against 0.9 ms for the fixed-width format",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 588,
+   "inputTokens": 10358,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "save kind=dead-end content=0.92 importance=important source=assistant_reply [tier 2, escalated]",
+   "touches": "ks3",
+   "contradictionFamily": 0.15058757974584394,
+   "tier1Contradicts": 0.08,
+   "tier2Reverses": 0.07
+  },
+  {
+   "id": "dv3-kestrel-020",
+   "tag": "dead-end",
+   "subtype": "but",
+   "user": "I tried moving pathfinding for the bots to a rayon thread pool. It made each bot's path about four times faster, but the pool stole cores from the tick thread and the p99 tick went from 12 ms to 21 ms on the 8-core boxes. Pathfinding stays on the tick thread with a budget per frame.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Moving pathfinding for the bots to a rayon thread pool. The pool stole cores from the tick thread and the p99 tick went from 12 ms to 21 ms on the 8-core boxes.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 253,
+   "inputTokens": 3425,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.97 importance=important [tier 1]",
+   "touches": "ks3",
+   "contradictionFamily": 0.21,
+   "tier1Contradicts": 0.21,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-001",
+   "tag": "plain-statement",
+   "subtype": "when",
+   "user": "When you add a Livewire component, give it a matching Dusk test in the same pull request.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "preference",
+     "constraint"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": false,
+   "ms": 520,
+   "inputTokens": 9628,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: content=0.42<0.5 [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.09449036895015929,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.03
+  },
+  {
+   "id": "dv3-marigold-002",
+   "tag": "plain-statement",
+   "subtype": "do-not",
+   "user": "Do not send reminder emails between 10 pm and 7 am in the customer's time zone; people complained about late-night pings.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "preference"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Do not send reminder emails between 10 pm and 7 am in the customer's time zone; people complained about late-night pings.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 227,
+   "inputTokens": 3297,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.96 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.05,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-003",
+   "tag": "plain-statement",
+   "subtype": "bug",
+   "user": "The booking widget shows the wrong day's slots for salons in Auckland because the availability query uses the server's time zone, not the salon's.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "bug"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "bug",
+    "line": "The booking widget shows the wrong day's slots for salons in Auckland because the availability query uses the server's time zone, not the salon's.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 289,
+   "inputTokens": 3299,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=bug content=0.97 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.05,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-004",
+   "tag": "plain-statement",
+   "subtype": "how",
+   "user": "How cancellations flow now: the customer cancels in the widget, an action refunds through Stripe, and a job tells the staff member's calendar to free the slot.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "How cancellations flow now: the customer cancels in the widget, an action refunds through Stripe, and a job tells the staff member's calendar to free the slot.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 248,
+   "inputTokens": 3301,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.95 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.07,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-005",
+   "tag": "plain-statement",
+   "subtype": "todo",
+   "user": "Before the Easter rush, fix the reminder job that times out for salons with more than 200 bookings a day.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "todo",
+     "bug"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "todo",
+    "line": "Before the Easter rush, fix the reminder job that times out for salons with more than 200 bookings a day.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 270,
+   "inputTokens": 3292,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=todo content=0.81 importance=useful [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.08,
+   "tier1Contradicts": 0.08,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-006",
+   "tag": "plain-statement",
+   "subtype": "what",
+   "user": "What we settled on with the owners: deposits are 20% for bookings over £100, charged at booking time.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "constraint"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "decision",
+    "line": "What we settled on with the owners: deposits are 20% for bookings over £100, charged at booking time.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 217,
+   "inputTokens": 3293,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=decision content=0.95 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.04,
+   "tier1Contradicts": 0.04,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-007",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "should availability be precomputed into a slots table instead of calculated on every request? thoughts",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 619,
+   "inputTokens": 9832,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+   "touches": "mr9",
+   "contradictionFamily": 0.46879062662624377,
+   "tier1Contradicts": 0.18,
+   "tier2Reverses": 0.17
+  },
+  {
+   "id": "dv3-marigold-008",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "What about Paddle instead of Stripe for the EU salons, for the VAT handling?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 473,
+   "inputTokens": 9686,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project) [tier 2, escalated]",
+   "touches": "mr4",
+   "contradictionFamily": 0.8130573860319537,
+   "tier1Contradicts": 0.3,
+   "tier2Reverses": 0.52
+  },
+  {
+   "id": "dv3-marigold-009",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "Is it worth moving the queue from Horizon to SQS? any gain?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 498,
+   "inputTokens": 9678,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+   "touches": "mr2",
+   "contradictionFamily": 0.15577584012374743,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": 0.07
+  },
+  {
+   "id": "dv3-marigold-010",
+   "tag": "question-proposal",
+   "subtype": "options",
+   "user": "Options for the admin UI: keep Blade and Livewire, move to Inertia with Vue, or Filament. Which one would you go with?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 528,
+   "inputTokens": 9706,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project), content=0.38<0.5 [tier 2, escalated]",
+   "touches": "mr1",
+   "contradictionFamily": 0.13764370760149627,
+   "tier1Contradicts": 0.08,
+   "tier2Reverses": 0.07
+  },
+  {
+   "id": "dv3-marigold-011",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "maybe the Google Calendar sync could poll every five minutes instead of using webhooks, simpler?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 502,
+   "inputTokens": 9828,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project) [tier 2, escalated]",
+   "touches": "mr6",
+   "contradictionFamily": 0.8320183851339246,
+   "tier1Contradicts": 0.34,
+   "tier2Reverses": 0.56
+  },
+  {
+   "id": "dv3-marigold-012",
+   "tag": "dead-end-reversal",
+   "subtype": "user",
+   "user": "The Google Calendar webhook channels keep expiring after a week and we miss the renewals, so staff calendars silently stop syncing and double bookings follow. Calendar sync moves to a nightly full import plus a pull every 15 minutes.",
+   "want": {
+    "contradicts": "mr6",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "The Google Calendar webhook channels keep expiring after a week and we miss the renewals, so staff calendars silently stop syncing and double bookings follow.",
+    "superseded": "mr6"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 277,
+   "inputTokens": 3398,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.96 importance=important supersedes=mr6 [tier 1]",
+   "touches": "mr6",
+   "contradictionFamily": 0.9,
+   "tier1Contradicts": 0.9,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-013",
+   "tag": "dead-end-reversal",
+   "subtype": "user",
+   "user": "Computing availability on every request doesn't hold up anymore: the big salons have 40 staff and the widget takes 3 seconds to show a day, and customers leave. Availability moves to a slots table that the schedule and booking actions keep up to date.",
+   "want": {
+    "contradicts": "mr9",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Computing availability on every request doesn't hold up anymore: the big salons have 40 staff and the widget takes 3 seconds to show a day, and customers leave.",
+    "superseded": "mr9"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 284,
+   "inputTokens": 3414,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.94 importance=important supersedes=mr9 [tier 1]",
+   "touches": "mr9",
+   "contradictionFamily": 0.96,
+   "tier1Contradicts": 0.96,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-014",
+   "tag": "dead-end-reversal",
+   "subtype": "user",
+   "user": "Horizon on our single Redis has bitten us twice: when Redis ran out of memory during the spring promo, queued confirmation jobs were evicted and 300 customers never got their booking email. Jobs move to SQS; Redis stays for cache only.",
+   "want": {
+    "contradicts": "mr2",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Horizon on our single Redis has bitten us twice: when Redis ran out of memory during the spring promo, queued confirmation jobs were evicted and 300 customers never got their booking email.",
+    "superseded": "mr2"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 293,
+   "inputTokens": 3343,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.97 importance=important supersedes=mr2 [tier 1]",
+   "touches": "mr2",
+   "contradictionFamily": 0.88,
+   "tier1Contradicts": 0.88,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-015",
+   "tag": "retest-same",
+   "subtype": "assistant",
+   "user": "Give Octane another try, maybe the Swoole update helps.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 556,
+   "inputTokens": 11569,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: retest of mr7: failed again for the reason it gives (nothing new) [tier 2, escalated]",
+   "touches": "mr7",
+   "contradictionFamily": 0.26114999391575094,
+   "tier1Contradicts": 0.15,
+   "tier2Reverses": 0.22
+  },
+  {
+   "id": "dv3-marigold-016",
+   "tag": "retest-same",
+   "subtype": "user",
+   "user": "We tested the cheap SMS aggregator again for Ireland over the weekend: about the same share of messages vanished while the reports said delivered. Reminders stay on email.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 515,
+   "inputTokens": 11505,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: retest of mr8: failed again for the reason it gives (nothing new) [tier 2, escalated]",
+   "touches": "mr8",
+   "contradictionFamily": 0.173646647019005,
+   "tier1Contradicts": 0.12,
+   "tier2Reverses": 0.09
+  },
+  {
+   "id": "dv3-marigold-017",
+   "tag": "retest-new",
+   "subtype": "assistant",
+   "user": "Now that the singleton is fixed, can we run Octane?",
+   "want": {
+    "contradicts": "mr7",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Laravel Octane with Swoole: the booking form lost session data between requests; retried: the PDF invoice generator leaks about 40 MB per request under Swoole",
+    "superseded": "mr7"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 519,
+   "inputTokens": 12122,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "save kind=dead-end content=0.97 importance=important source=assistant_reply supersedes=mr7 (failed again, new reason) [tier 2, escalated]",
+   "touches": "mr7",
+   "contradictionFamily": 0.4243356489574505,
+   "tier1Contradicts": 0.37,
+   "tier2Reverses": 0.41
+  },
+  {
+   "id": "dv3-marigold-018",
+   "tag": "retest-new",
+   "subtype": "user",
+   "user": "We retried the SMS aggregator with sender ID registration done. Delivery in Ireland is fine now, but every message came from a different short code, so customers couldn't reply to reschedule and their replies were lost. Reminders stay on email.",
+   "want": {
+    "contradicts": "mr8",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "SMS reminders through the cheapest aggregator: about 8% never arrived in Ireland while the delivery reports said delivered; retried: every message came from a different short code",
+    "superseded": "mr8"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 238,
+   "inputTokens": 4776,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.93 importance=important supersedes=mr8 (failed again, new reason) [tier 1]",
+   "touches": "mr8",
+   "contradictionFamily": 0.5,
+   "tier1Contradicts": 0.5,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-marigold-019",
+   "tag": "dead-end",
+   "subtype": "but",
+   "user": "Speed up the salon dashboard.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Caching the dashboard's booking counts in Redis for five minutes. The page loaded in 300 ms instead of 2 s, but staff saw bookings they had just made missing from the counts",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 520,
+   "inputTokens": 10320,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "save kind=dead-end content=0.92 importance=important source=assistant_reply [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.10433122311900135,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": 0.06
+  },
+  {
+   "id": "dv3-marigold-020",
+   "tag": "dead-end",
+   "subtype": "but",
+   "user": "I tried Laravel's model pruning for old bookings. It kept the table small, but it also deleted bookings that invoices still referenced, and the accountants' exports broke for last year. Pruning is off until the invoices keep their own copy.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "I tried Laravel's model pruning for old bookings. It kept the table small, but it also deleted bookings that invoices still referenced, and the accountants' exports broke for last year.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 330,
+   "inputTokens": 3369,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.97 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.09,
+   "tier1Contradicts": 0.09,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-basalt-001",
+   "tag": "plain-statement",
+   "subtype": "when",
+   "user": "When a model changes its grain, bump the version in the model's name and keep the old one for two weeks.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "preference",
+     "decision"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": false,
+   "ms": 567,
+   "inputTokens": 9738,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: content=0.34<0.5 [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.1150667320455498,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.04
+  },
+  {
+   "id": "dv3-basalt-002",
+   "tag": "plain-statement",
+   "subtype": "do-not",
+   "user": "Do not schedule full refreshes during store hours; the POS sync competes for the same warehouse.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Do not schedule full refreshes during store hours; the POS sync competes for the same warehouse.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 245,
+   "inputTokens": 3339,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.91 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.08,
+   "tier1Contradicts": 0.08,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-basalt-003",
+   "tag": "plain-statement",
+   "subtype": "bug",
+   "user": "The weekly sales mart is wrong for March: it double-counts returns because the returns seed has both the original and the corrected rows.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "bug"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "bug",
+    "line": "The weekly sales mart is wrong for March: it double-counts returns because the returns seed has both the original and the corrected rows.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 273,
+   "inputTokens": 3352,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=bug content=0.95 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.07,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-basalt-004",
+   "tag": "plain-statement",
+   "subtype": "how",
+   "user": "How freshness works here: each source has a freshness check in dbt, and Airflow pages the on-call person when a source is more than two hours behind.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "How freshness works here: each source has a freshness check in dbt, and Airflow pages the on-call person when a source is more than two hours behind.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 485,
+   "inputTokens": 9758,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.86 importance=useful [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.12842016947472976,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": 0.05
+  },
+  {
+   "id": "dv3-basalt-005",
+   "tag": "plain-statement",
+   "subtype": "todo",
+   "user": "Next week, fix the stores dimension that breaks whenever a store changes region mid-month.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "todo",
+     "bug"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "todo",
+    "line": "Next week, fix the stores dimension that breaks whenever a store changes region mid-month.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 529,
+   "inputTokens": 9726,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=todo content=0.93 importance=useful [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.09665121094159101,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": 0.04
+  },
+  {
+   "id": "dv3-basalt-006",
+   "tag": "plain-statement",
+   "subtype": "what",
+   "user": "What finance signed off on: gross margin in every mart uses the standard cost at the time of sale, not today's cost.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "constraint"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "decision",
+    "line": "What finance signed off on: gross margin in every mart uses the standard cost at the time of sale, not today's cost.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 266,
+   "inputTokens": 3344,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=decision content=0.94 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.06,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-basalt-007",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "thinking of splitting the dbt project per domain, sales, inventory, marketing. good idea?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 661,
+   "inputTokens": 9790,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project), kind=none [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.13764370760149627,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.05
+  },
+  {
+   "id": "dv3-basalt-008",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "maybe we could replace Fivetran with our own Kafka pipeline for the POS data? cost is getting high",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 467,
+   "inputTokens": 9788,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project), kind=none [tier 2, escalated]",
+   "touches": "bs2",
+   "contradictionFamily": 0.6681877721681662,
+   "tier1Contradicts": 0.23,
+   "tier2Reverses": 0.62
+  },
+  {
+   "id": "dv3-basalt-009",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "Is DuckDB worth trying for running the dbt tests locally instead of against Snowflake?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 498,
+   "inputTokens": 9796,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project), kind=none, content=0.42<0.5 [tier 2, escalated]",
+   "touches": "bs1",
+   "contradictionFamily": 0.36123682485115816,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.04
+  },
+  {
+   "id": "dv3-basalt-010",
+   "tag": "question-proposal",
+   "subtype": "options",
+   "user": "Options for the forecast: 1) keep the batch job 2) a Snowpark container 3) a notebook schedule. What do you think?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 477,
+   "inputTokens": 11791,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+   "touches": "bs8",
+   "contradictionFamily": 0.18846732521381943,
+   "tier1Contradicts": 0.12,
+   "tier2Reverses": 0.13
+  },
+  {
+   "id": "dv3-basalt-011",
+   "tag": "question-proposal",
+   "subtype": "question",
+   "user": "What if Looker queried a dedicated warehouse instead of sharing the dbt one? would dashboards get faster?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 535,
+   "inputTokens": 9944,
+   "escalated": true,
+   "source": "none",
+   "reason": "skip: source=none (neither side states anything for the project), kind=none [tier 2, escalated]",
+   "touches": "bs1",
+   "contradictionFamily": 0.4638133797682052,
+   "tier1Contradicts": 0.08,
+   "tier2Reverses": 0.14
+  },
+  {
+   "id": "dv3-basalt-012",
+   "tag": "dead-end-reversal",
+   "subtype": "user",
+   "user": "The incremental merge on the sales facts keeps missing late POS uploads: stores that sync a day late land after the merge window, and the daily totals come out 2 to 3% low until someone runs a full refresh. Sales facts go back to a full rebuild every night.",
+   "want": {
+    "contradicts": "bs6",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "bug",
+    "line": "The incremental merge on the sales facts keeps missing late POS uploads: stores that sync a day late land after the merge window, and the daily totals come out 2 to 3% low",
+    "superseded": null
+   },
+   "ok": false,
+   "kindOk": false,
+   "ms": 267,
+   "inputTokens": 3447,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=bug content=0.93 importance=important [tier 1]",
+   "touches": "bs6",
+   "contradictionFamily": 0.39,
+   "tier1Contradicts": 0.39,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-basalt-013",
+   "tag": "dead-end-reversal",
+   "subtype": "user",
+   "user": "The 60-second query timeout for Looker hasn't worked: the regional managers' year-over-year dashboard needs about 90 seconds on Mondays and just shows an error. Looker gets its own warehouse and a 5-minute timeout.",
+   "want": {
+    "contradicts": "bs9",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "bug",
+    "line": "The 60-second query timeout for Looker hasn't worked: the regional managers' year-over-year dashboard needs about 90 seconds on Mondays and just shows an error.",
+    "superseded": null
+   },
+   "ok": false,
+   "kindOk": false,
+   "ms": 521,
+   "inputTokens": 10484,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=bug content=0.88 importance=important [tier 2, escalated]",
+   "touches": "bs9",
+   "contradictionFamily": 0.5793242521487494,
+   "tier1Contradicts": 0.58,
+   "tier2Reverses": 0.57
+  },
+  {
+   "id": "dv3-basalt-014",
+   "tag": "dead-end-reversal",
+   "subtype": "user",
+   "user": "Running dbt from Airflow every hour has been painful: the Airflow worker runs out of memory parsing our 900 models and whole hours of runs get skipped without an alert. dbt moves to dbt Cloud jobs; Airflow only triggers them.",
+   "want": {
+    "contradicts": "bs1",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Running dbt from Airflow every hour has been painful: the Airflow worker runs out of memory parsing our 900 models and whole hours of runs get skipped without an alert. dbt moves to dbt Cloud jobs",
+    "superseded": "bs1"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 293,
+   "inputTokens": 3393,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.97 importance=important supersedes=bs1 [tier 1]",
+   "touches": "bs1",
+   "contradictionFamily": 0.92,
+   "tier1Contradicts": 0.92,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-basalt-015",
+   "tag": "retest-same",
+   "subtype": "assistant",
+   "user": "Can you turn on search optimization for the events table again and check?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 540,
+   "inputTokens": 11703,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: retest of bs7: failed again for the reason it gives (nothing new) [tier 2, escalated]",
+   "touches": "bs7",
+   "contradictionFamily": 0.2699256160188812,
+   "tier1Contradicts": 0.19,
+   "tier2Reverses": 0.2
+  },
+  {
+   "id": "dv3-basalt-016",
+   "tag": "retest-same",
+   "subtype": "user",
+   "user": "We tried the dbt Python model for the forecast again on the new Snowpark warehouse. It still cold-starts for about a minute and a half on each run, and the hourly schedule slipped again. Back to the batch job.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 549,
+   "inputTokens": 11753,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: retest of bs8: failed again for the reason it gives (nothing new) [tier 2, escalated]",
+   "touches": "bs8",
+   "contradictionFamily": 0.3787164048089321,
+   "tier1Contradicts": 0.14,
+   "tier2Reverses": 0.18
+  },
+  {
+   "id": "dv3-basalt-017",
+   "tag": "retest-new",
+   "subtype": "assistant",
+   "user": "Snowflake says search optimization handles high cardinality better now. Worth another look?",
+   "want": {
+    "contradicts": "bs7",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Snowflake's search optimization on the events table: the store filters were too high-cardinality for it to help; retried: maintaining the search access path costs about 40 credits a day on that table",
+    "superseded": "bs7"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 552,
+   "inputTokens": 12249,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "save kind=dead-end content=0.91 importance=useful source=assistant_reply supersedes=bs7 (failed again, new reason) [tier 2, escalated]",
+   "touches": "bs7",
+   "contradictionFamily": 0.3716838117046338,
+   "tier1Contradicts": 0.36,
+   "tier2Reverses": 0.34
+  },
+  {
+   "id": "dv3-basalt-018",
+   "tag": "retest-new",
+   "subtype": "user",
+   "user": "Retried the Python forecast model with a warm warehouse. The cold start is gone, but Snowpark's pandas API ran out of memory with the full three-year history, so the forecast stays in the batch job.",
+   "want": {
+    "contradicts": "bs8",
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Dbt Python models for the demand forecast: the Snowpark warehouse cold-started for 90 seconds on every run; retried: Snowpark's pandas API ran out of memory with the full three-year history",
+    "superseded": "bs8"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 243,
+   "inputTokens": 4840,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.93 importance=important supersedes=bs8 (failed again, new reason) [tier 1]",
+   "touches": "bs8",
+   "contradictionFamily": 0.58,
+   "tier1Contradicts": 0.58,
+   "tier2Reverses": null
+  },
+  {
+   "id": "dv3-basalt-019",
+   "tag": "dead-end",
+   "subtype": "but",
+   "user": "Make the inventory mart cheaper to run.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Clustering the inventory table on store and day. Queries scanned about 70% fewer partitions, but automatic reclustering cost more credits than the scans saved, around 25 a day",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 525,
+   "inputTokens": 10401,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "save kind=dead-end content=0.92 importance=useful source=assistant_reply [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.1412435074450749,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": 0.06
+  },
+  {
+   "id": "dv3-basalt-020",
+   "tag": "dead-end",
+   "subtype": "but",
+   "user": "I tried materializing the marketing funnel as a dynamic table. It refreshed within a minute of new data, but it rebuilt the whole table on every refresh because of a window function the incremental refresh can't handle, and the bill tripled. It's a nightly table again.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Materializing the marketing funnel as a dynamic table. It refreshed within a minute of new data, but it rebuilt the whole table on every refresh",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 221,
+   "inputTokens": 3431,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.98 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.23,
+   "tier1Contradicts": 0.23,
+   "tier2Reverses": null
+  }
+ ]
+}
