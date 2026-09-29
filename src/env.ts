@@ -89,10 +89,69 @@ export function resolveJevKey(root: string, env: NodeJS.ProcessEnv = process.env
   return loaded.from.startsWith("~") ? "~/.jevmem/env" : "<project>/.jevmem/.env";
 }
 
-/** What to do when no TypeSafe key is found. Names the two places to put it; never prints a key. */
-export const MISSING_KEY_HELP = [
-  "No TypeSafe API key found, so jevmem does nothing yet. Put it in one of:",
-  "  - the plugin setting: in Claude Code, run `/plugin configure jevmem@jevmem` (or open jevmem in `/plugin`) and enter the key (kept in your system's credential store)",
-  "  - ~/.jevmem/env: a line TYPESAFE_API_KEY=... (then `chmod 600 ~/.jevmem/env`)",
-  "Get a key at https://typesafe.ai",
-].join("\n");
+/**
+ * A pasted key, cleaned: surrounding space and quotes and a leading `TYPESAFE_API_KEY=` (or `export …=`) removed.
+ * Null when what is left cannot be written as an unquoted value that `parseEnvFile` reads back whole (empty, too short,
+ * or with a space, quote, `#`, `$`, backslash or backtick).
+ */
+export function cleanPastedKey(raw: string): string | null {
+  const k = raw
+    .trim()
+    .replace(/^(?:export\s+)?TYPESAFE_API_KEY\s*=\s*/, "")
+    .replace(/^(["'])(.*)\1$/, "$2")
+    .trim();
+  return k.length >= 8 && k.length <= 512 && !/[\s"'#$\\`]/.test(k) ? k : null;
+}
+
+const KEY_LINE = /^\s*(?:export\s+)?TYPESAFE_API_KEY\s*=/;
+
+/** Does ~/.jevmem/env already hold a TypeSafe key (a TYPESAFE_API_KEY line with a value)? */
+export function hasSavedJevKey(home: string = os.homedir()): boolean {
+  try {
+    return fs.readFileSync(path.join(home, ".jevmem", "env"), "utf8").split("\n").some((l) => KEY_LINE.test(l) && l.replace(KEY_LINE, "").trim() !== "");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Save the TypeSafe key to ~/.jevmem/env (`jevmem key`). An earlier TYPESAFE_API_KEY line there is replaced and every
+ * other line kept. The folder is made 0700 and the file 0600, an existing one before the key goes in. Returns the
+ * file's path. Never prints or logs the key.
+ */
+export function saveJevKey(key: string, home: string = os.homedir()): string {
+  const dir = path.join(home, ".jevmem");
+  const file = path.join(dir, "env");
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  fs.chmodSync(dir, 0o700);
+  if (fs.existsSync(file)) fs.chmodSync(file, 0o600);
+  let lines: string[] = [];
+  try {
+    lines = fs.readFileSync(file, "utf8").split("\n");
+  } catch {
+    /* a new file */
+  }
+  lines = lines.filter((l) => !KEY_LINE.test(l));
+  while (lines.length && !lines[lines.length - 1]!.trim()) lines.pop();
+  lines.push(`TYPESAFE_API_KEY=${key}`);
+  fs.writeFileSync(file, lines.join("\n") + "\n", { mode: 0o600 });
+  fs.chmodSync(file, 0o600);
+  return file;
+}
+
+/** The plugin's key option, offered only for a plugin installed from a marketplace (not `jevmem@synced`, which has none). */
+export const PLUGIN_CONFIGURE_HINT = "With the jevmem plugin installed from a marketplace you can instead run /plugin configure jevmem in Claude Code (kept in your system's credential store).";
+
+/**
+ * What to do when no TypeSafe key is found: the one command, which works for every install, and the plugin's own
+ * setting only when `configure` (a plugin from a marketplace was found). Never prints a key.
+ */
+export function missingKeyHelp(opts: { configure?: boolean } = {}): string {
+  return [
+    "No TypeSafe API key found, so jevmem does nothing yet. To fix it, run jevmem key in a terminal and paste your key.",
+    "It is saved in ~/.jevmem/env, readable only by you.",
+    ...(opts.configure ? [PLUGIN_CONFIGURE_HINT] : []),
+    "Get a key at https://console.typesafe.ai/keys",
+  ].join("\n");
+}
+export const MISSING_KEY_HELP = missingKeyHelp();

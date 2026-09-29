@@ -5,6 +5,7 @@ import { applyAudit, auditMemories, formatAuditTable } from "./audit.js";
 import { isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { loadEnvFallbacks } from "./env.js";
 import { gatedAdd } from "./gate.js";
+import { runningPlugin } from "./install.js";
 import { createJev, hasJevKey, type JevCaller } from "./jev.js";
 import { filterForServing } from "./guard.js";
 import { rankGuarded } from "./recall.js";
@@ -12,15 +13,18 @@ import { MemoryStore } from "./store.js";
 import { NEW_KINDS, type Kind } from "./types.js";
 import { PACKAGE_VERSION } from "./version.js";
 
+/** No key: the one fix for every install; the plugin's key setting only for a plugin from a marketplace (src/install.ts). */
+export const MCP_NO_KEY = "TYPESAFE_API_KEY is not set; search, add and audit need Jev. Run jevmem key in a terminal and paste your key.";
+
 export function buildMcpServer(root: string, deps: { jev?: JevCaller } = {}): McpServer {
   const cfg = loadConfig(root);
   const store = new MemoryStore(root, cfg.memoryFile);
   const getJev = (): JevCaller => {
     if (deps.jev) return deps.jev;
     // Like the hooks: an MCP server gets no shell environment, so the key may be in .jevmem/.env or ~/.jevmem/env. Read
-    // on each call, so a key saved to one of them while the session runs is used without a restart.
+    // on each call, so a key saved with `jevmem key` while the session runs is used without a restart.
     if (!hasJevKey()) loadEnvFallbacks(root);
-    if (!hasJevKey()) throw new Error("TYPESAFE_API_KEY is not set; search, add and audit need Jev.");
+    if (!hasJevKey()) throw new Error(MCP_NO_KEY + (runningPlugin(process.env, root) === "marketplace" ? " Or run /plugin configure jevmem in Claude Code." : ""));
     return createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
   };
   const server = new McpServer({ name: "jevmem", version: PACKAGE_VERSION });

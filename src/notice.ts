@@ -1,12 +1,78 @@
 /**
- * The one-time notice for projects set up before 0.5.4, when the LLM writer turned itself on whenever an OpenAI or
- * Anthropic key was found. It is shown once per project (recorded in `.jevmem/state.json`), and only where the old
- * behaviour could have applied: the config does not choose a writer (`"auto"` or no field) and an OpenAI or Anthropic
- * key is set, or an earlier line was written by an LLM writer.
+ * One-time notices, each recorded in `.jevmem/state.json` and shown once per project:
+ * - no TypeSafe key found, so the hooks do nothing (again after a key was found and went missing);
+ * - for projects set up before 0.5.4, when the LLM writer turned itself on whenever an OpenAI or Anthropic key was
+ *   found: shown only where the old behaviour could have applied (the config does not choose a writer, `"auto"` or no
+ *   field, and an OpenAI or Anthropic key is set, or an earlier line was written by an LLM writer).
  */
 import fs from "node:fs";
 import path from "node:path";
 import { configuredWriter } from "./config.js";
+
+/**
+ * Merge `patch` into `.jevmem/state.json` (null deletes a field). Re-reads the file just before writing: other
+ * processes (the stand-down warning, the Stop hook, the daemon) share it. Best effort.
+ */
+function patchState(root: string, patch: Record<string, unknown>): void {
+  const stateFile = path.join(root, ".jevmem", "state.json");
+  try {
+    let latest: Record<string, unknown> = {};
+    try {
+      latest = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+    } catch {
+      /* none yet */
+    }
+    const next = { ...latest, ...patch };
+    for (const [k, v] of Object.entries(patch)) if (v === null) delete next[k];
+    fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+    fs.writeFileSync(stateFile, JSON.stringify(next, null, 2));
+  } catch {
+    /* best effort: at worst a notice shows again */
+  }
+}
+
+function readState(root: string): Record<string, unknown> {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(root, ".jevmem", "state.json"), "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+const WHERE = "TYPESAFE_API_KEY in the environment Claude Code gives hooks (your shell profile is not read), <project>/.jevmem/.env and ~/.jevmem/env";
+/** The one fix, for every install: `jevmem key` saves to ~/.jevmem/env, which the plugin's hooks read too. */
+const FIX = "To fix it, run jevmem key in a terminal and paste your key (get one at https://console.typesafe.ai/keys)";
+const HEAD = "jevmem: no TypeSafe API key found, so memory is off in this project.";
+/** The plugin installed from a marketplace: it has a key setting, so `/plugin configure jevmem` is offered after the one fix. */
+export const MISSING_KEY_NOTICE_MARKETPLACE = `${HEAD} jevmem looks in the plugin setting, then ${WHERE}. ${FIX}, or run /plugin configure jevmem in Claude Code.`;
+/** A plugin whose install could not be told (loaded with --plugin-dir, for example): the plugin setting is not offered. */
+export const MISSING_KEY_NOTICE_PLUGIN = `${HEAD} jevmem looks in the plugin setting, then ${WHERE}. ${FIX}.`;
+/** The plugin added in the Claude app (`jevmem@synced`), which has no key setting, and the hooks `jevmem init` registers. */
+export const MISSING_KEY_NOTICE_INIT = `${HEAD} jevmem looks for ${WHERE}. ${FIX}.`;
+export const MISSING_KEY_NOTICE_SYNCED = MISSING_KEY_NOTICE_INIT;
+
+/** Which hooks show the notice: `jevmem init`'s, or the plugin's, by how it was installed (src/install.ts). */
+export type NoticeVia = "init" | "plugin" | "synced" | "marketplace";
+export function missingKeyNoticeText(via: NoticeVia): string {
+  return via === "marketplace" ? MISSING_KEY_NOTICE_MARKETPLACE : via === "plugin" ? MISSING_KEY_NOTICE_PLUGIN : MISSING_KEY_NOTICE_INIT;
+}
+
+/**
+ * The notice for an enabled project where no TypeSafe key was found: the hooks then do nothing, and only `jevmem
+ * doctor` would say why. Shown on a prompt (the Stop hook's output is not shown), once per project: it is recorded in
+ * `.jevmem/state.json` until a hook finds a key (`keyFound`), so a key that goes missing later is announced again.
+ * Returns the notice the first time; otherwise null.
+ */
+export function missingKeyNotice(root: string, via: NoticeVia): string | null {
+  if (readState(root).missingKeyNotice) return null;
+  patchState(root, { missingKeyNotice: new Date().toISOString() });
+  return missingKeyNoticeText(via);
+}
+
+/** A hook found a key: forget that the missing-key notice was shown (a read, and a write only when it had been). */
+export function keyFound(root: string): void {
+  if (readState(root).missingKeyNotice) patchState(root, { missingKeyNotice: null });
+}
 
 export const WRITER_OPT_IN_NOTICE =
   'jevmem: LLM writer is now opt-in: set writer in jevmem.config.json ("writer": "openai" or "anthropic") to keep using it. Until then jevmem writes each line itself.';

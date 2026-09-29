@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { daemonEnabled, daemonRequest, serveDaemon, socketPath } from "../src/daemon.js";
+import { daemonEnabled, daemonRequest, jevFingerprint, serveDaemon, socketPath } from "../src/daemon.js";
 import { loadConfig } from "../src/config.js";
 import { enqueueTurn, readQueue } from "../src/queue.js";
 import { MemoryStore } from "../src/store.js";
@@ -47,6 +47,31 @@ describe("daemon", () => {
       expect(stop).toMatchObject({ ok: true, type: "stopping" });
     } finally {
       if (prev === undefined) delete process.env.TYPESAFE_API_KEY;
+    }
+  });
+
+  it("serves a hook whose key is its own, and steps aside for one with another key (key-changed, then it exits)", async () => {
+    const root = tmp();
+    const prev = { key: process.env.TYPESAFE_API_KEY, base: process.env.TYPESAFE_BASE_URL };
+    process.env.TYPESAFE_API_KEY = "typesafe-test-key-old1";
+    delete process.env.TYPESAFE_BASE_URL;
+    let exited = false;
+    try {
+      const server = await serveDaemon(root, { prewarm: false, idleMs: 60_000, exit: () => void (exited = true) });
+      servers.push(server);
+      const input = { hook_event_name: "UserPromptSubmit", cwd: root, prompt: "hi" };
+      // No client (an older hook) and the daemon's own fingerprint are both served.
+      expect(await daemonRequest(root, { type: "hook", input })).toMatchObject({ ok: true, type: "hook" });
+      expect(await daemonRequest(root, { type: "hook", input, client: jevFingerprint() })).toMatchObject({ ok: true, type: "hook" });
+      const other = jevFingerprint({ TYPESAFE_API_KEY: "typesafe-test-key-new2" });
+      expect(await daemonRequest(root, { type: "drain", client: other })).toEqual({ ok: false, type: "key-changed" });
+      await waitFor(() => exited);
+      expect(fs.existsSync(path.join(root, ".jevmem", "daemon.json"))).toBe(false);
+      expect(await daemonRequest(root, { type: "ping" }, { connectMs: 200 })).toBeNull();
+    } finally {
+      if (prev.key === undefined) delete process.env.TYPESAFE_API_KEY;
+      else process.env.TYPESAFE_API_KEY = prev.key;
+      if (prev.base !== undefined) process.env.TYPESAFE_BASE_URL = prev.base;
     }
   });
 

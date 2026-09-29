@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|outage|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -31,6 +31,13 @@
 #              UserPromptSubmit hook prints the "CLI not found" systemMessage on a session's first prompt only (a second
 #              prompt with --continue prints nothing, a new session prints it again), the Stop hook prints nothing
 #              (checked in the sessions' hook events), and nothing is written in the project
+#   nokey      an enabled project with no TypeSafe key anywhere (a session HOME without ~/.jevmem/env, no key variable), once
+#              with the hooks `jevmem init` registers and once with the plugin: the first prompt's UserPromptSubmit hook
+#              shows the missing-key message, word for word as built (what is missing, where jevmem looks, the command
+#              that fixes it), the next prompt (--continue) shows nothing, the Stop hooks print nothing and nothing is
+#              saved. Then the harness does what the message says, as written: it takes the command from the message,
+#              runs it in a terminal (a pseudo-terminal, with the session's HOME and `jevmem` on PATH) and pastes the key
+#              at its hidden prompt. The next turn is saved without a message and the one after gets the line back
 #   outage     Jev behind a local proxy (scripts/jev-outage-proxy.mjs) that answers 529 during turn 1: the turn must be
 #              queued, not lost; after the proxy recovers, turn 2 runs and both lines must land, in order, exactly once
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
@@ -91,10 +98,10 @@ claude_session() {
   local extra=()
   while [ $# -gt 0 ] && [ "$1" != "--" ]; do extra+=("$1"); shift; done
   shift
-  env -i HOME="$SESSION_HOME" USER="$USER" PATH="$SESSION_PATH" TERM=dumb CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" "${AUTH_ENV[@]}" ${extra[@]+"${extra[@]}"} "$CLAUDE_BIN" "$@" < /dev/null
+  env -i HOME="$SESSION_HOME" USER="$USER" PATH="$SESSION_PATH" TERM=dumb CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" DISABLE_AUTOUPDATER=1 "${AUTH_ENV[@]}" ${extra[@]+"${extra[@]}"} "$CLAUDE_BIN" "$@" < /dev/null
 }
 # `claude plugin …` in the temporary config dir.
-claude_cli() { CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" "$CLAUDE_BIN" "$@"; }
+claude_cli() { CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" DISABLE_AUTOUPDATER=1 "$CLAUDE_BIN" "$@"; }
 NODE="$(command -v node)"
 STRIP_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 
@@ -123,6 +130,19 @@ HW_EXPECT=(
 )
 
 slug_of() { printf '%s' "$1" | sed 's#[^A-Za-z0-9]#-#g'; }
+
+# A project's queue state, printed when a turn did not drain: the decisions, the queued turns with their attempts and
+# last error, the drain lock, the daemon, the last captured turn and the last log lines. Enough to tell a retried Jev
+# call from a turn that was never queued.
+queue_state() {
+  "$NODE" - "$1" <<'JS'
+    const fs=require("fs"),path=require("path");const r=process.argv[2];const j=(f)=>{try{return fs.readFileSync(path.join(r,".jevmem",f),"utf8")}catch{return null}};
+    const dec=(j("decisions.jsonl")||"").split("\n").filter(Boolean).length;
+    const q=(j("queue.jsonl")||"").split("\n").filter(Boolean).map(l=>{try{const t=JSON.parse(l);return `${t.hash} attempts=${t.attempts} next=${t.nextAttemptAt??"-"} error=${(t.lastError??"").slice(0,120)}`}catch{return "a torn line"}});
+    console.log(`     state: ${dec} decision(s); queue: ${q.length?q.join(" | "):"empty"}; drain.lock: ${(j("drain.lock")??"none").trim()}; daemon.json: ${j("daemon.json")?"present":"none"}; state.json: ${(j("state.json")||"none").replace(/\s+/g," ").slice(0,160)}`);
+    for(const l of (j("log.jsonl")||"").split("\n").filter(Boolean).slice(-15)){try{const e=JSON.parse(l);console.log(`     log ${e.ts} ${e.label}${e.event?"/"+e.event:""} ok=${e.ok}${e.latencyMs?` ${e.latencyMs} ms`:""}${e.error?` error=${String(e.error).slice(0,160)}`:""}${e.detail?` ${String(e.detail).slice(0,160)}`:""}`)}catch{}}
+JS
+}
 
 # Decisions recorded so far (every e2e prompt produces exactly one, saved or skipped).
 decisions() { [ -f "$1/.jevmem/decisions.jsonl" ] && wc -l < "$1/.jevmem/decisions.jsonl" | tr -d ' ' || echo 0; }
@@ -313,6 +333,174 @@ JS
   return $fail
 }
 
+# Run a command in a pseudo-terminal, as a user in a terminal: HOME=$1, PATH=$2, the command line $3 (split on spaces),
+# wait for the prompt $4, then paste $E2E_PASTE (from the environment, not the command line) and press Enter. Prints
+# what the terminal showed (the pasted text must not be shown; that is checked) and fails unless the command exits 0.
+in_terminal() {
+  python3 - "$@" <<'PY'
+import json, os, pty, select, sys, time
+home, path, cmd, prompt = sys.argv[1:5]
+paste = os.environ.pop("E2E_PASTE")
+argv = cmd.split()
+env = {"HOME": home, "PATH": path, "TERM": "xterm", "USER": os.environ.get("USER", "")}
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvpe(argv[0], argv, env)
+out = b""
+def pump(t):
+    global out
+    r, _, _ = select.select([fd], [], [], t)
+    if not r:
+        return True
+    try:
+        d = os.read(fd, 4096)
+    except OSError:
+        return False
+    if not d:
+        return False
+    out += d
+    return True
+end = time.time() + 20
+while prompt.encode() not in out and time.time() < end and pump(0.1):
+    pass
+if prompt.encode() in out:
+    os.write(fd, (paste + "\r").encode())
+end = time.time() + 20
+while time.time() < end and pump(0.1):
+    pass
+_, status = os.waitpid(pid, 0)
+code = os.waitstatus_to_exitcode(status)
+text = out.decode("utf-8", "replace").replace("\r", "")
+for line in text.split("\n"):
+    if line.strip():
+        print("   term> " + line)
+ok = code == 0 and prompt in text and paste not in text
+print("   " + ("✓" if ok else "✗ FAIL:") + f" the command asked for the key at its hidden prompt, exited {code}, and the pasted key was {'not ' if paste not in text else ''}shown on the terminal")
+sys.exit(0 if ok else 1)
+PY
+}
+
+# No TypeSafe key anywhere, in an enabled project (see the header), through one set of hooks ($2: init or plugin): the
+# missing-key message on the first prompt only; then `jevmem key`, a saved turn and a recall.
+run_nokey_variant() {
+  local run="$1" variant="$2" scratch home events fail=0 t before
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=nokey ($variant hooks)  scratch=$scratch"
+  ( cd "$scratch" && git init -q && printf '{"name":"client-app","private":true}\n' > package.json )
+  # The sessions' HOME: no ~/.jevmem/env, and no session gets a key variable. ~/.nvm is linked so hooks find Node.
+  home="$(mktemp -d /tmp/jevmem-e2e-home.XXXXXX)"
+  [ -d "$HOME/.nvm" ] && ln -s "$HOME/.nvm" "$home/.nvm"
+  # The terminal the user types in: the session's HOME, and a PATH with `jevmem` (as an npm install gives) and Node.
+  local SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" termbin
+  if [ "$variant" = plugin ]; then
+    install_plugin "$scratch" || { uninstall_plugin "$scratch"; rm -rf "${home:?}"; return 1; }
+    SESSION_PATH="$E2E_NPM/prefix/bin:$STRIP_PATH"
+    ( cd "$scratch" && env HOME="$home" "$E2E_NPM/prefix/bin/jevmem" enable >/dev/null ) || { echo "enable failed"; return 1; }
+    termbin="$E2E_NPM/prefix/bin"
+  else
+    ( cd "$scratch" && env HOME="$home" "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+    termbin="$home/.local/bin"; mkdir -p "$termbin" && ln -sf "$JEVMEM_CLI" "$termbin/jevmem"
+  fi
+  events="$(mktemp /tmp/jevmem-e2e-events.XXXXXX)"
+  local prompts=("Decision: invoices are archived as PDFs in S3." "Constraint: invoice numbers are never reused." "Decision: refunds go back to the original payment method only." "In one sentence, and from this project's memory only: where do refunds go?")
+  for t in 0 1; do
+    local flag=""; [ "$t" -gt 0 ] && flag="--continue"
+    echo "---- turn $((t+1)), no key anywhere${flag:+ ($flag)}: ${prompts[$t]}"
+    ( cd "$scratch" && claude_session -- -p $flag --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[$t]}" > "$events.$t" 2>&1 )
+  done
+  sleep 3 # any detached Stop hook has finished by now
+  "$NODE" - "$events" "$scratch" "$variant" "$ROOT/dist/index.js" <<'JS' || fail=1
+    const fs=require("fs");const [base,root,variant,lib]=process.argv.slice(2);
+    const errs=[];const shown=[];const sessions=[];
+    const built=require(lib);const expected=variant==="plugin"?built.MISSING_KEY_NOTICE_MARKETPLACE:built.MISSING_KEY_NOTICE_INIT; // the plugin is installed from a marketplace here
+    for(const t of [0,1]){
+      const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      sessions.push((ev.find(e=>e.session_id)||{}).session_id);
+      const ours=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&/UserPromptSubmit|Stop/.test(e.hook_event||""));
+      for(const e of ours)console.log(`     turn ${t+1} hook ${e.hook_event}: exit ${e.exit_code??"?"}, outcome ${e.outcome??"?"}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,90))}${String(e.stdout??"").length>90?"…":""}`);
+      const ups=ours.filter(e=>e.hook_event==="UserPromptSubmit");
+      if(ups.length!==1)errs.push(`turn ${t+1}: ${ups.length} UserPromptSubmit hook responses, expected 1`);
+      // Claude Code reports every async Stop hook in a -p session as exit 1, "cancelled" (see nocli); only its output counts.
+      for(const e of ours){
+        const asyncStop=e.hook_event==="Stop"&&e.exit_code===1&&e.outcome==="cancelled";
+        if(!asyncStop&&(e.exit_code!==0||e.outcome!=="success"))errs.push(`turn ${t+1}: ${e.hook_event} exit ${e.exit_code} outcome ${e.outcome}`);
+        if(String(e.stderr??"").trim())errs.push(`turn ${t+1}: ${e.hook_event} wrote to stderr`);
+        if(e.hook_event==="Stop"&&String(e.stdout??e.output??"").trim())errs.push(`turn ${t+1}: the Stop hook printed something`);
+      }
+      const out=ups.map(e=>String(e.stdout??e.output??"").trim()).join("");
+      shown.push(out!=="");
+      if(out){
+        let m;try{m=JSON.parse(out).systemMessage}catch{}
+        if(m!==expected)errs.push(`turn ${t+1}: the message is not the built one: ${JSON.stringify(out).slice(0,200)}`);
+        else{console.log(`     the message, as the hook printed it: ${m}`);fs.writeFileSync(`${base}.message`,m)}
+      }
+      for(const e of ev)if(!(e.type==="system"&&e.subtype==="hook_response")&&JSON.stringify(e).includes("no TypeSafe API key found"))console.log(`     turn ${t+1}: also in a ${e.type}/${e.subtype??"-"} event`);
+    }
+    if(sessions[0]!==sessions[1])errs.push("turn 2 (--continue) ran in a different session from turn 1");
+    if(shown.join()!=="true,false")errs.push(`message shown ${shown.join(",")}, expected true,false (once)`);
+    const lines=(fs.existsSync(root+"/JEVMEM.md")?fs.readFileSync(root+"/JEVMEM.md","utf8"):"").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
+    if(lines.length)errs.push(`${lines.length} line(s) saved without a key`);
+    const log=(fs.existsSync(root+"/.jevmem/log.jsonl")?fs.readFileSync(root+"/.jevmem/log.jsonl","utf8"):"").split("\n").filter(Boolean).map(l=>JSON.parse(l));
+    console.log(`     .jevmem/log.jsonl: ${log.filter(e=>/TYPESAFE_API_KEY not set/.test(e.error||"")).length} "no key" line(s) from the hooks`);
+    if(errs.length){console.log("   ✗ FAIL: "+errs.join("; "));process.exit(1);}
+    console.log("   ✓ turns 1-2: the message on the first prompt only, nothing on the second, the Stop hooks silent, nothing saved");
+JS
+  if [ $fail -eq 0 ]; then
+    # What the message tells the user to do, taken from the message itself: "run <command> in a terminal and paste your key".
+    local cmd; cmd="$(sed -n 's/.*To fix it, run \(.*\) in a terminal and paste your key.*/\1/p' "$events.message")"
+    if [ -z "$cmd" ]; then echo "   ✗ FAIL: the message has no 'run … in a terminal and paste your key'"; fail=1
+    else
+      echo "---- as the message says: run $cmd in a terminal (HOME=<session home>, $([ "$variant" = plugin ] && echo "the npm-installed jevmem" || echo "jevmem linked into ~/.local/bin") on PATH) and paste the key"
+      E2E_PASTE="$TYPESAFE_API_KEY" in_terminal "$home" "$termbin:$(dirname "$NODE"):/usr/bin:/bin" "$cmd" "TypeSafe API key (input hidden): " || fail=1
+    fi
+  fi
+  if [ $fail -eq 0 ]; then
+    before=$(decisions "$scratch")
+    echo "---- turn 3 (--continue): ${prompts[2]}"
+    ( cd "$scratch" && claude_session -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[2]}" > "$events.2" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; fail=1; }
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- turn 4 (--continue, recall): ${prompts[3]}"
+    ( cd "$scratch" && claude_session -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[3]}" > "$events.3" 2>&1 )
+    "$NODE" - "$events" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [base,root]=process.argv.slice(2);
+      const errs=[];
+      for(const t of [2,3]){
+        const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+        const ups=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="UserPromptSubmit");
+        for(const e of ups){let m;try{m=JSON.parse(String(e.stdout??"")).systemMessage}catch{}if(m)errs.push(`turn ${t+1}: a message after the key was saved: ${m.slice(0,80)}`)}
+        if(t===3){const r=String((ev.find(e=>e.type==="result")||{}).result??"");console.log(`     claude> ${r.replace(/\n/g," ").slice(0,200)}`);if(!/original payment method/i.test(r))errs.push("turn 4: the reply does not use the saved line")}
+      }
+      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
+      for(const l of lines)console.log("     "+l.replace(/\s*<!--.*-->/,""));
+      if(lines.length!==1||!/refund/i.test(lines[0]||""))errs.push(`expected turn 3's line only, got ${lines.length} line(s)`);
+      const log=fs.readFileSync(root+"/.jevmem/log.jsonl","utf8").split("\n").filter(Boolean).map(l=>JSON.parse(l));
+      if(!log.some(e=>e.label==="recall"&&e.ok&&!e.event))errs.push("no successful recall call in .jevmem/log.jsonl");
+      let st={};try{st=JSON.parse(fs.readFileSync(root+"/.jevmem/state.json","utf8"))}catch{}
+      if(st.missingKeyNotice)errs.push("state.json still records the missing-key message after a key was found");
+      if(errs.length){console.log("   ✗ FAIL: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ turns 3-4: with the key saved by jevmem key, no message, turn 3's line saved, and recall gave it back");
+JS
+  fi
+  ( cd "$scratch" && env HOME="$home" "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  [ "$variant" = plugin ] && uninstall_plugin "$scratch"
+  rm -f "$events" "$events".*
+  rm -rf "${home:?}"
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=nokey ($variant hooks)"; else echo "FAIL run $run scenario=nokey ($variant hooks)"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
+  return $fail
+}
+run_nokey() {
+  local fail=0
+  run_nokey_variant "$1" init || fail=1
+  run_nokey_variant "$1" plugin || fail=1
+  if [ $fail -eq 0 ]; then echo "PASS run $1 scenario=nokey"; else echo "FAIL run $1 scenario=nokey"; fi
+  return $fail
+}
+
 # The plugin in a project that has not opted in: nothing may happen. Then `jevmem enable`: the next turn is saved.
 run_dormant() {
   local run="$1" scratch proxy_pid proxy_url plog fail=0 n
@@ -401,6 +589,7 @@ run_once() {
   [ "$scenario" = dormant ] && { PUBLISHED=0; run_dormant "$run"; return $?; }
   [ "$scenario" = published ] && { PUBLISHED=1; run_dormant "$run"; local r=$?; PUBLISHED=0; return $r; }
   [ "$scenario" = nocli ] && { PUBLISHED=0; run_nocli "$run"; return $?; }
+  [ "$scenario" = nokey ] && { PUBLISHED=0; run_nokey "$run"; return $?; }
   [ "$scenario" = outage ] && { run_outage "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
@@ -519,7 +708,7 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli outage)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage)
 status=0
 for m in "${modes[@]}"; do
   for r in $(seq 1 "$RUNS"); do
