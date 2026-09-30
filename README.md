@@ -31,7 +31,7 @@ Real lines from 0.5.7's default writer, which 0.5.8 to 0.5.10 did not change ([t
 
 ## What's new
 
-- **0.6.1, a guard fix: 0.6.0's guard skipped a Bash call with `if [ … ]`, `while [ … ]` or `until [ … ]` in it.** The check threw on the `[` and the hook stayed silent, so such a call ran unchecked: `if [ -f x ]; then git push origin directory; fi` got no ask under a rule against pushing to that branch, where `true && git push origin directory` was asked about (Jev 0.97). Found in 0.6.0's own release session, three calls in; `jevmem doctor` listed the failed checks. The shell reader now knows the shell's reserved words, a glob never throws, and a part of the check that fails is logged while the rest still decides ([docs/guardrails.md](docs/guardrails.md#the-test-command-after-a-reserved-word-061)). Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI) ([CHANGELOG](CHANGELOG.md#061---2026-09-30)).
+- **0.6.2, a guard fix: 0.6.0's guard skipped a Bash call with `if [ … ]`, `while [ … ]` or `until [ … ]` in it.** The check threw on the `[` and the hook stayed silent, so such a call ran unchecked: `if [ -f x ]; then git push origin directory; fi` got no ask under a rule against pushing to that branch, where `true && git push origin directory` was asked about (Jev 0.97). Found in 0.6.0's own release session, three calls in; `jevmem doctor` listed the failed checks. The shell reader now knows the shell's reserved words, a glob never throws, and a part of the check that fails is logged while the rest still decides ([docs/guardrails.md](docs/guardrails.md#the-test-command-after-a-reserved-word-061)). 0.6.1 is the same code and never reached npm (held in npm's staging queue). Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI) ([CHANGELOG: 0.6.1](CHANGELOG.md#061---2026-09-30), [0.6.2](CHANGELOG.md#062---2026-09-30)).
 
 **What's new in 0.6** (0.6.0, 2026-09-30; [CHANGELOG](CHANGELOG.md#060---2026-09-30))
 
@@ -42,7 +42,7 @@ Real lines from 0.5.7's default writer, which 0.5.8 to 0.5.10 did not change ([t
 - **The guard, a backstop.** A `PreToolUse` hook checks each Bash, Edit and Write call against your saved rules, and has Claude Code ask you (or blocks the call) when Jev says it may break one ([docs/guardrails.md](docs/guardrails.md)). *In the A/B's 6 constraint tasks (18 sessions, rerun on the release build on 2026-09-30 with Claude Code 2.1.284), recall kept Claude from ever attempting the forbidden change (0 of 18; 10 of 18 with no memory in the 2026-09-28 run), and the guard checked all 78 of those sessions' Bash, Edit and Write calls and asked once: an edit to the output formatter that put a new format behind a new flag, as its rule allows (Jev 0.89); in `claude -p` that ask refused the edit, and the session finished the task another way, 18 of 18 followed the rule and 17 of 18 did the task ([results](results/ab-guard-2026-09-30.json)). On the guard's second held-out set (274 calls in five new projects, written after a day's trial in jevmem's own repository; run once on the 0.6.0 build on 2026-09-30 and once on 0.6.1 the same day): violations caught 66/68 and the check that guards jevmem's own files right on 274/274 calls in both runs, and false asks 3–4 of 206 across the two (the one call that differs is `git add token.secret.example`, which breaks no rule: 0.52 in the 0.6.0 run, then 0.47, either side of the 0.5 threshold; the command has no bracket, so that is Jev's variation between runs, not the fix) ([docs/guardrails.md](docs/guardrails.md#the-test-command-after-a-reserved-word-061)).*
 - **Background subagents.** A turn that hands work to a subagent in the background is decided once, when it is over, not while the subagent works, and the subagent's report is never read as your message. *Decide held-out v4: 30 real Claude Code 2.1.281 sessions, 14 with a background subagent, replayed through the release build and 0.5.9 in one run on 2026-09-30 (first run 2026-09-28): lines saved while a turn was still running 0 (0.5.9: 9), lines decided from a subagent's report read as your message 0 (0.5.9: 13), turns saved or skipped right 32 of 33 (0.5.9: 27 of 33) ([results](results/stops-heldout-v4-2026-09-30-v060.json), [0.5.9](results/stops-heldout-v4-2026-09-30-v059.json)). The line is the sentence that states the memory, not the request or hand-off next to it: on a line-text held-out set of 64 saved turns in four new projects (16 of them a memory next to a request or a hand-off to a subagent), run once on 2026-09-29 on the writer that ships, the saved lines stated the fact in 62 of 63 (0.5.9: 41 of 59), kept the reason in 29 of 30 (0.5.9: 5 of 25), and none was a request or a hand-off (0.5.9: 13 of 59).*
 
-**Known limits in 0.6.1**
+**Known limits in 0.6.2**
 
 - **A plain statement can fall under the content threshold.** A rule said without must, never or prefer ("user-facing copy is British English") can be skipped: 2 of the 12 genuine rules on the genuine-rule held-out set, in 0.5.9 too ([docs/benchmark.md](docs/benchmark.md#genuine-rules-and-the-injection-check)).
 - **No way to mark your own rules as verified.** A line you add with `jevmem add` or by hand is unverified: the poisoning gate checks it before recall serves it, and the guard asks about it but never denies on it.
@@ -54,7 +54,7 @@ Real lines from 0.5.7's default writer, which 0.5.8 to 0.5.10 did not change ([t
 - **Jev reads a script's text as run.** A script that runs `jevmem guard test "git push origin directory"` (a dry run of the guard) is asked about under "never push to that branch by hand" (Jev 0.57 to 0.71).
 - **An ambiguous rule gets an ambiguous answer.** A `Signed-off-by` under the owner's own name scored 0.07 against "commits are under <name> only, with no Co-Authored-By or other trailers"; write rules as you mean them.
 
-**Upgrading to 0.6.1.** From 0.6.0, `npm install -g jevmem@latest` is the whole upgrade: the plugin's hooks did not change, and the directory and marketplace plugins move to 0.6.1 with the CLI. From 0.5.x, one of the paths below, tested on 2026-09-30 on the 0.6.0 build in a temporary HOME with a project set up on 0.5.10 that kept its lines ([results/upgrade-2026-09-30.txt](results/upgrade-2026-09-30.txt)); 0.6.1 changes nothing in them:
+**Upgrading to 0.6.2** (0.6.1 is the same code and never reached npm). From 0.6.0, `npm install -g jevmem@latest` is the whole upgrade: the plugin's hooks did not change, and the directory and marketplace plugins move to 0.6.2 with the CLI. From 0.5.x, one of the paths below, tested on 2026-09-30 on the 0.6.0 build in a temporary HOME with a project set up on 0.5.10 that kept its lines ([results/upgrade-2026-09-30.txt](results/upgrade-2026-09-30.txt)); 0.6.1 changes nothing in them:
 
 - **From the Claude plugin directory (`jevmem@synced`)**: `npm install -g jevmem@latest` brings everything the two hooks run, dead ends, the new recall, the line made from Jev's sentences, the subagent fix, and `jevmem guard test`, at once. The guard's `PreToolUse` hook is in the 0.6.x plugin, which the directory serves after the release moves its `directory` branch; until your app syncs it, the new CLI runs under the two hooks of the 0.5.7 plugin and the guard is off in plugin sessions. `jevmem doctor` shows which plugin and CLI run.
 - **From the jevmem marketplace (`jevmem@jevmem`)**: `npm install -g jevmem@latest`, then update the plugin in Claude Code (`/plugin`, or `claude plugin update jevmem@jevmem`); Claude Code picks up the new plugin because its version changed. With the 0.6.x plugin and an older CLI, the plugin prints one warning line and skips the guard's hook.
@@ -186,7 +186,7 @@ In plain terms, with the third parties' privacy policies and how to delete your 
 
 ## Honest limits
 
-- **Early:** 0.6.1; every eval set was written by the author, and none is an independent benchmark.
+- **Early:** 0.6.2; every eval set was written by the author, and none is an independent benchmark.
 - **Not the most accurate:** GPT-6 Astra and Claude Opus 5.5 scored higher on save+kind; jevmem's edge is speed and cost.
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.
@@ -224,7 +224,7 @@ jevmem guard test "<command>" | --edit <path>  Dry run of the PreToolUse guard o
 jevmem guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
 ```
 
-These are 0.6.1's commands: 0.5.10's and `jevmem guard` (0.6.0). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
+These are 0.6.2's commands: 0.5.10's and `jevmem guard` (0.6.0). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
 
 ## Links
 
