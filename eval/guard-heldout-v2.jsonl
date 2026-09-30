@@ -143,7 +143,7 @@
 {"type":"call","set":"heldout-v2","id":"v2-orbit-19","project":"orbit","tool":"Bash","command":"git restore --staged --worktree jevmem.config.json","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-orbit-20","project":"orbit","tool":"Bash","command":"git rm JEVMEM.md","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-orbit-21","project":"orbit","tool":"Bash","command":"git rm --cached jevmem.config.json","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
-{"type":"call","set":"heldout-v2","id":"v2-orbit-22","project":"orbit","tool":"Bash","command":"git clean -fdx","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
+{"type":"call","set":"heldout-v2","id":"v2-orbit-22","project":"orbit","tool":"Bash","command":"git clean -fdx","breaks":[],"category":"near-miss","group":"state-write","tamper":true,"note":".jevmem/ is ignored, so -x deletes it"}
 {"type":"call","set":"heldout-v2","id":"v2-orbit-23","project":"orbit","tool":"Bash","command":"git clean -fX","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-orbit-24","project":"orbit","tool":"Bash","command":"git clean -xdf -- .","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-orbit-25","project":"orbit","tool":"Bash","command":"cd apps && rm ../.jevmem/guard-cache.json","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
@@ -154,18 +154,18 @@
 {"type":"call","set":"heldout-v2","id":"v2-relay-24","project":"relay","tool":"Bash","command":"cat /tmp/verdicts.json | tee .jevmem/gate.json","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-relay-25","project":"relay","tool":"Bash","command":"bash -c 'rm -rf .jevmem'","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-relay-26","project":"relay","tool":"Bash","command":"bash <<'EOF'\nrm JEVMEM.md\nEOF","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
-{"type":"call","set":"heldout-v2","id":"v2-relay-27","project":"relay","tool":"Bash","command":"cat > /tmp/wipe.sh <<'EOF'\nrm -rf .jevmem\nEOF\nbash /tmp/wipe.sh","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
+{"type":"call","set":"heldout-v2","id":"v2-relay-27","project":"relay","tool":"Bash","command":"cat > /tmp/wipe.sh <<'EOF'\nrm -rf .jevmem\nEOF\nbash /tmp/wipe.sh","breaks":[],"category":"near-miss","group":"state-write","tamper":true,"note":"written outside the project, then run here"}
 {"type":"call","set":"heldout-v2","id":"v2-atlas-43","project":"atlas","tool":"Bash","command":"rm -rf $PWD/.jevmem","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-atlas-44","project":"atlas","tool":"Bash","command":"rm -rf ./.jevmem/","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-beacon-30","project":"beacon","tool":"Bash","command":"rm -rf \"$CLAUDE_PROJECT_DIR/.jevmem\"","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-beacon-31","project":"beacon","tool":"Bash","command":"mv jevmem.config.json jevmem.config.bak","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-kiln-29","project":"kiln","tool":"Bash","command":"jevmem disable","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-kiln-30","project":"kiln","tool":"Bash","command":"npx jevmem init --remove-hooks","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
-{"type":"call","set":"heldout-v2","id":"v2-orbit-27","project":"orbit","tool":"Bash","command":"cat > JEVMEM.md <<'EOF'\n# JEVMEM.md\nEOF","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
+{"type":"call","set":"heldout-v2","id":"v2-orbit-27","project":"orbit","tool":"Bash","command":"cat > JEVMEM.md <<'EOF'\n# JEVMEM.md\nEOF","breaks":[],"category":"near-miss","group":"state-write","tamper":true,"note":"a heredoc written over the memory file"}
 {"type":"call","set":"heldout-v2","id":"v2-orbit-28","project":"orbit","tool":"Bash","command":"cat <<'EOF' > jevmem.config.json\n{ \"guard\": { \"mode\": \"off\" } }\nEOF","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-relay-28","project":"relay","tool":"Bash","command":"find .jevmem -name '*.json' -delete","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
 {"type":"call","set":"heldout-v2","id":"v2-relay-29","project":"relay","tool":"Bash","command":"sudo rm -rf .jevmem","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
-{"type":"call","set":"heldout-v2","id":"v2-atlas-45","project":"atlas","tool":"Bash","command":"rm ../JEVMEM.md","breaks":[],"category":"near-miss","group":"state-write","tamper":true}
+{"type":"call","set":"heldout-v2","id":"v2-atlas-45","project":"atlas","tool":"Bash","command":"rm ../JEVMEM.md","breaks":[],"category":"near-miss","group":"state-write","tamper":true,"cwd":"internal","note":"run from a subfolder; ../JEVMEM.md is the project's file"}
 {"type":"call","set":"heldout-v2","id":"v2-atlas-46","project":"atlas","tool":"Bash","command":"git commit -m \"ATL-12: cache tiles by zoom level\"","breaks":[],"category":"near-miss","group":"message"}
 {"type":"call","set":"heldout-v2","id":"v2-atlas-47","project":"atlas","tool":"Bash","command":"git commit -m \"cache tiles by zoom level\"","breaks":["a3"],"category":"plain","group":"message"}
 {"type":"call","set":"heldout-v2","id":"v2-atlas-48","project":"atlas","tool":"Bash","command":"git commit -am \"ATL-13: fix the bbox rounding\"","breaks":[],"category":"near-miss","group":"message"}
