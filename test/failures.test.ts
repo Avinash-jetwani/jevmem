@@ -104,12 +104,14 @@ describe("jevmem stats and doctor show the failures the hooks logged", () => {
     const recall = await runHook({ hook_event_name: "UserPromptSubmit", cwd: root, prompt: "which Postgres version is the primary store on?" }, { jev: jevAt(failing.url), env });
     expect(recall.action).toBe("noop");
     expect(recall.detail).toMatch(/by word match, Jev: InternalServerError: 500/);
-    // The guard: Jev too slow for the budget, then Jev down.
+    // The guard: Jev too slow for the budget, then Jev down. The rule matched on a filename, so each call is asked
+    // about without a score (v0.6); both failures are logged.
     const cfgFile = path.join(root, "jevmem.config.json");
     fs.writeFileSync(cfgFile, JSON.stringify({ ...JSON.parse(fs.readFileSync(cfgFile, "utf8")), guard: { mode: "ask", askMin: 0.5, blockMin: 0.9, budgetMs: 400, maxCandidates: 3 } }));
     const pre = (command: string) => ({ hook_event_name: "PreToolUse", cwd: root, tool_name: "Bash", tool_input: { command } });
-    expect((await evaluateGuard(pre("git add .env"), { jev: jevAt(slow.url), root })).stdout).toBe("");
-    expect((await evaluateGuard(pre("git add .env.local"), { jev: jevAt("http://127.0.0.1:9"), root })).stdout).toBe("");
+    const decision = (stdout: string) => JSON.parse(stdout).hookSpecificOutput.permissionDecisionReason as string;
+    expect(decision((await evaluateGuard(pre("git add .env"), { jev: jevAt(slow.url), root })).stdout)).toMatch(/^jevmem: couldn't check this call against a saved rule in time/);
+    expect(decision((await evaluateGuard(pre("git add .env.local"), { jev: jevAt("http://127.0.0.1:9"), root })).stdout)).toMatch(/^jevmem: couldn't check this call against a saved rule in time/);
     // No key anywhere (the test setup removed it from the environment): the Stop hook skips the turn.
     expect((await runHook({ hook_event_name: "Stop", cwd: root, user_message: "Decision: we use Redis for queues." }, { env })).action).toBe("noop");
     expect(readLog(root).filter((e) => e.label === "hook" && e.ok === false).length).toBeGreaterThanOrEqual(2);

@@ -142,7 +142,11 @@ export interface GuardConfig {
   askMin: number;
   /** In `block` mode, deny at or above this; between `askMin` and `blockMin`, ask. */
   blockMin: number;
-  /** The hook's own time budget in milliseconds. The Jev call gets what is left; no answer in time means no decision. */
+  /**
+   * The hook's own time budget in milliseconds (2,000 by default, at most 2,500 under the hook entry's 3 s timeout).
+   * The Jev call gets what is left. No answer in time: a candidate matched on more than keywords is asked about, one
+   * matched on keywords alone is let through.
+   */
   budgetMs: number;
   /** At most this many candidate rules per call are sent to Jev (the strongest prefilter matches). */
   maxCandidates: number;
@@ -240,7 +244,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     mode: "ask",
     askMin: 0.5,
     blockMin: 0.9,
-    budgetMs: 1000,
+    budgetMs: 2000,
     maxCandidates: 3,
   },
 };

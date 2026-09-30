@@ -17,6 +17,8 @@
 //                           each run (a new process asking Jev when the call is a candidate)
 //   git_add_all_large_repo  a repository of 20,000 tracked files (200 folders of 100) with the same work-in-progress
 //                           tree: `git add -A && git commit -m wip`
+//   heredoc_script_60_lines the same rules; a 60-line heredoc that writes a build script outside the project
+//                           (`cat > <tmp>/build.sh <<'EOF' … EOF`), which shares nothing with them
 // The plugin launcher runs with its data folder warm (the CLI path and its guard check cached), the CLI on PATH.
 // Needs TYPESAFE_API_KEY for the Jev case.
 import { execSync, spawn } from "node:child_process";
@@ -85,6 +87,20 @@ fs.symlinkSync(process.execPath, path.join(bin, "node"));
 const data = mk("jevmem-bench-guard-data-");
 const home = mk("jevmem-bench-guard-home-");
 
+// A 60-line build script, written by a heredoc to a folder outside the project.
+const scriptDir = mk("jevmem-bench-guard-scripts-");
+const heredocScript = (() => {
+  const lines = ["#!/bin/sh", "# Build the service and pack a release archive.", "set -eu", 'out="${1:-build}"', 'mkdir -p "$out/bin" "$out/share"', 'version="$(cat VERSION)"', 'echo "building $version into $out"'];
+  for (let i = 1; i <= 12; i++) lines.push(`go build -o "$out/bin/tool${i}" ./cmd/tool${i}`);
+  lines.push("for f in docs/*.md; do", '  cp "$f" "$out/share/"', "done");
+  for (let i = 1; i <= 12; i++) lines.push(`sha256sum "$out/bin/tool${i}" >> "$out/checksums.txt"`);
+  lines.push('tar -czf "release-$version.tar.gz" -C "$out" .', 'echo "packed release-$version.tar.gz"');
+  for (let i = 1; i <= 16; i++) lines.push(`echo "step ${i} done"`);
+  lines.push('ls -l "release-$version.tar.gz"', "exit 0");
+  while (lines.length < 60) lines.push("true");
+  return `cat > ${scriptDir}/build.sh <<'EOF'\n${lines.slice(0, 60).join("\n")}\nEOF`;
+})();
+
 const payload = (root, command) => JSON.stringify({ session_id: "bench", transcript_path: "/x.jsonl", cwd: root, permission_mode: "default", hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command, description: "bench" }, tool_use_id: "toolu_bench" });
 const launchers = {
   plugin: (root) => ({ cmd: "sh", argv: [PLUGIN_LAUNCHER, "--guard", "hook", "--plugin"], env: { PATH: `${bin}:/usr/bin:/bin`, HOME: home, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: data, TYPESAFE_API_KEY: process.env.TYPESAFE_API_KEY, ...(process.env.TYPESAFE_BASE_URL ? { TYPESAFE_BASE_URL: process.env.TYPESAFE_BASE_URL } : {}) } }),
@@ -116,6 +132,7 @@ const cases = [
   { name: "git_add_all_nothing_named", root: gitWip, command: "git add -A && git commit -m wip" },
   { name: "git_add_all_untracked_env", root: gitUntrackedEnv, command: "git add -A && git commit -m wip", clearCache: true },
   { name: "git_add_all_large_repo", root: gitLarge, command: "git add -A && git commit -m wip" },
+  { name: "heredoc_script_60_lines", root: withRules, command: heredocScript },
 ].filter((c) => !ONLY || ONLY.includes(c.name));
 const startedAt = new Date().toISOString();
 // Warm-up: fills the plugin launcher's cache (CLI path, version, guard check) and each project's rule index.
@@ -151,7 +168,8 @@ const out = {
   commit,
   machine: `${process.platform} ${process.arch}, ${os.cpus()[0]?.model ?? "cpu"}, node ${process.version}`,
   network_path: `direct HTTPS to ${process.env.TYPESAFE_BASE_URL ?? "the TypeSafe API default base URL"} (POST /v1/systemone)`,
-  method: "Wall time of one PreToolUse hook process as Claude Code starts it, from spawn to exit, stdin a real-shaped payload. plugin: sh plugin/hooks/jevmem-hook.sh --guard hook --plugin with the CLI on PATH and a warm data folder; init: sh hooks/jevmem-hook.sh --node <node> hook. Rules: the 6 [constraint] lines of eval/guard-dev.jsonl's first project, verified. candidate_sent_to_jev and git_add_all_untracked_env clear .jevmem/guard-cache.json before each run, so each run is a new process asking Jev (TLS included) when the call is a candidate. The git_* cases run in git repositories (see the script's header); both launchers run with PATH /usr/bin:/bin plus the CLI's folder, so git is /usr/bin/git.",
+  method: "Wall time of one PreToolUse hook process as Claude Code starts it, from spawn to exit, stdin a real-shaped payload. plugin: sh plugin/hooks/jevmem-hook.sh --guard hook --plugin with the CLI on PATH and a warm data folder; init: sh hooks/jevmem-hook.sh --node <node> hook. Rules: the 6 [constraint] lines of eval/guard-dev.jsonl's first project, verified. candidate_sent_to_jev and git_add_all_untracked_env clear .jevmem/guard-cache.json before each run, so each run is a new process asking Jev (TLS included) when the call is a candidate. The git_* cases run in git repositories (see the script's header); both launchers run with PATH /usr/bin:/bin plus the CLI's folder, so git is /usr/bin/git. heredoc_script_60_lines: a 60-line heredoc writing a build script outside the project, which shares nothing with the rules.",
+  heredoc_script_lines: heredocScript.split("\n").length - 2,
   cases: cases.map((c) => c.name),
   results,
   jev_requests_in_candidate_case: { n: jevLat.length, latency_p50_ms: pct(jevLat, 0.5), latency_p95_ms: pct(jevLat, 0.95) },

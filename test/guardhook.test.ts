@@ -98,13 +98,14 @@ describe.skipIf(process.platform === "win32")("the PreToolUse hook process", () 
     expect(contract(await hook(warned, pre(warned, "git add .env"), env))).toEqual({ hookEventName: "PreToolUse", additionalContext: 'Saved project rule in JEVMEM.md: "Never commit .env files".' });
   });
 
-  it("fails open: Jev too slow, Jev down, no key: exit 0, no output, nothing on stderr, logged", async () => {
-    const root = project(["Never commit .env files"], { budgetMs: 400 });
+  it("Jev too slow or down: a strong match is asked about without a score; keywords alone or no key let the call through; exit 0, nothing on stderr, logged", async () => {
+    const root = project(["Never commit .env files", "Don't print or log customer email addresses"], { budgetMs: 400 });
     fake = await jevSaying(0.99, { delayMs: 4000 });
     const slow = await hook(root, pre(root, "git add .env"), { TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url });
-    expect(contract(slow)).toBeNull();
+    expect(contract(slow)!.permissionDecisionReason).toBe('jevmem: couldn\'t check this call against a saved rule in time: "Never commit .env files" (JEVMEM.md).');
     expect(slow.ms).toBeLessThan(2500);
-    expect(contract(await hook(root, pre(root, "git add .env.local"), { TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: "http://127.0.0.1:9" }))).toBeNull();
+    expect(contract(await hook(root, pre(root, "git add .env.local"), { TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: "http://127.0.0.1:9" }))!.permissionDecision).toBe("ask");
+    expect(contract(await hook(root, pre(root, "rg 'customer email' src/"), { TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: "http://127.0.0.1:9" }))).toBeNull();
     expect(contract(await hook(root, pre(root, "git add .env.production"), {}))).toBeNull();
     const errors = readLog(root).filter((e) => e.label === "guard" && e.ok === false).map((e) => e.error ?? "");
     expect(errors.some((e) => /timed out|abort/i.test(e))).toBe(true);

@@ -19,7 +19,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { shellWords, splitCommand } from "./prefilter.js";
+import { readCommandLine, withDirs } from "./shell.js";
 
 export type StagedState = "untracked" | "ignored" | "changed" | "staged";
 
@@ -140,15 +140,16 @@ const COMMIT_OPTIONAL_SHORT = new Set(["S", "u"]);
 const COMMIT_VALUE_LONG = new Set(["--message", "--file", "--reuse-message", "--reedit-message", "--fixup", "--squash", "--author", "--date", "--template", "--cleanup", "--trailer"]);
 
 /**
- * The `git add`, `git stage` and `git commit` commands of a command line, with the directory each runs in (following
- * `cd`, `pushd` and `git -C`) and what it would take. No git, no file system beyond the shell's globbing of a
- * `git add *`.
+ * The `git add`, `git stage` and `git commit` commands of a command line (the commands inside `bash -c`, a heredoc fed
+ * to a shell, `eval` and a script written and then run included; src/shell.ts), with the directory each runs in
+ * (following `cd`, `pushd`, `popd` and `git -C`) and what it would take. No git, no file system beyond the shell's
+ * globbing of a `git add *`.
  */
 export function parseGitStaging(command: string, cwd: string, home?: string): GitStaging[] {
   const out: GitStaging[] = [];
-  let dir: string | null = cwd;
-  for (const seg of splitCommand(command)) {
-    const { words, globs } = shellWords(seg, { globs: true });
+  for (const c of withDirs(readCommandLine(command), cwd, home, undefined, (base, p) => path.resolve(base, p))) {
+    const { words, globs } = c;
+    const dir: string | null = c.cwd ?? null;
     let i = 0;
     let envSkip = false;
     for (;;) {
@@ -164,15 +165,6 @@ export function parseGitStaging(command: string, cwd: string, home?: string): Gi
     }
     const first = words[i];
     if (first === undefined) continue;
-    if (first === "cd" || first === "pushd") {
-      const args = words.slice(i + 1).filter((a) => a === "-" || !a.startsWith("-") || a === "--");
-      dir = resolveDir(dir, args.filter((a) => a !== "--")[0], home);
-      continue;
-    }
-    if (first === "popd") {
-      dir = null;
-      continue;
-    }
     if ((first.split("/").pop() ?? first) !== "git") continue;
     // git's own options, before the subcommand.
     let j = i + 1;
@@ -200,7 +192,7 @@ export function parseGitStaging(command: string, cwd: string, home?: string): Gi
     }
     const sub = words[j];
     if (sub !== "add" && sub !== "stage" && sub !== "commit") continue;
-    const s: GitStaging = { command: seg, kind: sub === "commit" ? "commit" : "add", cwd: at, all: false, update: false, force: false, include: false, pathspecs: [], literal, skip };
+    const s: GitStaging = { command: c.text, kind: sub === "commit" ? "commit" : "add", cwd: at, all: false, update: false, force: false, include: false, pathspecs: [], literal, skip };
     let ended = false;
     for (let k = j + 1; k < words.length; k++) {
       const w = words[k]!;

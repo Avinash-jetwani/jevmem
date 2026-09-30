@@ -47,7 +47,7 @@ describe("the guard's local log", () => {
     await evaluateGuard(bash(root, "DB_PASSWORD=hunter2 git add .env"), { jev: breaks(0.93) }); // sent, asked
     await evaluateGuard(bash(root, "DB_PASSWORD=hunter2 git add .env"), { jev: null }); // the cached answer, asked again
     await evaluateGuard(bash(root, "git add .env.local"), { jev: breaks(0.1) }); // sent, below askMin
-    await evaluateGuard(bash(root, "git add .env.production"), { jev: { ...breaks(0.9), call: async () => { throw new Error("fetch failed"); } } });
+    await evaluateGuard(bash(root, "git add .env.production"), { jev: { ...breaks(0.9), call: async () => { throw new Error("fetch failed"); } } }); // sent, failed: asked without a score
     await evaluateGuard(bash(root, "git add .env.staging"), { jev: null }); // no key
     await evaluateGuard(bash(root, `sed -i '' 's/"ask"/"off"/' jevmem.config.json`), { jev: breaks(0.93) }); // tamper, no candidate
     const log = readGuardLog(root);
@@ -56,7 +56,7 @@ describe("the guard's local log", () => {
       ["Bash", "jev", "ask"],
       ["Bash", "cache", "ask"],
       ["Bash", "jev", "none"],
-      ["Bash", "jev-failed", "none"],
+      ["Bash", "jev-failed", "ask"],
       ["Bash", "no-key", "none"],
       ["Bash", "no-candidate", "ask"],
     ]);
@@ -67,6 +67,8 @@ describe("the guard's local log", () => {
     expect(ask.rules).toEqual([{ id: expect.any(String), p: 0.93, text: ENV }]);
     expect(ask.action).toBe("DB_PASSWORD=[REDACTED] git add .env");
     expect(JSON.stringify(log)).not.toContain("hunter2");
+    expect(log[4]!.rules).toEqual([{ id: expect.any(String), text: ENV, unchecked: true }]);
+    expect(log[4]!.tamper).toBeUndefined();
     expect(log[6]!.tamper).toMatch(/^jevmem: this command changes jevmem\.config\.json/);
     expect(log[6]!.rules).toBeUndefined();
     expect(Date.parse(log[0]!.ts)).toBeGreaterThan(Date.now() - 60_000);
@@ -169,7 +171,7 @@ describe("jevmem guard log and jevmem stats", () => {
     await evaluateGuard(bash(root, "rm jevmem.config.json"), { jev: breaks(0.9) });
     const r = await cli(["stats"], root);
     expect(r.out).toMatch(/^guard: 7 call\(s\) seen since \d{4}-\d\d-\d\d \d\d:\d\d:\d\d: 4 fast path \(no candidate rule, nothing sent\), 1 answered from the cache, 2 sent to Jev \(1 failed or timed out\)$/m);
-    expect(r.out).toMatch(/^ {7}3 asked \(1 tamper\), 0 denied, 0 warned; `jevmem guard log` lists them$/m);
+    expect(r.out).toMatch(/^ {7}4 asked \(1 tamper\), 0 denied, 0 warned; `jevmem guard log` lists them$/m);
     // No guard line in a project where the guard has checked nothing.
     expect((await cli(["stats"], project([ENV]))).out).not.toMatch(/^guard/m);
   });

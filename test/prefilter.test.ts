@@ -84,8 +84,8 @@ describe("shell command lines", () => {
   });
 
   it("reads words, redirection targets and operators; heredoc delimiters and descriptors are not files", () => {
-    expect(shellWords('git commit -m "add env" > out.txt 2>&1')).toEqual({ words: ["git", "commit", "-m", "add env"], redirects: ["out.txt"], redirectOps: [">"], ops: [">"] });
-    expect(shellWords("cat <<'EOF' >> notes.md")).toEqual({ words: ["cat"], redirects: ["notes.md"], redirectOps: [">>"], ops: ["<<", ">>"] });
+    expect(shellWords('git commit -m "add env" > out.txt 2>&1')).toEqual({ words: ["git", "commit", "-m", "add env"], redirects: ["out.txt"], redirectOps: [">"], ops: [">"], hereStrings: [] });
+    expect(shellWords("cat <<'EOF' >> notes.md")).toEqual({ words: ["cat"], redirects: ["notes.md"], redirectOps: [">>"], ops: ["<<", ">>"], hereStrings: [] });
     expect(shellWords("sort < in.txt 2>/dev/null").redirectOps).toEqual(["<", ">"]);
     expect(shellWords("echo a\\ b 'c d'").words).toEqual(["echo", "a b", "c d"]);
   });
@@ -93,13 +93,13 @@ describe("shell command lines", () => {
   it("reads >|, &>, &>> and >& as writes to their target, and >&2, 2>&-, <&0 as descriptors (v0.6 part 3c)", () => {
     expect(splitCommand("cat x >| JEVMEM.md")).toEqual(["cat x >| JEVMEM.md"]);
     expect(splitCommand("sort <&0 && ls")).toEqual(["sort <&0", "ls"]);
-    expect(shellWords("cat x >| JEVMEM.md")).toEqual({ words: ["cat", "x"], redirects: ["JEVMEM.md"], redirectOps: [">|"], ops: [">|"] });
-    expect(shellWords("cat x 2>|out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: [">|"], ops: [">|"] });
-    expect(shellWords("cat x &> out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: ["&>"], ops: ["&>"] });
-    expect(shellWords("cat x &>>out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: ["&>>"], ops: ["&>>"] });
-    expect(shellWords("cat x >& out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: [">&"], ops: [">&"] });
-    expect(shellWords("cat x >&out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: [">&"], ops: [">&"] });
-    for (const c of ["make >&2", "make 2>&1", "make 2>&-", "make >& 2", "sort <&0", "sort <&-"]) expect(shellWords(c), c).toEqual({ words: [c.split(" ")[0]], redirects: [], redirectOps: [], ops: [] });
+    expect(shellWords("cat x >| JEVMEM.md")).toEqual({ words: ["cat", "x"], redirects: ["JEVMEM.md"], redirectOps: [">|"], ops: [">|"], hereStrings: [] });
+    expect(shellWords("cat x 2>|out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: [">|"], ops: [">|"], hereStrings: [] });
+    expect(shellWords("cat x &> out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: ["&>"], ops: ["&>"], hereStrings: [] });
+    expect(shellWords("cat x &>>out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: ["&>>"], ops: ["&>>"], hereStrings: [] });
+    expect(shellWords("cat x >& out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: [">&"], ops: [">&"], hereStrings: [] });
+    expect(shellWords("cat x >&out")).toEqual({ words: ["cat", "x"], redirects: ["out"], redirectOps: [">&"], ops: [">&"], hereStrings: [] });
+    for (const c of ["make >&2", "make 2>&1", "make 2>&-", "make >& 2", "sort <&0", "sort <&-"]) expect(shellWords(c), c).toEqual({ words: [c.split(" ")[0]], redirects: [], redirectOps: [], ops: [], hereStrings: [] });
     expect(shellWords("cat < in.txt").redirectOps).toEqual(["<"]);
   });
 

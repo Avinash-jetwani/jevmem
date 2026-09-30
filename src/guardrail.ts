@@ -33,7 +33,8 @@ import { expandGitStaging, type GitExpansion, type StagedFile } from "./gitstage
 import { gateLines, planGate, settleGate } from "./guard.js";
 import { actionSummary, recordGuardCall, shorten, type GuardLogEntry, type GuardRoute } from "./guardlog.js";
 import { appendLog, type JevCaller } from "./jev.js";
-import { actionFeatures, DEFAULT_MATCH, matchRules, ruleFeatures, ruleNamesCommittedFiles, shellWords, snippetAround, splitCommand, type Candidate, type GuardAction, type GuardTool, type IndexedRule, type MatchOptions } from "./prefilter.js";
+import { actionFeatures, DEFAULT_MATCH, matchRules, ruleFeatures, ruleNamesCommittedFiles, snippetAround, type Candidate, type GuardAction, type GuardTool, type IndexedRule, type MatchOptions } from "./prefilter.js";
+import { commandOf, condenseHeredocs, expandPath, readCommandLine, withDirs, type SimpleCommand } from "./shell.js";
 import { isVerified, lineSha, readProvenance } from "./provenance.js";
 import { parseMemoryFile } from "./memfile.js";
 import { scrubSecrets } from "./scrub.js";
@@ -41,8 +42,11 @@ import { DEFAULT_CONFIG, GUARD_MODES, type GuardMode, type JevmemConfig, type Me
 
 /** Bumped when the guard's question changes, so cached answers from an older wording are asked again. */
 export const GUARD_VERSION = 1;
-/** Bumped when the index format or the prefilter's rule features change (2: each rule says whether it is verified). */
-const INDEX_VERSION = 2;
+/**
+ * Bumped when the index format or the prefilter's rule features change (2: each rule says whether it is verified;
+ * 3: rules about commit messages are marked).
+ */
+const INDEX_VERSION = 3;
 
 export const GUARDED_TOOLS: readonly GuardTool[] = ["Bash", "Edit", "Write"];
 /** What the hook registration matches (Claude Code 2.1.274 and 2.1.281 have no MultiEdit tool). */
@@ -50,8 +54,11 @@ export const GUARD_MATCHER = "Bash|Edit|Write";
 /** The PreToolUse hook's timeout in seconds, set on the hook entry. The guard's own budget is `guard.budgetMs`. */
 export const GUARD_HOOK_TIMEOUT_S = 3;
 
-/** Characters of a command sent to Jev, of the replaced and new text of an edit, and of the staged files named. */
-export const SEND = { command: 2000, removed: 300, added: 600, stages: 600 } as const;
+/**
+ * Characters of a command sent to Jev (each heredoc body in it cut to `added`), of the replaced and new text of an
+ * edit, of the staged files named, and of a commit message.
+ */
+export const SEND = { command: 2000, removed: 300, added: 600, stages: 600, message: 2000 } as const;
 
 /**
  * At most this long (and a quarter of `guard.budgetMs`) for listing what a git command would stage or commit
@@ -276,20 +283,24 @@ export function stagedLabel(f: StagedFile): string {
 
 /**
  * The call as Jev sees it: scrubbed, bounded, paths relative to the project. `stages`: for a git command, the files it
- * would stage or commit that a candidate rule names (`.env (untracked)`).
+ * would stage or commit that a candidate rule names (`.env (untracked)`). `message`: the message a `git commit` would
+ * get, when a candidate rule is about commit messages. Each heredoc body in the command is cut to `SEND.added`
+ * characters around what matched, so the shape of the call stays in view.
  */
-export function callPayload(action: GuardAction, terms: string[], stages: string[] = []): Record<string, string> {
+export function callPayload(action: GuardAction, terms: string[], stages: string[] = [], message?: string): Record<string, string> {
   // Scrub a slightly wider window than is kept, so a secret cut by the window's edge is still recognised whole.
   const clip = (text: string, max: number) => {
     const wide = snippetAround(text, terms, max + 400);
     return snippetAround(scrubSecrets(wide), terms, max);
   };
   if (action.tool === "Bash") {
-    const out: Record<string, string> = { tool: "Bash", command: clip(action.command ?? "", SEND.command) };
+    const command = condenseHeredocs(action.command ?? "", SEND.added, (body) => snippetAround(body, terms, SEND.added));
+    const out: Record<string, string> = { tool: "Bash", command: clip(command, SEND.command) };
     if (stages.length) {
       const list = stages.slice(0, STAGES_SENT).join("; ") + (stages.length > STAGES_SENT ? `; and ${stages.length - STAGES_SENT} more` : "");
       out.stages = shorten(scrubSecrets(list), SEND.stages);
     }
+    if (message !== undefined) out.message = clip(message, SEND.message);
     return out;
   }
   if (action.tool === "Edit") return { tool: "Edit", file: action.file ?? "", removed: clip(action.removed ?? "", SEND.removed), added: clip(action.added ?? "", SEND.added) };
@@ -303,8 +314,146 @@ export function payloadHash(payload: Record<string, string>): string {
 // ---------------------------------------------------------------------------------------------
 // Tamper check (local, no Jev)
 
-const READ_ONLY = new Set(["cat", "less", "more", "head", "tail", "grep", "egrep", "fgrep", "rg", "ag", "ack", "wc", "jq", "diff", "cmp", "ls", "stat", "file", "bat", "sha1sum", "sha256sum", "shasum", "md5", "md5sum", "cksum", "view", "od", "xxd", "hexdump", "strings", "test", "[", "realpath", "readlink", "dirname", "basename", "echo", "printf"]);
-const GIT_READ = new Set(["diff", "log", "show", "status", "blame", "add", "commit", "ls-files", "grep", "cat-file", "annotate", "shortlog", "whatchanged", "check-ignore"]);
+/** Commands that never write their file arguments. */
+const READ_ONLY = new Set(["cat", "less", "more", "head", "tail", "grep", "egrep", "fgrep", "rg", "ag", "ack", "wc", "jq", "diff", "cmp", "ls", "stat", "file", "bat", "sha1sum", "sha256sum", "shasum", "md5", "md5sum", "cksum", "view", "od", "xxd", "hexdump", "strings", "test", "[", "realpath", "readlink", "dirname", "basename", "echo", "printf", "cut", "tr", "nl", "column", "tac", "rev", "comm", "join", "paste", "fold", "source", ".", "cd", "pushd", "popd", "pwd", "type", "which", "env", "export", "set", "unset", "true", "false", "sleep", "date", "yes", "seq", "xargs", "tee"]);
+/** Git subcommands that leave the working tree's files alone. */
+const GIT_READ = new Set(["diff", "log", "show", "status", "blame", "add", "commit", "ls-files", "grep", "cat-file", "annotate", "shortlog", "whatchanged", "check-ignore", "rev-parse", "describe", "tag", "branch", "remote", "fetch", "push", "stash", "config", "reflog", "rev-list", "ls-remote", "merge-base", "count-objects", "var", "help", "version"]);
+/** Git subcommands that write, move or delete the files they name. */
+const GIT_WRITE = new Set(["checkout", "restore", "rm", "mv", "clean"]);
+/** Does a redirection operator write its target: `>`, `>>`, `>|`, `>&` (before a file), `&>` and `&>>`; `<` and `<&` read. */
+const writesTarget = (op: string) => op.includes(">") && !op.startsWith("<");
+/** Does it only append: `>>` and `&>>`. Appending cannot remove a line from a file. */
+const appends = (op: string) => op === ">>" || op === "&>>";
+/** macOS and Windows file systems ignore case by default. */
+const CASE_INSENSITIVE = process.platform === "darwin" || process.platform === "win32";
+
+/** The files a simple command writes, moves or deletes, as words: what its output redirections and its arguments name. */
+export interface Touches {
+  /** Words that name a file the command changes. */
+  words: string[];
+  /** Every change is an append (`>>`, `tee -a`): a line cannot be removed this way. */
+  appendOnly: boolean;
+  /** A folder named here is changed with everything in it (`rm -r`, `mv`, `rsync`). */
+  tree: boolean;
+  /** `git clean -x` or `-X`: deletes ignored files under the folders named (all of the work tree when none are). */
+  cleansIgnored: boolean;
+  /** The folders a `git clean` names. */
+  dirs: string[];
+}
+
+/** The command word of a simple command past `npx`, `pnpx`, `bunx`, `npm exec`, `pnpm dlx` and the like. */
+function effectiveCommand(c: SimpleCommand): { cmd: string; args: string[]; gitDir: string | null; sub: string | null } | null {
+  const first = commandOf(c.words);
+  if (!first.cmd) return null;
+  let cmd = first.cmd;
+  let args = first.args;
+  for (;;) {
+    if (["npx", "pnpx", "bunx"].includes(cmd)) {
+      let i = 0;
+      while (i < args.length && args[i]!.startsWith("-")) i++;
+      if (i >= args.length) return null;
+      cmd = (args[i]!.split("/").pop() ?? args[i]!).toLowerCase();
+      args = args.slice(i + 1);
+      continue;
+    }
+    if (["npm", "pnpm", "yarn", "bun"].includes(cmd) && ["exec", "dlx", "x"].includes(args[0] ?? "")) {
+      let i = 1;
+      while (i < args.length && args[i]!.startsWith("-")) i++;
+      if (i >= args.length) return null;
+      cmd = (args[i]!.split("/").pop() ?? args[i]!).toLowerCase();
+      args = args.slice(i + 1);
+      continue;
+    }
+    break;
+  }
+  let gitDir: string | null = null;
+  let sub: string | null = null;
+  if (cmd === "git") {
+    let i = 0;
+    while (i < args.length && args[i]!.startsWith("-")) {
+      const w = args[i]!;
+      if (w === "-C") {
+        gitDir = args[i + 1] ?? null;
+        i += 2;
+      } else if (w === "-c" || w === "--namespace" || w === "--config-env") i += 2;
+      else i++;
+    }
+    sub = args[i] ?? null;
+    args = args.slice(i + 1);
+  }
+  return { cmd, args, gitDir, sub };
+}
+
+/**
+ * What one simple command writes, moves or deletes, by its command word: its output redirections' targets always;
+ * a known reader's arguments never; the destination of `cp`, `install`, `rsync` and `ln`; everything `mv`, `rm`,
+ * `unlink`, `rmdir` and `shred` name; the files of `sed -i`, `perl -i`, `awk -i inplace`, `sort -o`, `uniq`'s second
+ * file, `truncate`, `touch`, `dd of=`; the pathspecs of `git checkout`, `restore`, `rm` and `mv`; and, for a command
+ * the guard does not know, every file it names.
+ */
+export function touchesOf(c: SimpleCommand, e: NonNullable<ReturnType<typeof effectiveCommand>>): Touches {
+  const outputs = c.redirects.filter((_, k) => writesTarget(c.redirectOps[k] ?? ">"));
+  const outputOps = c.redirectOps.filter((op) => writesTarget(op));
+  const { cmd, args, sub } = e;
+  const plain = args.filter((a) => !a.startsWith("-") || a === "-");
+  const has = (...flags: string[]) => args.some((a) => flags.includes(a));
+  let words: string[] = [];
+  let appendOnly = outputs.length > 0 && outputOps.every(appends);
+  let tree = false;
+  let cleansIgnored = false;
+  let dirs: string[] = [];
+  const inplace = (short: RegExp) => args.some((a) => short.test(a) || a === "--in-place");
+  if (cmd === "tee") {
+    words = plain;
+    appendOnly = has("-a", "--append") && (outputs.length === 0 || outputOps.every(appends));
+  } else if (cmd === "cp" || cmd === "install" || cmd === "rsync") {
+    const t = args.indexOf("-t");
+    words = t >= 0 && args[t + 1] ? [args[t + 1]!] : plain.slice(-1);
+    tree = cmd === "rsync" || has("-r", "-R", "-a", "--recursive");
+  } else if (cmd === "ln") {
+    words = plain.length > 1 ? plain.slice(-1) : [];
+  } else if (cmd === "mv") {
+    words = plain;
+    tree = true;
+  } else if (cmd === "rm" || cmd === "unlink" || cmd === "rmdir" || cmd === "shred") {
+    words = plain;
+    tree = cmd === "rmdir" || args.some((a) => /^-[a-zA-Z]*[rR]/.test(a) || a === "--recursive");
+  } else if (cmd === "sed") {
+    words = inplace(/^-[a-zA-Z]*i/) ? plain : [];
+  } else if (cmd === "perl") {
+    words = inplace(/^-[a-zA-Z]*i/) ? plain : [];
+  } else if (cmd === "awk" || cmd === "gawk") {
+    const i = args.indexOf("-i");
+    words = (i >= 0 && args[i + 1] === "inplace") || has("--inplace") ? plain : [];
+  } else if (cmd === "sort") {
+    const o = args.indexOf("-o");
+    words = o >= 0 && args[o + 1] ? [args[o + 1]!] : args.filter((a) => a.startsWith("--output=")).map((a) => a.slice(9));
+  } else if (cmd === "uniq") {
+    words = plain.length > 1 ? [plain[1]!] : [];
+  } else if (cmd === "truncate" || cmd === "touch") {
+    words = plain;
+  } else if (cmd === "dd") {
+    words = args.filter((a) => a.startsWith("of=")).map((a) => a.slice(3));
+  } else if (cmd === "git") {
+    if (sub === "clean") {
+      // Tracked files are safe from git clean; ignored ones (.jevmem/) go with -x or -X.
+      cleansIgnored = args.some((a) => /^-[a-zA-Z]*[xX]/.test(a));
+      const dd = args.indexOf("--");
+      dirs = dd >= 0 ? args.slice(dd + 1) : plain;
+      words = [];
+    } else if (sub && GIT_WRITE.has(sub)) {
+      const dd = args.indexOf("--");
+      words = dd >= 0 ? args.slice(dd + 1) : plain;
+      tree = sub === "rm" || sub === "mv";
+    } else words = sub && GIT_READ.has(sub) ? [] : plain;
+  } else if (READ_ONLY.has(cmd) || cmd === "jevmem") {
+    words = [];
+  } else {
+    // A command the guard does not know: every file it names, as before.
+    words = args;
+  }
+  return { words: [...words, ...outputs], appendOnly: appendOnly && words.every((w) => outputs.includes(w)), tree, cleansIgnored, dirs };
+}
 
 /** Apply an Edit to a file's current text, as Claude Code would (null when old_string is not found: the edit fails). */
 function applyEdit(current: string, oldString: string, newString: string, replaceAll: boolean): string | null {
@@ -342,7 +491,7 @@ const q = (s: string, max = 160) => {
  * Does this call change the guard settings, remove or supersede a saved rule, or switch jevmem off? Returns the
  * reason to show the user, or null. `configText` and `memoryText` are the current files ("" when missing).
  */
-export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction, input: GuardInput, configText: string, memoryText: string | null): string | null {
+export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction, input: GuardInput, configText: string, memoryText: string | null, opts: { cwd?: string; home?: string } = {}): string | null {
   const memoryName = cfg.memoryFile || "JEVMEM.md";
   if (action.tool === "Edit" || action.tool === "Write") {
     const rel = action.file ?? "";
@@ -381,64 +530,97 @@ export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction
     if (rel === ".jevmem" || rel.startsWith(".jevmem/")) return "jevmem: this edit changes jevmem's local state in .jevmem/ (verdicts and cached answers the guard relies on).";
     return null;
   }
-  // Bash: a command that names one of these files and is not read-only.
-  const cmd = action.command ?? "";
-  if (!/jevmem/i.test(cmd) && !cmd.includes(memoryName)) return null;
+  // Bash: what the command line writes, moves or deletes, with every path resolved against the folder the command
+  // runs in (`cd`, `pushd`, `git -C` and `~` followed), compared with this project's files. `~/.jevmem/…` and another
+  // project's `.jevmem/` are not this project's.
+  const cwd = opts.cwd ?? root;
+  const home = opts.home;
+  const target = { config: path.resolve(root, CONFIG_FILE), memory: path.resolve(root, memoryName), state: path.resolve(root, ".jevmem") };
+  const rootAbs = path.resolve(root);
+  const norm = (p: string) => (CASE_INSENSITIVE ? p.toLowerCase() : p);
+  const same = (a: string, b: string) => norm(a) === norm(b);
+  const under = (p: string, dir: string) => norm(p).startsWith(`${norm(dir)}/`);
   const hasRules = memoryText !== null && activeConstraints(memoryText).length > 0;
-  for (const seg of segmentsOf(cmd)) {
-    const { words, writes, appendOnly } = seg;
-    const cmdWord = (words[0] ?? "").split("/").pop()?.toLowerCase() ?? "";
-    const sub = (words[1] ?? "").toLowerCase();
+  const commands = withDirs(readCommandLine(action.command ?? ""), cwd, home, root, (b, p) => path.resolve(b, p));
+  for (const c of commands) {
+    const e = effectiveCommand(c);
+    if (!e) continue;
+    const { cmd: cmdWord, args, sub } = e;
     if (cmdWord === "jevmem") {
-      if (sub === "disable") return "jevmem: this runs `jevmem disable`, which switches jevmem and its guard off in this project.";
-      if (sub === "init" && words.includes("--remove-hooks")) return "jevmem: this runs `jevmem init --remove-hooks`, which removes the hooks the guard runs from.";
-      if (sub === "wrong" && hasRules && words.includes("none")) return `jevmem: this runs \`jevmem wrong … --should-be none\`, which can remove a saved rule from ${memoryName}.`;
+      if (sub === "disable" || args[0] === "disable") return "jevmem: this runs `jevmem disable`, which switches jevmem and its guard off in this project.";
+      if (args[0] === "init" && args.includes("--remove-hooks")) return "jevmem: this runs `jevmem init --remove-hooks`, which removes the hooks the guard runs from.";
+      if (args[0] === "wrong" && hasRules && args.includes("none")) return `jevmem: this runs \`jevmem wrong … --should-be none\`, which can remove a saved rule from ${memoryName}.`;
       continue;
     }
-    // The files a command can change: the targets of its output redirections (`2>/dev/null` writes /dev/null, not the
-    // file the command reads), and, unless the command only reads, every file it names (`cp` writes only its last one).
-    const readOnly = READ_ONLY.has(cmdWord) || (cmdWord === "git" && GIT_READ.has(sub)) || (cmdWord === "sed" && !words.some((w) => /^-[a-z]*i/.test(w) || w === "--in-place"));
-    const all = [...(readOnly ? [] : cmdWord === "cp" ? words.slice(-1) : words.slice(1)), ...writes];
-    const names = (f: string) => all.some((w) => w === f || w.endsWith(`/${f}`));
-    const touchesConfig = names(CONFIG_FILE);
-    const touchesMemory = hasRules && names(memoryName);
-    const touchesState = all.some((w) => w === ".jevmem" || w.startsWith(".jevmem/") || w.includes("/.jevmem/") || w.endsWith("/.jevmem"));
-    if (!touchesConfig && !touchesMemory && !touchesState) continue;
+    const t = touchesOf(c, e);
+    // The folder the command's paths are relative to: `git -C dir` for a git command, else where the command runs.
+    let base: string | null = c.cwd ?? null;
+    if (e.gitDir !== null) {
+      const g = base === null ? null : expandPath(e.gitDir, base, home, root);
+      base = g === null ? null : path.resolve(base!, g);
+    }
+    let touchesConfig = false;
+    let touchesMemory = false;
+    let touchesState = false;
+    /** One resolved path (or a glob's folder and pattern) against the three targets. */
+    const check = (abs: string, pattern: RegExp | null) => {
+      if (pattern) {
+        // A wildcard in the last segment: the folder is `abs`, the names it could match come from the pattern.
+        if (same(abs, target.state) || under(abs, target.state)) touchesState = true;
+        if (same(abs, rootAbs)) {
+          if (pattern.test(CONFIG_FILE)) touchesConfig = true;
+          if (pattern.test(memoryName)) touchesMemory = true;
+          if (pattern.test(".jevmem")) touchesState = true;
+        }
+        return;
+      }
+      if (same(abs, target.config)) touchesConfig = true;
+      if (same(abs, target.memory)) touchesMemory = true;
+      if (same(abs, target.state) || under(abs, target.state)) touchesState = true;
+      // `rm -r .`, `mv <project> …`: a folder that holds the project's files.
+      if (t.tree && (same(abs, rootAbs) || under(rootAbs, abs))) {
+        touchesConfig = true;
+        touchesMemory = true;
+        touchesState = true;
+      }
+    };
+    for (const w of t.words) {
+      if (/^\d+$/.test(w) || w === "-") continue;
+      const expanded = expandPath(w, base, home, root);
+      if (expanded === null) continue;
+      const wild = /[*?[]/.test(expanded) && c.globs[c.words.indexOf(w)] !== false;
+      if (wild) {
+        const i = expanded.search(/[*?[]/);
+        const slash = expanded.lastIndexOf("/", i);
+        const dir = slash < 0 ? "" : expanded.slice(0, slash);
+        const rest = expanded.slice(slash + 1);
+        if (rest.includes("/")) continue; // a wildcard in a folder name: not read
+        const re = new RegExp(`^${rest.startsWith(".") ? "" : "(?!\\.)"}${rest.replace(/[.+^${}()|\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".")}$`);
+        const absDir = dir === "" ? base : dir.startsWith("/") ? dir : base === null ? null : path.resolve(base, dir);
+        if (absDir !== null) check(path.resolve(absDir), re);
+        continue;
+      }
+      const abs = expanded.startsWith("/") ? path.resolve(expanded) : base === null ? null : path.resolve(base, expanded);
+      if (abs !== null) check(abs, null);
+    }
+    // `git clean -x` or `-X` deletes ignored files, and `.jevmem/` is ignored: with no path, everything under the
+    // folder it runs in; with paths, what is under them.
+    if (t.cleansIgnored && base !== null) {
+      const dirs = t.dirs.map((w) => {
+        const x = expandPath(w, base, home, root);
+        return x === null ? null : path.resolve(base!, x);
+      });
+      const covers = (d: string | null) => d !== null && (same(d, rootAbs) || under(rootAbs, d) || same(d, target.state) || under(target.state, d) || under(d, target.state));
+      if (dirs.length ? dirs.some(covers) : same(base, rootAbs) || under(base, rootAbs) || under(rootAbs, base)) touchesState = true;
+    }
+    if (!touchesConfig && !(touchesMemory && hasRules) && !touchesState) continue;
     // Appending (>>) cannot remove a rule from JEVMEM.md.
-    if (touchesMemory && !touchesConfig && !touchesState && appendOnly) continue;
+    if (touchesMemory && !touchesConfig && !touchesState && t.appendOnly) continue;
     if (touchesConfig) return "jevmem: this command changes jevmem.config.json, which holds jevmem's guard settings.";
-    if (touchesMemory) return `jevmem: this command changes ${memoryName} and may remove or supersede saved rules.`;
+    if (touchesMemory && hasRules) return `jevmem: this command changes ${memoryName} and may remove or supersede saved rules.`;
     return "jevmem: this command changes jevmem's local state in .jevmem/ (verdicts and cached answers the guard relies on).";
   }
   return null;
-}
-
-/** Does a redirection operator write its target: `>`, `>>`, `>|`, `>&` (before a file), `&>` and `&>>`; `<` and `<&` read. */
-const writesTarget = (op: string) => op.includes(">") && !op.startsWith("<");
-/** Does it only append: `>>` and `&>>`. Appending cannot remove a line from a file. */
-const appends = (op: string) => op === ">>" || op === "&>>";
-
-/**
- * The simple commands of a command line, each with its words (prefixes and `VAR=value` dropped) and the files its output
- * redirections write (`writes`; an input redirection `<` reads).
- */
-function segmentsOf(cmd: string): { words: string[]; writes: string[]; appendOnly: boolean }[] {
-  return splitCommand(cmd).map((seg) => {
-    const { words, redirects, redirectOps, ops } = shellWords(seg);
-    const writes = redirects.filter((_, i) => writesTarget(redirectOps[i] ?? ">"));
-    let i = 0;
-    for (;;) {
-      const w = words[i];
-      if (w === undefined) break;
-      if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w) || ["sudo", "env", "command", "exec", "time", "nohup", "npx", "pnpx", "bunx"].includes(w) || (i > 0 && /^-/.test(w) && ["npx", "pnpx", "bunx"].includes(words[i - 1]!))) i++;
-      else if (["npm", "pnpm", "yarn", "bun"].includes(w) && ["exec", "dlx", "x"].includes(words[i + 1] ?? "")) i += 2;
-      else break;
-    }
-    const rest = words.slice(i);
-    const teeAppend = (rest[0] ?? "").split("/").pop() === "tee" && rest.some((w) => w === "-a" || w === "--append");
-    const fileOps = ops.filter(writesTarget);
-    return { words: rest, writes, appendOnly: teeAppend || (fileOps.length > 0 && fileOps.every(appends)) };
-  });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -454,6 +636,8 @@ export interface RuleCheck {
   /** Jev's probability that the call breaks the rule; null when no answer (timeout, no key, error). */
   p: number | null;
   cached: boolean;
+  /** Matched on something strong (a path, a filename, a staged file, a `command subcommand` pair, a tool, a commit message), not on keywords alone. */
+  strong: boolean;
 }
 
 export interface GuardTrace {
@@ -529,9 +713,12 @@ function rulesWithSource(checks: RuleCheck[], notBlocked = false): string {
  * unverified one (a hand edit, a line from git, `jevmem add`) is asked about in block mode too, since a line planted
  * as an ordinary team rule passes the poisoning gate.
  */
-export function decideGuard(mode: GuardMode, askMin: number, blockMin: number, checks: RuleCheck[], tamper: string | null): { decision: GuardDecision; stdout: string } {
+export function decideGuard(mode: GuardMode, askMin: number, blockMin: number, checks: RuleCheck[], tamper: string | null, opts: { unchecked?: boolean } = {}): { decision: GuardDecision; stdout: string } {
   if (mode === "off") return { decision: "none", stdout: "" };
   const hits = checks.filter((c) => c.p !== null && c.p >= askMin).sort((a, b) => b.p! - a.p!);
+  // Jev failed or ran out of time: a candidate matched on something strong is asked about instead of let through, in
+  // ask and block mode alike (never denied); one matched on keywords alone stays fail-open.
+  const unchecked = opts.unchecked ? checks.filter((c) => c.p === null && c.strong) : [];
   const blocks = hits.filter((c) => c.p! >= blockMin && c.verified);
   const notBlocked = mode === "block" && hits.some((c) => c.p! >= blockMin && !c.verified);
   const plural = (n: number) => (n === 1 ? "a saved rule" : "saved rules");
@@ -543,6 +730,13 @@ export function decideGuard(mode: GuardMode, askMin: number, blockMin: number, c
   if (tamper) {
     const reason = hits.length ? `${tamper} It may also break ${plural(hits.length)}: ${rulesWithSource(hits, notBlocked)}.` : tamper;
     return { decision: "ask", stdout: hookOutput("ask", reason, null) };
+  }
+  if (!hits.length && unchecked.length) {
+    if (mode === "warn") {
+      const context = unchecked.length === 1 ? `Saved project rule in JEVMEM.md, not checked against this call in time: ${q(unchecked[0]!.text)}.` : `Saved project rules in JEVMEM.md, not checked against this call in time: ${ruleList(unchecked)}.`;
+      return { decision: "warn", stdout: hookOutput("warn", "", context) };
+    }
+    return { decision: "ask", stdout: hookOutput("ask", `jevmem: couldn't check this call against ${unchecked.length === 1 ? "a saved rule" : "saved rules"} in time: ${rulesWithSource(unchecked)}.`, null) };
   }
   if (!hits.length) return { decision: "none", stdout: "" };
   if (mode === "warn") {
@@ -628,11 +822,14 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     trace.notes.push(mem.error);
     logGuard(root, log, { ok: false, error: mem.error });
   }
-  trace.tamper = tamperCheck(root, cfg, action, input, conf.text, mem.text);
+  // The folder a Bash command starts in (the PreToolUse payload's cwd), for paths it names relative to it.
+  const cwd = input.cwd && fs.existsSync(input.cwd) ? input.cwd : root;
+  trace.tamper = tamperCheck(root, cfg, action, input, conf.text, mem.text, { cwd, home: env.HOME });
 
   const finish = (checks: RuleCheck[]) => {
     trace.checks = checks;
-    const d = decideGuard(cfg.guard.mode, cfg.guard.askMin, cfg.guard.blockMin, checks, trace.tamper);
+    const unchecked = trace.route === "jev-failed" || trace.route === "no-time";
+    const d = decideGuard(cfg.guard.mode, cfg.guard.askMin, cfg.guard.blockMin, checks, trace.tamper, { unchecked });
     trace.decision = d.decision;
     trace.stdout = d.stdout;
     const hits = checks.filter((c) => c.p !== null && c.p >= cfg.guard.askMin).sort((a, b) => b.p! - a.p!);
@@ -642,6 +839,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
       if (d.decision !== "none") {
         entry.mode = cfg.guard.mode;
         if (hits.length) entry.rules = hits.map((c) => ({ id: c.id, p: Math.round(c.p! * 1000) / 1000, text: shorten(scrubSecrets(c.text), 200), ...(c.verified ? {} : { unverified: true }) }));
+        else if (unchecked) entry.rules = checks.filter((c) => c.p === null && c.strong).map((c) => ({ id: c.id, text: shorten(scrubSecrets(c.text), 200), unchecked: true, ...(c.verified ? {} : { unverified: true }) }));
         if (trace.tamper) entry.tamper = scrubSecrets(trace.tamper);
         entry.action = actionSummary(action, trace.payload);
       }
@@ -671,10 +869,17 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     return finish([]);
   }
 
-  const features = actionFeatures(action, root);
+  const readFile = (file: string): string | null => {
+    try {
+      return fs.readFileSync(file, "utf8");
+    } catch {
+      return null;
+    }
+  };
+  // A commit message is read from a file (`git commit -F <file>`) only when a rule about commit messages could use it.
+  const features = actionFeatures(action, root, { cwd, home: env.HOME, ...(rules.enforced.some((r) => r.features.messageRule) ? { readFile } : {}) });
   // `git add .`, `git add -A`, `git commit -a`: what they would stage or commit, when a rule about committing names a path.
   if (action.tool === "Bash" && rules.enforced.some(ruleNamesCommittedFiles)) {
-    const cwd = input.cwd && fs.existsSync(input.cwd) ? input.cwd : root;
     const ex = expandGitStaging(action.command ?? "", { cwd, root, budgetMs: Math.min(GIT_BUDGET_MS, Math.floor(cfg.guard.budgetMs / 4)), home: env.HOME });
     if (ex.commands.length) {
       trace.staged = ex;
@@ -692,13 +897,14 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
 
   const named = new Set(candidates.flatMap((c) => c.staged ?? []));
   const stages = (trace.staged?.files ?? []).filter((f) => named.has(f.path)).map(stagedLabel);
-  const payload = callPayload(action, candidates.flatMap((c) => c.terms), stages);
+  // The commit message goes with the call only when a candidate rule is about commit messages.
+  const payload = callPayload(action, candidates.flatMap((c) => c.terms), stages, candidates.some((c) => c.rule.features.messageRule) ? features.message : undefined);
   trace.payload = payload;
   const hash = payloadHash(payload);
   const answers = deps.noCache ? {} : readAnswers(root);
   const checks: RuleCheck[] = candidates.map((c) => {
     const hit = answers[answerKey(c.rule, hash)];
-    return { id: c.rule.id, text: c.rule.text, verified: c.rule.verified === true, p: hit ? hit.p : null, cached: Boolean(hit) };
+    return { id: c.rule.id, text: c.rule.text, verified: c.rule.verified === true, p: hit ? hit.p : null, cached: Boolean(hit), strong: c.strong };
   });
   const ask = candidates.filter((_, i) => checks[i]!.p === null);
   if (!ask.length) {
@@ -874,7 +1080,8 @@ export function formatGuardTrace(t: GuardTrace): string {
   }
   if (t.payload) out.push(`sent       ${JSON.stringify(t.payload)}`);
   for (const c of t.checks) {
-    const verdict = c.p === null ? "no answer" : `p=${c.p.toFixed(2)} ${t.thresholds && c.p >= t.thresholds.askMin ? "≥" : "<"} ${t.thresholds?.askMin.toFixed(2)}`;
+    const late = c.p === null && c.strong && (t.route === "jev-failed" || t.route === "no-time");
+    const verdict = c.p === null ? (late ? "no answer in time; matched on more than keywords, so the call is asked about" : "no answer") : `p=${c.p.toFixed(2)} ${t.thresholds && c.p >= t.thresholds.askMin ? "≥" : "<"} ${t.thresholds?.askMin.toFixed(2)}`;
     out.push(`jev        ${c.id}  ${verdict}${c.cached ? " (cached answer)" : c.p !== null && t.jevMs !== null ? ` (asked now, ${t.jevMs} ms)` : ""}`);
   }
   for (const n of t.notes) out.push(`note       ${n}`);

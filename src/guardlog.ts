@@ -27,8 +27,11 @@ export interface GuardLogEntry {
   /** Asks, denials and warnings only. */
   mode?: string;
   tamper?: string;
-  /** `unverified`: the line was not written by jevmem on this machine, so it could only ask. */
-  rules?: { id: string; p: number; text: string; unverified?: boolean }[];
+  /**
+   * `unverified`: the line was not written by jevmem on this machine, so it could only ask. `unchecked`: Jev failed
+   * or ran out of time and the rule matched on more than keywords, so the call was asked about without a score.
+   */
+  rules?: { id: string; p?: number; text: string; unverified?: boolean; unchecked?: boolean }[];
   action?: string;
 }
 
@@ -162,7 +165,7 @@ export function formatGuardLog(entries: GuardLogEntry[], n: number): string {
   const pad = " ".repeat(21);
   for (const e of shown) {
     out.push(`${localTime(e.ts)}  ${e.decision.padEnd(4)}  ${e.tool.padEnd(5)}  ${e.action ?? ""}`);
-    for (const r of e.rules ?? []) out.push(`${pad}rule ${r.id}  p=${r.p.toFixed(2)}  "${r.text}"${r.unverified ? "  (unverified line)" : ""}`);
+    for (const r of e.rules ?? []) out.push(`${pad}rule ${r.id}  ${r.unchecked || typeof r.p !== "number" ? "not checked in time" : `p=${r.p.toFixed(2)}`}  "${r.text}"${r.unverified ? "  (unverified line)" : ""}`);
     if (e.tamper) out.push(`${pad}tamper: ${e.tamper}`);
   }
   return out.join("\n");

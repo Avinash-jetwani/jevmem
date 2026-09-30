@@ -9,11 +9,21 @@
  * A rule that shares a feature with the call is a candidate; the strongest few go to Jev, which decides. A call that
  * shares nothing with any rule never leaves the machine.
  *
+ * A shell command line is read the way the shell reads it (src/shell.ts): a heredoc or here-string is the input of
+ * the command that owns it, never commands of its own; its body runs as commands only when it is fed to a shell, as
+ * do `bash -c '…'`, `eval '…'`, and a script the same command line writes and then runs. A heredoc written to a file
+ * (`cat > f <<EOF`) is checked like a Write of that file with that content. A rule about commit messages is matched
+ * against the message a `git commit` in the command would get.
+ *
  * The prefilter sees only the call itself, with one exception: for `git add`, `git stage` and `git commit`, the guard
  * first lists the files the command would stage or commit (src/gitstage.ts), and those are matched against the paths
  * and filenames of rules about committing, so `git add .` with an untracked `.env` meets "Never commit .env files".
  * A script or a make target that does the forbidden thing is still not seen (docs/guardrails.md).
  */
+
+import { commandOf, expandPath, joinPath, PAIRED, PREFIX, readCommandLine, shellWords, withDirs, type SimpleCommand } from "./shell.js";
+
+export { commandOf, shellWords } from "./shell.js";
 
 export type GuardTool = "Bash" | "Edit" | "Write";
 
@@ -45,6 +55,14 @@ export interface Features {
    * committing (VCS_RULE), never against a broad directory, and they give no keywords.
    */
   staged?: string[];
+  /**
+   * Rules only: the rule is about commit messages (a message, a trailer, Co-Authored-By, Signed-off-by, a sign-off,
+   * Conventional Commits, or whose name commits are under), so it is matched against the message a `git commit` would
+   * get, the way a rule about committing is matched against the files the commit would take.
+   */
+  messageRule?: boolean;
+  /** Calls only: the message a `git commit` in the command would get (`commitMessage`). */
+  message?: string;
 }
 
 export interface IndexedRule {
@@ -62,6 +80,11 @@ export interface Candidate {
   score: number;
   /** Why the rule matched, for `jevmem guard test` and the log: `file .env`, `command git push`, `keyword commit`. */
   reasons: string[];
+  /**
+   * Matched on something strong: a path, a filename, a file the git command would stage or commit, a `command
+   * subcommand` pair, a tool the rule names, or a commit message. A candidate matched on keywords alone is not.
+   */
+  strong: boolean;
   /** The words and paths the rule shares with the call (used to centre the content snippet sent to Jev). */
   terms: string[];
   /** Of the call's staged files, the ones this rule names. */
@@ -92,6 +115,12 @@ export const DEFAULT_MATCH: MatchOptions = { max: 3, minScore: 2 };
  * when it happens, not by committing the result.
  */
 export const VCS_RULE = /\b(?:commit(?:s|ted|ting)?|git|gitignored?|push(?:es|ed|ing)?|(?:un)?tracked|version[- ]control(?:led)?)\b|\bcheck(?:ed|s|ing)?[- ]in(?:to)?\b/i;
+
+/**
+ * A rule about commit messages: a commit message, subject or body, a trailer, Co-Authored-By, Signed-off-by, a
+ * sign-off, Conventional Commits, or whose name commits are under. Matched against the message a `git commit` would get.
+ */
+export const COMMIT_MESSAGE_RULE = /\bcommit (?:message|subject|title|body|text)s?\b|\bmessages? (?:of|for) (?:a|each|every|the) commits?\b|\btrailers?\b|\bco-?authored-?by\b|\bsigned-?off-?by\b|\bsign-?offs?\b|\bconventional commits?\b|\bcommits? (?:are|is|go|land|stay|remain|must be|should be) (?:made |authored |committed )?(?:under|by|as|in)\b/i;
 
 /** Does this rule need the files a git command would stage (a rule about committing that names a path or file)? */
 export function ruleNamesCommittedFiles(rule: Pick<IndexedRule, "text" | "features">): boolean {
@@ -146,15 +175,20 @@ export function words(text: string): string[] {
     .filter((w) => w.length > 0);
 }
 
-/** The stemmed keywords of a text, without stop words, numbers or one- and two-letter words. */
+/**
+ * The stemmed keywords of a text, without stop words, numbers or one- and two-letter words. A camelCase identifier
+ * counts as its parts and as a whole, so `TypeSafe` in a rule meets `TYPESAFE_API_KEY` in a call.
+ */
 export function keywords(text: string): string[] {
   const out = new Set<string>();
-  for (const w of words(text)) {
+  const add = (w: string) => {
     const lower = w.toLowerCase();
-    if (lower.length < 3 || STOP.has(lower) || /^\d+$/.test(lower)) continue;
+    if (lower.length < 3 || STOP.has(lower) || /^\d+$/.test(lower)) return;
     const s = stem(lower);
     if (s.length >= 3 && !STOP.has(s)) out.add(s);
-  }
+  };
+  for (const w of words(text)) add(w);
+  for (const tok of text.split(/[^A-Za-z0-9']+/)) if (/[a-z][A-Z]/.test(tok)) add(tok.replace(/^'+|'+$/g, ""));
   return [...out];
 }
 
@@ -182,9 +216,6 @@ const AMBIGUOUS_TOOLS = new Set(["go", "make", "node", "python", "python3", "bun
 /** Tools nearly every session runs: a rule naming only the tool itself is a weak match for them. */
 const COMMON_TOOLS = new Set(["git", "gh", "node", "python", "python3", "bash", "sh"]);
 
-/** Git and package-manager subcommands that make a `command subcommand` pair. */
-const PAIRED = new Set(["git", "gh", "npm", "pnpm", "yarn", "bun", "docker", "podman", "kubectl", "helm", "terraform", "tofu", "cargo", "go", "pip", "pip3", "poetry", "uv", "aws", "gcloud", "az", "heroku", "vercel", "flyctl", "fly", "wrangler", "firebase", "supabase", "prisma", "rails", "rake", "bundle", "composer", "dotnet", "mvn", "gradle", "make", "brew", "apt", "apt-get", "systemctl", "npx", "pnpx", "bunx"]);
-
 /**
  * Subcommands that make a pair when a rule names a tool in plain text ("never git push", "no kubectl delete"): "git
  * history" or "go through" is not a command. Tools not listed here (make, rake, cloud CLIs) take any word; inside
@@ -208,9 +239,6 @@ const SUBCOMMANDS: Record<string, Set<string>> = Object.fromEntries(
     return [tool, ...(same[tool] ?? [])].map((t) => [t, set] as const);
   }),
 );
-
-/** Words in front of a command that only change how it runs. */
-const PREFIX = new Set(["sudo", "env", "time", "nohup", "nice", "exec", "command", "builtin", "caffeinate", "stdbuf", "timeout", "xargs"]);
 
 /** Short flags that say something a rule might be about. */
 const FLAG_WORDS: Record<string, string[]> = { "-f": ["force"], "-rf": ["force", "recursive"], "-fr": ["force", "recursive"], "-r": ["recursive"], "-R": ["recursive"], "-D": ["delete", "force"], "-A": ["all"], "-a": ["all"] };
@@ -340,7 +368,7 @@ export function ruleFeatures(text: string): Features {
   for (const c of [...commands]) if (c.includes(" ")) commands.delete(c.split(" ")[0]!);
   // Keywords: not the words of a path (the path itself is the feature) and not tool names (commands are).
   const kw = keywords(kwText.join(" ")).filter((k) => !TOOLS.has(k) && ![...pathWords].some((w) => stem(w) === k && !plainOutsidePaths(text, w)));
-  return { paths: [...paths], files: [...files], commands: [...commands], keywords: kw };
+  return { paths: [...paths], files: [...files], commands: [...commands], keywords: kw, ...(COMMIT_MESSAGE_RULE.test(text) ? { messageRule: true } : {}) };
 }
 
 /** Does `word` appear in `text` outside a path or filename token? */
@@ -354,218 +382,110 @@ function plainOutsidePaths(text: string, word: string): boolean {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Shell command lines
+// Shell command lines (src/shell.ts)
 
 /**
- * Split a command line into its simple commands: on `&&`, `||`, `;`, `|`, `&`, newlines and parentheses, and with
- * the insides of `$( … )` and backticks as commands of their own. Quotes are respected.
+ * The simple commands of a command line, as text: on `&&`, `||`, `;`, `|`, `&`, newlines and parentheses, with the
+ * insides of `$( … )` and backticks, shell strings, heredocs fed to a shell and scripts written and then run as
+ * commands of their own. A heredoc's body is never split into commands.
  */
 export function splitCommand(cmd: string): string[] {
-  const out: string[] = [];
-  const nested: string[] = [];
-  let cur = "";
-  let quote: "'" | '"' | null = null;
-  const push = () => {
-    if (cur.trim()) out.push(cur.trim());
-    cur = "";
-  };
-  for (let i = 0; i < cmd.length; i++) {
-    const c = cmd[i]!;
-    if (quote) {
-      if (c === "\\" && quote === '"' && i + 1 < cmd.length) {
-        cur += c + cmd[++i];
-        continue;
-      }
-      if (c === quote) quote = null;
-      // Command substitution runs inside double quotes too.
-      if (quote === '"' && c === "$" && cmd[i + 1] === "(") {
-        const end = matchParen(cmd, i + 1);
-        nested.push(cmd.slice(i + 2, end));
-        cur += cmd.slice(i, end + 1);
-        i = end;
-        continue;
-      }
-      cur += c;
-      continue;
-    }
-    if (c === "\\" && i + 1 < cmd.length) {
-      cur += c + cmd[++i];
-      continue;
-    }
-    if (c === "'" || c === '"') {
-      quote = c;
-      cur += c;
-      continue;
-    }
-    if (c === "$" && cmd[i + 1] === "(") {
-      const end = matchParen(cmd, i + 1);
-      nested.push(cmd.slice(i + 2, end));
-      cur += " ";
-      i = end;
-      continue;
-    }
-    if (c === "`") {
-      const end = cmd.indexOf("`", i + 1);
-      const stop = end < 0 ? cmd.length : end;
-      nested.push(cmd.slice(i + 1, stop));
-      cur += " ";
-      i = stop;
-      continue;
-    }
-    if (c === "#" && (cur === "" || /\s$/.test(cur))) {
-      // A comment runs to the end of the line.
-      const nl = cmd.indexOf("\n", i);
-      i = nl < 0 ? cmd.length : nl - 1;
-      continue;
-    }
-    if (c === "&" && (cmd[i - 1] === ">" || cmd[i - 1] === "<" || cmd[i + 1] === ">")) {
-      cur += c; // 2>&1, <&0, &>file
-      continue;
-    }
-    if (c === "|" && cmd[i - 1] === ">") {
-      cur += c; // >|file writes the file even with noclobber set; it is not a pipe
-      continue;
-    }
-    if (c === ";" || c === "\n" || c === "(" || c === ")" || c === "|" || c === "&") {
-      push();
-      if ((c === "|" || c === "&") && cmd[i + 1] === c) i++;
-      continue;
-    }
-    cur += c;
-  }
-  push();
-  for (const n of nested) out.push(...splitCommand(n));
-  return out;
+  return readCommandLine(cmd).map((c) => c.text).filter((t) => t.length > 0);
 }
 
-function matchParen(s: string, open: number): number {
-  let depth = 0;
-  let quote: string | null = null;
-  for (let i = open; i < s.length; i++) {
-    const c = s[i]!;
-    if (quote) {
-      if (c === "\\") i++;
-      else if (c === quote) quote = null;
-      continue;
-    }
-    if (c === "'" || c === '"') quote = c;
-    else if (c === "(") depth++;
-    else if (c === ")" && --depth === 0) return i;
-  }
-  return s.length;
+/** For a Bash call: the folder it starts in, the home folder (`~`), and how to read a file a commit message comes from. */
+export interface ActionOptions {
+  cwd?: string;
+  home?: string;
+  readFile?: (file: string) => string | null;
 }
+
+/** How much of a commit message read from a file (`git commit -F <file>`) is taken. */
+export const MESSAGE_READ_CHARS = 16_000;
 
 /**
- * The words of one simple command, quotes removed; redirection targets and operators are listed apart. The operators
- * that write their target: `>`, `>>`, `>|` (past noclobber), `&>` and `&>>` (stdout and stderr), and `>&` before a word
- * that is not a descriptor number or `-` (as `&>`); `2>&1`, `>&2` and `2>&-` copy or close a descriptor and have no
- * target. `<` and `<&` read. With `globs`, also whether each word has a wildcard outside quotes (one the shell expands).
+ * The message a `git commit` would get: every `-m` and `--message` joined as git joins them (a blank line between),
+ * `-F -` with the command's here input, `-F <file>` read through `readFile` (up to MESSAGE_READ_CHARS), `--trailer`
+ * lines at the end, and the `Signed-off-by` line `-s` adds. The form Claude Code uses, `-m "$(cat <<'EOF' … EOF)"`,
+ * gives the heredoc's body. Null when the call carries no message: an editor opens, or `-c`, `-C`, `--fixup` and
+ * `--squash` take another commit's, or `--amend` keeps the old one.
  */
-export function shellWords(segment: string, opts: { globs?: boolean } = {}): { words: string[]; redirects: string[]; redirectOps: string[]; ops: string[]; globs?: boolean[] } {
-  const out: string[] = [];
-  const redirects: string[] = [];
-  // The operator each redirection target came with (`>`, `>>`, `>|`, `&>`, `&>>`, `>&`, `<`), in the same order as `redirects`.
-  const redirectOps: string[] = [];
-  let pendingOp = "";
-  const ops: string[] = [];
-  const globs: boolean[] = [];
-  let cur = "";
-  let started = false;
-  let wild = false;
-  let quote: "'" | '"' | null = null;
-  // After `>`, `>>` or `<` the next word is a file; after `<<` or `<<<` it is a heredoc delimiter or a string.
-  let next: "redirect" | "skip" | null = null;
-  const push = () => {
-    if (started) {
-      if (next === "redirect") {
-        redirects.push(cur);
-        redirectOps.push(pendingOp);
+export function commitMessage(c: SimpleCommand, opts: ActionOptions = {}): string | null {
+  const { at } = commandOf(c.words);
+  const start = c.words.indexOf("commit", at + 1);
+  if (start < 0) return null;
+  const words = c.words.slice(start + 1);
+  const parts: string[] = [];
+  const trailers: string[] = [];
+  let signoff = false;
+  const value = (raw: string): string => {
+    const m = /^\$\(([\s\S]*)\)$/.exec(raw.trim());
+    if (m) {
+      const inner = readCommandLine(m[1]!);
+      const withInput = inner.find((x) => x.input.length);
+      if (withInput) return withInput.input[withInput.input.length - 1]!.body;
+      const first = commandOf(inner[0]?.words ?? []);
+      if (first.cmd === "echo" || first.cmd === "printf") {
+        const text = first.args.filter((x, k) => !(k === 0 && /^-[neE]+$/.test(x))).join(" ");
+        return first.cmd === "printf" || first.args[0] === "-e" ? text.replace(/\\n/g, "\n").replace(/\\t/g, "\t") : text;
       }
-      else if (next !== "skip") {
-        out.push(cur);
-        globs.push(wild);
-      }
-      next = null;
     }
-    cur = "";
-    started = false;
-    wild = false;
+    return raw;
   };
-  for (let i = 0; i < segment.length; i++) {
-    const c = segment[i]!;
-    if (quote) {
-      if (c === quote) quote = null;
-      else if (c === "\\" && quote === '"' && i + 1 < segment.length) cur += segment[++i];
-      else cur += c;
+  const fromFile = (f: string): string | null => {
+    if (f === "-") return c.stdin;
+    const e = expandPath(f, c.cwd ?? null, opts.home, undefined);
+    if (e === null) return null;
+    const abs = e.startsWith("/") ? e : c.cwd ? joinPath(c.cwd, e) : null;
+    const text = abs !== null && opts.readFile ? opts.readFile(abs) : null;
+    return text === null ? null : text.slice(0, MESSAGE_READ_CHARS);
+  };
+  const VALUE_LONG = ["--reuse-message", "--reedit-message", "--fixup", "--squash", "--author", "--date", "--template", "--cleanup", "--pathspec-from-file"];
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i]!;
+    if (w === "--") break;
+    if (w.startsWith("--")) {
+      const eq = w.indexOf("=");
+      const name = eq < 0 ? w : w.slice(0, eq);
+      const inline = eq < 0 ? undefined : w.slice(eq + 1);
+      const take = () => (inline !== undefined ? inline : (words[++i] ?? ""));
+      if (name === "--message") parts.push(value(take()));
+      else if (name === "--file") {
+        const t = fromFile(take());
+        if (t !== null) parts.push(t);
+      } else if (name === "--trailer") trailers.push(take());
+      else if (name === "--signoff") signoff = true;
+      else if (name === "--no-signoff") signoff = false;
+      else if (VALUE_LONG.includes(name) && inline === undefined) i++;
       continue;
     }
-    if (c === "'" || c === '"') {
-      quote = c;
-      started = true;
-      continue;
-    }
-    if (c === "\\" && i + 1 < segment.length) {
-      cur += segment[++i];
-      started = true;
-      continue;
-    }
-    if (/\s/.test(c)) {
-      push();
-      continue;
-    }
-    // `&>` and `&>>` send stdout and stderr to their target: the `&` opens the operator, it is not a word.
-    const both = c === "&" && segment[i + 1] === ">";
-    if (c === ">" || c === "<" || both) {
-      if (both) {
-        push();
-        i++;
-      } else if (/^\d*$/.test(cur)) {
-        // A descriptor number before the operator (`2>`), not a word.
-        cur = "";
-        started = false;
-      } else push();
-      const first = segment[i]!;
-      let op = both ? "&>" : first;
-      while (segment[i + 1] === ">" || segment[i + 1] === "<") op += segment[++i];
-      if (segment[i + 1] === "-" && op === "<<") i++; // <<-EOF
-      if (segment[i + 1] === "|" && op === ">") op += segment[++i]; // >|
-      if (segment[i + 1] === "&" && !both && (op === ">" || op === "<")) {
-        // `2>&1`, `>&2`, `2>&-` and `<&0` copy or close a descriptor; `>& file` writes the file, as `&>` does.
-        i++;
-        const rest = segment.slice(i + 1);
-        const fd = /^\s*(?:\d+|-)(?=$|[\s;&|<>)])/.exec(rest);
-        if (fd) {
-          i += fd[0].length;
-          continue;
+    if (w.startsWith("-") && w.length > 1) {
+      const flags = w.slice(1);
+      for (let f = 0; f < flags.length; f++) {
+        const ch = flags[f]!;
+        if (ch === "m" || ch === "F") {
+          const rest = flags.slice(f + 1);
+          const v = rest.length ? rest : (words[++i] ?? "");
+          if (ch === "m") parts.push(value(v));
+          else {
+            const t = fromFile(v);
+            if (t !== null) parts.push(t);
+          }
+          break;
         }
-        op += "&";
+        if (ch === "C" || ch === "c" || ch === "t") {
+          if (f === flags.length - 1) i++;
+          break;
+        }
+        if (ch === "S" || ch === "u") break;
+        if (ch === "s") signoff = true;
       }
-      ops.push(op);
-      pendingOp = op;
-      next = op.startsWith("<<") ? "skip" : "redirect";
-      continue;
     }
-    if (c === "*" || c === "?" || c === "[") wild = true;
-    cur += c;
-    started = true;
   }
-  push();
-  return { words: out, redirects, redirectOps, ops, ...(opts.globs ? { globs } : {}) };
-}
-
-/** The command word of a simple command and its subcommand (skipping `sudo`, `env`, `VAR=value` and git's `-C dir`). */
-export function commandOf(words: string[]): { cmd: string | null; sub: string | null; args: string[] } {
-  let i = 0;
-  while (i < words.length && (PREFIX.has(words[i]!) || /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[i]!) || (words[i - 1] === "timeout" && /^\d/.test(words[i]!)))) i++;
-  const raw = words[i];
-  if (!raw) return { cmd: null, sub: null, args: [] };
-  const cmd = (raw.split("/").pop() ?? raw).toLowerCase();
-  let j = i + 1;
-  if (cmd === "git") while (words[j] === "-C" || words[j] === "-c" || words[j] === "--git-dir" || words[j] === "--work-tree") j += 2;
-  if (cmd === "npm" || cmd === "pnpm" || cmd === "yarn") while (words[j]?.startsWith("-")) j += words[j] === "--prefix" || words[j] === "-C" || words[j] === "--dir" || words[j] === "--filter" ? 2 : 1;
-  const next = words[j];
-  const sub = PAIRED.has(cmd) && next && /^[a-z][a-z0-9:-]*$/i.test(next) ? next.toLowerCase() : null;
-  return { cmd, sub, args: words.slice(i + 1) };
+  let out = parts.join("\n\n");
+  if (trailers.length) out = (out ? `${out}\n\n` : "") + trailers.join("\n");
+  if (signoff) out = (out ? `${out}\n\n` : "") + "Signed-off-by: (the committer's name and email)";
+  return out || null;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -576,9 +496,10 @@ export const CONTENT_SCAN_CHARS = 16_000;
 
 /**
  * Features of one tool call. `root` (the project root) turns absolute paths inside the project into relative ones;
- * for a path outside it only the last segment gives keywords (not `Users`, `home` or the user name).
+ * for a path outside it only the last segment gives keywords (not `Users`, `home` or the user name). For a Bash call,
+ * `opts.cwd` and `opts.home` follow `cd` and `~` (a commit message read with `-F <file>` needs `opts.readFile`).
  */
-export function actionFeatures(action: GuardAction, root?: string): Features & { segments: string[] } {
+export function actionFeatures(action: GuardAction, root?: string, opts: ActionOptions = {}): Features & { segments: string[] } {
   const paths = new Set<string>();
   const files = new Set<string>();
   const commands = new Set<string>();
@@ -597,33 +518,8 @@ export function actionFeatures(action: GuardAction, root?: string): Features & {
     if (base) files.add(base.toLowerCase());
     for (const k of keywords(outside ? (base ?? "") : s)) kw.add(k);
   };
-  const segments: string[] = [];
-  if (action.tool === "Bash") {
-    for (const seg of splitCommand(action.command ?? "")) {
-      segments.push(seg);
-      const { words: w, redirects } = shellWords(seg);
-      const { cmd, sub, args } = commandOf(w);
-      if (cmd) {
-        commands.add(cmd);
-        if (sub) commands.add(`${cmd} ${sub}`);
-        for (const k of keywords(cmd)) kw.add(k);
-      }
-      for (const a of args) {
-        if (FLAG_WORDS[a]) for (const x of FLAG_WORDS[a]!) kw.add(stem(x));
-        const eq = /^--?[A-Za-z0-9-]+=(.+)$/.exec(a);
-        if (a.startsWith("-") && !eq) {
-          for (const k of keywords(a)) kw.add(k);
-          continue;
-        }
-        const value = eq ? eq[1]! : a;
-        if (pathKind(value)) addPath(value);
-        for (const k of keywords(value)) kw.add(k);
-      }
-      for (const r of redirects) if (!/^\d+$/.test(r)) addPath(r);
-    }
-  } else {
-    if (action.file) addPath(action.file);
-    const text = `${(action.added ?? "").slice(0, CONTENT_SCAN_CHARS)}\n${(action.removed ?? "").slice(0, CONTENT_SCAN_CHARS / 2)}`;
+  /** Words, paths and shell commands in the text of an Edit or Write, or of a file a command writes with a heredoc. */
+  const contentFeatures = (text: string) => {
     for (const k of keywords(text)) kw.add(k);
     // Paths written in the content (an import of `src/secrets/*`, a workflow step running `./deploy.sh`).
     for (const tok of text.split(/[\s"'`()[\]{},;=]+/)) {
@@ -642,8 +538,45 @@ export function actionFeatures(action: GuardAction, root?: string): Features & {
         if (sub) commands.add(`${cmd} ${sub}`);
       }
     }
+  };
+  const segments: string[] = [];
+  let message: string | undefined;
+  if (action.tool === "Bash") {
+    const list = withDirs(readCommandLine(action.command ?? ""), opts.cwd ?? root ?? "/", opts.home, root);
+    for (const c of list) {
+      segments.push(c.text);
+      const { cmd, sub, args } = commandOf(c.words);
+      if (cmd) {
+        commands.add(cmd);
+        if (sub) commands.add(`${cmd} ${sub}`);
+        for (const k of keywords(cmd)) kw.add(k);
+      }
+      for (const a of args) {
+        if (FLAG_WORDS[a]) for (const x of FLAG_WORDS[a]!) kw.add(stem(x));
+        const eq = /^--?[A-Za-z0-9-]+=(.+)$/.exec(a);
+        if (a.startsWith("-") && !eq) {
+          for (const k of keywords(a)) kw.add(k);
+          continue;
+        }
+        const value = eq ? eq[1]! : a;
+        if (pathKind(value)) addPath(value);
+        for (const k of keywords(value)) kw.add(k);
+      }
+      for (const r of c.redirects) if (!/^\d+$/.test(r)) addPath(r);
+      // A heredoc written to a file is checked like a Write of that file with that content. Any other body is the
+      // input of the command that owns it: its words count as keywords, never as command words.
+      if (c.writes.length) for (const w of c.writes) contentFeatures(w.content.slice(0, CONTENT_SCAN_CHARS));
+      else for (const inp of c.input) for (const k of keywords(inp.body.slice(0, CONTENT_SCAN_CHARS))) kw.add(k);
+      if (cmd === "git" && sub === "commit") {
+        const m = commitMessage(c, opts);
+        if (m !== null) message = message === undefined ? m : `${message}\n\n${m}`;
+      }
+    }
+  } else {
+    if (action.file) addPath(action.file);
+    contentFeatures(`${(action.added ?? "").slice(0, CONTENT_SCAN_CHARS)}\n${(action.removed ?? "").slice(0, CONTENT_SCAN_CHARS / 2)}`);
   }
-  return { paths: [...paths], files: [...files], commands: [...commands], keywords: [...kw], segments };
+  return { paths: [...paths], files: [...files], commands: [...commands], keywords: [...kw], segments, ...(message !== undefined ? { message } : {}) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -712,6 +645,12 @@ export function matchRules(rules: IndexedRule[], call: Features, opts: MatchOpti
         }
       }
     }
+    // A rule about commit messages is matched against the message the commit would get, as a rule about committing
+    // is matched against the files it would take.
+    if (f.messageRule && call.message !== undefined) {
+      score += WEIGHTS.pair;
+      reasons.push("commit message");
+    }
     let kwScore = 0;
     for (const c of f.commands) {
       if (!callCmds.has(c)) {
@@ -734,7 +673,8 @@ export function matchRules(rules: IndexedRule[], call: Features, opts: MatchOpti
       terms.add(k);
     }
     score += Math.min(kwScore, WEIGHTS.keywordCap);
-    if (score >= opts.minScore && reasons.length) out.push({ rule, score, reasons, terms: [...terms], ...(staged.size ? { staged: [...staged] } : {}) });
+    const strong = reasons.some((r) => !r.startsWith("keyword "));
+    if (score >= opts.minScore && reasons.length) out.push({ rule, score, reasons, strong, terms: [...terms], ...(staged.size ? { staged: [...staged] } : {}) });
   }
   out.sort((a, b) => b.score - a.score || a.rule.id.localeCompare(b.rule.id));
   return out.slice(0, Math.max(0, opts.max));

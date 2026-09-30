@@ -328,24 +328,41 @@ describe("what is sent to Jev", () => {
   });
 });
 
-describe("fails open", () => {
-  it("Jev down or erroring: no decision, logged", async () => {
+describe("fails open, or asks when the match was strong (v0.6, the trial's late Jev call)", () => {
+  it("Jev down or erroring: a candidate matched on a filename is asked about without a score, nothing is cached; logged", async () => {
     const { root } = project([ENV]);
     const down: MockJev = { ...breaks(0.99), call: async () => { throw new Error("fetch failed"); } };
     const t = await evaluateGuard(bash(root, "git add .env"), { jev: down });
-    expect(t.stdout).toBe("");
+    expect(t.route).toBe("jev-failed");
+    expect(parse(t.stdout)).toEqual({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: `jevmem: couldn't check this call against a saved rule in time: "${ENV}" (JEVMEM.md).` });
     expect(t.notes.join()).toMatch(/Jev check failed.*fetch failed/);
     expect(readLog(root).some((e) => e.label === "guard" && e.ok === false && /fetch failed/.test(e.error ?? ""))).toBe(true);
+    expect(Object.keys(readAnswers(root))).toHaveLength(0);
+    expect(formatGuardTrace(t)).toMatch(/no answer in time; matched on more than keywords, so the call is asked about/);
   });
 
-  it("Jev too slow: no decision within guard.budgetMs", async () => {
-    const { root } = project([ENV], { budgetMs: 300 });
+  it("Jev too slow: within guard.budgetMs, a strong match is asked about (block mode too, never denied; warn mode says it was not checked); keywords alone stay fail-open", async () => {
+    const { root } = project([ENV, "Don't print or log customer email addresses"], { budgetMs: 300 });
     const slow: MockJev = { ...breaks(0.99), call: () => new Promise(() => {}) };
     const t0 = performance.now();
     const t = await evaluateGuard(bash(root, "git add .env"), { jev: slow });
     expect(performance.now() - t0).toBeLessThan(700);
-    expect(t.stdout).toBe("");
+    expect(t.route).toBe("jev-failed");
+    expect(parse(t.stdout).permissionDecision).toBe("ask");
+    expect(parse(t.stdout).permissionDecisionReason).toMatch(/^jevmem: couldn't check this call against a saved rule in time/);
     expect(t.notes.join()).toMatch(/timed out/);
+    // Matched on keywords alone (customer, email): let through, as before.
+    const weak = await evaluateGuard(bash(root, "rg 'customer email' src/"), { jev: slow });
+    expect(weak.candidates.map((c) => c.strong)).toEqual([false]);
+    expect(weak.stdout).toBe("");
+    setGuard(root, { mode: "block", budgetMs: 300 });
+    expect(parse((await evaluateGuard(bash(root, "git add .env"), { jev: slow })).stdout).permissionDecision).toBe("ask");
+    setGuard(root, { mode: "warn", budgetMs: 300 });
+    expect(parse((await evaluateGuard(bash(root, "git add .env"), { jev: slow })).stdout)).toEqual({ hookEventName: "PreToolUse", additionalContext: `Saved project rule in JEVMEM.md, not checked against this call in time: "${ENV}".` });
+    // The log keeps such an ask under its route, with the rule marked as not checked.
+    const late = readGuardLog(root).filter((e) => e.route === "jev-failed" && e.decision === "ask");
+    expect(late.length).toBeGreaterThanOrEqual(1);
+    expect(late[0]!.rules).toEqual([{ id: expect.any(String), text: ENV, unchecked: true }]);
   });
 
   it("no key: no decision, logged; cached answers still count", async () => {
