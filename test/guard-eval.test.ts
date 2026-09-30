@@ -10,6 +10,9 @@ import { describe, expect, it } from "vitest";
 const read = (f: string) => fs.readFileSync(path.resolve(f), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 const sets = { dev: read("eval/guard-dev.jsonl"), heldout: read("eval/guard-heldout.jsonl") };
 const gitDev = read("eval/guard-git-dev.jsonl");
+const heldoutV2 = read("eval/guard-heldout-v2.jsonl");
+/** The shell dev set (the trial's calls) is written after held-out v2; the checks below read it once it exists. */
+const shellDev = fs.existsSync(path.resolve("eval/guard-shell-dev.jsonl")) ? read("eval/guard-shell-dev.jsonl") : [];
 const TREE_KEYS = ["committed", "modified", "staged", "untracked", "ignored"];
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const words = (s: string) => norm(s).split(" ").filter(Boolean);
@@ -19,9 +22,25 @@ function shingles(s: string, n: number): Set<string> {
   for (let i = 0; i + n <= w.length; i++) out.add(w.slice(i, i + n).join(" "));
   return out;
 }
-/** Every text in a set: rule texts, commands, file paths and edit contents. */
+/** Every text in a set: rule texts, commands, file paths, edit contents, and the content of files a call's tree holds. */
 const texts = (recs: any[]): string[] =>
-  recs.flatMap((r) => (r.type === "rules" ? r.rules.map((x: any) => x.text) : [r.command, r.file, r.old, r.new, r.content].filter(Boolean)));
+  recs.flatMap((r) => (r.type === "rules" ? r.rules.map((x: any) => x.text) : [r.command, r.file, r.old, r.new, r.content, ...Object.values(r.tree?.files ?? {})].filter(Boolean)));
+
+/** Texts of `held` that equal a text of `dev`, or share a run of five words with one; and projects both name. */
+function sharedText(held: any[], dev: any[]): string[] {
+  const hits: string[] = [];
+  const devTexts = texts(dev);
+  const devNorm = new Set(devTexts.map(norm));
+  const devSh = new Map<string, string>();
+  for (const t of devTexts) for (const sh of shingles(t, 5)) devSh.set(sh, t);
+  for (const t of texts(held)) {
+    if (devNorm.has(norm(t)) && words(t).length > 1) hits.push(`equal: ${t}`);
+    for (const sh of shingles(t, 5)) if (devSh.has(sh)) hits.push(`5 words "${sh}": ${t} ~ ${devSh.get(sh)}`);
+  }
+  const devProjects = new Set(dev.filter((r) => r.type === "rules").map((r) => r.project));
+  for (const r of held.filter((x) => x.type === "rules")) if (devProjects.has(r.project)) hits.push(`project ${r.project}`);
+  return hits;
+}
 
 describe("eval/guard-*.jsonl", () => {
   for (const [name, recs] of Object.entries(sets)) {
@@ -48,26 +67,50 @@ describe("eval/guard-*.jsonl", () => {
   }
 
   it("the two sets share no text: no equal rule or call, and no run of five words in common", () => {
-    const hits: string[] = [];
-    const dev = texts(sets.dev);
-    const devNorm = new Set(dev.map(norm));
-    const devSh = new Map<string, string>();
-    for (const t of dev) for (const sh of shingles(t, 5)) devSh.set(sh, t);
-    for (const t of texts(sets.heldout)) {
-      if (devNorm.has(norm(t)) && words(t).length > 1) hits.push(`equal: ${t}`);
-      for (const sh of shingles(t, 5)) if (devSh.has(sh)) hits.push(`5 words "${sh}": ${t} ~ ${devSh.get(sh)}`);
+    expect(sharedText(sets.heldout, sets.dev)).toEqual([]);
+  });
+
+  it("held-out v2: six groups of at least 25 calls each, labelled with the rules broken and whether the tamper check should ask", () => {
+    const rules = new Map(heldoutV2.filter((r) => r.type === "rules").map((r) => [r.project, new Set(r.rules.map((x: any) => x.id))]));
+    const calls = heldoutV2.filter((r) => r.type === "call");
+    expect(new Set(calls.map((c) => c.id)).size).toBe(calls.length);
+    const GROUPS = ["heredoc-write", "heredoc-run", "state-read", "state-write", "message", "regression"];
+    for (const c of calls) {
+      expect(rules.has(c.project), c.id).toBe(true);
+      for (const b of c.breaks) expect(rules.get(c.project)!.has(b), `${c.id} ${b}`).toBe(true);
+      expect(["plain", "content", "compound", "indirect", "near-miss", "everyday"], c.id).toContain(c.category);
+      expect(["near-miss", "everyday"].includes(c.category), c.id).toBe(c.breaks.length === 0);
+      expect(GROUPS, c.id).toContain(c.group);
+      expect(c.tool === "Bash" ? typeof c.command : typeof c.file, c.id).toBe("string");
+      if (c.tamper !== undefined) expect(c.tamper, c.id).toBe(true);
+      if (c.cwd !== undefined) expect(c.cwd, c.id).toMatch(/^[^/.][^]*$/);
     }
-    const devProjects = new Set(sets.dev.filter((r) => r.type === "rules").map((r) => r.project));
-    for (const r of sets.heldout.filter((x) => x.type === "rules")) if (devProjects.has(r.project)) hits.push(`project ${r.project}`);
-    expect(hits).toEqual([]);
+    const of = (g: string) => calls.filter((c) => c.group === g);
+    for (const g of GROUPS) expect(of(g).length, g).toBeGreaterThanOrEqual(25);
+    // What each group is for: bodies written to files pass; bodies that run and break a rule are labelled; reads pass;
+    // real writes ask; messages are mixed; the regression group holds everyday calls and direct violations.
+    for (const c of of("heredoc-write")) expect(c.breaks, c.id).toEqual([]);
+    expect(of("heredoc-run").filter((c) => c.breaks.length).length).toBeGreaterThanOrEqual(20);
+    for (const c of of("state-read")) expect([c.breaks.length, c.tamper], c.id).toEqual([0, undefined]);
+    for (const c of of("state-write")) expect([c.breaks.length, c.tamper], c.id).toEqual([0, true]);
+    expect(of("message").filter((c) => c.breaks.length).length).toBeGreaterThanOrEqual(10);
+    expect(of("message").filter((c) => !c.breaks.length).length).toBeGreaterThanOrEqual(10);
+    expect(of("regression").filter((c) => c.breaks.length).length).toBeGreaterThanOrEqual(10);
+    expect(of("regression").filter((c) => c.category === "everyday").length).toBeGreaterThanOrEqual(20);
+    for (const c of calls) if (c.tamper) expect(["state-write"], c.id).toContain(c.group);
+  });
+
+  it("held-out v2 shares no text with the dev sets (guard-dev, git-dev, the shell dev set) or held-out v1: no equal rule or call, no run of five words", () => {
+    expect(sharedText(heldoutV2, [...sets.dev, ...gitDev, ...shellDev])).toEqual([]);
+    expect(sharedText(heldoutV2, sets.heldout)).toEqual([]);
   });
 
   it("a call's working tree (`tree`) names only known states and relative paths; every indirect git add or commit has one", () => {
-    for (const recs of [...Object.values(sets), gitDev])
+    for (const recs of [...Object.values(sets), gitDev, heldoutV2, shellDev])
       for (const c of recs.filter((r) => r.type === "call" && r.tree)) {
         for (const [k, v] of Object.entries(c.tree)) {
-          expect(TREE_KEYS, `${c.id} ${k}`).toContain(k);
-          for (const f of v as string[]) expect(f, c.id).toMatch(/^[^/.][^]*$|^\.[^./][^]*$/);
+          expect([...TREE_KEYS, "files"], `${c.id} ${k}`).toContain(k);
+          for (const f of k === "files" ? Object.keys(v as Record<string, string>) : (v as string[])) expect(f, c.id).toMatch(/^[^/.][^]*$|^\.[^./][^]*$/);
         }
       }
     for (const recs of Object.values(sets))
@@ -95,7 +138,7 @@ describe("eval/guard-*.jsonl", () => {
     const litSh = new Map<string, string>();
     for (const l of lits) for (const sh of shingles(l, 4)) litSh.set(sh, l);
     const hits: string[] = [];
-    for (const recs of [...Object.values(sets), gitDev]) for (const t of texts(recs)) for (const sh of shingles(t, 4)) if (litSh.has(sh)) hits.push(`"${sh}": ${t}`);
+    for (const recs of [...Object.values(sets), gitDev, heldoutV2, shellDev]) for (const t of texts(recs)) for (const sh of shingles(t, 4)) if (litSh.has(sh)) hits.push(`"${sh}": ${t}`);
     expect(hits).toEqual([]);
   });
 });
