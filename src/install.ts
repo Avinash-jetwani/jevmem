@@ -4,8 +4,9 @@
  *
  * - Synced from claude.ai: a plugin added in the Claude app (Plugins → Discover → Add) shows in Claude Code as
  *   `jevmem@synced`. Claude Code 2.1.284 keeps it in `<plugins>/synced/<bucket>/<id>/`, with the plugin's own
- *   `.claude-plugin/plugin.json`; it is not listed in `settings.json` or `installed_plugins.json`. It has no Configure
- *   options, so `/plugin configure jevmem` does not apply to it.
+ *   `.claude-plugin/plugin.json`; an update lands beside it as `<id>~g<N>/` (copy N; the bucket's manifest.json calls
+ *   N the generation) and the older copy is moved aside soon after. It is not listed in `settings.json` or
+ *   `installed_plugins.json`. It has no Configure options, so `/plugin configure jevmem` does not apply to it.
  * - From a marketplace (`claude plugin install jevmem@<marketplace>`): enabled in the user's or the project's settings
  *   (`enabledPlugins`), with its version in `<plugins>/installed_plugins.json`. `/plugin configure jevmem` sets its
  *   key option.
@@ -32,7 +33,12 @@ const readJson = (file: string): any => {
 const configDir = (env: NodeJS.ProcessEnv, home: string) => env.CLAUDE_CONFIG_DIR || path.join(home, ".claude");
 const pluginsRoot = (env: NodeJS.ProcessEnv, home: string) => (env.CLAUDE_CODE_PLUGIN_CACHE_DIR ? path.resolve(env.CLAUDE_CODE_PLUGIN_CACHE_DIR) : path.join(configDir(env, home), "plugins"));
 
-/** The jevmem plugins synced from claude.ai: `<plugins>/synced/*\/*\/.claude-plugin/plugin.json` named jevmem. */
+/**
+ * The jevmem plugins synced from claude.ai: `<plugins>/synced/*\/*\/.claude-plugin/plugin.json` named jevmem, one per
+ * plugin id. While an update settles, a plugin's copies sit side by side, the first as `<id>/` (copy 1) and later ones
+ * as `<id>~g2/`, `<id>~g3/`, …; Claude Code loads the newest, so only that one is listed (until 0.6.3 every copy was,
+ * which read as two plugins).
+ */
 function syncedInstalls(env: NodeJS.ProcessEnv, home: string, userSettings: any): PluginInstall[] {
   const base = path.join(pluginsRoot(env, home), "synced");
   const out: PluginInstall[] = [];
@@ -45,11 +51,19 @@ function syncedInstalls(env: NodeJS.ProcessEnv, home: string, userSettings: any)
   };
   // Turned off in the user's settings (`"jevmem@synced": false`), it is still on disk but its hooks do not run.
   const enabled = userSettings?.enabledPlugins?.["jevmem@synced"] !== false;
-  for (const bucket of dirs(base))
+  for (const bucket of dirs(base)) {
+    const newest = new Map<string, { copy: number; install: PluginInstall }>();
     for (const dir of dirs(bucket)) {
       const pj = readJson(path.join(dir, ".claude-plugin", "plugin.json"));
-      if (pj?.name === "jevmem") out.push({ kind: "synced", version: typeof pj.version === "string" ? pj.version : null, dir, enabled });
+      if (pj?.name !== "jevmem") continue;
+      const m = /^(.*?)(?:~g(\d+))?$/.exec(path.basename(dir));
+      const id = m?.[1] ?? path.basename(dir);
+      const copy = m?.[2] ? Number(m[2]) : 1;
+      const have = newest.get(id);
+      if (!have || copy > have.copy) newest.set(id, { copy, install: { kind: "synced", version: typeof pj.version === "string" ? pj.version : null, dir, enabled } });
     }
+    for (const { install } of newest.values()) out.push(install);
+  }
   return out;
 }
 

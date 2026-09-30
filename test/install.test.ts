@@ -25,12 +25,16 @@ beforeAll(() => {
   if (!fs.existsSync(CLI)) spawnSync("pnpm", ["build"], { stdio: "ignore" });
 }, 60_000);
 
-/** A plugin added in the Claude app, where Claude Code 2.1.284 keeps it: <config>/plugins/synced/<bucket>/<id>/. */
-function fakeSynced(home: string, version = "0.5.7", name = "jevmem"): string {
-  const dir = path.join(home, ".claude", "plugins", "synced", "a8f4c5eb-bucket", `7d57870a-${name}`);
+/**
+ * A plugin added in the Claude app, where Claude Code 2.1.284 keeps it: <config>/plugins/synced/<bucket>/<id>/, and a
+ * later copy of the same plugin (an update) beside it as <id>~g<copy>/, until the older one is moved aside.
+ */
+function fakeSynced(home: string, version = "0.5.7", name = "jevmem", copy = 1, id = "7d57870a"): string {
+  const folder = `${id}-${name}${copy > 1 ? `~g${copy}` : ""}`;
+  const dir = path.join(home, ".claude", "plugins", "synced", "a8f4c5eb-bucket", folder);
   fs.mkdirSync(path.join(dir, ".claude-plugin"), { recursive: true });
   fs.writeFileSync(path.join(dir, ".claude-plugin", "plugin.json"), JSON.stringify({ name, version }));
-  fs.writeFileSync(path.join(dir, "..", `7d57870a-${name}.meta.json`), JSON.stringify({ marketplace_name: "anthropic-plugin-directory" }));
+  fs.writeFileSync(path.join(dir, "..", `${folder}.meta.json`), JSON.stringify({ marketplace_name: "anthropic-plugin-directory" }));
   return dir;
 }
 /** A plugin installed from a marketplace: enabled in the user's settings, its version in installed_plugins.json. */
@@ -64,6 +68,30 @@ describe("pluginInstalls: where Claude Code records the jevmem plugin", () => {
     expect(hasActivePlugin(found)).toBe(true);
     // It has no key setting: /plugin configure is not offered for it.
     expect(canConfigure(found)).toBe(false);
+  });
+
+  it("lists one copy per synced plugin id, the newest: `<id>` is copy 1 and `<id>~g<N>` copy N", () => {
+    // An update lands beside the copy a session may still run: 0.5.7 in <id>/, then 0.6.2 in <id>~g2/, and doctor
+    // showed both, which read as two plugins. Claude Code loads the newest copy (its manifest.json calls N the generation).
+    const home = tmp();
+    fakeSynced(home, "0.5.7");
+    fakeSynced(home, "0.6.2", "jevmem", 2);
+    const g3 = fakeSynced(home, "0.6.3", "jevmem", 3);
+    // Another plugin's copies side by side are not jevmem's, whatever their copy number.
+    fakeSynced(home, "1.2.0", "engineering");
+    fakeSynced(home, "1.3.0", "engineering", 2);
+    expect(pluginInstalls(tmp(), { HOME: home }, home)).toEqual([{ kind: "synced", version: "0.6.3", dir: g3, enabled: true }]);
+    // Only a later copy on disk, the first moved aside: found as before.
+    const later = tmp();
+    fakeSynced(later, "0.6.2", "jevmem", 2);
+    expect(pluginInstalls(tmp(), { HOME: later }, later)).toEqual([expect.objectContaining({ kind: "synced", version: "0.6.2" })]);
+    // Two jevmem plugins with different ids side by side are two installs, each at its newest copy.
+    const two = tmp();
+    fakeSynced(two, "0.5.7");
+    fakeSynced(two, "0.6.2", "jevmem", 2);
+    fakeSynced(two, "0.6.1", "jevmem", 1, "b2c3d4e5");
+    const found = pluginInstalls(tmp(), { HOME: two }, two).map((i) => (i.kind === "synced" ? [path.basename(i.dir), i.version] : null));
+    expect(found.sort()).toEqual([["7d57870a-jevmem~g2", "0.6.2"], ["b2c3d4e5-jevmem", "0.6.1"]]);
   });
 
   it("a synced plugin turned off in the user's settings is found, but not active", () => {
@@ -137,6 +165,15 @@ describe.skipIf(process.platform === "win32")("jevmem doctor, enable and key --h
     expect(out).not.toContain("/plugin configure");
     // The plugin is seen, so doctor also says which jevmem its hooks would run.
     expect(out).toMatch(/^cli {6}with this PATH the plugin/m);
+  });
+
+  it("doctor shows the newest copy of the synced plugin only, not the one an update left beside it", () => {
+    const home = tmp();
+    fakeSynced(home, "0.5.7");
+    fakeSynced(home, "0.6.2", "jevmem", 2);
+    const out = jevmem(enabled(), home, ["doctor"]).stdout;
+    expect(out).toMatch(/^hooks {4}jevmem plugin, synced from claude\.ai \(0\.6\.2\)$/m);
+    expect(out).not.toContain("0.5.7");
   });
 
   it("doctor finds the synced plugin when CLAUDE_CODE_PLUGIN_CACHE_DIR moves the plugins folder", () => {

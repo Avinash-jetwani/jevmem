@@ -121,7 +121,19 @@ let commit = null;
 try { commit = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim() + (execSync("git status --porcelain src", { encoding: "utf8" }).trim() ? "+dirty" : ""); } catch {}
 const results = [];
 for (const m of modes) results.push(await runMode(m));
-const pj = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8"));
+// The version of the build measured: the nearest package.json named jevmem above the dist file (an npm package's
+// `<package>/dist/index.js`, or this checkout's `dist/index.js`), not the checkout the script runs from. Until 0.6.3 it
+// was the checkout's own version, so a results file for another build named the wrong one.
+const measuredVersion = (from) => {
+  for (let d = path.dirname(from); ; d = path.dirname(d)) {
+    try {
+      const p = JSON.parse(fs.readFileSync(path.join(d, "package.json"), "utf8"));
+      if (p.name === "jevmem" && typeof p.version === "string") return p.version;
+    } catch {}
+    if (path.dirname(d) === d) return null;
+  }
+};
+const pj = { version: measuredVersion(path.resolve(distArg)) ?? JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8")).version };
 const report = {
   kind: "eval",
   date: new Date().toISOString().slice(0, 10),
