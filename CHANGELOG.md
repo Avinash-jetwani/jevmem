@@ -2,6 +2,19 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.6.3] - 2026-09-30
+
+Fixes to what people see on the pages and in `jevmem doctor` before the launch; nothing changes in what is saved, recalled or checked. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI, and the 0.6.3 plugin warns once about an older one).
+
+### Fixed
+- **`jevmem doctor` listed every copy of the plugin synced from claude.ai.** Claude Code keeps a synced plugin under `<plugins>/synced/<bucket>/<id>/` and lands an update beside it as `<id>~g<N>/` (copy N; the bucket's `manifest.json` calls N the generation), moving the older copy aside soon after; while both were there, doctor showed 0.5.7 and 0.6.2, which read as two plugins. It now shows one line per plugin id, the newest copy: the one Claude Code loads (on the author's machine the running plugin's `CLAUDE_PLUGIN_ROOT` is the `~g2` folder and the manifest says generation 2). Tested with `<id>`, `<id>~g2` and `<id>~g3` side by side, a lone `<id>~g2`, two jevmem ids side by side, and another plugin's copies next to them (`test/install.test.ts`).
+- **`scripts/eval.mjs` wrote the checkout's version into a results file** (`jevmem_version`) instead of the version of the build it measured: `results/eval-heldout-2026-09-30-v059.json`, the npm 0.5.9 package run from the 0.6.0 checkout, says 0.6.0 ([results/README.md](results/README.md) notes it). It now records the version from the `package.json` above the `dist/index.js` it is given. The old results files and that note stay as they are.
+
+### Changed
+- **Known limit: a plugin update can leave an open session without the hooks** ([README](README.md#honest-limits), [docs/guardrails.md](docs/guardrails.md#limits)). When the plugin synced from claude.ai updates, Claude Code moves the previous copy aside, and a session that was already open with it loses jevmem's hooks, the guard included, until `/reload-plugins` or a new session ([anthropics/claude-code#97847](https://github.com/anthropics/claude-code/issues/97847)); Claude Code shows a hook error and goes on without them.
+- **Upgrade notes for the directory's plugin** ([README](README.md#whats-new)): Claude Code downloads plugin updates in the background each time it starts and an open session says `Plugins changed. Run /reload-plugins to activate.`; `jevmem doctor` shows which plugin version is on disk; if it still shows the old one, start `claude` once in a terminal, signed in with the same Claude account as the app.
+- **README "What's new"** leads with 0.6's features, then the 0.6.1 and 0.6.2 guard fix and this patch.
+
 ## [0.6.2] - 2026-09-30
 
 The same code as 0.6.1, published again. The release workflow published 0.6.1 (its provenance is in the transparency log), npm did not list it for a time, and a re-run of the workflow was refused with "Cannot publish over previously staged version"; so 0.6.2 went out with the same code, and npm lists both now. Nothing changes in what is saved, recalled or checked: the guard fix below is 0.6.1's. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI).
