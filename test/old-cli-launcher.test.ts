@@ -24,6 +24,9 @@ if (!release) console.warn(`old-cli-launcher.test.ts skipped: no ${TAG} tag in t
 describe.skipIf(!release)(`the plugin's launcher with the jevmem ${TAG.slice(1)} CLI`, () => {
   const OLD_PLUGIN = release?.plugin ?? "";
   const NEW_PLUGIN = path.resolve("plugin");
+  /** This plugin's version: newer than the 0.5.7 CLI once the plugin is bumped, when the launcher prints one warning line per run. */
+  const NEW_VERSION: string = JSON.parse(fs.readFileSync(path.join(NEW_PLUGIN, ".claude-plugin", "plugin.json"), "utf8")).version;
+  const versionWarning = new RegExp(`^jevmem: the jevmem CLI is ${TAG.slice(1).replace(/\./g, "\\.")}, older than this plugin \\(${NEW_VERSION.replace(/\./g, "\\.")}\\); update the jevmem CLI\n`, "gm");
   let bin = "";
   let fake: FakeJev | null = null;
   beforeAll(() => {
@@ -149,7 +152,9 @@ describe.skipIf(!release)(`the plugin's launcher with the jevmem ${TAG.slice(1)}
     for (const [i, b] of before.steps.entries()) {
       const a = after.steps[i]!;
       expect(a.stderr, a.name).not.toMatch(setpgid);
-      expect([a.name, a.status, a.stdout, a.stderr]).toEqual([b.name, b.status, b.stdout, b.stderr.replace(setpgid, "")]);
+      // A plugin newer than the 0.5.7 CLI says so, once per run, on stderr; nothing else differs.
+      expect(a.stderr.match(versionWarning)?.length ?? 0, a.name).toBe(NEW_VERSION === TAG.slice(1) ? 0 : 1);
+      expect([a.name, a.status, a.stdout, a.stderr.replace(versionWarning, "")]).toEqual([b.name, b.status, b.stdout, b.stderr.replace(setpgid, "")]);
       // The same processes in the same order, but for the guard check on a run with nothing cached.
       const extra = a.started.filter((p) => p.join("\t") === probe.join("\t"));
       expect(a.started.filter((p) => p.join("\t") !== probe.join("\t")), a.name).toEqual(b.started);
@@ -159,7 +164,7 @@ describe.skipIf(!release)(`the plugin's launcher with the jevmem ${TAG.slice(1)}
     // What was compared: on a cold run, the Node check, --version and the hook itself (Stop hands over a saved input file).
     expect(before.steps[0]!.started.map((p) => p[1]!.replace(/^-e .*/, "-e <node check>"))).toEqual(["-e <node check>", "<bin>/jevmem --version", "<bin>/jevmem hook --plugin"]);
     expect(before.steps[1]!.started).toEqual([["<project>", "<bin>/jevmem hook --plugin --stdin-file <data>/tmp/jevmem-hook.<pid>"]]);
-    for (const s of [...before.steps, ...after.steps]) expect([s.status, s.stderr.replace(setpgid, "")]).toEqual([0, ""]);
+    for (const s of [...before.steps, ...after.steps]) expect([s.status, s.stderr.replace(setpgid, "").replace(versionWarning, "")]).toEqual([0, ""]);
   }, 120_000);
 
   it("the PreToolUse hook never starts the 0.5.7 CLI's hook: no output, no request, no file; that CLI would have queued a turn", async () => {
