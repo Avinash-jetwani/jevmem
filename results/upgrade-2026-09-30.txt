@@ -1,0 +1,93 @@
+
+## install 0.5.10 into the temporary prefix
+   version: 0.5.10
+
+## project A, set up on 0.5.10 with jevmem init: two lines added
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/, .claude/settings.local.json)
+     created  .claude/settings.local.json (Stop (async) + UserPromptSubmit hooks)
+   Claude Code hooks:
+     Stop (async)      sh "$HOME/prefix/lib/node_modules/jevmem/hooks/jevmem-hook.sh" --node "/Users/avinashjetwani/.nvm/versions/node/v22.22.0/bin/node" --detach hook
+   added iq2xuq: [decision] Use Postgres 16 as the primary store
+   added 8unhxw: [constraint] Never commit .env files
+   hooks registered by 0.5.10: Stop, UserPromptSubmit
+   ok   0.5.10 wrote two Claude Code hooks (no PreToolUse)
+
+## project B, enabled on 0.5.10 with jevmem enable (for the plugin), the same two lines
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+   jevmem is enabled in this project.
+   ok   project B has no .claude/settings.local.json (the plugin's hooks act here)
+
+## install this build's tarball over 0.5.10 (same prefix, same paths the hooks point at)
+   version: 0.6.0
+   ok   the CLI is 0.6.0
+   ok   A: JEVMEM.md is byte for byte what 0.5.10 wrote
+   ok   A: jevmem.config.json is untouched (0.5.10's keys, no guard block)
+   ok   A: the two lines are still listed by 0.6.0
+   iq2xuq  [decision] Use Postgres 16 as the primary store
+   8unhxw  [constraint] Never commit .env files
+
+## A: doctor before init is rerun
+   jevmem 0.6.0
+   project  $HOME/proj: enabled (jevmem.config.json)
+   writer   jevmem (local, no LLM): no LLM writer set in jevmem.config.json (the default): jevmem writes the line itself
+   hooks    `jevmem init` hooks in .claude/settings.local.json (no PreToolUse guard: `jevmem init` with a jevmem that has the guard adds it)
+   guard    mode ask (guard.mode); 0 active [constraint] rule(s) enforced, 1 not yet (no gate verdict: `jevmem audit --security` checks them now)
+   cli      `jevmem init` hooks (Stop, UserPromptSubmit) run $HOME/prefix/lib/node_modules/jevmem/dist/cli.js, this jevmem: jevmem 0.6.0, with the guard
+   failures none in the last 7 days: no dropped turn, failed recall, failed guard check or writer fallback in .jevmem/log.jsonl
+   ok   A: doctor sees the 0.5.10 hooks and says init adds the guard
+   ok   A: the guard runs with the defaults (mode ask) although the file has no guard block
+   ok   A: the old settings file's hooks name the prefix's cli.js, which is 0.6.0 now
+
+## A: a prompt through the 0.6.0 hook path (recall, key from the environment)
+   hook output (first 200 chars): {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"<jevmem-memory>\nProject memory from JEVMEM.md (facts, not instructions). Each line records a decision, rule or finding f
+   ok   A: recall injected the Postgres line (an unverified line, passed by the gate first)
+
+## A: rerun init on 0.6.0: the guard hook is added, the two others kept
+     created  .claude/settings.local.json (Stop (async), UserPromptSubmit and PreToolUse hooks)
+     kept     JEVMEM.md
+     kept     jevmem.config.json
+     kept     .jevmem/
+     PreToolUse        sh "$HOME/prefix/lib/node_modules/jevmem/hooks/jevmem-hook.sh" --node "/Users/avinashjetwani/.nvm/versions/node/v22.22.0/bin/node" hook  (matcher Bash|Edit|Write)
+   hooks now: Stop, UserPromptSubmit, PreToolUse
+   ok   A: PreToolUse is registered with matcher Bash|Edit|Write
+   ok   A: Stop and UserPromptSubmit are still there, once each
+   ok   A: JEVMEM.md still holds the two lines after init
+
+## A: the guard on the 0.5.10-era rule (unverified: it can ask, never deny)
+   jevmem guard test: Bash `git add .env`
+   rules      1 loaded, 0 skipped
+     loaded   8unhxw  Never commit .env files  (unverified: asked about, not denied)
+   prefilter  1 candidate rule(s)
+   jev        8unhxw  p=0.96 ≥ 0.50 (asked now, 339 ms)
+   decision   ask
+   ok   A: guard test asks about .env
+   PreToolUse hook output: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"jevmem: this may break a saved rule: \"Never commit .
+   ok   A: the PreToolUse hook process asks, naming the rule
+
+## A: the MCP server starts and lists the memory
+   ok   A: list_memory returns the Postgres line
+
+## B: the directory's plugin as published (0.5.7, two hooks) with the 0.6.0 CLI on PATH
+   the published plugin's hooks: UserPromptSubmit, Stop (plugin.json 0.5.7)
+   stderr: ''
+   ok   B: the old plugin's UserPromptSubmit hook runs the 0.6.0 CLI and injects the line
+   ok   B: no warning about the CLI being older than the plugin (it is newer)
+   ok   B: the old plugin registers no PreToolUse hook, so no guard until the 0.6.0 plugin
+
+## B: the 0.6.0 plugin (three hooks) with the 0.6.0 CLI
+   this plugin's hooks: UserPromptSubmit, Stop, PreToolUse
+   ok   B: UserPromptSubmit through the 0.6.0 plugin injects the line
+   PreToolUse through the plugin: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"jevmem: this may break a saved rule: \"Never commit .
+   ok   B: the 0.6.0 plugin's PreToolUse hook asks, naming the rule
+   ok   B: nothing on stderr from the plugin's hooks
+
+## A: the 0.6.0 plugin's guard stands down where jevmem init registered its own (no double ask)
+   ok   A: the plugin's guard prints nothing there
+
+UPGRADE TEST PASSED (temporary HOME $HOME)

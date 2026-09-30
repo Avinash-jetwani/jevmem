@@ -1,6 +1,6 @@
 # Benchmark
 
-Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved, compared with six LLMs) was measured on v0.4.2 on 2026-09-23, and has not been re-run against the LLMs on a 0.5.x release. The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts. `main`'s recall and Stop hook are not released yet (coming in 0.6).
+Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved, compared with six LLMs) was measured on v0.4.2 on 2026-09-23, and has not been re-run against the LLMs on a 0.5.x release. The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts.
 
 ## Why Jev and not an LLM
 
@@ -53,6 +53,24 @@ On the held-out set `--mode fast` and `auto` scored the same in this run (95.5% 
 
 - **Where the misses are.** Six of the seven got a turn I labelled a preference wrong ("Write doc comments on every public function…": five LLMs skipped it, jevmem filed it as a todo), which suggests the label is debatable; it was not changed after the run. Six of the seven (all but Gemini 3.8 Flash) saved "no, leave it as is" (declining a proposal) as a decision. GPT-6 Luna, Claude Fable 5.1, Gemini 3.8 Flash and Grok 4.7 each skipped one to three bug reports whose wording the state heuristic does not recognise ("…panics on…", "…are empty after…", "…grows without bound…"), so no decider saw the assistant's diagnosis; jevmem saved all three from the user message. That is a limit of jevmem's state design, which every model inherits here. Grok 4.7 returned empty answers on three turns (one of them a contradiction) and Gemini 3.8 Flash on one (an injection turn); malformed answers count as wrong. jevmem's third miss is a decision filed as architecture.
 
+### Every mode, three builds
+
+The 66-turn held-out set through `scripts/eval.mjs` (`decide` in-process with a warm client, no cache; a saved turn's line written as the hook writes it), one dated run per build: v0.4.2 as published ([results/eval-heldout-2026-09-23-v042.json](../results/eval-heldout-2026-09-23-v042.json), 2026-09-23), the npm 0.5.9 package ([results/eval-heldout-2026-09-30-v059.json](../results/eval-heldout-2026-09-30-v059.json), 2026-09-30, run from the release checkout so its `commit` is 0.6.0's; `dist` names the 0.5.9 package) and 0.6.0 ([results/eval-heldout-2026-09-30-v060.json](../results/eval-heldout-2026-09-30-v060.json), 2026-09-30, `1bbc76c`). Cost is decide's input tokens at $0.042 per million; 0.6.0's `+line` adds the request that picks a saved line's sentences (5 of the 66 turns made it).
+
+| Build | Mode | save/skip | save+kind | contradictions | $/decision | p50 |
+|---|---|---|---|---|---|---|
+| v0.4.2 | `fast` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000095 | 269 ms |
+| v0.4.2 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000124 | 310 ms |
+| v0.4.2 | `full` | 92.4% (61/66) | 90.9% (60/66) | 5/5 | $0.000212 | 322 ms |
+| 0.5.9 | `fast` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000095 | 235 ms |
+| 0.5.9 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000131 | 256 ms |
+| 0.5.9 | `full` | 92.4% (61/66) | 90.9% (60/66) | 5/5 | $0.000212 | 255 ms |
+| 0.6.0 | `fast` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000114 (+line $0.000115) | 257 ms |
+| 0.6.0 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000157 (+line $0.000159) | 276 ms |
+| 0.6.0 | `full` | 92.4% (61/66) | 90.9% (60/66) | 5/5 | $0.000234 (+line $0.000236) | 269 ms |
+
+The three builds miss the same turns in each mode (the debatable preference label, "no, leave it as is" saved as a decision, and in `full` two bugs and a constraint skipped). 0.6.0 costs more per decision than 0.5.9 in every mode because each tier asks one more noul (the dead-end noul) and tier 1's injection question is longer; `auto` escalated 18.2% of turns against 16.7% for 0.5.9 and 13.6% for v0.4.2. The README's jevmem row is 0.6.0's `auto` row here.
+
 ### Regression set (the original 50 turns; contaminated, see above)
 
 Results: [`results/bench-regression-2026-09-23-v042.json`](../results/bench-regression-2026-09-23-v042.json).
@@ -73,7 +91,7 @@ Pricing sources recorded in the results files (all read 2026-09-23): OpenAI `htt
 
 ## Retrieval: does the right line get injected?
 
-What `UserPromptSubmit` puts in front of Claude. Measured on 2026-09-28 with `scripts/eval-recall.mjs`, on `main` (not released yet; coming in 0.6) and on the published 0.5.9.
+What `UserPromptSubmit` puts in front of Claude. Measured on 2026-09-28 with `scripts/eval-recall.mjs`, on `main` (the code that became 0.6.0) and on the published 0.5.9.
 
 **Method.** Two sets, written for this and committed before any change to recall (`8e9ad1e`), which share no five-word run with each other, with the older eval sets or with jevmem's own questions (`test/recall-eval.test.ts`): [`eval/recall-dev.jsonl`](../eval/recall-dev.jsonl), on which the misses were found and the change was tuned, and [`eval/recall-heldout.jsonl`](../eval/recall-heldout.jsonl), run once, on the final code and on 0.5.9, after the change was frozen. Each set has three memory files in jevmem's own line format, for made-up projects: small (20 or 21 lines), medium (78 or 80) and large (250 or 255), with decisions, constraints, architecture, preferences, bugs, to-dos, dead ends, superseded lines (2 in each small file, 8 and 6 in the medium ones, 30 in each large one) and look-alike lines that share a topic with a wanted line. Each set has 90 prompts, 18 of each type: **direct** (the prompt names what the line is about), **indirect** (it needs the line but uses other words), **unrelated** (no line applies), **after a supersede** (the topic has a superseded line; only its live replacement may be injected) and **about a dead end**; 20, 30 and 40 prompts for the small, medium and large file. Each prompt lists the lines it needs and the lines that are fine to inject. Every prompt goes through the real hook (`jevmem hook` with the `UserPromptSubmit` payload on stdin, the warm daemon, Jev's cache off, every line recorded as written by jevmem on this machine), to each build in turn, so both builds meet the same moment of Jev's latency; what counts is what the hook printed. A Jev call that failed or ran past the hook's 2-second budget injects nothing and counts as a miss, as it would in a session.
 
@@ -288,7 +306,7 @@ Part 3's, with what part 3b changed:
 
 ## Outcome A/B: does Claude act on the memory?
 
-Real Claude Code sessions on tasks whose right answer depends on a saved line: with no memory, with jevmem, with jevmem and the guard, and with the same lines in `CLAUDE.md`. Measured on 2026-09-28 on `main` at `9c97ea6` (not released yet; coming in 0.6). The final code (`361be2a`) injects the same lines at these settings: it differs only when `recallRelevanceMin` is set above 0.97. Results: [`results/ab-2026-09-28.json`](../results/ab-2026-09-28.json) (234 sessions), [`results/ab-subagent-2026-09-28.json`](../results/ab-subagent-2026-09-28.json) (18 sessions).
+Real Claude Code sessions on tasks whose right answer depends on a saved line: with no memory, with jevmem, with jevmem and the guard, and with the same lines in `CLAUDE.md`. Measured on 2026-09-28 on `main` at `9c97ea6` (before 0.6.0). The final code (`361be2a`) injects the same lines at these settings: it differs only when `recallRelevanceMin` is set above 0.97. Results: [`results/ab-2026-09-28.json`](../results/ab-2026-09-28.json) (234 sessions), [`results/ab-subagent-2026-09-28.json`](../results/ab-subagent-2026-09-28.json) (18 sessions).
 
 **Method.** 24 tasks in three small projects (a TypeScript API, a React front end halfway through a migration, a plain-JavaScript CLI; [`eval/ab/projects/`](../eval/ab/projects/)), each with a project memory of 34 to 42 lines: decisions, conventions, constraints, dead ends, bugs, superseded lines and look-alike lines. Each task's right answer depends on one saved line that the repository does not state: 6 conventions, 4 decisions, 6 constraints, 5 dead ends, and 3 tasks whose topic has a superseded line and its live replacement. What "follows the memory" means for each task, and the check that decides it, were written and committed before any session ran ([`eval/ab/tasks.mjs`](../eval/ab/tasks.mjs), `bfb792f`). Each check reads the project's final files, what changed since its first commit and the session's tool calls; there is no LLM judge (`test/ab-tasks.test.ts` gives every check a made-up result that follows the line and one that does not). Every session is real Claude Code (`claude -p`, Claude Code 2.1.281, `--model claude-sonnet-5`, `--permission-mode acceptEdits`, at most 25 turns) in a fresh copy of the project, committed as the first commit of a new git repository, with a new, empty `CLAUDE_CONFIG_DIR` and a temporary HOME, so Claude Code's auto memory starts empty in every arm. Bash is limited to what the task needs (`git status`, `git diff`, `git log`, `ls`, plus for example `node` or `npm run gen`); anything else is refused, as `claude -p` refuses whatever needs approval, and the session goes on. The arms:
 
@@ -354,7 +372,7 @@ Per task (followed, of 3 runs):
 | `ls-glob` | dead-end | 3/3 | 3/3 | – | 3/3 |
 | `ls-node` | superseded | 0/3 | 3/3 | – | 1/3 |
 
-**One sentence per arm.** Each holds for these 24 tasks (6 for the guard) in three small projects of 34 to 42 saved lines, 3 runs per task and arm, real Claude Code 2.1.281 sessions with `claude-sonnet-5`, jevmem at `9c97ea6` (on `main`, not released), 2026-09-28:
+**One sentence per arm.** Each holds for these 24 tasks (6 for the guard) in three small projects of 34 to 42 saved lines, 3 runs per task and arm, real Claude Code 2.1.281 sessions with `claude-sonnet-5`, jevmem at `9c97ea6` (before 0.6.0), 2026-09-28:
 
 - **No memory:** "Without a memory, Claude followed the project's saved line in 28 of 72 sessions (39%); it built what a superseded line described in 4 of 9, and tried an approach the project had already seen fail in 3 of 15."
 - **jevmem:** "With jevmem, Claude followed the project's saved line in 66 of 72 sessions (92%), never built what a superseded line described (0 of 9), and never repeated an approach recorded as failed (0 of 15)."

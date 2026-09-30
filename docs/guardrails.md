@@ -1,6 +1,6 @@
 # Guardrails
 
-> **On `main`, not released yet (coming in 0.6).** The `jevmem` CLI on npm (0.5.10) does not have the guard, and the plugin's launcher runs the guard's hook only with a CLI that has it.
+> **Since 0.6.0.** The guard needs the 0.6.0 CLI (`npm install -g jevmem@latest`) and a `PreToolUse` hook: the 0.6.0 plugin registers it, and `jevmem init`, run again in a project set up by an earlier version, adds it next to the two hooks already there ([README: upgrading](../README.md#whats-new)). The plugin's launcher runs the guard's hook only with a CLI that has it.
 
 jevmem saves rules from your conversations as `[constraint]` lines in `JEVMEM.md` ("Never commit .env files"). The guard is a `PreToolUse` hook that checks each Bash, Edit and Write call against those rules before it runs. When Jev says a call may break one, the guard has Claude Code ask you (the default), block the call, or tell Claude the rule.
 
@@ -131,7 +131,7 @@ With the real Claude Code (2.1.281) and recall turned off (`thresholds.recallMin
 
 ### The trial's fixes (on `main`, 2026-09-30)
 
-The guard's first trial ran for a day in jevmem's own repository with six rules ([CHANGELOG: Fixed](../CHANGELOG.md#unreleased)). It asked seven times when it should not have (heredocs writing scripts outside the project whose text mentioned `.jevmem/`, a push or tags; a read-only `cut` of its own log) and missed a commit with a `Co-Authored-By` trailer; in its e2e run one check answered after 1,048 ms against a 1,000 ms budget and `.env` was committed. The fixes above were measured on a second held-out set, written before any change and run once on each build, and on the sets used before, the same day.
+The guard's first trial ran for a day in jevmem's own repository with six rules ([CHANGELOG: Fixed](../CHANGELOG.md#060---2026-09-30)). It asked seven times when it should not have (heredocs writing scripts outside the project whose text mentioned `.jevmem/`, a push or tags; a read-only `cut` of its own log) and missed a commit with a `Co-Authored-By` trailer; in its e2e run one check answered after 1,048 ms against a 1,000 ms budget and `.env` was committed. The fixes above were measured on a second held-out set, written before any change and run once on each build, and on the sets used before, the same day.
 
 | Held-out v2: 274 calls in 5 new projects | Before (`8c032a5`) | After (`6979824`) |
 |---|---|---|

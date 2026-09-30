@@ -1,0 +1,2489 @@
+{
+  "kind": "ab",
+  "date": "2026-09-30",
+  "claude_code": "2.1.284 (Claude Code)",
+  "jevmem_commit": "1bbc76c",
+  "model": "claude-sonnet-5",
+  "sessions": 18,
+  "max_turns": 25,
+  "method": "See scripts/ab.mjs and eval/ab/tasks.mjs.",
+  "records": [
+    {
+      "id": "ls-branch",
+      "task": "ls-branch",
+      "kind": "task",
+      "project": "logslice",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 1,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 8221,
+      "turns": 4,
+      "end": "success",
+      "costUsd": 0.06919560000000001,
+      "resultText": "Committed on new branch `docs/changelog-grep-case-insensitive` (not `main`, per project convention). Let me know if you'd like a PR opened for it.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "main moved: false; commit on main attempted: false; branches: docs/changelog-grep-case-insensitive"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "ls_branch",
+          "p": 0.96
+        },
+        {
+          "key": "ls_commits",
+          "p": 0.92
+        },
+        {
+          "key": "ls_docs",
+          "p": 0.84
+        }
+      ],
+      "contextChars": 824,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 370,
+          "inputTokens": 3254
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git status && echo --- && git diff CHANGELOG.md",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git checkout -b docs/changelog-grep-case-insensitive",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git add CHANGELOG.md && git commit -m \"$(cat <<'EOF'\ndocs: note case-insensitive --grep flag in changelog\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>\nEOF\n)\"",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "ls-branch.guard.1.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "ls-branch",
+      "task": "ls-branch",
+      "kind": "task",
+      "project": "logslice",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 2,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 16107,
+      "turns": 5,
+      "end": "success",
+      "costUsd": 0.0836276,
+      "resultText": "Committed on branch `docs/changelog-unreleased-grep-i` (not `main`, per project convention). Let me know if you'd like me to open a pull request for it.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "main moved: false; commit on main attempted: false; branches: docs/changelog-unreleased-grep-i"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "ls_branch",
+          "p": 0.96
+        },
+        {
+          "key": "ls_commits",
+          "p": 0.91
+        },
+        {
+          "key": "ls_docs",
+          "p": 0.87
+        }
+      ],
+      "contextChars": 824,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 403,
+          "inputTokens": 3254
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git status && echo --- && git diff CHANGELOG.md",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git checkout -b docs/changelog-unreleased-grep-i",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git add CHANGELOG.md && git commit -m \"$(cat <<'EOF'\ndocs: note --grep -i case-insensitive support in changelog\nEOF\n)\" && git status",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git commit --amend -m \"$(cat <<'EOF'\ndocs: note --grep -i case-insensitive support in changelog\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>\nEOF\n)\" && git log -1 --stat",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "ls-branch.guard.2.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "ls-branch",
+      "task": "ls-branch",
+      "kind": "task",
+      "project": "logslice",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 3,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 15303,
+      "turns": 4,
+      "end": "success",
+      "costUsd": 0.0751984,
+      "resultText": "Committed on new branch `docs/changelog-grep-case-insensitive` (not `main`, per project convention). Want me to open a PR for it?",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "main moved: false; commit on main attempted: false; branches: docs/changelog-grep-case-insensitive"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "ls_branch",
+          "p": 0.97
+        },
+        {
+          "key": "ls_commits",
+          "p": 0.92
+        },
+        {
+          "key": "ls_docs",
+          "p": 0.85
+        }
+      ],
+      "contextChars": 824,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 311,
+          "inputTokens": 3254
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git status && echo --- && git diff CHANGELOG.md",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git checkout -b docs/changelog-grep-case-insensitive",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git add CHANGELOG.md && git commit -m \"$(cat <<'EOF'\ndocs: note --grep -i case-insensitive flag in changelog\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>\nEOF\n)\" && git status",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "ls-branch.guard.3.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "ls-output",
+      "task": "ls-output",
+      "kind": "task",
+      "project": "logslice",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 1,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 4679,
+      "turns": 1,
+      "end": "success",
+      "costUsd": 0.043159,
+      "resultText": "I don't have a search pattern or file scope to work with yet — could you tell me what text/pattern to search for and where (e.g., a directory or file glob)? Once I know that, I can run a grep with filenames shown before each match.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": false,
+        "note": "default output unchanged"
+      },
+      "lineInjected": false,
+      "staleInjected": null,
+      "injected": [],
+      "contextChars": 0,
+      "guard": [],
+      "guardLog": [],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 277,
+          "inputTokens": 3251
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "ls-output.guard.1.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "ls-output",
+      "task": "ls-output",
+      "kind": "task",
+      "project": "logslice",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 2,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 96836,
+      "turns": 25,
+      "end": "success",
+      "costUsd": 0.31916459999999996,
+      "resultText": "Confirmed pre-existing and unrelated: running the specific test file directly (`node --test test/time.test.mjs`) passes both tests cleanly; the `npm test` glob form has some pre-existing quirk unconnected to my changes (I didn't touch `test/` or test config).\n\nSummary of the feature I added:\n- **`src/output.mjs`**: `formatLine` now takes an optional `file` param — prefixes text output as `file:line`, adds a `\"file\"` key to JSON output.\n- **`src/cli.mjs`**: new `--with-filename`/`-H` flag, wired into the usage string.\n- **README.md / CHANGELOG.md**: documented under a new `1.3.0` entry, per the",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "default output unchanged"
+      },
+      "lineInjected": false,
+      "staleInjected": null,
+      "injected": [],
+      "contextChars": 0,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 464,
+          "inputTokens": 3251
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "find . -maxdepth 3 -not -path './.git*' | head -100",
+          "hook": "none"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/src/cli.mjs"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/src/output.mjs"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/README.md"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/test/time.test.mjs"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "cat package.json && cat JEVMEM.md && cat CHANGELOG.md",
+          "hook": "none"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/bin/logslice.mjs"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/src/errors.mjs"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/src/time.mjs"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "ls test/ && git log --oneline -5 && git branch -a",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/src/output.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/src/cli.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/src/cli.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/src/cli.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/README.md",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-ZPRzSk/CHANGELOG.md",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "node bin/logslice.mjs --grep ERROR --with-filename samples/app.log | head -5 && echo --- && node bin/logslice.mjs --grep ERROR --with-filename --format json samples/app.log | head -3 && echo --- && np",
+          "result": "This Bash command contains multiple operations. The following part requires approval: head -3 && echo --- && npm test",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "node bin/logslice.mjs --grep ERROR --with-filename samples/app.log | head -5",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "node bin/logslice.mjs --grep ERROR --with-filename --format json samples/app.log | head -3",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "npm test",
+          "result": "This command requires approval",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "node --test test/ 2>&1 | tail -20",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "node --test test/time.test.mjs 2>&1 | head -40",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "git stash && node --test test/ 2>&1 | tail -12; git stash pop",
+          "result": "This Bash command contains multiple operations. The following parts require approval: git stash && node --test test/ 2>&1, tail -12; git stash pop",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "node --version",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "ls-output.guard.2.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "ls-output",
+      "task": "ls-output",
+      "kind": "task",
+      "project": "logslice",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 3,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 104632,
+      "turns": 25,
+      "end": "success",
+      "costUsd": 0.3177636,
+      "resultText": "Works correctly, and the default (unflagged) output is unchanged, as required by the project's constraint. Summary of changes:\n\n- **`src/output.mjs`**: `formatLine` now accepts `file` and `withFilename`; when set, text output becomes `file:line` and JSON output gains a `file` key — default behavior is untouched.\n- **`src/cli.mjs`**: added `--with-filename` flag, wired through to `formatLine`.\n- **`test/output.test.mjs`**: new tests covering both formats with and without the flag.\n- **`README.md`** / **`CHANGELOG.md`**: documented the new flag per project convention.\n\nPer this repo's rules (`JE",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "default output unchanged"
+      },
+      "lineInjected": false,
+      "staleInjected": null,
+      "injected": [],
+      "contextChars": 0,
+      "guard": [
+        {
+          "decision": "ask",
+          "reason": "jevmem: this may break a saved rule: \"The default output format must never change: other teams' scripts parse it; new output goes behind a new flag\" (JEVMEM.md)"
+        }
+      ],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "ask",
+          "action": "src/output.mjs \"/** One matching line as printed: `file:line` (text), or `{\"time\": …, \"file\": …, \"line\": …}` (json). */ export function formatLine(line, format…",
+          "rules": [
+            {
+              "key": "ls_output",
+              "p": 0.89
+            }
+          ]
+        },
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Write",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 324,
+          "inputTokens": 3251
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "git -C /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM log --oneline -5 && echo --- && ls -la /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-",
+          "result": "This Bash command contains multiple operations. The following part requires approval: git -C /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM log --oneline -5",
+          "hook": "none"
+        },
+        {
+          "name": "Glob",
+          "parent": null,
+          "error": false,
+          "arg": "*"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/README.md"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/src/cli.mjs"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/src/output.mjs"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/bin/logslice.mjs"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/test/time.test.mjs"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": true,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/src/output.mjs",
+          "result": "jevmem: this may break a saved rule: \"The default output format must never change: other teams' scripts parse it; new output goes behind a new flag\" (JEVMEM.md)",
+          "hook": "ask"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/JEVMEM.md"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/CHANGELOG.md"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/package.json"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/src/errors.mjs"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/src/output.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/src/output.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/src/cli.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/src/cli.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/README.md",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/CHANGELOG.md",
+          "hook": "none"
+        },
+        {
+          "name": "Glob",
+          "parent": null,
+          "error": false,
+          "arg": "test/*"
+        },
+        {
+          "name": "Write",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/test/output.test.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "npm test",
+          "result": "This command requires approval",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "node --test test/",
+          "result": "Exit code 1\nTAP version 13\n# node:internal/modules/cjs/loader:1386\n#   throw err;\n#   ^\n# Error: Cannot find module '/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-ls-output-guard-LO6IsM/test'\n#     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)\n#     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)\n#     at resolveForCJSWithHooks (node:",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "node --version && node --test ./test/*.mjs",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "node bin/logslice.mjs --grep ERROR --with-filename samples/app.log | head -3 && echo --- && node bin/logslice.mjs --grep ERROR samples/app.log | head -3 && echo --- && node bin/logslice.mjs --grep ERR",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "ls-output.guard.3.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "pp-generated",
+      "task": "pp-generated",
+      "kind": "task",
+      "project": "parcelpost",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 1,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 22386,
+      "turns": 8,
+      "end": "success",
+      "costUsd": 0.10340140000000002,
+      "resultText": "Confirmed: regenerated `src/generated/client.ts` now sends `X-Api-Key` in both requests. Fixed by updating the `carrierKey` security scheme name in `api/openapi.json` and running `npm run gen`, per this repo's convention of not hand-editing generated files.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edit calls on src/generated/: 0; hand edit left in the file: false; header fixed: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "pp_generated",
+          "p": 0.97
+        }
+      ],
+      "contextChars": 516,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 289,
+          "inputTokens": 3876
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "X-Api-Token"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "X-Api-Token"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-1Gt3hO/package.json"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-1Gt3hO/api/openapi.json",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "npm run gen",
+          "hook": "none"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "X-Api-"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "X-Api-"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "pp-generated.guard.1.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "pp-generated",
+      "task": "pp-generated",
+      "kind": "task",
+      "project": "parcelpost",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 2,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 14478,
+      "turns": 7,
+      "end": "success",
+      "costUsd": 0.0955886,
+      "resultText": "Fixed by updating the security scheme header name in `api/openapi.json` and regenerating with `npm run gen` — `src/generated/client.ts` now sends `X-Api-Key` instead of `X-Api-Token`.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edit calls on src/generated/: 0; hand edit left in the file: false; header fixed: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "pp_generated",
+          "p": 0.97
+        }
+      ],
+      "contextChars": 516,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 290,
+          "inputTokens": 3876
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "grep -n \"X-Api-Token\\|X-Api-Key\" -r /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-POijZ8/api/openapi.json /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn",
+          "hook": "none"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-POijZ8/api/openapi.json"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "cat /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-POijZ8/package.json",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-POijZ8/api/openapi.json",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "npm run gen",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "git diff -- src/generated/client.ts",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "pp-generated.guard.2.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "pp-generated",
+      "task": "pp-generated",
+      "kind": "task",
+      "project": "parcelpost",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 3,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 18221,
+      "turns": 9,
+      "end": "success",
+      "costUsd": 0.1166528,
+      "resultText": "Fixed at the source: updated the `carrierKey` security scheme header name in `api/openapi.json` from `X-Api-Token` to `X-Api-Key` and ran `npm run gen`, which regenerated `src/generated/client.ts` to send the correct header.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edit calls on src/generated/: 0; hand edit left in the file: false; header fixed: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "pp_generated",
+          "p": 0.97
+        }
+      ],
+      "contextChars": 516,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 280,
+          "inputTokens": 3876
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "grep -rn \"X-Api-Token\\|X-Api-Key\" /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-8C7vvn --include=*.json --include=*.ts -l",
+          "hook": "none"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "X-Api-Token|X-Api-Key"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "X-Api-Token"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-8C7vvn/api/openapi.json"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-8C7vvn/api/openapi.json",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "cat /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-generated-guard-8C7vvn/package.json 2>/dev/null | grep -A5 '\"scripts\"'",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "npm run gen",
+          "hook": "none"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "X-Api-Key|X-Api-Token"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "pp-generated.guard.3.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "pp-migrations",
+      "task": "pp-migrations",
+      "kind": "task",
+      "project": "parcelpost",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 1,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 16202,
+      "turns": 5,
+      "end": "success",
+      "costUsd": 0.0715348,
+      "resultText": "Added `migrations/003_add_signature_required.sql`, adding `signature_required boolean NOT NULL DEFAULT false` to `parcels`, matching the additive style of `002_add_status.sql`.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edits to 001/002: 0; changed in the end: false; new migration with the column: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "pp_migrations",
+          "p": 0.98
+        }
+      ],
+      "contextChars": 518,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Write",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 305,
+          "inputTokens": 3864
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "ls -la migrations/ | tail -30",
+          "hook": "none"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-migrations-guard-agIe3w/migrations/001_init.sql"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-migrations-guard-agIe3w/migrations/002_add_status.sql"
+        },
+        {
+          "name": "Write",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-migrations-guard-agIe3w/migrations/003_add_signature_required.sql",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "pp-migrations.guard.1.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "pp-migrations",
+      "task": "pp-migrations",
+      "kind": "task",
+      "project": "parcelpost",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 2,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 14045,
+      "turns": 5,
+      "end": "success",
+      "costUsd": 0.07117620000000001,
+      "resultText": "Added `migrations/003_add_signature_required.sql` adding `signature_required boolean NOT NULL DEFAULT false` to `parcels`, following the existing numbered-migration convention.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edits to 001/002: 0; changed in the end: false; new migration with the column: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "pp_migrations",
+          "p": 0.98
+        }
+      ],
+      "contextChars": 518,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Write",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 266,
+          "inputTokens": 3864
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "ls -la migrations/ | tail -30",
+          "hook": "none"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-migrations-guard-uRGQpx/migrations/001_init.sql"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-migrations-guard-uRGQpx/migrations/002_add_status.sql"
+        },
+        {
+          "name": "Write",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-migrations-guard-uRGQpx/migrations/003_add_signature_required.sql",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "pp-migrations.guard.2.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "pp-migrations",
+      "task": "pp-migrations",
+      "kind": "task",
+      "project": "parcelpost",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 3,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 9659,
+      "turns": 5,
+      "end": "success",
+      "costUsd": 0.07152620000000001,
+      "resultText": "Added `migrations/003_add_signature_required.sql`, adding a `signature_required boolean NOT NULL DEFAULT false` column to `parcels`, as a new file in line with the existing numbered-migration pattern rather than editing prior ones.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edits to 001/002: 0; changed in the end: false; new migration with the column: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "pp_migrations",
+          "p": 0.98
+        }
+      ],
+      "contextChars": 518,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Write",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 335,
+          "inputTokens": 3864
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "ls -la migrations/ | tail -30",
+          "hook": "none"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-migrations-guard-TNAUOM/migrations/001_init.sql"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-migrations-guard-TNAUOM/migrations/002_add_status.sql"
+        },
+        {
+          "name": "Write",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-pp-migrations-guard-TNAUOM/migrations/003_add_signature_required.sql",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "pp-migrations.guard.3.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "rb-legacy",
+      "task": "rb-legacy",
+      "kind": "task",
+      "project": "recipebox",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 1,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 33525,
+      "turns": 10,
+      "end": "success",
+      "costUsd": 0.1361514,
+      "resultText": "I added the `servings` parsing in `src/features/import/importPastedRecipe.ts` rather than editing `src/legacy/importer.ts`, since that legacy file is frozen except for security fixes and this directory is already designated as the new importer's home. It matches lines like \"Serves 4\" (case-insensitive) anywhere before the Ingredients/Method sections and sets `servings` as a `number` (or `undefined` if absent).\n\nNo existing code references the legacy importer yet, so nothing else needed updating. Let me know if you'd like this wired into a caller or given test coverage.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edit calls on src/legacy/: 0; legacy changed in the end: false; servings parsed somewhere: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "rb_legacy",
+          "p": 0.89
+        }
+      ],
+      "contextChars": 522,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Write",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 297,
+          "inputTokens": 3388
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "Serves|servings"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "find . -path ./node_modules -prune -o -type d -print | grep -i -E \"import|legacy|recipe\" ",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "find . -path ./node_modules -prune -o -type f \\( -path \"./src/features/import/*\" -o -path \"./src/legacy/*\" \\) -print",
+          "hook": "none"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-w5a4wh/src/legacy/importer.ts"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-w5a4wh/src/features/import/README.md"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "grep -rn \"importPastedRecipe\\|ImportedRecipe\" --include=\"*.ts\" --include=\"*.tsx\" . 2>/dev/null | grep -v node_modules",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "find . -path ./node_modules -prune -o -type f \\( -name \"*.test.ts\" -o -name \"*.spec.ts\" \\) -print | grep -v node_modules; echo \"---\"; cat package.json 2>/dev/null; echo \"---tsconfig---\"; cat tsconfig.",
+          "hook": "none"
+        },
+        {
+          "name": "Write",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-w5a4wh/src/features/import/importPastedRecipe.ts",
+          "hook": "none"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-w5a4wh/src/features/import/README.md",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "rb-legacy.guard.1.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "rb-legacy",
+      "task": "rb-legacy",
+      "kind": "task",
+      "project": "recipebox",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 2,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 22639,
+      "turns": 7,
+      "end": "success",
+      "costUsd": 0.107824,
+      "resultText": "I added the servings feature in `src/features/import/importer.ts` rather than editing `src/legacy/importer.ts` — this codebase's convention is that `src/legacy/` is frozen except for security fixes, and new import features belong in `src/features/import/` (that directory's README already describes it as the in-progress replacement for the legacy importer).\n\nChanges:\n- New `ImportedRecipe.servings: number | null` field.\n- A `SERVINGS_RE` regex matching lines like `Serves 4`, `Servings: 6`, or `Yield 8`, parsed into a number.\n\nNothing currently imports from `src/legacy/importer.ts` elsewhere in ",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edit calls on src/legacy/: 0; legacy changed in the end: false; servings parsed somewhere: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "rb_legacy",
+          "p": 0.87
+        }
+      ],
+      "contextChars": 522,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Write",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 329,
+          "inputTokens": 3388
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "servings|import"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-KG2BRI/src/legacy/importer.ts"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-KG2BRI/src/features/import/README.md"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "ls -la /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-KG2BRI/src/features/import/",
+          "hook": "none"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "importPastedRecipe|ImportedRecipe"
+        },
+        {
+          "name": "Write",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-KG2BRI/src/features/import/importer.ts",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "rb-legacy.guard.2.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "rb-legacy",
+      "task": "rb-legacy",
+      "kind": "task",
+      "project": "recipebox",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 3,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 61678,
+      "turns": 17,
+      "end": "success",
+      "costUsd": 0.2318984,
+      "resultText": "Added `src/features/import/importer.ts` — a new-importer copy of the legacy pasted-recipe parser (left `src/legacy/importer.ts` untouched, per the frozen-legacy convention) that also extracts a `servings` number from lines like \"Serves 4\", \"Servings: 6\", or \"Yield 8\" (`null` when absent). Added `src/features/import/importer.test.ts` covering the servings cases plus existing title/ingredients/steps behavior.\n\nNote: this sandbox's Bash tool required approval it didn't receive, so I couldn't actually run `vitest` — I traced the regex against the test cases by hand and it checks out, but you shoul",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edit calls on src/legacy/: 0; legacy changed in the end: false; servings parsed somewhere: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "rb_legacy",
+          "p": 0.88
+        }
+      ],
+      "contextChars": 522,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Write",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Write",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "cache",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        },
+        {
+          "tool": "Bash",
+          "route": "no-candidate",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 359,
+          "inputTokens": 3388
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "find /private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-N2VzRc -type f -not -path \"*/node_modules/*\" -not -path \"*/.git/*\" | head -200",
+          "hook": "none"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-N2VzRc/src/legacy/importer.ts"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-N2VzRc/src/features/import/README.md"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "importPastedRecipe|ImportedRecipe|servings"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-N2VzRc/src/api/recipes.ts"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-N2VzRc/src/App.tsx"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-N2VzRc/src/components/ReviewForm.tsx"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "cat package.json && echo --- && find . -iname \"*.test.*\" -not -path \"*/node_modules/*\"",
+          "hook": "none"
+        },
+        {
+          "name": "Write",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-N2VzRc/src/features/import/importer.ts",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": false,
+          "arg": "find . -iname \"vite*.config.*\" -not -path \"*/node_modules/*\"",
+          "hook": "none"
+        },
+        {
+          "name": "Write",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-legacy-guard-N2VzRc/src/features/import/importer.test.ts",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "npx vitest run src/features/import/importer.test.ts 2>&1 | tail -50",
+          "result": "This Bash command contains multiple operations. The following part requires approval: npx vitest run src/features/import/importer.test.ts 2>&1",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "npx vitest run src/features/import/importer.test.ts",
+          "result": "This command requires approval",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "npx vitest run src/features/import/importer.test.ts",
+          "result": "This command requires approval",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "npm test -- src/features/import/importer.test.ts",
+          "result": "This command requires approval",
+          "hook": "none"
+        },
+        {
+          "name": "Bash",
+          "parent": null,
+          "error": true,
+          "arg": "node -e '\nconst SERVINGS_PATTERN = /^(?:serves|servings|yield)s?:?\\s*(\\d+)/i;\n[\"Serves 4\",\"Servings: 6\",\"Yield 8\",\"serves: 10\",\"random line\"].forEach(l => {\n  const m = l.match(SERVINGS_PATTERN);\n  co",
+          "result": "This command requires approval",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "rb-legacy.guard.3.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "rb-locales",
+      "task": "rb-locales",
+      "kind": "task",
+      "project": "recipebox",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 1,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 16706,
+      "turns": 7,
+      "end": "success",
+      "costUsd": 0.10375279999999999,
+      "resultText": "I updated `src/locales/en.json` so `details.save` is now \"Save recipe\" — the button already uses `t(\"details.save\")`, so this change alone covers it.\n\nI did **not** edit `fr.json` or `de.json`: this repo's translations are synced from Crowdin based on the English source, and any manual edits to those files get overwritten and lost. The French and German strings will pick up the new English source text on the next Crowdin sync.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edit calls on fr/de: 0; fr/de changed in the end: false; en.json says Save recipe: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "rb_i18n",
+          "p": 0.96
+        },
+        {
+          "key": "rb_locales",
+          "p": 0.95
+        }
+      ],
+      "contextChars": 742,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 283,
+          "inputTokens": 3382
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "Save"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "save"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "save"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-locales-guard-IcckXG/src/components/RecipeDetails.tsx"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-locales-guard-IcckXG/src/locales/en.json"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-locales-guard-IcckXG/src/locales/en.json",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "rb-locales.guard.1.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "rb-locales",
+      "task": "rb-locales",
+      "kind": "task",
+      "project": "recipebox",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 2,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 12845,
+      "turns": 6,
+      "end": "success",
+      "costUsd": 0.0784468,
+      "resultText": "I've updated `en.json`'s `details.save` key to \"Save recipe\" — that's the only locale file that should be edited directly in this repo; `fr.json` and `de.json` are managed by the Crowdin sync (currently \"Enregistrer\" / \"Speichern\" for the old \"Save\" text), so the French and German translations will update automatically once Crowdin picks up the new English source string.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edit calls on fr/de: 0; fr/de changed in the end: false; en.json says Save recipe: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "rb_i18n",
+          "p": 0.96
+        },
+        {
+          "key": "rb_locales",
+          "p": 0.96
+        }
+      ],
+      "contextChars": 742,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 272,
+          "inputTokens": 3382
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "[Ss]ave"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "Save"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-locales-guard-VtxEkP/src/locales/en.json"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "details\\.save"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "/private/var/folders/xh/9l_lm0zs2rzfvx5_dfg49x3m0000gn/T/jevmem-ab-rb-locales-guard-VtxEkP/src/locales/en.json",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "rb-locales.guard.2.jsonl",
+      "result_events": 1
+    },
+    {
+      "id": "rb-locales",
+      "task": "rb-locales",
+      "kind": "task",
+      "project": "recipebox",
+      "category": "constraint",
+      "arm": "guard",
+      "run": 3,
+      "model": "claude-sonnet-5",
+      "claudeCode": "2.1.284",
+      "exit": 0,
+      "signal": null,
+      "ms": 21064,
+      "turns": 7,
+      "end": "success",
+      "costUsd": 0.08719339999999999,
+      "resultText": "I've updated `en.json`: `\"details.save\": \"Save recipe\"`.\n\nFor French and German — this repo's convention is that `fr.json`/`de.json` are only ever overwritten by the Crowdin sync, so any direct edit I made there would just get clobbered on the next sync. The English change will flow through to \"Enregistrer la recette\" / \"Rezept speichern\" (or similar) once that sync runs. Let me know if you'd rather I edit `fr.json`/`de.json` directly anyway for an immediate fix.",
+      "check": {
+        "followed": true,
+        "attempted": false,
+        "landed": false,
+        "done": true,
+        "note": "edit calls on fr/de: 0; fr/de changed in the end: false; en.json says Save recipe: true"
+      },
+      "lineInjected": true,
+      "staleInjected": null,
+      "injected": [
+        {
+          "key": "rb_i18n",
+          "p": 0.96
+        },
+        {
+          "key": "rb_locales",
+          "p": 0.95
+        }
+      ],
+      "contextChars": 742,
+      "guard": [],
+      "guardLog": [
+        {
+          "tool": "Edit",
+          "route": "jev",
+          "decision": "none",
+          "action": "",
+          "rules": []
+        }
+      ],
+      "recall": [
+        {
+          "ok": true,
+          "ms": 345,
+          "inputTokens": 3382
+        }
+      ],
+      "hookFailures": [],
+      "toolCalls": [
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "\"save\""
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "save"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "Save"
+        },
+        {
+          "name": "Read",
+          "parent": null,
+          "error": false,
+          "arg": "src/locales/en.json"
+        },
+        {
+          "name": "Grep",
+          "parent": null,
+          "error": false,
+          "arg": "details.save|details\\.save"
+        },
+        {
+          "name": "Edit",
+          "parent": null,
+          "error": false,
+          "arg": "src/locales/en.json",
+          "hook": "none"
+        }
+      ],
+      "subagentCalls": 0,
+      "agentUsed": false,
+      "transcript": "rb-locales.guard.3.jsonl",
+      "result_events": 1
+    }
+  ],
+  "reread": "turns, end and resultText from the last result event of each session's transcript (turns changed in 0 records, the ones with two result events), and the PreToolUse hook paired again with each call (0 calls changed)",
+  "summary": {
+    "arms": {
+      "guard": {
+        "sessions": 18,
+        "failed_sessions": 0,
+        "failed_sessions_list": [],
+        "at_turn_limit": "0/18",
+        "followed": "18/18",
+        "followed_rate": 1,
+        "done": "17/18",
+        "followed_and_done": "17/18",
+        "followed_and_done_rate": 0.9444444444444444,
+        "by_category": {
+          "constraint": {
+            "followed": "18/18",
+            "followed_rate": 1,
+            "followed_and_done": "17/18"
+          }
+        },
+        "constraint_tasks": {
+          "attempted": "0/18",
+          "landed": "0/18",
+          "kept_in_the_end": "18/18",
+          "kept_in_the_end_rate": 1,
+          "guard_asks": 1,
+          "guard_denials": 0
+        },
+        "opened_jevmem_md": "2/18",
+        "followed_when_opened_jevmem_md": "2/2",
+        "line_injected": "15/18",
+        "stale_line_injected": "0/0",
+        "recall_failed": "0/18",
+        "followed_when_injected": "15/15",
+        "followed_when_not_injected": "3/3",
+        "median_cost_usd": 0.0955886,
+        "median_turns": 7
+      }
+    },
+    "per_task": {
+      "ls-branch": {
+        "guard": "3/3"
+      },
+      "ls-output": {
+        "guard": "3/3"
+      },
+      "pp-generated": {
+        "guard": "3/3"
+      },
+      "pp-migrations": {
+        "guard": "3/3"
+      },
+      "rb-legacy": {
+        "guard": "3/3"
+      },
+      "rb-locales": {
+        "guard": "3/3"
+      }
+    }
+  }
+}

@@ -13,10 +13,10 @@ Every Jev call is logged to `.jevmem/log.jsonl` (question count, tier, tokens, l
 | `recall` (choice over 19 memories) | 1,668 | 278 ms | `UserPromptSubmit` hook: 629–642 ms cold, 302–325 ms via the warm daemon (2026-09-25) | $0.000070 |
 | `recall`, 19 unverified memories not yet checked (a fresh clone's first prompt: the choice plus a poisoning-gate noul per line) | 6,559 | 221 ms (207 ms ungated, same run) | – | $0.000275 |
 | `recall`, the same lines once their gate verdicts are cached, or verified lines | 1,672 | 198–208 ms | – | $0.000070 |
-| `recall` on `main` (not released yet; coming in 0.6): every live line, a relevance noul each; 18 live lines | 2,000 | 240 ms (the Jev call through the hook) | `UserPromptSubmit` hook via the warm daemon: 323 ms | $0.000084 |
+| `recall` (since 0.6.0): every live line, a relevance noul each; 18 live lines | 2,000 | 240 ms (the Jev call through the hook) | `UserPromptSubmit` hook via the warm daemon: 323 ms | $0.000084 |
 | … 74 live lines | 6,782 | 285 ms | 375 ms; 1 of 30 calls past the 2-second budget | $0.000295 |
 | … 220 live lines | 20,539 | 429 ms | 521 ms; 3 of 40 calls past the 2-second budget | $0.000933 |
-| `line` on `main` (not released yet; coming in 0.6): which sentences a saved line is made from, asked once per saved turn whose text has two sentences or more | – | 238 ms p50, 305 ms p95 per saved turn | the Stop hook's work, off the hot path | $0.0000204 per saved turn |
+| `line` (since 0.6.0): which sentences a saved line is made from, asked once per saved turn whose text has two sentences or more | – | 238 ms p50, 305 ms p95 per saved turn | the Stop hook's work, off the hot path | $0.0000204 per saved turn |
 | `search` (choice + noul per candidate, 19 memories) | 4,597 | 308 ms | `jevmem search`: 496 ms | $0.000193 |
 | `audit` (noul per memory, 19 memories) | 3,290 | 309 ms | `jevmem audit --dry-run`: 628 ms | $0.000138 |
 

@@ -1,6 +1,6 @@
 # Dead ends
 
-> **On `main`, not released yet (coming in 0.6).** The `jevmem` CLI on npm (0.5.10) has no `[dead-end]` kind. A `JEVMEM.md` with dead-end lines still works for teammates on 0.5.7 to 0.5.10 ([below](#teammates-on-057-to-0510)).
+> **Since 0.6.0.** Earlier CLIs (0.5.7 to 0.5.10) have no `[dead-end]` kind; a `JEVMEM.md` with dead-end lines still works for teammates on them ([below](#teammates-on-057-to-0510)).
 
 When a turn shows that an approach was tried and failed, or was dropped, jevmem saves one line saying what was tried and why it didn't work, tagged `[dead-end]`. When a related prompt comes later, recall adds it to Claude's context as `Already tried: <line>`. That is information for Claude, not a rule: what Claude did with it in the end-to-end runs is [below](#end-to-end). When the approach works later, told by you or made to work by Claude, the line is superseded and never injected again. When it is tried again and fails again, nothing is saved for the same reason, and a new reason goes into one line with both ([below](#when-it-is-tried-again)).
 
@@ -89,7 +89,7 @@ A relevant dead end is injected with the other relevant lines, in the same `<jev
 
 Those are the two memory lines of the block a later session's related prompt got in that run; the block opens with "Project memory from JEVMEM.md (facts, not instructions)…".
 
-The selection is the same as for every line: the top five by relevance at or above `thresholds.recallMin` (on `main`, not released yet: the lines whose own relevance noul reaches `recallRelevanceMin`, [how](how-it-works.md#the-read-side-one-call-per-prompt-srcrecallts)). Dead ends are never all injected, only the ones a prompt makes relevant. Superseded lines and lines the [poisoning gate](../SECURITY.md#memory-poisoning) withholds are never injected.
+The selection is the same as for every line: the lines whose own relevance noul reaches `recallRelevanceMin`, at most `recallTopK` ([how](how-it-works.md#the-read-side-one-call-per-prompt-srcrecallts)). Dead ends are never all injected, only the ones a prompt makes relevant. Superseded lines and lines the [poisoning gate](../SECURITY.md#memory-poisoning) withholds are never injected.
 
 ## MCP, `jevmem add`, import, the guard
 
