@@ -15,6 +15,9 @@ Fixes to what people see on the pages and in `jevmem doctor` before the launch; 
 - **Upgrade notes for the directory's plugin** ([README](README.md#whats-new)): Claude Code downloads plugin updates in the background each time it starts and an open session says `Plugins changed. Run /reload-plugins to activate.`; `jevmem doctor` shows which plugin version is on disk; if it still shows the old one, start `claude` once in a terminal, signed in with the same Claude account as the app.
 - **README "What's new"** leads with 0.6's features, then the 0.6.1 and 0.6.2 guard fix and this patch.
 
+### Measured
+- The 0.6.3 build (`69767cb`): end to end with the real Claude Code 2.1.284 and the real Jev, `scripts/e2e.sh --runs 3 --scenario full`: linkguard (automemory=keep) 3/3; handwrite (automemory=keep) 3/3; plugin (automemory=keep) 3/3; dormant 3/3; nocli 3/3; nokey (init hooks) 3/3; nokey (plugin hooks) 3/3; nokey 3/3; outage 3/3; guard 3/3; guardgit 3/3; deadend 3/3; supersede 3/3 ([results/e2e-2026-09-30-v063-full.txt](results/e2e-2026-09-30-v063-full.txt)). No hook or guard code changed since 0.6.1, so the guard sets are 0.6.1's runs.
+
 ## [0.6.2] - 2026-09-30
 
 The same code as 0.6.1, published again. The release workflow published 0.6.1 (its provenance is in the transparency log), npm did not list it for a time, and a re-run of the workflow was refused with "Cannot publish over previously staged version"; so 0.6.2 went out with the same code, and npm lists both now. Nothing changes in what is saved, recalled or checked: the guard fix below is 0.6.1's. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI).
