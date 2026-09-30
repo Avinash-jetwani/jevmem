@@ -21,7 +21,7 @@
  * A script or a make target that does the forbidden thing is still not seen (docs/guardrails.md).
  */
 
-import { commandOf, expandPath, joinPath, PAIRED, PREFIX, readCommandLine, shellWords, withDirs, type SimpleCommand } from "./shell.js";
+import { commandOf, expandPath, joinPath, PAIRED, PREFIX, readCommandLine, shellWords, stripKeywords, withDirs, type SimpleCommand } from "./shell.js";
 
 export { commandOf, shellWords } from "./shell.js";
 
@@ -299,7 +299,12 @@ export function globToRegExp(glob: string): RegExp {
     else re += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
   }
   // `*.pem` matches the last segment anywhere; `db/*.sql` matches that path from the root or under any directory.
-  return new RegExp(`(?:^|/)${re}$`, "i");
+  try {
+    return new RegExp(`(?:^|/)${re}$`, "i");
+  } catch {
+    // Every character above is escaped or ours, so this is not expected; a pattern the engine refuses matches itself only.
+    return new RegExp(`(?:^|/)${g.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+  }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -532,7 +537,7 @@ export function actionFeatures(action: GuardAction, root?: string, opts: ActionO
     }
     // Shell commands written into scripts, CI files and Makefiles count as command words too.
     for (const line of text.split("\n")) {
-      const { cmd, sub } = commandOf(shellWords(line.replace(/^\s*(?:-\s*)?(?:run:\s*)?/, "")).words);
+      const { cmd, sub } = commandOf(stripKeywords(shellWords(line.replace(/^\s*(?:-\s*)?(?:run:\s*)?/, "")).words).words);
       if (cmd && TOOLS.has(cmd)) {
         commands.add(cmd);
         if (sub) commands.add(`${cmd} ${sub}`);

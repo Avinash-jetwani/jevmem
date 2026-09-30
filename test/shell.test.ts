@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { commitMessage } from "../src/prefilter.js";
-import { condenseHeredocs, expandPath, readCommandLine, shellWords, substitutionsIn, withDirs } from "../src/shell.js";
+import { commandOf, condenseHeredocs, expandPath, readCommandLine, shellGlobRegExp, shellWords, stripKeywords, substitutionsIn, withDirs } from "../src/shell.js";
 
 const texts = (cmd: string) => readCommandLine(cmd).map((c) => c.text);
 const vias = (cmd: string) => readCommandLine(cmd).map((c) => `${c.via}:${c.text}`);
@@ -173,5 +173,65 @@ describe("what is sent", () => {
     expect(out.length).toBeLessThan(cmd.length);
     expect(condenseHeredocs("ls -la", 80, (b) => b)).toBe("ls -la");
     expect(condenseHeredocs(j("cat <<'EOF'", "short", "EOF"), 80, (b) => b)).toBe(j("cat <<'EOF'", "short", "EOF"));
+  });
+});
+
+describe("the shell's reserved words (0.6.1): `[` after `if` or `while` is the test command, not a path", () => {
+  const words = (cmd: string) => readCommandLine(cmd).map((c) => c.words);
+  const cmds = (cmd: string) => readCommandLine(cmd).map((c) => commandOf(c.words).cmd);
+
+  it("if, then, elif, else, fi, while, until, do, done and `!` are dropped in front of a command; `[` and `[[` are the command", () => {
+    expect(words("if [ -f x ]; then git push origin directory; fi")).toEqual([["[", "-f", "x", "]"], ["git", "push", "origin", "directory"], []]);
+    expect(words('while [ -z "$id" ]; do sleep 1; done')).toEqual([["[", "-z", "$id", "]"], ["sleep", "1"], []]);
+    expect(words("until [[ -f x ]]; do :; done")).toEqual([["[[", "-f", "x", "]]"], [":"], []]);
+    expect(words("if ! grep -q x f; then echo no; elif test -d y; then echo y; else echo z; fi")).toEqual([["grep", "-q", "x", "f"], ["echo", "no"], ["test", "-d", "y"], ["echo", "y"], ["echo", "z"], []]);
+    expect(words(j("if [ -f x ]", "then", "  git push origin directory", "fi"))).toEqual([["[", "-f", "x", "]"], [], ["git", "push", "origin", "directory"], []]);
+    expect(words("{ cd /tmp && rm -rf y; }")).toEqual([["cd", "/tmp"], ["rm", "-rf", "y"], []]);
+    expect(words("! [ -e x ] && touch x")).toEqual([["[", "-e", "x", "]"], ["touch", "x"]]);
+    // A bare `[` or `[[` is never a wildcard the shell expands; `x[1].txt` and `[ab]*` are, a quoted `[q]` is not.
+    expect(shellWords("[ -f x ]", { globs: true }).globs).toEqual([false, false, false, false]);
+    expect(shellWords("ls x[1].txt [ab]* '[q]' [", { globs: true }).globs).toEqual([false, true, true, false, false]);
+  });
+
+  it("for, select, case and `in` start a segment that runs nothing; a function definition keeps the commands of its body", () => {
+    expect(words('for f in *.md; do wc -l "$f"; done')).toEqual([[], ["wc", "-l", "$f"], []]);
+    expect(cmds("case $x in a) echo a;; *) git push origin directory;; esac")).toEqual([null, "echo", "*", "git", null]);
+    expect(words("select o in a b; do echo $o; done")).toEqual([[], ["echo", "$o"], []]);
+    expect(words("function deploy { git push origin main; }")).toEqual([["git", "push", "origin", "main"], []]);
+    expect(words("function deploy() { git push origin main; }")).toEqual([[], ["git", "push", "origin", "main"], []]);
+    expect(words("deploy() { git push origin main; }")).toEqual([["deploy"], ["git", "push", "origin", "main"], []]);
+    expect(stripKeywords(["if", "!", "[", "-f", "x", "]"], [false, false, false, false, false, false])).toEqual({ words: ["[", "-f", "x", "]"], along: [false, false, false, false], none: false });
+    expect(stripKeywords(["for", "i", "in", "a"])).toEqual({ words: [], along: undefined, none: true });
+    expect(stripKeywords(["fi"])).toEqual({ words: [], along: undefined, none: true });
+    expect(stripKeywords(["ls", "if"])).toEqual({ words: ["ls", "if"], along: undefined, none: false });
+  });
+
+  it("a command a keyword starts is still read whole: `if bash -c`, `while sh <<EOF`", () => {
+    expect(vias("if bash -c 'git push --force origin main'; then :; fi")).toEqual(["line:if bash -c 'git push --force origin main'", "shell:git push --force origin main", "line:then :", "line:fi"]);
+    expect(vias(j("while sh <<'EOF'", "git push origin directory", "EOF", "do :; done"))).toEqual(["line:while sh <<'EOF'", "shell:git push origin directory", "line:do :", "line:done"]);
+  });
+
+  it("a glob becomes a regular expression that never throws: balanced brackets are a class, anything else is itself", () => {
+    const m = (glob: string, name: string) => shellGlobRegExp(glob)!.test(name);
+    expect(m("*.md", "a.md")).toBe(true);
+    expect(m("a?.txt", "ab.txt")).toBe(true);
+    expect(m("[ab]*.ts", "b1.ts")).toBe(true);
+    expect(m("[!ab]*.ts", "a1.ts")).toBe(false);
+    expect(m("[a-c]x", "bx")).toBe(true);
+    expect(m("[]]", "]")).toBe(true);
+    expect(m("[", "[")).toBe(true);
+    expect(m("[[", "[[")).toBe(true);
+    expect(m("a[", "a[")).toBe(true);
+    expect(m("[a-", "[a-")).toBe(true);
+    expect(m("x]", "x]")).toBe(true);
+    expect(m("(a)+.txt", "(a)+.txt")).toBe(true);
+    expect(m("a\\b", "a\\b")).toBe(true);
+    expect(m("$HOME{1}", "$HOME{1}")).toBe(true);
+    expect(m("[*]", "*")).toBe(true);
+    expect(m("[*]", "a")).toBe(false);
+    // No dotfiles unless the pattern starts with a dot.
+    expect(shellGlobRegExp("*", { dotfiles: false })!.test(".env")).toBe(false);
+    expect(shellGlobRegExp(".*", { dotfiles: false })!.test(".env")).toBe(true);
+    for (const p of ["[", "[[", "[!", "[^", "[]", "[]]", "[!]", "[a-", "]", "[[:alpha:]]", "\\", "\\[", "(", ")", "{", "}", "|", "+", "?", "*", "^", "$", ".", "a{1,2}", "**", "[*]", "[?]", "[\\]", "[a-z", "-", "[-]", "[--]", "[z-a]", "(?<", "\\p{L}"]) expect(() => shellGlobRegExp(p), p).not.toThrow();
   });
 });

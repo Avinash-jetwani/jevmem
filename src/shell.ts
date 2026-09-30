@@ -101,6 +101,9 @@ export function shellWords(segment: string, opts: { globs?: boolean } = {}): She
   let cur = "";
   let started = false;
   let wild = false;
+  // An unquoted `[` opens a bracket expression only when an unquoted `]` closes it in the same word: `[` on its own
+  // (the test command, `if [ -f x ]`) and `[[` are plain words the shell never expands.
+  let bracket = false;
   let quote: "'" | '"' | null = null;
   // After `>`, `>>` or `<` the next word is a file; after `<<` it is a heredoc delimiter; after `<<<` a here-string.
   let next: "redirect" | "skip" | "here" | null = null;
@@ -119,6 +122,7 @@ export function shellWords(segment: string, opts: { globs?: boolean } = {}): She
     cur = "";
     started = false;
     wild = false;
+    bracket = false;
   };
   for (let i = 0; i < segment.length; i++) {
     const c = segment[i]!;
@@ -192,12 +196,93 @@ export function shellWords(segment: string, opts: { globs?: boolean } = {}): She
       next = op === "<<<" ? "here" : op.startsWith("<<") ? "skip" : "redirect";
       continue;
     }
-    if (c === "*" || c === "?" || c === "[") wild = true;
+    if (c === "*" || c === "?") wild = true;
+    else if (c === "[") bracket = true;
+    else if (c === "]" && bracket) wild = true;
     cur += c;
     started = true;
   }
   push();
   return { words: out, redirects, redirectOps, ops, hereStrings, ...(opts.globs ? { globs } : {}) };
+}
+
+// ---------------------------------------------------------------------------------------------
+// The shell's reserved words
+
+/**
+ * Words the shell reads as syntax, never as a command: the start of a compound command (`if`, `while`, `for`, `case`,
+ * `{`, `!`, `function`), what follows its parts (`then`, `elif`, `else`, `do`, `in`) and what ends it (`fi`, `done`,
+ * `esac`, `}`). In front of a simple command they are dropped, so `if [ -f x ]` is the test command `[` with its
+ * arguments, not a command called `if` with `[` as a path. `for`, `select`, `case`, `function` and `in` start a
+ * segment that names no command: the words after them (a variable, a list, a pattern) are not arguments of anything.
+ */
+export const KEYWORDS = new Set(["if", "then", "elif", "else", "fi", "while", "until", "do", "done", "for", "in", "case", "esac", "!", "{", "}", "function", "select", "coproc"]);
+
+/** The reserved words in front of a simple command's words dropped, and whether what is left names no command. */
+export function stripKeywords<T>(words: string[], along?: T[]): { words: string[]; along: T[] | undefined; none: boolean } {
+  const none = () => ({ words: [], along: along ? [] : undefined, none: true });
+  let i = 0;
+  while (i < words.length) {
+    const w = words[i]!;
+    if (w === "function") {
+      // `function name { cmd`, `function name() { cmd`: the name (and `()`) go with the word; what follows runs.
+      i += 2;
+      if (words[i] === "()") i++;
+      continue;
+    }
+    // The words after these are a variable and a list, or a word and its patterns: nothing runs in this segment.
+    if (w === "for" || w === "select" || w === "case" || w === "in") return none();
+    if (!KEYWORDS.has(w)) break;
+    i++;
+  }
+  // `name() { … }`: the tokenizer gives the name on its own before the `(`; a word ending in `()` is a definition too.
+  if (i === 0 && words.length === 1 && /^[A-Za-z_][A-Za-z0-9_]*\(\)$/.test(words[0]!)) return none();
+  if (i === 0) return { words, along, none: words.length === 0 };
+  return { words: words.slice(i), along: along?.slice(i), none: i >= words.length };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Globs as regular expressions
+
+/**
+ * One path segment's glob (no `/`) as a regular expression over a file name, the way the shell expands it: `*` and
+ * `?` match anything, a balanced `[…]` (or `[!…]`, `[^…]`) is a class, and everything else, an unbalanced `[` or `]`
+ * included, is the character itself. Never throws: a pattern the engine cannot take gives null.
+ */
+export function shellGlobRegExp(pattern: string, opts: { dotfiles?: boolean } = {}): RegExp | null {
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  let re = "";
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i]!;
+    if (c === "*") re += ".*";
+    else if (c === "?") re += ".";
+    else if (c === "[") {
+      // A class runs to the first `]` after its first character (`[]]` and `[!]]` are classes holding `]`).
+      let j = i + 1;
+      let negate = false;
+      if (pattern[j] === "!" || pattern[j] === "^") {
+        negate = true;
+        j++;
+      }
+      let k = j;
+      if (pattern[k] === "]") k++;
+      while (k < pattern.length && pattern[k] !== "]") k++;
+      if (k >= pattern.length) {
+        re += "\\[";
+        continue;
+      }
+      const body = pattern.slice(j, k);
+      // Inside the class: ranges stay ranges, everything else is literal.
+      const inner = body.replace(/[\]\\^[]/g, "\\$&").replace(/^-/, "\\-").replace(/-$/, "\\-");
+      re += `[${negate ? "^" : ""}${inner || "\\s\\S"}]`;
+      i = k;
+    } else re += esc(c);
+  }
+  try {
+    return new RegExp(`^${opts.dotfiles === false && !pattern.startsWith(".") ? "(?!\\.)" : ""}${re}$`);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -542,11 +627,13 @@ function read(src: string, via: Via, parentScope: number | null, out: SimpleComm
     }
     const own = subshellScopes.length ? subshellScopes[subshellScopes.length - 1]! : scope;
     const w = shellWords(seg.text, { globs: true });
+    // `if [ -f x ]`, `while read l`, `{ cmd`: the shell's reserved words are syntax, not the command or its arguments.
+    const kw = stripKeywords(w.words, w.globs ?? []);
     const input: HereInput[] = [...seg.bodies.map((b) => ({ op: "<<" as const, body: b.body, quoted: b.quoted })), ...w.hereStrings.map((body) => ({ op: "<<<" as const, body, quoted: true }))];
     const stdin: string | null = input.length ? input[input.length - 1]!.body : seg.sep === "|" ? piped : null;
-    const sc: SimpleCommand = { text: seg.text, words: w.words, globs: w.globs ?? [], redirects: w.redirects, redirectOps: w.redirectOps, ops: w.ops, input, sep: seg.sep, via, scope: own, parentScope: subshellScopes.length ? scope : parentScope, writes: [], stdin };
+    const sc: SimpleCommand = { text: seg.text, words: kw.words, globs: kw.along ?? [], redirects: w.redirects, redirectOps: w.redirectOps, ops: w.ops, input, sep: seg.sep, via, scope: own, parentScope: subshellScopes.length ? scope : parentScope, writes: [], stdin };
     out.push(sc);
-    const { cmd, args, raw } = commandOf(w.words);
+    const { cmd, args, raw } = commandOf(kw.words);
     const outputs = w.redirects.filter((_, k) => writesTarget(w.redirectOps[k] ?? ">")).map((f, k) => ({ file: f, append: appends(w.redirectOps[k] ?? ">") }));
     // Substitutions run first, as the shell runs them before the command.
     for (const n of seg.nested) read(n, "substitution", own, out, written, depthLimit + 1);

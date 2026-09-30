@@ -101,7 +101,12 @@ function resolveDir(cur: string | null, arg: string | undefined, home: string | 
 /** The shell's globbing of one unquoted word with no `/` in it (no dotglob, no nullglob): null when nothing matches. */
 function shellGlob(pattern: string, cwd: string | null): string[] | null {
   if (!cwd || pattern.includes("/")) return null;
-  const re = new RegExp(`^${globBody(pattern, false)}$`);
+  let re: RegExp;
+  try {
+    re = new RegExp(`^${globBody(pattern, false)}$`);
+  } catch {
+    return null; // a pattern the engine cannot take: nothing is known to match it
+  }
   let names: string[];
   try {
     names = fs.readdirSync(cwd);
@@ -344,7 +349,12 @@ function pathspecTest(spec: string, cwd: string, top: string, literal: boolean):
   if (rel === ".." || rel.startsWith("../") || path.isAbsolute(rel)) return { exclude, test: () => false };
   const flags = icase ? "i" : "";
   if (glob && /[*?[]/.test(rel)) {
-    const re = new RegExp(`^${globBody(rel, true)}(?:/.*)?$`, flags);
+    let re: RegExp;
+    try {
+      re = new RegExp(`^${globBody(rel, true)}(?:/.*)?$`, flags);
+    } catch {
+      return { exclude, test: () => false }; // a pattern the engine cannot take matches nothing
+    }
     return { exclude, test: (p) => re.test(p.replace(/\/$/, "")) };
   }
   const norm = icase ? (x: string) => x.toLowerCase() : (x: string) => x;

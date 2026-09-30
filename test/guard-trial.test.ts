@@ -8,8 +8,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { callPayload, decideGuard, evaluateGuard, SEND, tamperCheck, type GuardInput } from "../src/guardrail.js";
-import { formatGuardLog } from "../src/guardlog.js";
+import { callPayload, decideGuard, evaluateGuard, formatGuardTrace, runGuardHook, SEND, tamperCheck, type GuardInput } from "../src/guardrail.js";
+import { formatGuardLog, guardLogStats, readGuardLog } from "../src/guardlog.js";
 import { init } from "../src/init.js";
 import { actionFeatures, COMMIT_MESSAGE_RULE, keywords, matchRules, ruleFeatures, type IndexedRule } from "../src/prefilter.js";
 import { recordProvenance } from "../src/provenance.js";
@@ -272,5 +272,85 @@ describe("when Jev does not answer in time", () => {
     expect(DEFAULT_CONFIG.guard.budgetMs).toBe(2000);
     const out = formatGuardLog([{ ts: "2026-09-30T10:00:00.000Z", tool: "Bash", route: "jev-failed", decision: "ask", mode: "ask", rules: [{ id: "r1", text: ENV, unchecked: true }], action: "git add .env" }], 20);
     expect(out).toMatch(/rule r1 {2}not checked in time {2}"Never commit \.env files"/);
+  });
+});
+
+describe("0.6.1: `[` after a reserved word, and a part of the check that fails", () => {
+  const DIRECTORY = "Never push to the `directory` branch by hand; only release.yml moves it.";
+  const TAGS = "Pushed tags are permanent: never delete, move or re-push a tag.";
+  // The three calls of the 0.6.0 release session whose check threw ("Invalid regular expression: /^(?!\.)[$/") and ran unchecked.
+  const TRIAL = [
+    'cd /Users/me/jevmem && id=$(gh run list --branch main --limit 1 --json databaseId,headSha --jq \'.[] | select(.headSha | startswith("ff30e5f")) | .databaseId\'); echo "run id: ${id:-none yet}"; if [ -n "$id" ]; then gh run watch "$id" --exit-status --interval 20 2>&1 | tail -8; fi',
+    'cd /Users/me/jevmem && id=""; n=0; while [ -z "$id" ] && [ $n -lt 20 ]; do id=$(gh run list --workflow release.yml --limit 3 --json databaseId,headBranch --jq \'.[] | select(.headBranch=="v0.6.0") | .databaseId\' | head -1); [ -z "$id" ] && sleep 10; n=$((n+1)); done; if [ -n "$id" ]; then gh run watch "$id" --exit-status; fi',
+    'C=$S/npmcache; mkdir -p $C; n=0; ok=""; while [ -z "$ok" ] && [ $n -lt 16 ]; do v=$(npm view jevmem@0.6.0 version --cache "$C" --prefer-online 2>/dev/null); [ "$v" = "0.6.0" ] && ok=1 || sleep 30; n=$((n+1)); done; echo "tries=$n found=${ok:-no}"',
+  ];
+  const logText = (root: string) => (fs.existsSync(path.join(root, ".jevmem", "log.jsonl")) ? fs.readFileSync(path.join(root, ".jevmem", "log.jsonl"), "utf8") : "");
+
+  it("`if [ -f x ]; then git push origin directory; fi` is asked about under the rule (0.6.0 threw on the `[` and let it through)", async () => {
+    const root = project([DIRECTORY]);
+    const t = await evaluateGuard(bash(root, "if [ -f x ]; then git push origin directory; fi"), { jev: breaks(0.94) });
+    expect(t.errors).toEqual([]);
+    expect(t.route).toBe("jev");
+    expect(t.decision).toBe("ask");
+    expect(parse(t.stdout).permissionDecisionReason).toContain("directory");
+    expect(t.candidates.map((c) => c.rule.text)).toEqual([DIRECTORY]);
+    expect(readGuardLog(root).map((e) => [e.route, e.decision, e.error])).toEqual([["jev", "ask", undefined]]);
+    expect(logText(root)).not.toContain('"ok":false');
+    for (const c of ["while [ -z \"$x\" ]; do git push origin directory; done", "until [[ -f x ]]; do git push origin directory; done", "if ! [ -e x ]; then git push origin directory; fi"]) {
+      const u = await evaluateGuard(bash(root, c), { jev: breaks(0.94) });
+      expect([u.errors, u.decision], c).toEqual([[], "ask"]);
+    }
+  });
+
+  it("the trial's three calls (`if [ … ]`, `while [ … ]`) are checked with no error, and nothing in them is asked about", async () => {
+    const root = project([DIRECTORY, TAGS]);
+    for (const c of TRIAL) {
+      const t = await evaluateGuard(bash(root, c), { jev: breaks(0.02) });
+      expect(t.errors, c).toEqual([]);
+      expect(t.decision, c).toBe("none");
+      expect(["no-candidate", "jev"], c).toContain(t.route);
+    }
+    expect(readGuardLog(root).every((e) => e.error === undefined && e.route !== "error")).toBe(true);
+    expect(logText(root)).not.toContain('"ok":false');
+  });
+
+  it("a part of the check that fails is logged, and the other parts still decide: with the tamper check down, the rule still asks", async () => {
+    const root = project([DIRECTORY]);
+    const down = () => {
+      throw new Error("boom");
+    };
+    const t = await evaluateGuard(bash(root, "git push origin directory"), { jev: breaks(0.97), tamperCheck: down });
+    expect(t.errors).toEqual(["the tamper check failed: Error: boom"]);
+    expect(t.tamper).toBeNull();
+    expect(t.route).toBe("jev");
+    expect(t.decision).toBe("ask");
+    const entries = readGuardLog(root);
+    expect(entries.map((e) => [e.route, e.decision, e.error])).toEqual([["jev", "ask", "the tamper check failed: Error: boom"]]);
+    expect(logText(root)).toContain('"ok":false');
+    expect(logText(root)).toContain('"error":"the tamper check failed: Error: boom"');
+    // `jevmem guard test` shows it; `jevmem guard log` and `jevmem stats` count it.
+    expect(formatGuardTrace(t)).toContain("error      the tamper check failed: Error: boom (logged; the other parts of the check still ran)");
+    expect(formatGuardLog(entries, 20)).toContain("1 call(s) had an error in a part of the check");
+    expect(guardLogStats(entries).errors).toBe(1);
+    // A tamper ask still comes through when the prefilter is what the call has nothing for.
+    const ok = await evaluateGuard(bash(root, "echo x > JEVMEM.md"), { jev: breaks(0.02) });
+    expect([ok.errors, ok.decision]).toEqual([[], "ask"]);
+  });
+
+  it("when the whole check throws, the hook stays silent and the call is in both logs as an error", async () => {
+    const root = project([DIRECTORY]);
+    const raw = JSON.stringify(bash(root, "git push origin directory"));
+    const out = await runGuardHook(raw, {
+      env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+      deps: {
+        makeJev: async () => {
+          throw new Error("no client");
+        },
+      },
+    });
+    expect(out).toBe("");
+    expect(readGuardLog(root).map((e) => [e.route, e.decision, e.error])).toEqual([["error", "none", "guard: Error: no client"]]);
+    expect(logText(root)).toContain('"error":"guard: Error: no client"');
+    expect(formatGuardLog(readGuardLog(root), 20)).toContain("1 call(s) had an error in a part of the check, the last at ");
   });
 });

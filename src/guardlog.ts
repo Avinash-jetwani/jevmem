@@ -33,6 +33,11 @@ export interface GuardLogEntry {
    */
   rules?: { id: string; p?: number; text: string; unverified?: boolean; unchecked?: boolean }[];
   action?: string;
+  /**
+   * A part of the check failed (the tamper check, the prefilter or the git expansion; or the whole check, when the
+   * route is `error`): what, scrubbed and short. The other parts still ran and decided; `jevmem doctor` lists these.
+   */
+  error?: string;
 }
 
 export const GUARD_LOG_FILE = "guard-log.jsonl";
@@ -128,7 +133,7 @@ export function guardLogStats(entries: GuardLogEntry[]): GuardLogStats {
     sent: n((e) => e.route === "jev" || e.route === "jev-failed"),
     sentFailed: n((e) => e.route === "jev-failed"),
     notSent: n((e) => e.route === "no-key" || e.route === "no-time"),
-    errors: n((e) => e.route === "error"),
+    errors: n((e) => e.route === "error" || typeof e.error === "string"),
     asked: n((e) => e.decision === "ask"),
     tamperAsks: n((e) => e.decision === "ask" && Boolean(e.tamper)),
     denied: n((e) => e.decision === "deny"),
@@ -148,7 +153,7 @@ export function localTime(ts: string): string {
 export function formatGuardStats(s: GuardLogStats): string | null {
   if (!s.seen) return null;
   return [
-    `guard: ${s.seen} call(s) seen since ${localTime(s.since!)}: ${s.fast} fast path (no candidate rule, nothing sent), ${s.cache} answered from the cache, ${s.sent} sent to Jev${s.sentFailed ? ` (${s.sentFailed} failed or timed out)` : ""}${s.notSent ? `, ${s.notSent} not sent (no key or no time left)` : ""}${s.errors ? `, ${s.errors} error(s)` : ""}`,
+    `guard: ${s.seen} call(s) seen since ${localTime(s.since!)}: ${s.fast} fast path (no candidate rule, nothing sent), ${s.cache} answered from the cache, ${s.sent} sent to Jev${s.sentFailed ? ` (${s.sentFailed} failed or timed out)` : ""}${s.notSent ? `, ${s.notSent} not sent (no key or no time left)` : ""}${s.errors ? `, ${s.errors} with an error in a part of the check (\`jevmem doctor\` lists them)` : ""}`,
     `       ${s.asked} asked (${s.tamperAsks} tamper), ${s.denied} denied, ${s.warned} warned; \`jevmem guard log\` lists them`,
   ].join("\n");
 }
@@ -156,7 +161,11 @@ export function formatGuardStats(s: GuardLogStats): string | null {
 /** `jevmem guard log`: the `n` most recent asks, denials and warnings, newest first. */
 export function formatGuardLog(entries: GuardLogEntry[], n: number): string {
   const decided = entries.filter((e) => e.decision !== "none");
-  if (!decided.length) return `jevmem guard log: no asks or denials logged in this project${entries.length ? ` (${entries.length} call(s) checked since ${localTime(entries[0]!.ts)})` : ""} (.jevmem/${GUARD_LOG_FILE})`;
+  // Calls where a part of the check failed: counted here, listed by `jevmem doctor`.
+  const errors = entries.filter((e) => e.route === "error" || typeof e.error === "string");
+  const last = errors[errors.length - 1];
+  const errorLine = errors.length ? `\n${errors.length} call(s) had an error in a part of the check, the last at ${localTime(last!.ts)}${last!.error ? `: ${last!.error}` : ""}; \`jevmem doctor\` lists them` : "";
+  if (!decided.length) return `jevmem guard log: no asks or denials logged in this project${entries.length ? ` (${entries.length} call(s) checked since ${localTime(entries[0]!.ts)})` : ""} (.jevmem/${GUARD_LOG_FILE})${errorLine}`;
   const shown = decided.slice(-n).reverse();
   const word = { ask: ["ask", "asks"], deny: ["denial", "denials"], warn: ["warning", "warnings"] } as const;
   const kinds = (["ask", "deny", "warn"] as const).map((d) => [decided.filter((e) => e.decision === d).length, d] as const).filter(([k]) => k > 0);
@@ -167,6 +176,7 @@ export function formatGuardLog(entries: GuardLogEntry[], n: number): string {
     out.push(`${localTime(e.ts)}  ${e.decision.padEnd(4)}  ${e.tool.padEnd(5)}  ${e.action ?? ""}`);
     for (const r of e.rules ?? []) out.push(`${pad}rule ${r.id}  ${r.unchecked || typeof r.p !== "number" ? "not checked in time" : `p=${r.p.toFixed(2)}`}  "${r.text}"${r.unverified ? "  (unverified line)" : ""}`);
     if (e.tamper) out.push(`${pad}tamper: ${e.tamper}`);
+    if (e.error) out.push(`${pad}error: ${e.error}`);
   }
-  return out.join("\n");
+  return out.join("\n") + errorLine;
 }

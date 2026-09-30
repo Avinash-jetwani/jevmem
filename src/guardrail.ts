@@ -34,7 +34,7 @@ import { gateLines, planGate, settleGate } from "./guard.js";
 import { actionSummary, recordGuardCall, shorten, type GuardLogEntry, type GuardRoute } from "./guardlog.js";
 import { appendLog, type JevCaller } from "./jev.js";
 import { actionFeatures, DEFAULT_MATCH, matchRules, ruleFeatures, ruleNamesCommittedFiles, snippetAround, type Candidate, type GuardAction, type GuardTool, type IndexedRule, type MatchOptions } from "./prefilter.js";
-import { commandOf, condenseHeredocs, expandPath, readCommandLine, withDirs, type SimpleCommand } from "./shell.js";
+import { commandOf, condenseHeredocs, expandPath, readCommandLine, shellGlobRegExp, withDirs, type SimpleCommand } from "./shell.js";
 import { isVerified, lineSha, readProvenance } from "./provenance.js";
 import { parseMemoryFile } from "./memfile.js";
 import { scrubSecrets } from "./scrub.js";
@@ -595,9 +595,10 @@ export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction
         const dir = slash < 0 ? "" : expanded.slice(0, slash);
         const rest = expanded.slice(slash + 1);
         if (rest.includes("/")) continue; // a wildcard in a folder name: not read
-        const re = new RegExp(`^${rest.startsWith(".") ? "" : "(?!\\.)"}${rest.replace(/[.+^${}()|\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".")}$`);
+        // The names it could match, as the shell expands it (no dotfiles unless the pattern starts with a dot).
+        const re = shellGlobRegExp(rest, { dotfiles: false });
         const absDir = dir === "" ? base : dir.startsWith("/") ? dir : base === null ? null : path.resolve(base, dir);
-        if (absDir !== null) check(path.resolve(absDir), re);
+        if (absDir !== null && re !== null) check(path.resolve(absDir), re);
         continue;
       }
       const abs = expanded.startsWith("/") ? path.resolve(expanded) : base === null ? null : path.resolve(base, expanded);
@@ -660,6 +661,8 @@ export interface GuardTrace {
   stdout: string;
   /** Why there was no decision, or what went wrong (timeout, no key, bad config). */
   notes: string[];
+  /** The parts of the check that failed (the tamper check, the prefilter, the git expansion): each is logged, and the others still ran. */
+  errors: string[];
   jevMs: number | null;
   totalMs: number;
 }
@@ -676,6 +679,8 @@ export interface GuardDeps {
   noCache?: boolean;
   /** Log decisions and failures to `.jevmem/log.jsonl`, and each checked call to `.jevmem/guard-log.jsonl` (default true). */
   log?: boolean;
+  /** The tamper check to run (tests inject one that fails, to see the other parts go on). */
+  tamperCheck?: typeof tamperCheck;
 }
 
 /** The hook's JSON. `decision` is never "allow": that would skip the user's permission prompt. */
@@ -770,7 +775,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   const env = deps.env ?? process.env;
   const root = deps.root ?? guardRoot(input, env);
   const log = deps.log !== false;
-  const trace: GuardTrace = { root, mode: null, thresholds: null, tool: input.tool_name ?? null, action: null, rules: null, candidates: [], payload: null, staged: null, checks: [], tamper: null, route: null, decision: "none", stdout: "", notes: [], jevMs: null, totalMs: 0 };
+  const trace: GuardTrace = { root, mode: null, thresholds: null, tool: input.tool_name ?? null, action: null, rules: null, candidates: [], payload: null, staged: null, checks: [], tamper: null, route: null, decision: "none", stdout: "", notes: [], errors: [], jevMs: null, totalMs: 0 };
   const startedAt = new Date().toISOString();
   const guarded = GUARDED_TOOLS.includes(input.tool_name as GuardTool);
   const done = () => {
@@ -824,7 +829,20 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   }
   // The folder a Bash command starts in (the PreToolUse payload's cwd), for paths it names relative to it.
   const cwd = input.cwd && fs.existsSync(input.cwd) ? input.cwd : root;
-  trace.tamper = tamperCheck(root, cfg, action, input, conf.text, mem.text, { cwd, home: env.HOME });
+  // Each part of the check runs on its own: when one fails, the failure is logged, and the other parts still decide.
+  const part = <T>(name: string, run: () => T, fallback: T): T => {
+    try {
+      return run();
+    } catch (err) {
+      const e = `${name} failed: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`;
+      trace.errors.push(e);
+      trace.notes.push(e);
+      logGuard(root, log, { ok: false, error: e });
+      return fallback;
+    }
+  };
+  const tamper = deps.tamperCheck ?? tamperCheck;
+  trace.tamper = part("the tamper check", () => tamper(root, cfg, action, input, conf.text, mem.text, { cwd, home: env.HOME }), null);
 
   const finish = (checks: RuleCheck[]) => {
     trace.checks = checks;
@@ -836,6 +854,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     if (d.decision !== "none") logGuard(root, log, { ok: true, latencyMs: Math.round(performance.now() - t0), detail: `${d.decision} ${action.tool}${trace.tamper ? " (tamper)" : ""}${hits.length ? `: ${hits.map((c) => `${c.id} p=${c.p!.toFixed(2)}${c.cached ? " (cached)" : ""}`).join(", ")}` : ""}` });
     if (log) {
       const entry: GuardLogEntry = { ts: startedAt, tool: action.tool, route: trace.route ?? "error", decision: d.decision };
+      if (trace.errors.length) entry.error = shorten(scrubSecrets(trace.errors.join("; ")), 200);
       if (d.decision !== "none") {
         entry.mode = cfg.guard.mode;
         if (hits.length) entry.rules = hits.map((c) => ({ id: c.id, p: Math.round(c.p! * 1000) / 1000, text: shorten(scrubSecrets(c.text), 200), ...(c.verified ? {} : { unverified: true }) }));
@@ -877,17 +896,26 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     }
   };
   // A commit message is read from a file (`git commit -F <file>`) only when a rule about commit messages could use it.
-  const features = actionFeatures(action, root, { cwd, home: env.HOME, ...(rules.enforced.some((r) => r.features.messageRule) ? { readFile } : {}) });
+  const features = part("the prefilter", () => actionFeatures(action, root, { cwd, home: env.HOME, ...(rules.enforced.some((r) => r.features.messageRule) ? { readFile } : {}) }), null);
+  if (features === null) {
+    // Nothing to match the rules against: the tamper check alone decides, and the call is logged as an error.
+    trace.route = "error";
+    return finish([]);
+  }
   // `git add .`, `git add -A`, `git commit -a`: what they would stage or commit, when a rule about committing names a path.
   if (action.tool === "Bash" && rules.enforced.some(ruleNamesCommittedFiles)) {
-    const ex = expandGitStaging(action.command ?? "", { cwd, root, budgetMs: Math.min(GIT_BUDGET_MS, Math.floor(cfg.guard.budgetMs / 4)), home: env.HOME });
-    if (ex.commands.length) {
+    const ex = part("the git expansion", () => expandGitStaging(action.command ?? "", { cwd, root, budgetMs: Math.min(GIT_BUDGET_MS, Math.floor(cfg.guard.budgetMs / 4)), home: env.HOME }), null);
+    if (ex !== null && ex.commands.length) {
       trace.staged = ex;
       for (const n of ex.notes) trace.notes.push(`git: ${n}`);
       if (ex.files.length) features.staged = ex.files.map((f) => f.path);
     }
   }
-  const candidates = matchRules(rules.enforced, features, { ...DEFAULT_MATCH, max: cfg.guard.maxCandidates, ...deps.match });
+  const candidates = part("the prefilter", () => matchRules(rules.enforced, features, { ...DEFAULT_MATCH, max: cfg.guard.maxCandidates, ...deps.match }), null);
+  if (candidates === null) {
+    trace.route = "error";
+    return finish([]);
+  }
   trace.candidates = candidates;
   if (!candidates.length) {
     if (!trace.tamper) trace.notes.push("no candidate: the call shares nothing with any rule, so nothing is sent to Jev");
@@ -1011,12 +1039,13 @@ export async function runGuardHook(raw: string, opts: { viaPlugin?: boolean; env
   const env = opts.env ?? process.env;
   let root = env.CLAUDE_PROJECT_DIR && fs.existsSync(env.CLAUDE_PROJECT_DIR) ? env.CLAUDE_PROJECT_DIR : process.cwd();
   const enabled = () => fs.existsSync(path.join(root, CONFIG_FILE));
+  let input: GuardInput | null = null;
   try {
-    let input: GuardInput;
     try {
       input = JSON.parse(raw);
       if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("not a JSON object");
     } catch (err) {
+      input = null;
       if (enabled()) logGuard(root, true, { ok: false, error: `PreToolUse input is not valid JSON (${err instanceof Error ? err.message : String(err)})` });
       return "";
     }
@@ -1027,8 +1056,13 @@ export async function runGuardHook(raw: string, opts: { viaPlugin?: boolean; env
     debugTrace(root, raw, trace, env);
     return trace.stdout;
   } catch (err) {
+    // Nothing above should throw; if something does, the call ran unchecked: say so in both logs.
     try {
-      if (enabled()) logGuard(root, true, { ok: false, error: `guard: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}` });
+      if (enabled()) {
+        const e = `guard: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`;
+        logGuard(root, true, { ok: false, error: e });
+        if (input && GUARDED_TOOLS.includes(input.tool_name as GuardTool)) recordGuardCall(root, { ts: new Date().toISOString(), tool: input.tool_name!, route: "error", decision: "none", error: shorten(scrubSecrets(e), 200) });
+      }
     } catch {
       /* nothing left to do: stay silent */
     }
@@ -1084,7 +1118,8 @@ export function formatGuardTrace(t: GuardTrace): string {
     const verdict = c.p === null ? (late ? "no answer in time; matched on more than keywords, so the call is asked about" : "no answer") : `p=${c.p.toFixed(2)} ${t.thresholds && c.p >= t.thresholds.askMin ? "≥" : "<"} ${t.thresholds?.askMin.toFixed(2)}`;
     out.push(`jev        ${c.id}  ${verdict}${c.cached ? " (cached answer)" : c.p !== null && t.jevMs !== null ? ` (asked now, ${t.jevMs} ms)` : ""}`);
   }
-  for (const n of t.notes) out.push(`note       ${n}`);
+  for (const e of t.errors) out.push(`error      ${e} (logged; the other parts of the check still ran)`);
+  for (const n of t.notes) if (!t.errors.includes(n)) out.push(`note       ${n}`);
   out.push(`decision   ${t.decision}`);
   out.push(`output     ${t.stdout || "(none: exit 0 with no output, so Claude Code's normal permission flow applies)"}`);
   return out.join("\n");
