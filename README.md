@@ -10,7 +10,7 @@ In Anthropic's Claude plugin directory · On the [MCP Registry](https://registry
 [![CI](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml/badge.svg)](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml)
 [![M8ven Verified](https://m8ven.ai/badge/mcp/avinash-jetwani/jevmem?variant=verified)](https://m8ven.ai/mcp/avinash-jetwani/jevmem)
 
-https://github.com/user-attachments/assets/ed77849e-db1c-4c05-9ad8-4cab0b3968a2
+https://github.com/user-attachments/assets/65e48f03-8e1c-49d9-baad-6f217911e861
 
 ## Why
 
