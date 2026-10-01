@@ -33,7 +33,11 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: node --version
+      # One Linux leg also builds the Dockerfile (the image MCP directories inspect) and asks it for tools/list;
+      # test/dockerfile.test.ts skips that while the version it installs is not on npm yet (a release's own commit).
       - run: node node_modules/vitest/vitest.mjs run
+        env:
+          JEVMEM_DOCKER: ${{ matrix.os == 'ubuntu-latest' && matrix.node == 22 && '1' || '' }}
       - run: node dist/cli.js --version && node dist/cli.js --help > /dev/null
       # Every measured number in README, docs/, DEMO, SECURITY, the newest CHANGELOG entry, package.json and the CLI
       # help must trace to a results file listed in results/CURRENT.json.

@@ -15,7 +15,7 @@ import path from "node:path";
 const live = process.env.JEVMEM_LIVE === "1";
 const home = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-test-home-")));
 for (const k of Object.keys(process.env)) {
-  if (k === "JEVMEM_LIVE" || k === "JEVMEM_OLD_CLI") continue;
+  if (k === "JEVMEM_LIVE" || k === "JEVMEM_OLD_CLI" || k === "JEVMEM_DOCKER") continue;
   if (live && (k === "TYPESAFE_API_KEY" || k === "TYPESAFE_BASE_URL")) continue;
   if (/^(TYPESAFE_|OPENAI_|ANTHROPIC_|JEVMEM_|CLAUDE_|XDG_CONFIG_HOME$)/.test(k) || k === "CLAUDECODE") delete process.env[k];
 }
