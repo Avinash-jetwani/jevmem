@@ -14,6 +14,9 @@ Docs only: a shorter, clearer README with graphics. No code change, and nothing 
 - `docs/img/` goes into the npm package with the rest of `docs/`.
 - **The release checklist** ([CONTRIBUTING](CONTRIBUTING.md#releasing)) names the pages the README's numbers moved to, and says the graphics repeat some of them: `check-claims` does not read the SVGs.
 
+### Measured
+- The 0.6.4 build (`5c8c211`): end to end with the real Claude Code 2.1.284 and the real Jev, `scripts/e2e.sh --runs 3 --scenario full`: linkguard (automemory=keep) 3/3; handwrite (automemory=keep) 3/3; plugin (automemory=keep) 3/3; dormant 3/3; nocli 3/3; nokey (init hooks) 3/3; nokey (plugin hooks) 3/3; nokey 3/3; outage 3/3; guard 3/3; guardgit 3/3; deadend 3/3; supersede 3/3 ([results/e2e-2026-10-01-v064-full.txt](results/e2e-2026-10-01-v064-full.txt)). No code changed since 0.6.3, and no hook or guard code since 0.6.1, so the guard sets are 0.6.1's runs.
+
 ## [0.6.3] - 2026-09-30
 
 Fixes to what people see on the pages and in `jevmem doctor` before the launch; nothing changes in what is saved, recalled or checked. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI, and the 0.6.3 plugin warns once about an older one).
