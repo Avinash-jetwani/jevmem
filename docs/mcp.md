@@ -19,6 +19,8 @@ In a project without `jevmem.config.json` (not opted in with `jevmem enable` or 
 
 Both writing tools are marked destructive because they can change existing lines, not only add new ones: `add_memory` re-tags a contradicted memory `[superseded]`, which takes it out of what is served (the line stays in the file), and `audit_memory` with `apply: true` sets or clears `[stale?]` flags on existing lines (flagged lines keep their text and stay live).
 
+The `Dockerfile` at the repository root is for MCP directories that inspect a server in a sandbox (Glama builds it, starts the server and calls `tools/list`): it installs the jevmem CLI from npm and starts `jevmem mcp` on an empty folder, where the server lists its four tools and a call to one replies that jevmem isn't enabled there. It needs no key. It is not a way to run jevmem: the server works on the project it is started in.
+
 ### Cursor
 
 `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
