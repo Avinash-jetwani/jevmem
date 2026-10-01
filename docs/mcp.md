@@ -66,7 +66,7 @@ env = { TYPESAFE_API_KEY = "your-key" }
 
 ### Claude Code plugin
 
-The plugin (`claude plugin install jevmem@jevmem`, see the [README](../README.md#install-60-seconds)) declares the server itself as the command `jevmem mcp`, serving the project in `CLAUDE_PROJECT_DIR`. It needs `jevmem` on the PATH Claude Code runs with; without it, `/mcp` shows the server as failed. With the hooks recording every turn, `add_memory` is only for things the user asks to record that the conversation does not state.
+The plugin (`claude plugin install jevmem@jevmem`, see [install.md](install.md#from-the-jevmem-marketplace)) declares the server itself as the command `jevmem mcp`, serving the project in `CLAUDE_PROJECT_DIR`. It needs `jevmem` on the PATH Claude Code runs with; without it, `/mcp` shows the server as failed. With the hooks recording every turn, `add_memory` is only for things the user asks to record that the conversation does not state.
 
 ### Claude Code (as an MCP server, in addition to the hooks)
 

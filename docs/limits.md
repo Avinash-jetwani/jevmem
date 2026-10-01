@@ -1,0 +1,26 @@
+[← README](../README.md)
+
+# Limits
+
+## Known limits in 0.6.3
+
+- **A plain statement can fall under the content threshold.** A rule said without must, never or prefer ("user-facing copy is British English") can be skipped: 2 of the 12 genuine rules on the genuine-rule held-out set, in 0.5.9 too ([docs/benchmark.md](benchmark.md#genuine-rules-and-the-injection-check)).
+- **No way to mark your own rules as verified.** A line you add with `jevmem add` or by hand is unverified: the poisoning gate checks it before recall serves it, and the guard asks about it but never denies on it.
+- **A line is at most two sentences, and Jev can pick the wrong one** ([docs/benchmark.md](benchmark.md#the-line-part-3c)). Jev picks the sentence that states the memory and the one that gives its reason; a fact told in two sentences keeps one of them, and on the line-text held-out set one rule's line was its consequence without the rule (1 of 63), and one to-do kept "don't start on it today" as its second sentence. The line comes from the text decide chose: a bug whose cause only Claude's reply found gets your description of it. When the pick request fails, the line is one sentence chosen by words, as in 0.5.9.
+- **A second line one line crowds out.** When the first line takes the whole "most relevant" choice, a second line is kept only at relevance 0.97 or more: 3 of 6 two-line prompts on retrieval held-out v2 lost their second line.
+- **More than 250 live lines.** Only the 250 sharing the most words with the prompt are asked about; on a 500-line dev file, 8 of 9 missed lines were never sent. Sending all of them would cost about twice as much per prompt on such a file.
+- **Rules every task must follow.** Recall judges each line against the prompt; a convention nothing in the prompt points at belongs in `CLAUDE.md`.
+- **The guard sees the words a rule and a call share** ([docs/guardrails.md](guardrails.md#limits)). A rule that names neither the tool nor the host (`psql "$PROD_WAREHOUSE_DSN"` under "the production warehouse is never queried from a shell") gets no candidate, and one shared word is not enough (`git tag -d v0.5.10` under "never delete a tag", `npm version 0.6.0` under "no version bump").
+- **Jev reads a script's text as run.** A script that runs `jevmem guard test "git push origin directory"` (a dry run of the guard) is asked about under "never push to that branch by hand" (Jev 0.57 to 0.71).
+- **An ambiguous rule gets an ambiguous answer.** A `Signed-off-by` under the owner's own name scored 0.07 against "commits are under <name> only, with no Co-Authored-By or other trailers"; write rules as you mean them.
+
+## Honest limits
+
+- **Early:** 0.6.3; every eval set was written by the author, and none is an independent benchmark.
+- **Not the most accurate:** GPT-6 Astra and Claude Opus 5.5 scored higher on save+kind; jevmem's edge is speed and cost.
+- **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
+- **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.
+- **Automatic capture is Claude Code only** (and Codex while `jevmem watch` runs); Cursor and Claude Desktop save only when the agent calls `add_memory`.
+- **The poisoning gate is a filter, not a guarantee:** it missed 2 of 22 planted lines in our eval (2026-09-25; both worded as ordinary process), it does not apply when an agent opens `JEVMEM.md` as a file, and on a fresh clone its first check costs one noul per line. Review `JEVMEM.md` diffs like code ([SECURITY.md](../SECURITY.md#memory-poisoning)).
+- **Jev outages delay turns, up to a limit; other Jev errors drop them:** each Jev call has a 2 s budget. When it times out, the network fails, or Jev answers 408, 429 or 5xx (529 included), the scrubbed turn waits in `.jevmem/queue.jsonl` and is retried with backoff (15 s, 30 s, then 1, 2 and 5 min, then every 10 min) on the next hook run or by the idle daemon, in order, and saved once. A turn still unsaved after 24 hours, or past 200 queued turns, is dropped. Any other error is not retried and drops the turn at once: a 400 from Jev, for example, or a 401 when the key is wrong, which drops every turn until the key is fixed. Each drop leaves a line in `.jevmem/log.jsonl`, and the retry-queue line of `jevmem stats` counts them.
+- **A plugin update can leave an open session without the hooks:** when the plugin synced from claude.ai updates (Claude Code downloads updates in the background each time it starts), Claude Code moves the previous copy aside, and a session that was already open with it loses jevmem's hooks, the guard included, until you run `/reload-plugins` there or start a new session; Claude Code shows a hook error and goes on without them ([anthropics/claude-code#97847](https://github.com/anthropics/claude-code/issues/97847)). `jevmem doctor` shows the version on disk.

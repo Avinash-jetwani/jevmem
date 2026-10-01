@@ -1,6 +1,6 @@
 # Guardrails
 
-> **Since 0.6.0.** The guard needs the 0.6.0 CLI (`npm install -g jevmem@latest`) and a `PreToolUse` hook: the 0.6.0 plugin registers it, and `jevmem init`, run again in a project set up by an earlier version, adds it next to the two hooks already there ([README: upgrading](../README.md#whats-new)). The plugin's launcher runs the guard's hook only with a CLI that has it.
+> **Since 0.6.0.** The guard needs the 0.6.0 CLI (`npm install -g jevmem@latest`) and a `PreToolUse` hook: the 0.6.0 plugin registers it, and `jevmem init`, run again in a project set up by an earlier version, adds it next to the two hooks already there ([upgrading](upgrading.md)). The plugin's launcher runs the guard's hook only with a CLI that has it.
 
 jevmem saves rules from your conversations as `[constraint]` lines in `JEVMEM.md` ("Never commit .env files"). The guard is a `PreToolUse` hook that checks each Bash, Edit and Write call against those rules before it runs. When Jev says a call may break one, the guard has Claude Code ask you (the default), block the call, or tell Claude the rule.
 

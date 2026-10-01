@@ -12,7 +12,7 @@ If you added jevmem from the Claude directory, skip the marketplace commands: in
 
 This plugin contains no jevmem code. It runs the `jevmem` command-line tool, a separate package on the public npm registry (https://www.npmjs.com/package/jevmem), published with provenance by this repository's release workflow. Its source is in this repository: https://github.com/Avinash-jetwani/jevmem/tree/main/src
 
-1. Install the `jevmem` CLI. The command is in the main README: https://github.com/Avinash-jetwani/jevmem#install-60-seconds
+1. Install the `jevmem` CLI. The command is in the main README: https://github.com/Avinash-jetwani/jevmem#install
 2. Add the plugin, unless you added it from the Claude directory:
 
    ```bash
