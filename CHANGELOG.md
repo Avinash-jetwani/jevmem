@@ -2,6 +2,17 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.6.4] - 2026-10-01
+
+Docs only: a shorter, clearer README with graphics. No code change, and nothing changes in what jevmem saves, recalls or checks. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI, and the 0.6.4 plugin warns once about an older one).
+
+### Changed
+- **The README is rewritten short, with graphics.** Why, how it works, the A/B results, the guard, install, the works-with table, speed and cost, how it decides, privacy, limits and what's new, each in a few lines; the full benchmark, each step of how it decides, exactly what is sent, and the commands are in fold-outs. Five graphics, each in light and dark, are in `docs/img/` (`make_svgs.py` there is their source): how it works, the A/B results, the guard, the benchmark, how it decides.
+- **Four pages hold what moved out of the README:** [docs/whats-new.md](docs/whats-new.md) (0.6's features with their measurements, and the earlier releases), [docs/install.md](docs/install.md) (each install path, what to do if the plugin can't find the CLI, and the full works-with table), [docs/upgrading.md](docs/upgrading.md), and [docs/limits.md](docs/limits.md) (the known limits and the honest limits). Links that pointed at the old README sections (in this file's earlier entries, `docs/guardrails.md`, `docs/hooks.md`, `docs/mcp.md`, `plugin/README.md` and `plugin.json`'s `documentationUrl`) point at those pages.
+- **The MCP Registry is mentioned** in the README: the MCP server is listed there as `io.github.Avinash-jetwani/jevmem` (since 0.6.0).
+- `docs/img/` goes into the npm package with the rest of `docs/`.
+- **The release checklist** ([CONTRIBUTING](CONTRIBUTING.md#releasing)) names the pages the README's numbers moved to, and says the graphics repeat some of them: `check-claims` does not read the SVGs.
+
 ## [0.6.3] - 2026-09-30
 
 Fixes to what people see on the pages and in `jevmem doctor` before the launch; nothing changes in what is saved, recalled or checked. Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI, and the 0.6.3 plugin warns once about an older one).

@@ -2,7 +2,7 @@
 
 # Limits
 
-## Known limits in 0.6.3
+## Known limits in 0.6.4
 
 - **A plain statement can fall under the content threshold.** A rule said without must, never or prefer ("user-facing copy is British English") can be skipped: 2 of the 12 genuine rules on the genuine-rule held-out set, in 0.5.9 too ([docs/benchmark.md](benchmark.md#genuine-rules-and-the-injection-check)).
 - **No way to mark your own rules as verified.** A line you add with `jevmem add` or by hand is unverified: the poisoning gate checks it before recall serves it, and the guard asks about it but never denies on it.
@@ -16,7 +16,7 @@
 
 ## Honest limits
 
-- **Early:** 0.6.3; every eval set was written by the author, and none is an independent benchmark.
+- **Early:** 0.6.4; every eval set was written by the author, and none is an independent benchmark.
 - **Not the most accurate:** GPT-6 Astra and Claude Opus 5.5 scored higher on save+kind; jevmem's edge is speed and cost.
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.

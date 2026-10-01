@@ -203,7 +203,7 @@ In plain terms, with the third parties' privacy policies and how to delete your 
 
 ## Limits
 
-- **Early:** 0.6.3, and every test set was written by the author. None is an independent benchmark.
+- **Early:** 0.6.4, and every test set was written by the author. None is an independent benchmark.
 - **Not the most accurate:** two LLMs scored higher at picking the kind of line. jevmem's edge is speed and cost.
 - **Answer quality isn't measured:** the tests check that the right lines reach Claude, not that its answers get better.
 - **Automatic saving is Claude Code only** (and Codex while `jevmem watch` runs).
@@ -219,6 +219,7 @@ Every limit, with the numbers: [docs/limits.md](docs/limits.md).
 - **A slow Jev call no longer means no memory:** past one second, the prompt gets the lines that share the most words with it.
 - **Background subagents:** a turn is saved once, when it is over, and a subagent's report isn't read as your message.
 - **0.6.1 to 0.6.3:** a guard fix for `if [ … ]` in a command, and a clearer `jevmem doctor`.
+- **0.6.4:** this README, shorter and with graphics; the details moved to pages in `docs/`. Docs only.
 
 Details and measurements: [docs/whats-new.md](docs/whats-new.md) · Upgrading: [docs/upgrading.md](docs/upgrading.md) · [CHANGELOG](CHANGELOG.md)
 
@@ -252,7 +253,7 @@ jevmem guard test "<command>" | --edit <path>  Dry run of the PreToolUse guard o
 jevmem guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
 ```
 
-These are 0.6.3's commands: 0.5.10's and `jevmem guard` (0.6.0). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
+These are 0.6.4's commands: 0.5.10's and `jevmem guard` (0.6.0). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
 
 </details>
 

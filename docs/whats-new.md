@@ -13,6 +13,7 @@
 
 - **0.6.1 and 0.6.2 fixed the guard skipping a Bash call with `if [ … ]` or `while [ … ]` in it** (0.6.0's check threw on the `[` and the hook stayed silent, so the call ran unchecked; 0.6.2 is 0.6.1's code, published again): [docs/guardrails.md](guardrails.md#the-test-command-after-a-reserved-word-061), [CHANGELOG: 0.6.1](../CHANGELOG.md#061---2026-09-30), [0.6.2](../CHANGELOG.md#062---2026-09-30).
 - **0.6.3 fixes what you see, not what is saved, recalled or checked:** `jevmem doctor` shows the plugin synced from claude.ai once, its newest copy, where an update had left the previous copy beside it and doctor listed both; the [limits](limits.md#honest-limits) and the [upgrade notes](upgrading.md) say what an open session loses when that plugin updates, and what to do; `scripts/eval.mjs` records the version of the build it measured ([CHANGELOG](../CHANGELOG.md#063---2026-09-30)).
+- **0.6.4 is docs only:** the README is rewritten short, with graphics, and what moved out of it is on this page, [install.md](install.md), [upgrading.md](upgrading.md) and [limits.md](limits.md); nothing changes in what jevmem saves, recalls or checks ([CHANGELOG](../CHANGELOG.md#064---2026-10-01)).
 
 ## Earlier releases
 
