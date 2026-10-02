@@ -97,7 +97,7 @@ You need a [TypeSafe API key](https://console.typesafe.ai/keys) and Claude Code 
 
 Start Claude Code in that project. `jevmem doctor` checks the setup.
 
-<details><summary>Other ways to install: the jevmem marketplace, npm, Cursor, Codex</summary>
+<details><summary>Other ways to install: the jevmem marketplace, npm, Cursor, Codex, Pi</summary>
 
 From the jevmem marketplace:
 
@@ -118,6 +118,15 @@ jevmem init --tool claude    # or cursor, codex, claude-desktop, all
 
 Already have a `CLAUDE.md`? `jevmem import` shows what it would add from it; `--apply` writes it.
 
+For Pi, initialize each project and install the extension package separately (after this version is published):
+
+```bash
+jevmem init --tool pi
+pi install npm:jevmem                  # or pi install --local npm:jevmem for this project
+```
+
+Restart Pi after installing. The extension does nothing in projects without `jevmem.config.json` (`jevmem enable` or `jevmem init`). In Pi's interactive chat, it shows brief notices with the first recalled memory, the saved or queued memory, or the reason a turn was skipped; these UI notices are not persisted in the session. Completed turns enter the durable queue without waiting for Jev to finish. For a local checkout, run `pnpm build` and load it with `pi -e ./dist/pi-extension.js`. Set `TYPESAFE_API_KEY` in the environment or `~/.jevmem/env`; see [configuration](docs/configuration.md).
+
 Every step, and what to do if the plugin can't find the CLI: [docs/install.md](docs/install.md).
 
 </details>
@@ -127,6 +136,7 @@ Every step, and what to do if the plugin can't find the CLI: [docs/install.md](d
 | | Saving | Bringing it back |
 |---|---|---|
 | **Claude Code** | Automatic, every turn | Automatic, every prompt |
+| **Pi** | Automatic, every turn | Automatic, every prompt |
 | **Codex** | Automatic while `jevmem watch` runs | When the agent asks, over MCP |
 | **Cursor** | When the agent calls it, over MCP | When the agent asks, over MCP |
 | **Claude Desktop** | When you ask it to, over MCP | When you ask it to, over MCP |
@@ -206,7 +216,7 @@ In plain terms, with the third parties' privacy policies and how to delete your 
 - **Early:** 0.6.4, and every test set was written by the author. None is an independent benchmark.
 - **Not the most accurate:** two LLMs scored higher at picking the kind of line. jevmem's edge is speed and cost.
 - **Answer quality isn't measured:** the tests check that the right lines reach Claude, not that its answers get better.
-- **Automatic saving is Claude Code only** (and Codex while `jevmem watch` runs).
+- **Automatic saving is Claude Code and Pi only** (and Codex while `jevmem watch` runs).
 - **The guard looks at shared words:** a rule worded far from the command it should catch can be missed.
 
 Every limit, with the numbers: [docs/limits.md](docs/limits.md).
@@ -226,7 +236,7 @@ Details and measurements: [docs/whats-new.md](docs/whats-new.md) · Upgrading: [
 <details><summary>Commands</summary>
 
 ```text
-jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
+jevmem init [--tool claude|cursor|codex|claude-desktop|pi|all] [--no-hooks] [--command "<cmd>"]
 jevmem init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (plugin users)
 jevmem enable                                  Opt this project in (plugin users): jevmem.config.json, JEVMEM.md, .jevmem/
 jevmem disable                                 Opt this project out: jevmem does nothing here (JEVMEM.md is kept)
