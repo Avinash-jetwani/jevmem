@@ -128,8 +128,8 @@ describe("env fallbacks (no login shell in desktop hooks)", () => {
     const home = tmp();
     fs.mkdirSync(path.join(home, ".jevmem"));
     const f = path.join(home, ".jevmem", "env");
-    fs.writeFileSync(f, '# comment\nexport PATH="$HOME/bin:$PATH"\nexport TYPESAFE_API_KEY=apikey_abc123\nexport SECRET_OTHER=nope\nOPENAI_API_KEY="sk-test-xyz"\n');
-    expect(parseEnvFile(f)).toEqual({ TYPESAFE_API_KEY: "apikey_abc123", OPENAI_API_KEY: "sk-test-xyz" });
+    fs.writeFileSync(f, '# comment\nexport PATH="$HOME/bin:$PATH"\nexport TYPESAFE_API_KEY=example-key_abc123\nexport SECRET_OTHER=nope\nOPENAI_API_KEY="example-key-xyz"\n');
+    expect(parseEnvFile(f)).toEqual({ TYPESAFE_API_KEY: "example-key_abc123", OPENAI_API_KEY: "example-key-xyz" });
     expect(parseEnvFile(path.join(home, "missing"))).toEqual({});
   });
   it("fills only missing variables, project .jevmem/.env first, then ~/.jevmem/env, and reports where each came from", () => {

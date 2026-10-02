@@ -32,7 +32,7 @@ describe("daemon", () => {
   it("answers ping and serves a hook request over the socket, then stops", async () => {
     const root = tmp();
     const prev = process.env.TYPESAFE_API_KEY;
-    process.env.TYPESAFE_API_KEY = prev ?? "test-key";
+    process.env.TYPESAFE_API_KEY = prev ?? "<test key>";
     try {
       const server = await serveDaemon(root, { prewarm: false, idleMs: 60_000, exit: () => {} });
       servers.push(server);
@@ -53,7 +53,7 @@ describe("daemon", () => {
   it("serves a hook whose key is its own, and steps aside for one with another key (key-changed, then it exits)", async () => {
     const root = tmp();
     const prev = { key: process.env.TYPESAFE_API_KEY, base: process.env.TYPESAFE_BASE_URL };
-    process.env.TYPESAFE_API_KEY = "typesafe-test-key-old1";
+    process.env.TYPESAFE_API_KEY = "<old test key>";
     delete process.env.TYPESAFE_BASE_URL;
     let exited = false;
     try {
@@ -63,7 +63,7 @@ describe("daemon", () => {
       // No client (an older hook) and the daemon's own fingerprint are both served.
       expect(await daemonRequest(root, { type: "hook", input })).toMatchObject({ ok: true, type: "hook" });
       expect(await daemonRequest(root, { type: "hook", input, client: jevFingerprint() })).toMatchObject({ ok: true, type: "hook" });
-      const other = jevFingerprint({ TYPESAFE_API_KEY: "typesafe-test-key-new2" });
+      const other = jevFingerprint({ TYPESAFE_API_KEY: "<new test key>" });
       expect(await daemonRequest(root, { type: "drain", client: other })).toEqual({ ok: false, type: "key-changed" });
       await waitFor(() => exited);
       expect(fs.existsSync(path.join(root, ".jevmem", "daemon.json"))).toBe(false);
@@ -80,7 +80,7 @@ describe("daemon", () => {
     const saved = { key: process.env.TYPESAFE_API_KEY, base: process.env.TYPESAFE_BASE_URL, writer: process.env.JEVMEM_WRITER };
     // Jev answers after 400 ms, so a drain reply that comes back sooner did not wait for it.
     const fake = await startFakeJev(() => SAVE_DECISION, { delayMs: 400 });
-    process.env.TYPESAFE_API_KEY = "test-key";
+    process.env.TYPESAFE_API_KEY = "<test key>";
     process.env.TYPESAFE_BASE_URL = fake.url;
     process.env.JEVMEM_WRITER = "none";
     try {

@@ -139,7 +139,7 @@ describe.skipIf(process.platform === "win32")("no TypeSafe key in an enabled pro
     expect([r.status, r.stdout, r.stderr]).toEqual([0, "", ""]);
     const root = tmp();
     init({ root, hooks: false });
-    const env = { PATH: "/usr/bin:/bin", HOME: home, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "typesafe-test-key-0002", TYPESAFE_BASE_URL: "http://127.0.0.1:9", JEVMEM_DAEMON: "0" };
+    const env = { PATH: "/usr/bin:/bin", HOME: home, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "<test key 0002>", TYPESAFE_BASE_URL: "http://127.0.0.1:9", JEVMEM_DAEMON: "0" };
     const withKey = spawnSync(process.execPath, [CLI, "hook", "--plugin"], { cwd: root, env, input: ups(root, "s1"), encoding: "utf8" });
     expect([withKey.status, withKey.stdout]).toEqual([0, ""]);
     expect(fs.existsSync(path.join(root, ".jevmem", "state.json")) && state(root).missingKeyNotice).toBeFalsy();

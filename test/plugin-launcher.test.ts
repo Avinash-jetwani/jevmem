@@ -255,22 +255,22 @@ describe("the API key", () => {
   it("the plugin's typesafe_api_key option wins over TYPESAFE_API_KEY; an unsubstituted ${user_config…} falls back; the key is never written to a file", async () => {
     fake = await startFakeJev(() => SAVE_DECISION);
     const cases = [
-      { opt: "ts-from-userconfig", expect: "ts-from-userconfig" },
-      { opt: "${user_config.typesafe_api_key}", expect: "ts-from-env" },
-      { opt: "", expect: "ts-from-env" },
+      { opt: "<key from user config>", expect: "<key from user config>" },
+      { opt: "${user_config.typesafe_api_key}", expect: "<key from env>" },
+      { opt: "", expect: "<key from env>" },
     ];
     for (const [i, c] of cases.entries()) {
       const root = enabledProject();
       const n = fake.requests.length;
       // Async: a synchronous spawn would block this process, and with it the in-process fake Jev.
-      const r = await runAsync(process.execPath, [CLI, "hook", "--plugin"], { cwd: root, env: { PATH: "/usr/bin:/bin", HOME: tmp(), CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: c.opt, TYPESAFE_API_KEY: "ts-from-env", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0", JEVMEM_DEBUG: "1" }, input: stop(root, `Decision ${i}: we use Postgres 16 for the primary store.`), encoding: "utf8" });
+      const r = await runAsync(process.execPath, [CLI, "hook", "--plugin"], { cwd: root, env: { PATH: "/usr/bin:/bin", HOME: tmp(), CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: c.opt, TYPESAFE_API_KEY: "<key from env>", TYPESAFE_BASE_URL: fake.url, JEVMEM_WRITER: "none", JEVMEM_DAEMON: "0", JEVMEM_DEBUG: "1" }, input: stop(root, `Decision ${i}: we use Postgres 16 for the primary store.`), encoding: "utf8" });
       expect(r.status).toBe(0);
       const got = fake.requests.slice(n).map((q) => String(q.headers.authorization ?? q.headers["x-api-key"] ?? ""));
       expect(got.length).toBeGreaterThan(0);
       for (const h of got) expect(h).toContain(c.expect);
       for (const f of files(root)) {
         const body = fs.readFileSync(f, "utf8");
-        expect(body.includes("ts-from-userconfig") || body.includes("ts-from-env"), f).toBe(false);
+        expect(body.includes("<key from user config>") || body.includes("<key from env>"), f).toBe(false);
       }
     }
   });

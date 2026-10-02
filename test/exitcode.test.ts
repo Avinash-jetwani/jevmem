@@ -47,24 +47,24 @@ describe("built CLI hook exits 0", () => {
     const dir = tmp();
     const transcript = path.join(dir, "t.jsonl");
     fs.writeFileSync(transcript, "\u0000garbage{{{\n[not, json\n");
-    const r = runHookCli(JSON.stringify({ hook_event_name: "Stop", transcript_path: transcript, cwd: dir }), { TYPESAFE_API_KEY: "ts-test-invalid", TYPESAFE_BASE_URL: "http://127.0.0.1:9" });
+    const r = runHookCli(JSON.stringify({ hook_event_name: "Stop", transcript_path: transcript, cwd: dir }), { TYPESAFE_API_KEY: "<invalid test key>", TYPESAFE_BASE_URL: "http://127.0.0.1:9" });
     expect(r.status).toBe(0);
   });
 
   it("with a missing transcript file", () => {
-    const r = runHookCli(JSON.stringify({ hook_event_name: "Stop", transcript_path: "/nonexistent/t.jsonl" }), { TYPESAFE_API_KEY: "ts-test-invalid", TYPESAFE_BASE_URL: "http://127.0.0.1:9" });
+    const r = runHookCli(JSON.stringify({ hook_event_name: "Stop", transcript_path: "/nonexistent/t.jsonl" }), { TYPESAFE_API_KEY: "<invalid test key>", TYPESAFE_BASE_URL: "http://127.0.0.1:9" });
     expect(r.status).toBe(0);
   });
 
   it("when Jev is unreachable, and logs the failure", () => {
-    const r = runHookCli(JSON.stringify({ hook_event_name: "Stop", user_message: "We will use Postgres 16 as the primary store." }), { TYPESAFE_API_KEY: "ts-test-invalid", TYPESAFE_BASE_URL: "http://127.0.0.1:9" });
+    const r = runHookCli(JSON.stringify({ hook_event_name: "Stop", user_message: "We will use Postgres 16 as the primary store." }), { TYPESAFE_API_KEY: "<invalid test key>", TYPESAFE_BASE_URL: "http://127.0.0.1:9" });
     expect(r.status).toBe(0);
     const log = fs.readFileSync(path.join(r.cwd, ".jevmem", "log.jsonl"), "utf8");
     expect(log).toMatch(/"ok":false/);
   });
 
   it("on UserPromptSubmit with no memories and an unreachable Jev", () => {
-    const r = runHookCli(JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt: "add a login page" }), { TYPESAFE_API_KEY: "ts-test-invalid", TYPESAFE_BASE_URL: "http://127.0.0.1:9" });
+    const r = runHookCli(JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt: "add a login page" }), { TYPESAFE_API_KEY: "<invalid test key>", TYPESAFE_BASE_URL: "http://127.0.0.1:9" });
     expect(r.status).toBe(0);
   });
 });

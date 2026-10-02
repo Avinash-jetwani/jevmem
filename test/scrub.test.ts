@@ -5,6 +5,7 @@ import { scrubSecrets } from "../src/scrub.js";
 
 describe("scrubSecrets", () => {
   it("redacts common key shapes but keeps the surrounding sentence", () => {
+    // Synthetic example keys in the providers' shapes, not real ones.
     const s = scrubSecrets("Set OPENAI key sk-proj-abcdefghijklmnopqrstuvwxyz0123456789 and ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345 in env.");
     expect(s).not.toContain("sk-proj-abcdefghijklmnopqrstuvwxyz");
     expect(s).not.toContain("ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ");
@@ -57,6 +58,7 @@ describe("env-style and short credentials", () => {
   });
 
   it("redacts npm, Hugging Face, GitLab and short Stripe tokens", () => {
+    // Synthetic example tokens: only their shapes matter.
     for (const t of ["npm_abcdefghijklmnopqrstuvwx12", "hf_abcdefghijklmnopqrstuvwxyz", "glpat-abcdefghijklmnopqrstu", "sk_live_abcdef123456", "rk_test_ABCDEF123456"]) {
       expect(scrubSecrets(`token ${t} here`)).toBe("token [REDACTED] here");
     }
