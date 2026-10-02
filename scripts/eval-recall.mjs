@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Retrieval eval (v0.6 part 3): does recall put the right lines in front of Claude?
+// Retrieval eval, v0.6 part 3: does recall put the right lines in front of Claude?
 //
 //   node scripts/eval-recall.mjs [--set dev|heldout|heldout2] [--build <label>=<package dir> ...] [--tokens <openrouter model>] [--date YYYY-MM-DD]
 //   node scripts/eval-recall.mjs --pkg <package dir> --label <label>      (one build)
