@@ -21,7 +21,7 @@
 //                           (`cat > <tmp>/build.sh <<'EOF' … EOF`), which shares nothing with them
 // The plugin launcher runs with its data folder warm (the CLI path and its guard check cached), the CLI on PATH.
 // Needs TYPESAFE_API_KEY for the Jev case.
-import { execSync, spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -58,7 +58,7 @@ const empty = project(false);
 const withRules = project(true);
 // Git projects: the rules, a committed tree, then a work in progress on top. No global or system git config.
 const gitEnv = { ...process.env, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null", GIT_AUTHOR_NAME: "bench", GIT_AUTHOR_EMAIL: "bench@example.com", GIT_COMMITTER_NAME: "bench", GIT_COMMITTER_EMAIL: "bench@example.com" };
-const git = (root, cmd) => execSync(`git ${cmd}`, { cwd: root, env: gitEnv, stdio: "ignore" });
+const git = (root, args) => execFileSync("git", args, { cwd: root, env: gitEnv, stdio: "ignore" });
 function gitProject({ envIgnored, folders = 0 }) {
   const root = project(true);
   const w = (f, text) => {
@@ -68,9 +68,9 @@ function gitProject({ envIgnored, folders = 0 }) {
   w(".gitignore", `.jevmem/\nnode_modules/\n${envIgnored ? ".env\n" : ""}`);
   for (const f of ["src/checkout/total.ts", "src/components/Badge.tsx", "README.md", "package.json"]) w(f, `// ${f}\n`);
   for (let d = 0; d < folders; d++) for (let i = 0; i < 100; i++) w(`pkg/m${d}/f${i}.ts`, `export const v${i} = ${d};\n`);
-  git(root, "init -q");
-  git(root, "add -A");
-  git(root, "commit -q -m base");
+  git(root, ["init", "-q"]);
+  git(root, ["add", "-A"]);
+  git(root, ["commit", "-q", "-m", "base"]);
   w("src/checkout/total.ts", "// rounded to cents\n");
   w("src/components/Badge.tsx", "// badge colours\n");
   w("src/checkout/discount.ts", "// new\n");
@@ -155,7 +155,7 @@ for (const [lname, l] of Object.entries(launchers)) {
 const jevLat = [withRules, gitUntrackedEnv].flatMap((r) => lib.readLog(r).filter((e) => e.label === "guard" && !e.event && e.ok && !e.cacheHit)).map((e) => e.latencyMs);
 let commit = null;
 try {
-  commit = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim() + (execSync("git status --porcelain src hooks plugin", { encoding: "utf8" }).trim() ? "+dirty" : "");
+  commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim() + (execFileSync("git", ["status", "--porcelain", "src", "hooks", "plugin"], { encoding: "utf8" }).trim() ? "+dirty" : "");
 } catch {
   /* not a git checkout */
 }
