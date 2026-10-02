@@ -76,6 +76,8 @@ const server = http.createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const JEV_URL = `http://127.0.0.1:${server.address().port}`;
+// The key the hooks send to the stand-in Jev: a placeholder, not a key.
+const STAND_IN_KEY = "<stand-in key>";
 
 // ------------------------------------------------------------------ the preload that records the CLI process
 const PRELOAD = path.join(RUN, "preload.cjs");
@@ -138,7 +140,7 @@ async function worker(launcher, w, count, rows) {
       PATH: launcher === "plugin" ? `${bin}:/usr/bin:/bin` : "/usr/bin:/bin",
       HOME: home,
       TMPDIR: tmpdir,
-      TYPESAFE_API_KEY: "<stand-in key>",
+      TYPESAFE_API_KEY: STAND_IN_KEY,
       TYPESAFE_BASE_URL: JEV_URL,
       JEVMEM_DAEMON: "0",
       JEVMEM_WRITER: "none",
