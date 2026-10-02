@@ -47,7 +47,7 @@ The `Dockerfile` at the repository root is for MCP directories that inspect a se
     "jevmem": {
       "command": "npx",
       "args": ["-y", "jevmem", "mcp", "--root", "/absolute/path/to/your-project"],
-      "env": { "TYPESAFE_API_KEY": "your-key" }
+      "env": { "TYPESAFE_API_KEY": "<your TypeSafe API key>" }
     }
   }
 }
@@ -61,7 +61,7 @@ The `Dockerfile` at the repository root is for MCP directories that inspect a se
 [mcp_servers.jevmem]
 command = "npx"
 args = ["-y", "jevmem", "mcp"]
-env = { TYPESAFE_API_KEY = "your-key" }
+env = { TYPESAFE_API_KEY = "<your TypeSafe API key>" }
 ```
 
 `jevmem init --tool codex` writes this section without the `env` line; the server then reads the key from `~/.jevmem/env` (jevmem does not read shell profiles). That needs jevmem 0.5.8 or later: 0.5.7's server read only its own environment, so with 0.5.7 keep the `env` line. Or from the CLI: `codex mcp add jevmem -- npx -y jevmem mcp`.

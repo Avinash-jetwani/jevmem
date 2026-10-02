@@ -55,6 +55,9 @@ describe("tool setup", () => {
     const mcp = JSON.parse(fs.readFileSync(path.join(root, ".cursor", "mcp.json"), "utf8"));
     expect(mcp.mcpServers.other.command).toBe("x");
     expect(mcp.mcpServers.jevmem.args).toEqual(["-y", "jevmem", "mcp"]);
+    // Cursor expands this reference itself; jevmem writes it as it is.
+    expect(Object.values(mcp.mcpServers.jevmem.env)).toEqual(["${env:TYPESAFE_API_KEY}"]);
+    expect(Object.keys(mcp.mcpServers.jevmem.env)).toEqual(["TYPESAFE_API_KEY"]);
     const rule = fs.readFileSync(path.join(root, ".cursor", "rules", "jevmem.mdc"), "utf8");
     expect(rule).toMatch(/^---\n/);
     expect(rule).toContain("search_memory");
@@ -111,6 +114,8 @@ describe("tool setup", () => {
     const snip = JSON.parse(claudeDesktopSnippet("/p/x"));
     expect(snip.mcpServers.jevmem.args).toEqual(["-y", "jevmem", "mcp", "--root", "/p/x"]);
     expect(snip.mcpServers.jevmem.cwd).toBeUndefined();
+    // The key is a placeholder to replace, in brackets so it reads as one.
+    expect(Object.values(snip.mcpServers.jevmem.env)).toEqual(["<your TypeSafe API key>"]);
   });
 });
 

@@ -33,6 +33,8 @@ export function detectTools(root: string): Tool[] {
 }
 
 const MCP_ENTRY = { command: "npx", args: ["-y", "jevmem", "mcp"] };
+/** Cursor reads the key from its own environment: this reference is written to `.cursor/mcp.json` as it is, not expanded by jevmem. */
+const CURSOR_KEY_REFERENCE = "${env:TYPESAFE_API_KEY}";
 
 export const CURSOR_RULE = `---
 description: Project memory via Jevmem (JEVMEM.md). Use the jevmem MCP tools to read and write it.
@@ -106,7 +108,7 @@ export function setupCursor(root: string): ToolSetupResult {
   const mcp = readJson(mcpFile);
   mcp.mcpServers ??= {};
   if (!mcp.mcpServers.jevmem) {
-    mcp.mcpServers.jevmem = { ...MCP_ENTRY, env: { TYPESAFE_API_KEY: "${env:TYPESAFE_API_KEY}" } };
+    mcp.mcpServers.jevmem = { ...MCP_ENTRY, env: { TYPESAFE_API_KEY: CURSOR_KEY_REFERENCE } };
     fs.writeFileSync(mcpFile, JSON.stringify(mcp, null, 2) + "\n");
     r.created.push(".cursor/mcp.json (jevmem server)");
   } else r.skipped.push(".cursor/mcp.json (jevmem server)");
@@ -168,7 +170,7 @@ export function setupCodex(root: string, home = os.homedir(), announce?: Announc
 
 /** Claude Desktop has one global config and no project working directory, so the project is passed with `--root`. */
 export function claudeDesktopSnippet(root: string): string {
-  return JSON.stringify({ mcpServers: { jevmem: { command: "npx", args: ["-y", "jevmem", "mcp", "--root", root], env: { TYPESAFE_API_KEY: "your-key" } } } }, null, 2);
+  return JSON.stringify({ mcpServers: { jevmem: { command: "npx", args: ["-y", "jevmem", "mcp", "--root", root], env: { TYPESAFE_API_KEY: "<your TypeSafe API key>" } } } }, null, 2);
 }
 
 export function setupClaudeDesktop(root: string): ToolSetupResult {
