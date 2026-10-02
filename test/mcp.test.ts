@@ -37,6 +37,7 @@ describe("MCP add_memory goes through scrub → decide → write", () => {
     const root = project();
     const jev = mockJev(() => SAVE_DECISION);
     const { add } = await connect(root, jev);
+    // A made-up password and a synthetic example token in GitHub's shape, not real ones.
     const r = await add("Deploy key is DB_PASSWORD=hunter2 and token ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789; we use Postgres 16.");
     expect(r.isError).toBe(false);
     expect(r.body.note).toContain("redacted");

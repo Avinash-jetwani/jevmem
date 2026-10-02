@@ -71,6 +71,7 @@ describe("Stop hook", () => {
       [
         JSON.stringify({ type: "user", message: { role: "user", content: "earlier prompt" } }),
         JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "earlier answer" }] } }),
+        // The key in this turn is a synthetic example in OpenAI's shape, not a real one.
         JSON.stringify({ type: "user", message: { role: "user", content: "Deploy needs OPENAI key sk-proj-abcdefghijklmnopqrstuvwxyz0123456789; we must stay on Node 20." } }),
         JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "x", name: "Bash", input: {} }] } }),
         JSON.stringify({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: "x", content: "ok" }] } }),

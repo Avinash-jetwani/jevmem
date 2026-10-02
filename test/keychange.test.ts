@@ -106,11 +106,11 @@ describe.skipIf(process.platform === "win32")("a key replaced while the warm dae
   }
 
   it("the fingerprint is a hash of the key and base URL, never the key", () => {
-    const a = jevFingerprint({ TYPESAFE_API_KEY: "typesafe-test-key-old1" });
+    const a = jevFingerprint({ TYPESAFE_API_KEY: "<old test key>" });
     expect(a).toMatch(/^[0-9a-f]{16}$/);
-    expect(a).not.toBe(jevFingerprint({ TYPESAFE_API_KEY: "typesafe-test-key-new2" }));
-    expect(a).not.toBe(jevFingerprint({ TYPESAFE_API_KEY: "typesafe-test-key-old1", TYPESAFE_BASE_URL: "http://127.0.0.1:9" }));
-    expect(a).toBe(jevFingerprint({ TYPESAFE_API_KEY: " typesafe-test-key-old1 " }));
+    expect(a).not.toBe(jevFingerprint({ TYPESAFE_API_KEY: "<new test key>" }));
+    expect(a).not.toBe(jevFingerprint({ TYPESAFE_API_KEY: "<old test key>", TYPESAFE_BASE_URL: "http://127.0.0.1:9" }));
+    expect(a).toBe(jevFingerprint({ TYPESAFE_API_KEY: " <old test key> " }));
   });
 });
 

@@ -108,12 +108,13 @@ describe("writer", () => {
       return new Response(JSON.stringify({ choices: [{ message: { content: "  Use Postgres 16 as the primary store; SQLite locked under load.\nextra line" } }] }), { status: 200 });
     };
     const env = { OPENAI_API_KEY: "test" } as any;
+    // The key in the turn is a synthetic example in OpenAI's shape, not a real one.
     const { line, writerUsed } = await composeLine("USER: switch to Postgres 16. Key sk-proj-abcdefghijklmnopqrstuvwxyz0123456789", "decision", { writer: { ...DEFAULT_CONFIG.writer, provider: "openai" }, env, fetchImpl });
     expect(writerUsed).toBe("openai");
     expect(line).toBe("Use Postgres 16 as the primary store; SQLite locked under load.");
     expect(seen[0].url).toBe("https://api.openai.com/v1/chat/completions");
     expect(seen[0].body.model).toBe("gpt-5-mini");
-    expect(JSON.stringify(seen[0].body)).not.toContain("sk-proj-abcdefghijklmnop");
+    expect(JSON.stringify(seen[0].body)).not.toContain("sk-proj-abcdefghijklmnop"); // the example key, scrubbed
   });
 
   it("uses Anthropic when the config chooses it, and falls back on HTTP errors", async () => {

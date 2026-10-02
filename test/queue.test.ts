@@ -39,7 +39,7 @@ async function outage(status: number, failures: number, answer: (state: any) => 
     }
     return answer(state) as any;
   });
-  process.env.TYPESAFE_API_KEY = "test-key";
+  process.env.TYPESAFE_API_KEY = "<test key>";
   process.env.TYPESAFE_BASE_URL = fake.url;
   process.env.JEVMEM_CACHE = "0";
   return fake;

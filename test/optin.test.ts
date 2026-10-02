@@ -68,11 +68,11 @@ function env(root: string, home: string, extra: Record<string, string> = {}): Re
     HOME: home,
     CLAUDE_PROJECT_DIR: root,
     JEVMEM_DAEMON: "0",
-    TYPESAFE_API_KEY: "test-key",
+    TYPESAFE_API_KEY: "<test key>",
     TYPESAFE_BASE_URL: jev!.url,
-    OPENAI_API_KEY: "sk-test-openai",
+    OPENAI_API_KEY: "<test OpenAI key>",
     OPENAI_BASE_URL: `${llm!.url}/v1`,
-    ANTHROPIC_API_KEY: "sk-ant-test",
+    ANTHROPIC_API_KEY: "<test Anthropic key>",
     ANTHROPIC_BASE_URL: llm!.url,
     ...extra,
   };
@@ -215,7 +215,7 @@ describe("jevmem doctor", () => {
     const home = tmp();
     fs.mkdirSync(path.join(home, ".jevmem"));
     fs.writeFileSync(path.join(home, ".jevmem", "env"), "ANTHROPIC_API_KEY=secret-anthropic-value\n");
-    const r = spawnSync(process.execPath, [CLI, "doctor"], { cwd: root, env: { PATH: "/usr/bin:/bin", HOME: home, TYPESAFE_API_KEY: "secret-typesafe-value" }, encoding: "utf8" });
+    const r = spawnSync(process.execPath, [CLI, "doctor"], { cwd: root, env: { PATH: "/usr/bin:/bin", HOME: home, TYPESAFE_API_KEY: "<secret-typesafe-value>" }, encoding: "utf8" });
     expect(r.stdout).toContain("TypeSafe key found (environment)");
     expect(r.stdout).toContain('writer is "anthropic" in jevmem.config.json and ANTHROPIC_API_KEY is set');
     expect(r.stdout + r.stderr).not.toContain("secret-");

@@ -138,7 +138,7 @@ async function worker(launcher, w, count, rows) {
       PATH: launcher === "plugin" ? `${bin}:/usr/bin:/bin` : "/usr/bin:/bin",
       HOME: home,
       TMPDIR: tmpdir,
-      TYPESAFE_API_KEY: "stand-in",
+      TYPESAFE_API_KEY: "<stand-in key>",
       TYPESAFE_BASE_URL: JEV_URL,
       JEVMEM_DAEMON: "0",
       JEVMEM_WRITER: "none",
