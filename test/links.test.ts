@@ -3,15 +3,15 @@
  * in the target (GitHub's slug rules: lowercase, punctuation dropped, spaces to hyphens, `-1`, `-2` for repeats).
  * HTML `src` and `srcset` count as links, and so do absolute links into this repository on GitHub
  * (`https://github.com/Avinash-jetwani/jevmem#…`, `…/blob/main/<path>`, `…/tree/main/<path>`, and
- * `https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/<path>`), which plugin/README.md and the README's
- * header use because the plugin directory and npm show them outside the repository.
+ * `https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/<path>`), which plugin/README.md, plugin/SECURITY.md
+ * and the README's header use because the plugin directory and npm show them outside the repository.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 function docFiles(): string[] {
-  const out = ["README.md", "DEMO.md", "SECURITY.md", "PRIVACY.md", "CONTRIBUTING.md", "DECISIONS.md", "results/README.md", "plugin/README.md", "brand/README.md"].filter((f) => fs.existsSync(f));
+  const out = ["README.md", "DEMO.md", "SECURITY.md", "PRIVACY.md", "CONTRIBUTING.md", "DECISIONS.md", "results/README.md", "plugin/README.md", "plugin/SECURITY.md", "brand/README.md"].filter((f) => fs.existsSync(f));
   const walk = (d: string) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
