@@ -32,7 +32,7 @@ one() { # one() <plugin> -> "<exit_code> <outcome> <stop reached the CLI 0|1>"
   [ -d "$HOME/.nvm" ] && ln -s "$HOME/.nvm" "$t/home/.nvm"
   ( cd "$t/proj" && git init -q && env HOME="$t/home" "$NODE_BIN/node" "$ROOT/dist/cli.js" enable >/dev/null )
   local bin=""; [ "$p" = jmain ] && bin="$W/mainbin:"
-  ( cd "$t/proj" && env -i HOME="$t/home" USER="$USER" PATH="$bin$NODE_BIN:/usr/bin:/bin" TERM=dumb CLAUDE_CONFIG_DIR="$t/cfg" DISABLE_AUTOUPDATER=1 CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN}" \
+  ( cd "$t/proj" && env -i HOME="$t/home" USER="$USER" PATH="$bin$NODE_BIN:/usr/bin:/bin" TERM=dumb CLAUDE_CONFIG_DIR="$t/cfg" DISABLE_AUTOUPDATER=1 "CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN}" \
     "$CLAUDE_BIN" -p "reply with ok" --max-turns 1 --plugin-dir "$W/$p" --output-format stream-json --verbose --include-hook-events < /dev/null > "$t/ev" 2>/dev/null )
   sleep 4
   "$NODE_BIN/node" -e '
