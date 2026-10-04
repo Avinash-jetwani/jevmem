@@ -29,6 +29,10 @@ export const REPO = "https://github.com/Avinash-jetwani/jevmem";
 const RAW = "https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/";
 export const TAGLINE = "Automatic project memory for Claude Code. Also works with Cursor and Codex.";
 export const SHORT = "jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session.";
+// The search engines' ownership checks, for the home page's <head> only: each proves to that engine that the site's
+// owner asked for its reports (Google Search Console; Bing imports the site from Google). They are not trackers: a tag
+// loads nothing, sets no cookie and sends nothing.
+export const VERIFICATION = [{ name: "google-site-verification", content: "Xyo_J2ZkqTQKTX6d2kRwxPfq8hq7QpGogzVTEfN2hcs" }];
 const LIMITS = "site/partials/limits.md";
 const COVER = { file: "assets/cover.png", width: 1280, height: 640 };
 const FONTS = [
@@ -312,7 +316,7 @@ function layout({ page, pages, version, body }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(page.description)}">
-<link rel="canonical" href="${page.url}">
+${home ? VERIFICATION.map((v) => `<meta name="${v.name}" content="${esc(v.content)}">\n`).join("") : ""}<link rel="canonical" href="${page.url}">
 <link rel="alternate" type="text/markdown" href="${page.mdUrl}" title="This page as Markdown">
 <link rel="icon" type="image/svg+xml" href="${BASE}assets/favicon.svg">
 <link rel="preload" href="${BASE}assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>

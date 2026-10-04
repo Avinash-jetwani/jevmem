@@ -2,7 +2,8 @@
  * The docs site (site/build.mjs), built into a temporary folder: every page answers its question in its first
  * paragraph, is dated, links the install steps and the repository, has a Markdown copy, JSON-LD that parses and
  * link-preview tags; every link inside the site lands on a page and an anchor that exist; llms.txt is the repository's
- * file and its links resolve; and nothing is loaded from another host, tracked or hidden.
+ * file and its links resolve; nothing is loaded from another host, tracked or hidden; and the search engines'
+ * ownership tags are in the home page's head only.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -10,7 +11,7 @@ import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const ROOT = path.resolve(".");
-const { build, SITE, BASE, REPO, SHORT } = await import(path.join(ROOT, "site/build.mjs"));
+const { build, SITE, BASE, REPO, SHORT, VERIFICATION } = await import(path.join(ROOT, "site/build.mjs"));
 
 type Page = { path: string; title: string; answer: string; url: string; mdUrl: string; mdPath: string; htmlPath: string; date: string; md: string };
 let out = "";
@@ -123,6 +124,23 @@ describe("the docs site", () => {
       expect(h, p.path).not.toMatch(/<iframe|google-analytics|googletagmanager|gtag\(|plausible|fonts\.googleapis|fonts\.gstatic/i);
       expect(h, p.path).not.toContain("<!--");
       expect(h, p.path).not.toMatch(/display:\s*none|visibility:\s*hidden|font-size:\s*0/);
+    }
+  });
+
+  it("has each search engine's ownership tag once, in the home page's head, and on no other page", () => {
+    expect(VERIFICATION.map((v: { name: string }) => v.name)).toContain("google-site-verification");
+    for (const v of VERIFICATION as { name: string; content: string }[]) {
+      for (const f of [...pages.map((p) => p.htmlPath), "404.html"]) {
+        const h = file(f);
+        if (f === "index.html") {
+          expect(h.slice(0, h.indexOf("</head>")).split(`<meta name="${v.name}" content="${v.content}">`), f).toHaveLength(2);
+          expect(h.split(v.name), f).toHaveLength(2);
+          expect(h.split(v.content), f).toHaveLength(2);
+        } else {
+          expect(h, f).not.toContain(v.name);
+          expect(h, f).not.toContain(v.content);
+        }
+      }
     }
   });
 });
