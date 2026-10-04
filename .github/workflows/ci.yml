@@ -39,8 +39,8 @@ jobs:
         env:
           JEVMEM_DOCKER: ${{ matrix.os == 'ubuntu-latest' && matrix.node == 22 && '1' || '' }}
       - run: node dist/cli.js --version && node dist/cli.js --help > /dev/null
-      # Every measured number in README, docs/, DEMO, SECURITY, the newest CHANGELOG entry, package.json and the CLI
-      # help must trace to a results file listed in results/CURRENT.json.
+      # Every measured number in README, docs/, the docs site's pages (site/, llms.txt), DEMO, SECURITY, the newest
+      # CHANGELOG entry, package.json and the CLI help must trace to a results file listed in results/CURRENT.json.
       - run: node scripts/check-claims.mjs
       # Claude Code updates an installed plugin only when plugin.json "version" changes: it must match package.json.
       - run: node scripts/check-versions.mjs

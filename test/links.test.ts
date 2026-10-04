@@ -5,13 +5,15 @@
  * (`https://github.com/Avinash-jetwani/jevmem#…`, `…/blob/main/<path>`, `…/tree/main/<path>`, and
  * `https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/<path>`), which plugin/README.md, plugin/SECURITY.md
  * and the README's header use because the plugin directory and npm show them outside the repository.
+ * The docs site's sources (site/, llms.txt) are checked too. A `#fragment` into a page of site/pages/ may name a heading
+ * that page includes from another file, so those anchors are left to the site's build (test/site.test.ts).
  */
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 function docFiles(): string[] {
-  const out = ["README.md", "DEMO.md", "SECURITY.md", "PRIVACY.md", "CONTRIBUTING.md", "DECISIONS.md", "results/README.md", "plugin/README.md", "plugin/SECURITY.md", "brand/README.md"].filter((f) => fs.existsSync(f));
+  const out = ["README.md", "DEMO.md", "SECURITY.md", "PRIVACY.md", "CONTRIBUTING.md", "DECISIONS.md", "results/README.md", "plugin/README.md", "plugin/SECURITY.md", "brand/README.md", "llms.txt"].filter((f) => fs.existsSync(f));
   const walk = (d: string) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
@@ -19,7 +21,7 @@ function docFiles(): string[] {
       else if (e.name.endsWith(".md")) out.push(p);
     }
   };
-  if (fs.existsSync("docs")) walk("docs");
+  for (const d of ["docs", "site"]) if (fs.existsSync(d)) walk(d);
   return out;
 }
 
@@ -77,7 +79,7 @@ describe("relative links in README, docs/ and the other public docs", () => {
           broken.push(`${file}: ${link} (no file ${target})`);
           continue;
         }
-        if (frag && target.endsWith(".md") && !slugs(fs.readFileSync(target, "utf8")).has(frag.toLowerCase())) broken.push(`${file}: ${link} (no heading #${frag} in ${target})`);
+        if (frag && target.endsWith(".md") && !target.startsWith(path.join("site", "pages")) && !slugs(fs.readFileSync(target, "utf8")).has(frag.toLowerCase())) broken.push(`${file}: ${link} (no heading #${frag} in ${target})`);
       }
     }
     expect(broken).toEqual([]);
