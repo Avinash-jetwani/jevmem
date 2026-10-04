@@ -3,8 +3,8 @@
 //
 //   node scripts/check-claims.mjs [--verbose]
 //
-// Docs checked: README.md, DEMO.md, SECURITY.md, PRIVACY.md, docs/**/*.md, the newest CHANGELOG.md entry, package.json `description`, and
-// the CLI help text in src/cli-main.ts. A "measured number" is one with a unit: %, ms, s, $, tokens, or an N/M
+// Docs checked: README.md, DEMO.md, SECURITY.md, PRIVACY.md, docs/**/*.md, the docs site's pages (site/**/*.md) and llms.txt,
+// the newest CHANGELOG.md entry, package.json `description`, and the CLI help text in src/cli-main.ts. A "measured number" is one with a unit: %, ms, s, $, tokens, or an N/M
 // count ("4/4"). Each must round-match (at the precision it is written with) a value in a results file listed in
 // results/CURRENT.json, or be in scripts/claims-allow.json (prices, config defaults), which says why for each.
 // JSON results: every aggregate numeric leaf counts (per-row data does not), with unit conversions (fraction → %,
@@ -104,7 +104,7 @@ for (const [unit, vals] of Object.entries(allow.values)) for (const v of vals) (
 function docs() {
   const out = [];
   const add = (file, text, lineOffset = 0) => text.split("\n").forEach((l, i) => out.push({ file, line: i + 1 + lineOffset, text: l }));
-  for (const f of ["README.md", "DEMO.md", "SECURITY.md", "PRIVACY.md"]) add(f, fs.readFileSync(f, "utf8"));
+  for (const f of ["README.md", "DEMO.md", "SECURITY.md", "PRIVACY.md", "llms.txt"]) add(f, fs.readFileSync(f, "utf8"));
   const walk = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
@@ -112,7 +112,7 @@ function docs() {
       else if (e.name.endsWith(".md")) add(p, fs.readFileSync(p, "utf8"));
     }
   };
-  if (fs.existsSync("docs")) walk("docs");
+  for (const d of ["docs", "site"]) if (fs.existsSync(d)) walk(d);
   const cl = fs.readFileSync("CHANGELOG.md", "utf8").split("\n");
   const first = cl.findIndex((l) => /^## /.test(l));
   const next = cl.findIndex((l, i) => i > first && /^## /.test(l));
