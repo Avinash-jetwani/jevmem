@@ -31,7 +31,7 @@ Jev also checks lines that jevmem did not write on your machine, such as a teamm
 
 ## A local model in Jev's place
 
-jevmem was tried once against a local model server, Ollaya 0.9.0, on an Apple M4 with 16 GB, on 2026-10-02, next to a Jev run of the same set the same afternoon. On the 66 held-out turns, in jevmem's default mode, Jev was right on save or skip for 65/66 at a median of 0.23 s a turn; `winnow:e4b` for 60/66 at 28.5 s; `laya:typed-decisions` for 19/66. This was one run each on one Mac, with two models, on a set written for Jev's behaviour, and the files of that test are not in the repository. A local model is not a supported mode ([FAQ](faq.md#can-jevmem-run-on-a-local-model)).
+jevmem was tried once against a local model server, Ollaya 0.9.0, on an Apple M4 with 16 GB, on 2026-10-02, next to a Jev run of the same set the same afternoon. On the 66 held-out turns, in jevmem's default mode, Jev was right on save or skip for 65/66 at a median of 0.23 s a turn; `winnow:e4b` for 60/66 at 28.5 s; `laya:typed-decisions` for 19/66. This was one run each on one Mac, with two models, on a set written for Jev's behaviour ([Jev](../../results/local-model-2026-10-02-jev.json), [winnow:e4b](../../results/local-model-2026-10-02-winnow-e4b.json), [laya:typed-decisions](../../results/local-model-2026-10-02-laya-typed-decisions.json)). A local model is not a supported mode ([FAQ](faq.md#can-jevmem-run-on-a-local-model)).
 
 ## Set it up
 

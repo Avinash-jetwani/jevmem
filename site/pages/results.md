@@ -46,7 +46,9 @@ On the second retrieval held-out set (90 prompts over three new projects of 20, 
 
 Not well enough to offer, in the one test so far. On 2026-10-02, jevmem 0.6.4 was pointed at a local model server, Ollaya 0.9.0, on an Apple M4 with 16 GB, next to a Jev run of the same set the same afternoon. On the 66 held-out turns, in jevmem's default mode, Jev was right on save or skip for 65/66 turns at a median of 0.23 s a turn; `winnow:e4b` for 60/66 at 28.5 s; `laya:typed-decisions` for 19/66.
 
-**Limits.** One run each, on one Mac, with two models. The set was written for Jev's behaviour. `winnow:e4b` was measured on these 66 turns only, not on recall or the guard. The scripts and results files of this test are not in the repository.
+The results files: [Jev](../../results/local-model-2026-10-02-jev.json), [winnow:e4b](../../results/local-model-2026-10-02-winnow-e4b.json), [laya:typed-decisions](../../results/local-model-2026-10-02-laya-typed-decisions.json). The commands as run: [scripts/local-model-jev.sh](../../scripts/local-model-jev.sh), [scripts/local-model-ollaya.sh](../../scripts/local-model-ollaya.sh).
+
+**Limits.** One run each, on one Mac, with two models. The set was written for Jev's behaviour. Both local models needed the client's timeout raised from 10 s to 180 s. `winnow:e4b` was measured on these 66 turns only, not on recall or the guard.
 
 ## What these results do not show
 
