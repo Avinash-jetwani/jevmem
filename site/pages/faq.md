@@ -27,7 +27,7 @@ Both are input tokens at $0.042 per million, the price in TypeSafe's launch post
 
 Not as a supported mode. It was tried once, on 2026-10-02, with a local model server, Ollaya 0.9.0, on an Apple M4 with 16 GB, next to a Jev run of the same set the same afternoon. On the 66 held-out turns, in jevmem's default mode, Jev was right on save or skip for 65/66 turns at a median of 0.23 s a turn; `winnow:e4b` for 60/66 at 28.5 s; `laya:typed-decisions` for 19/66.
 
-The limits of that test: one run each, on one Mac, with two models; the set was written for Jev's behaviour; `winnow:e4b` was measured on these 66 turns only, not on recall or the guard; and the scripts and results files are not in the repository.
+The results files: [Jev](../../results/local-model-2026-10-02-jev.json), [winnow:e4b](../../results/local-model-2026-10-02-winnow-e4b.json), [laya:typed-decisions](../../results/local-model-2026-10-02-laya-typed-decisions.json). The limits of that test: one run each, on one Mac, with two models; the set was written for Jev's behaviour; and `winnow:e4b` was measured on these 66 turns only, not on recall or the guard.
 
 ## Does my team get the memory through git?
 
