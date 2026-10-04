@@ -1,8 +1,10 @@
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/brand/lockup/svg/jevmem-lockup-horizontal-dark.svg"><img alt="jevmem" src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/brand/lockup/svg/jevmem-lockup-horizontal-light.svg" height="64"></picture>
 
-**Say it once.** jevmem writes down what you decide in Claude Code and brings it back next session.
+**Say it once.** jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session. Before Claude runs a command or edits a file, it checks the call against your saved rules. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry, and works with Cursor and Codex over MCP.
 
 In Anthropic's Claude plugin directory · On the [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.Avinash-jetwani/jevmem) · Open source, MIT
+
+The docs site, one page per question: [avinash-jetwani.github.io/jevmem](https://avinash-jetwani.github.io/jevmem/)
 
 [![npm version](https://img.shields.io/npm/v/jevmem.svg)](https://www.npmjs.com/package/jevmem)
 [![license](https://img.shields.io/npm/l/jevmem.svg)](LICENSE)
