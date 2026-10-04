@@ -1,6 +1,8 @@
-"""README graphics for jevmem: how it works, the guard, the A/B results. Light and dark of each.
+"""README graphics for jevmem, five of them: how it works, the guard, the A/B results, how it decides, the benchmark.
+Light and dark of each.
 usage: python3 make_svgs.py <outdir>   (writes docs/img/*.svg under it)
-Every number drawn here is in README.md on main (471bc41)."""
+Every measured number drawn here is from README.md at commit 471bc41 (v0.6.3), and the README has had the same
+numbers since. The benchmark's times are that README's milliseconds drawn as seconds, to two places."""
 import sys, os
 from xml.sax.saxutils import escape as esc
 
