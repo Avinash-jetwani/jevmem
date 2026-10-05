@@ -38,7 +38,7 @@ On the second retrieval held-out set (90 prompts over three new projects of 20, 
 
 ## Dead ends, background subagents and planted lines
 
-- **Dead ends.** On decide's third held-out set (100 turns in five new projects, run on the release build on 2026-09-30), jevmem saved 25 of 25 dead ends, each with its reason ([results](../../results/dead-ends-heldout-v3-2026-09-30-v060.json)).
+- **Dead ends.** On decide's third held-out set (100 turns in five new projects, run on the 0.6.5 build on 2026-10-05, with the same counts as on 0.6.0 on 2026-09-30), jevmem saved 25 of 25 dead ends, each with its reason ([results](../../results/dead-ends-heldout-v3-2026-10-05-v065.json)). When Claude's reply gives the verdict first and the cause last, 0.6.5 keeps the cause: on 13 held-out dead ends written in that style (2026-10-05), 12 lines kept the reason with the reply given to the writer, against 2 in 0.6.4 ([0.6.5](../../results/cause-last-heldout-2026-10-05-v065.json), [0.6.4](../../results/cause-last-heldout-2026-10-05-v064.json)). With deciding in front, 6 of the 13 were saved as dead ends, each with its reason; in the other 7 jevmem did not read Claude's reply, as in 0.6.4.
 - **Background subagents.** On 30 real Claude Code 2.1.281 sessions, 14 of them with a background subagent, replayed through the 0.6.0 build on 2026-09-30, turns were saved or skipped right in 32 of 33 (0.5.9: 27 of 33) ([results](../../results/stops-heldout-v4-2026-09-30-v060.json)).
 - **Planted lines.** On a 44-line test set (2026-09-25), the check on lines jevmem did not write blocked 20 of 22 planted lines, with 0 false blocks on 22 legitimate rules; the 2 it missed were instructions disguised as normal process ([results](../../results/memory-injection-2026-09-25-run1.json)).
 

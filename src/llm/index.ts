@@ -269,12 +269,41 @@ export function extractDeadEnd(message: string, maxChars: number): string {
   return composeDeadEnd(pool.slice(Math.max(0, pool.findIndex((s) => ATTEMPT.test(s)))), maxChars);
 }
 
+/** Which of a line's sentences states the memory, and whether Jev said that sentence holds its own reason (src/pick.ts). */
+export interface PickedRoles {
+  /** The index of the sentence that states the memory (what was tried, what works now); the first when absent. */
+  main?: number;
+  /** Jev's first answer to the reason question was that sentence itself. */
+  ownReason?: boolean;
+}
+
+const squashed = (s: string) => s.replace(/\s+/g, " ").trim();
+
+/**
+ * The picked sentences with the main one first, when Jev said it holds its own reason and they do not fit in `maxChars`
+ * as written: the cut then falls on the other sentence, not on the reason. Otherwise as written: with the reason in
+ * another sentence, text order is what a dead end's line keeps ("X has been a mess: … . Y replaces it" names X first,
+ * though Y's sentence is the one Jev says states the memory; eval/dead-ends-dev-v3.jsonl).
+ */
+function mainFirst(sentences: string[], maxChars: number, roles: PickedRoles): string[] {
+  return roles.ownReason && squashed(sentences.join(" ")).length > maxChars ? leadWith(sentences, roles.main) : sentences;
+}
+
+/** The sentences with the one at `main` moved to the front. */
+function leadWith(sentences: string[], main = 0): string[] {
+  return main > 0 && main < sentences.length ? [sentences[main]!, ...sentences.filter((_, i) => i !== main)] : sentences;
+}
+
 /**
  * A dead-end line from its sentences, in order (the first says what was tried): the clauses while they fit in `maxChars`,
  * keeping the reason. Used on the sentences `extractDeadEnd` takes from the turn, and on the ones Jev picked (v0.6 part 3c).
+ * With Jev's pick, `roles` says which sentence states the memory and whether it holds its own reason: when it does and
+ * the sentences do not fit as written, it goes first ("It didn't work, so I'm dropping the idea. I ran X, and it failed
+ * because Y" keeps the second sentence, not the verdict). When the attempt's sentence gives its cause last and is
+ * longer than the line, the cut keeps the cause (`keepCause`).
  */
-export function composeDeadEnd(sentences: string[], maxChars: number): string {
-  const [first, ...rest] = sentences;
+export function composeDeadEnd(sentences: string[], maxChars: number, roles: PickedRoles = {}): string {
+  const [first, ...rest] = mainFirst(sentences, maxChars, roles);
   if (first === undefined) return "";
   // Without "I tried" first, so what follows has that much more room.
   const attempt = leadingTried(first);
@@ -311,6 +340,15 @@ export function composeDeadEnd(sentences: string[], maxChars: number): string {
     }
     break;
   }
+  // The cut fell inside the attempt's own sentence, before the cause it gives last ("I ran X on Y and it failed with Z,
+  // because A and B"): nothing of a later sentence is in the line either, so the cause stays and something else goes.
+  // Whichever sentence Jev named as the reason: on one real reply its first answer was the attempt's sentence in some
+  // runs and the next sentence in others, and the next sentence never fits behind a sentence longer than the line.
+  // Not when the sentence has a "but" clause: the clause after "but" is its reason, kept above.
+  if (!own && squashed(line).length <= squashed(attempt).length) {
+    const cause = causeAt(attempt);
+    if (cause && !squashed(line).includes(squashed(attempt.slice(cause.at + cause.length)).slice(0, 24))) line = keepCause(attempt, maxChars) ?? line;
+  }
   const next = rest[0];
   if (next && line.length <= attempt.length && !MORE_THAN_THE_ATTEMPT.test(attempt)) {
     const after = clampLine(next, Math.floor(maxChars * 0.65));
@@ -341,6 +379,101 @@ function afterBut(s: string): string | null {
       const m = /^,\s+but\s+(?=\S)/i.exec(s.slice(i));
       if (m) return s.slice(i + m[0].length);
     }
+  }
+  return null;
+}
+
+/**
+ * Where a sentence turns to the cause of what it reports: at "because", "due to" or "owing to", and at ", since" or
+ * ", given that" (after a comma: "since" also dates things), outside code spans, quotes and parentheses. `at` is where
+ * the text before it ends, `length` covers the comma, the spaces and the word. Null when the sentence has none.
+ */
+function causeAt(s: string): { at: number; length: number } | null {
+  let depth = 0;
+  let code = false;
+  let quote = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]!;
+    if (c === "`") code = !code;
+    else if (code) continue;
+    else if (c === '"') quote = !quote;
+    else if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth = Math.max(0, depth - 1);
+    else if ((c === "," || c === " ") && depth === 0 && !quote && i > 0 && s[i - 1] !== ",") {
+      const m = /^,?\s+(?:because|due to|owing to)\s+(?=\S)/i.exec(s.slice(i)) ?? /^,\s+(?:since|given that)\s+(?=\S)/i.exec(s.slice(i));
+      if (m) return { at: i, length: m[0].length };
+    }
+  }
+  return null;
+}
+
+/**
+ * A cause in at most `max` characters: cut at one of its clause ends (`fitClause`), else before an " and " that adds a
+ * second cause or a second verb ("the cache drops keys under memory pressure" without "and gives no warning"), outside
+ * code spans, quotes and parentheses and never inside "between A and B" or "both A and B". At least 30 characters, or null.
+ */
+function fitCause(cause: string, max: number): string | null {
+  const cut = fitClause(cause, max);
+  if (cut) return cut;
+  let depth = 0;
+  let code = false;
+  let quote = false;
+  let at = -1;
+  for (let i = 0; i < cause.length && i <= max; i++) {
+    const c = cause[i]!;
+    if (c === "`") code = !code;
+    else if (code) continue;
+    else if (c === '"') quote = !quote;
+    else if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth = Math.max(0, depth - 1);
+    else if (depth === 0 && !quote && i >= 30 && cause.startsWith(" and ", i) && !/\b(?:between|both)\b[^,;:]*$/i.test(cause.slice(0, i))) at = i;
+  }
+  return at < 0 ? null : cause.slice(0, at).replace(/[\s,;:]+$/, "");
+}
+
+/**
+ * A sentence longer than the line that gives its cause last, cut so that the cause stays: the sentence as written up to
+ * the cause, and the cause cut at one of its own clause ends or before an " and " (`fitCause`: "…, because the file
+ * declares an enum at line 1" without "and strip-only mode cannot handle enums"); when that leaves the cause no room,
+ * what was tried (the longest cut of the text before the cause, at a clause's end, that leaves room) and the cause
+ * after a colon, as a dead-end line often reads ("I ran X on Y: the file declares an enum"). Null when the sentence has
+ * no such clause or nothing fits.
+ */
+function keepCause(sentence: string, maxChars: number): string | null {
+  const c = causeAt(sentence);
+  if (!c) return null;
+  const tidy = (t: string) => t.replace(/[\s,;:—–-]+$/, "");
+  const head = sentence.slice(0, c.at);
+  const marker = sentence.slice(c.at, c.at + c.length);
+  const cause = sentence.slice(c.at + c.length).replace(/[.!]+$/, "");
+  const enough = (cut: string | null): cut is string => cut !== null && cut.length >= Math.min(30, cause.length);
+  const whole = fitCause(cause, maxChars - head.length - marker.length);
+  if (enough(whole)) return `${head}${marker}${whole}`;
+  const ats = [...clauseEnds(head).filter((e) => e.strong).map((e) => e.at), ...[...head.matchAll(AND_CLAUSE)].map((m) => m.index!)];
+  const heads = [...new Set(ats.map((at) => tidy(head.slice(0, at))))].filter((h) => h.length >= 20).sort((a, b) => b.length - a.length);
+  for (const h of heads) {
+    const cut = fitCause(cause, maxChars - h.length - 2);
+    if (enough(cut)) return `${h}: ${cut}`;
+  }
+  return null;
+}
+
+/**
+ * A works-now sentence longer than the line that says what was changed last, after ", so" ("The enum was the blocker,
+ * since strip-only mode only erases types, so I replaced it with a const object"): what the sentence opens with (its
+ * longest cut at a clause's end that leaves room) and the clause after ", so", as the dead end's "but" clause is kept.
+ * Null when the sentence has no such clause or nothing fits.
+ */
+function keepResult(sentence: string, maxChars: number): string | null {
+  const m = /,\s+so\s+(?=\S)/i.exec(sentence);
+  if (!m || clauseEnds(sentence).every((e) => e.at !== m.index)) return null;
+  const tidy = (t: string) => t.replace(/[\s,;:—–-]+$/, "");
+  const head = sentence.slice(0, m.index);
+  const result = sentence.slice(m.index + m[0].length).replace(/[.!]+$/, "");
+  const heads = [head, ...clauseEnds(head).filter((e) => e.strong).map((e) => tidy(head.slice(0, e.at)))].filter((h) => h.length >= 20).sort((a, b) => b.length - a.length);
+  for (const h of heads) {
+    const cut = fitClause(result, maxChars - h.length - ", so ".length);
+    if (cut && cut.length >= Math.min(30, result.length)) return `${h}, so ${cut}`;
   }
   return null;
 }
@@ -432,15 +565,28 @@ const wordsOf = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9_]+/).filt
  * it has any (Claude made it work), else the user's, while they fit, past a bare "It works now.". The sentence that
  * names the approach of the dead end (the most words in common with the dead-end line's first clause, what was tried,
  * at least three) goes first, so the line says what works now and then what changed, and a later prompt about that
- * approach finds it. With `picked`, the sentences Jev picked (v0.6 part 3c), those are the statements.
+ * approach finds it. With `picked`, the sentences Jev picked (v0.6 part 3c), those are the statements; `roles` says
+ * which of them states what works now: when they do not fit as written it goes first, so the cut falls on the other
+ * sentence (a plan Claude wrote before the work, "I'll replace it with …", does not push out "I replaced …"), and when
+ * it says what was changed last, after ", so", and is longer than the line, the cut keeps that clause (`keepResult`).
  */
-export function extractWorksNow(message: string, maxChars: number, deadEnd?: string, picked?: string[]): string {
+export function extractWorksNow(message: string, maxChars: number, deadEnd?: string, picked?: string[], roles: PickedRoles = {}): string {
   let pool: string[];
+  if (picked?.length && squashed(picked.join(" ")).length > maxChars) {
+    // Jev's sentences do not fit as written: the one that states what works now leads, and the cut falls on the other
+    // sentence or keeps the leading one's ", so …" clause.
+    const ordered = leadWith(picked, roles.main);
+    const lead = ordered[0]!;
+    const line = clampLine(ordered.join(" "), maxChars);
+    const so = /,\s+so\s+(?=\S)/i.exec(lead);
+    const dropped = so !== null && !squashed(line).includes(squashed(lead.slice(so.index + so[0].length)).slice(0, 24));
+    return (dropped ? keepResult(lead, maxChars) : null) ?? line;
+  }
   if (picked?.length) pool = picked;
   else {
-    const { roles } = splitRoles(message);
-    const reply = roles.filter((r) => r.role === "assistant").flatMap((r) => factsOf(r.text));
-    pool = reply.length ? reply : roles.filter((r) => r.role === "user").flatMap((r) => factsOf(r.text));
+    const { roles: sides } = splitRoles(message);
+    const reply = sides.filter((r) => r.role === "assistant").flatMap((r) => factsOf(r.text));
+    pool = reply.length ? reply : sides.filter((r) => r.role === "user").flatMap((r) => factsOf(r.text));
     if (!pool.length) return extractFirstSentence(message, maxChars, "decision");
     if (pool.length > 1 && pool[0]!.split(/\s+/).length <= 3) pool = pool.slice(1);
   }

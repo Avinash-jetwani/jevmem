@@ -95,13 +95,15 @@ export async function composeLine(message: string, kind: Kind, opts: WriteOption
   }
   const picked = pick?.chosen.length ? pickedTexts(pick) : null;
   const main = pick?.main ? (pick.sentences.find((s) => s.id === pick!.main)?.text ?? "") : "";
+  // Which of the picked sentences states the memory, and whether Jev said it holds its own reason.
+  const roles = pick ? { main: Math.max(0, pick.chosen.indexOf(pick.main ?? "")), ownReason: Boolean(pick.ownReason) } : {};
   const local = picked
     ? retest
       ? combineRetest(retest, message, max, picked)
       : worksNow
-        ? extractWorksNow(message, max, extra.deadEnd, picked)
+        ? extractWorksNow(message, max, extra.deadEnd, picked, roles)
         : kind === "dead-end"
-          ? composeDeadEnd(picked, max)
+          ? composeDeadEnd(picked, max, roles)
           : joinPicked(picked, main, max)
     : retest
       ? combineRetest(retest, message, max)

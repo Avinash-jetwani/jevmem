@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|all|full] [--automemory present|cleared|both|keep] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -11,6 +11,10 @@
 # ~/.jevmem/e2e-oauth-token (E2E_TOKEN_FILE). The harness refuses to run without one.
 # The sessions run with a temporary HOME whose ~/.jevmem/env holds TYPESAFE_API_KEY, copied from the harness's own
 # environment (required): jevmem reads no shell profiles, and a GUI app gives hooks no shell variables.
+# Model: none is set unless --model names one (it is passed to every session as `claude --model NAME`), so a session
+# gets Claude Code's own default, which is what users get. The log's first line names the binary, its version and the
+# pinned model if any; each scenario run ends with the model that served its `claude` runs, read from the sessions' own
+# events, and the log ends with the count per model.
 #
 # Scenarios (default: all = linkguard + handwrite, each run does both; full = all of them but published):
 #   linkguard  five turns in a small project: save, decision, reversal (supersede), thanks, injection
@@ -49,8 +53,8 @@
 #              verified [constraint] line, the kind that can deny. Then, with an untracked .env, Claude is asked to commit
 #              .env: the PreToolUse hook must deny `git add .env` quoting that line, .env must stay out of git, and
 #              Claude's reply must mention the rule. B: a project with no constraints where Claude writes a file and runs
-#              ls and git status: every PreToolUse hook exits 0 with no output. Both: no hook error or timeout in the
-#              transcript; the hook's time per tool call is printed
+#              ls and git status (every Bash call allowed, so only the hooks can stop one): every PreToolUse hook exits
+#              0 with no output. Both: no hook error or timeout in the transcript; the hook's time per tool call is printed
 #   guardgit   what git would commit (`jevmem init` hooks, guard.mode ask, recall injection off, git allowed without
 #              prompts). The rule "Never commit .env files" is saved with `jevmem add` (an unverified line: the prompt's
 #              recall gets its gate verdict), and Claude is asked to commit everything with git add -A && git commit.
@@ -75,24 +79,37 @@
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
 # memory line, or the jevmem footer (i.e. a line the assistant wrote by hand).
 #
-# Env: CLAUDE_BIN (default: newest desktop-bundled binary, else `claude` on PATH), JEVMEM_CLI (default: dist/cli.js),
-#      E2E_SCRATCH (default: a fresh mktemp dir).
+# Env: CLAUDE_BIN (default: newest desktop-bundled binary, see desktop_claude below, else `claude` on PATH),
+#      JEVMEM_CLI (default: dist/cli.js), E2E_SCRATCH (default: a fresh mktemp dir).
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 JEVMEM_CLI="${JEVMEM_CLI:-$ROOT/dist/cli.js}"
-RUNS=1; AUTOMEM="keep"; KEEP=0; SCENARIO="all"
+RUNS=1; AUTOMEM="keep"; KEEP=0; SCENARIO="all"; MODEL=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --runs) RUNS="$2"; shift 2;;
     --scenario) SCENARIO="$2"; shift 2;;
     --automemory) AUTOMEM="$2"; shift 2;;
+    --model) MODEL="$2"; shift 2;;
     --keep-scratch) KEEP=1; shift;;
     *) echo "unknown arg $1"; exit 2;;
   esac
 done
-if [ -z "${CLAUDE_BIN:-}" ]; then
-  CLAUDE_BIN="$(ls -d "$HOME/Library/Application Support/Claude/claude-code/"*/claude.app/Contents/MacOS/claude 2>/dev/null | sort -V | tail -1)"
-  [ -n "$CLAUDE_BIN" ] || CLAUDE_BIN="$(command -v claude)"
+# The desktop app's bundled binary, under ~/Library/Application Support/Claude/claude-code/. Up to 2.1.284 the app kept
+# it in <version>/claude.app/; 2.1.286 is one folder deeper, in <version>/<build>/claude.app/, where the old pattern
+# matched nothing and the harness ran the `claude` on PATH without saying so. Both places are checked: the newest
+# version wins, and within a version the build written last.
+desktop_claude() {
+  local base="$HOME/Library/Application Support/Claude/claude-code" p v
+  ls -dtr "$base"/*/claude.app/Contents/MacOS/claude "$base"/*/*/claude.app/Contents/MacOS/claude 2>/dev/null |
+    while IFS= read -r p; do v="${p#"$base/"}"; printf '%s\t%s\n' "${v%%/*}" "$p"; done |
+    sort -s -t "$(printf '\t')" -k1,1V | tail -1 | cut -f2-
+}
+if [ -n "${CLAUDE_BIN:-}" ]; then
+  CLAUDE_FROM="CLAUDE_BIN"
+else
+  CLAUDE_BIN="$(desktop_claude)"; CLAUDE_FROM="the desktop app's bundled binary"
+  [ -n "$CLAUDE_BIN" ] || { CLAUDE_BIN="$(command -v claude)"; CLAUDE_FROM="the claude on PATH"; }
 fi
 [ -x "$CLAUDE_BIN" ] || { echo "no claude binary (set CLAUDE_BIN)"; exit 2; }
 # The token may also live in a file (default ~/.jevmem/e2e-oauth-token, one line, chmod 600), so it never has to be
@@ -111,12 +128,13 @@ if [ -z "${TYPESAFE_API_KEY:-}" ]; then
   exit 2
 fi
 E2E_CONFIG_DIR="$(mktemp -d /tmp/jevmem-e2e-config.XXXXXX)"
+E2E_MODELS="$(mktemp /tmp/jevmem-e2e-models.XXXXXX)" # one line per `claude` run: which model served it (note_models)
 E2E_NPM=""
 # The sessions' HOME: a temporary one whose ~/.jevmem/env holds the TypeSafe key. A GUI app gives hooks no shell
 # variables and jevmem reads no shell profiles, so this is the only place the key comes from. ~/.nvm is linked so the
 # hooks find Node as they would on this machine.
 E2E_HOME="$(mktemp -d /tmp/jevmem-e2e-home.XXXXXX)"
-trap 'rm -rf "${E2E_CONFIG_DIR:?}" "${E2E_HOME:?}"; [ -n "$E2E_NPM" ] && rm -rf "${E2E_NPM:?}"' EXIT
+trap 'rm -rf "${E2E_CONFIG_DIR:?}" "${E2E_HOME:?}"; rm -f "${E2E_MODELS:?}" "${E2E_MODELS:?}".seen "${E2E_MODELS:?}".err; [ -n "$E2E_NPM" ] && rm -rf "${E2E_NPM:?}"' EXIT
 mkdir -m 700 "$E2E_HOME/.jevmem"
 ( umask 077; printf 'TYPESAFE_API_KEY=%s\n' "$TYPESAFE_API_KEY" > "$E2E_HOME/.jevmem/env" )
 [ -d "$HOME/.nvm" ] && ln -s "$HOME/.nvm" "$E2E_HOME/.nvm"
@@ -130,7 +148,59 @@ claude_session() {
   local extra=()
   while [ $# -gt 0 ] && [ "$1" != "--" ]; do extra+=("$1"); shift; done
   shift
-  env -i HOME="$SESSION_HOME" USER="$USER" PATH="$SESSION_PATH" TERM=dumb CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" DISABLE_AUTOUPDATER=1 "${AUTH_ENV[@]}" ${extra[@]+"${extra[@]}"} "$CLAUDE_BIN" "$@" < /dev/null
+  env -i HOME="$SESSION_HOME" USER="$USER" PATH="$SESSION_PATH" TERM=dumb CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" DISABLE_AUTOUPDATER=1 "${AUTH_ENV[@]}" ${extra[@]+"${extra[@]}"} "$CLAUDE_BIN" ${MODEL:+--model "$MODEL"} "$@" < /dev/null
+  local rc=$?
+  note_models
+  return $rc
+}
+# Which model served the `claude` run that just ended. The harness sets none unless --model names one, so a fresh config
+# dir gets the account's default: in the 0.6.5 gate the failures came from sessions served by claude-fable-5-1 and the
+# passing reruns from claude-sonnet-5-5, and the log could not say which was which. The model is read from the session's
+# own events: the transcript Claude Code keeps in the temporary config dir holds every assistant event with the model
+# the API named, for the runs whose output here is plain text too. Only the lines this run added are read (a --continue
+# run adds to its session's file). One line per run goes to $E2E_MODELS, under the scenario run's label.
+note_models() {
+  "$NODE" - "$E2E_CONFIG_DIR/projects" "$E2E_MODELS" "${E2E_LABEL:-}" 2>> "$E2E_MODELS.err" <<'JS'
+    const fs=require("fs"),path=require("path");const [projects,out,label]=process.argv.slice(2);
+    let seen={};try{seen=JSON.parse(fs.readFileSync(out+".seen","utf8"))}catch{}
+    const models={};const sessions=new Set();
+    for(const p of fs.existsSync(projects)?fs.readdirSync(projects):[]){
+      let files=[];try{files=fs.readdirSync(path.join(projects,p)).filter(f=>f.endsWith(".jsonl"))}catch{}
+      for(const f of files){
+        const file=path.join(projects,p,f);const lines=fs.readFileSync(file,"utf8").split("\n").filter(Boolean);
+        const from=seen[file]<=lines.length?seen[file]:0;seen[file]=lines.length;
+        for(const l of lines.slice(from)){
+          let e;try{e=JSON.parse(l)}catch{continue}
+          // Claude Code's own messages (an API error shown as a reply) carry the model "<synthetic>": no model served those.
+          const m=e.type==="assistant"&&!e.isSidechain?e.message?.model:null;
+          if(m&&m!=="<synthetic>"){models[m]=(models[m]??0)+1;sessions.add(f.slice(0,-6))}
+        }
+      }
+    }
+    fs.writeFileSync(out+".seen",JSON.stringify(seen));
+    fs.appendFileSync(out,JSON.stringify({label,sessions:[...sessions],models})+"\n");
+JS
+}
+# The models behind one scenario run ($1: its label; its `claude` runs are listed in order when they differ), or, with
+# no argument, behind every `claude` run of this harness run: the count per model, and which scenario runs each model
+# served when more than one did.
+models_of() {
+  "$NODE" - "$E2E_MODELS" "${1:-}" <<'JS'
+    const fs=require("fs");const [file,label]=process.argv.slice(2);
+    const rows=fs.readFileSync(file,"utf8").split("\n").filter(Boolean).map(l=>JSON.parse(l)).filter(r=>!label||r.label===label);
+    const name=(r)=>Object.keys(r.models).sort().join(" + ")||"no model (no assistant event)";
+    const by=new Map();for(const r of rows){if(!by.has(name(r)))by.set(name(r),[]);by.get(name(r)).push(r.label)}
+    const sorted=[...by].sort((a,b)=>b[1].length-a[1].length);
+    if(label){
+      console.log(!rows.length?"   served by: no claude run":sorted.length===1?`   served by: ${sorted[0][0]} (all ${rows.length} claude runs)`:`   served by, its ${rows.length} claude runs in order: ${rows.map(name).join(", ")}`);
+      process.exit(0);
+    }
+    for(const [m,labels] of sorted){
+      const where=new Map();for(const l of labels)where.set(l,(where.get(l)??0)+1);
+      console.log(`   ${m}: ${labels.length} of ${rows.length} claude runs${sorted.length>1?` (${[...where].map(([l,n])=>`${l}: ${n}`).join("; ")})`:""}`);
+    }
+    if(!rows.length)console.log("   no claude run");
+JS
 }
 # Prefix each line of a stream with the time it arrived (ms since the epoch and a tab): the guard scenario times hooks
 # from Claude Code's hook_started and hook_response events, which carry no time of their own.
@@ -140,6 +210,10 @@ stamp_lines() { "$NODE" -e 'require("readline").createInterface({input:process.s
 claude_cli() { CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" DISABLE_AUTOUPDATER=1 "$CLAUDE_BIN" "$@"; }
 NODE="$(command -v node)"
 STRIP_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+# What runs the sessions, as the log's first line: a results file made from this log then says it by itself.
+CLAUDE_VERSION="$(claude_cli --version 2>/dev/null | head -1 | sed 's/ (Claude Code)$//')"
+MODEL_NOTE="not pinned (Claude Code's default)"; [ -n "$MODEL" ] && MODEL_NOTE="$MODEL (pinned with --model)"
+echo "Claude Code ${CLAUDE_VERSION:-(version unknown)}: $CLAUDE_BIN ($CLAUDE_FROM); model: $MODEL_NOTE"
 
 LG_PROMPTS=(
   "LinkGuard scores links Safe, Suspicious or Scam using Jev before the user clicks. Keep that as the core."
@@ -721,12 +795,15 @@ JS
     console.log("   ✓ A: the guard denied git add .env quoting the verified rule, .env stayed out of git, and Claude's reply named the rule");
 JS
   ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
-  # B: no constraints.
+  # B: no constraints. Every Bash call is allowed here, so Claude Code's own permission check cannot refuse one: B
+  # checks what jevmem's hooks do with a call, and a refused call fails it. With only `ls` and `git status` allowed,
+  # the 0.6.5 release gate's first run failed B twice on a Bash call Claude Code answered with "This command requires
+  # approval" (the same request sent in another form), though every PreToolUse hook had exited 0 with no output.
   local b="$scratch-b"; rm -rf "$b"; mkdir -p "$b"
   ( cd "$b" && git init -q && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
   local p2="Use the Write tool to create a file notes.txt that contains the word hello. Then run ls in one Bash call, and git status in a separate Bash call. Reply with the first line of the git status output."
   echo "---- B (no constraints): $p2"
-  ( cd "$b" && claude_session -- -p "$p2" --max-turns 8 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits --allowedTools "Bash(ls *)" "Bash(ls)" "Bash(git status*)" 2>&1 | stamp_lines > "$events.b" )
+  ( cd "$b" && claude_session -- -p "$p2" --max-turns 8 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits --allowedTools "Bash" 2>&1 | stamp_lines > "$events.b" )
   "$NODE" - "$events.b" "$b" "$E2E_CONFIG_DIR/projects" <<'JS' || fail=1
     const fs=require("fs");const [evf,root,projdir]=process.argv.slice(2);
     // Each line is "<ms since epoch>\t<event>", stamped as it arrived.
@@ -1230,8 +1307,11 @@ for m in "${modes[@]}"; do
   for r in $(seq 1 "$RUNS"); do
     for sc in "${scenarios[@]}"; do
       out="$(mktemp /tmp/jevmem-e2e-out.XXXXXX)"
+      E2E_LABEL="run $r $sc"; [ "${#modes[@]}" -gt 1 ] && E2E_LABEL="$E2E_LABEL automemory=$m"
       run_once "$r" "$m" "$sc" 2>&1 | tee "$out"
-      if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+      rc="${PIPESTATUS[0]}"
+      models_of "$E2E_LABEL" | tee -a "$out"
+      if [ "$rc" -ne 0 ]; then
         status=1
         { echo "==== $(date -u +%Y-%m-%dT%H:%M:%SZ) FAIL run $r scenario=$sc automemory=$m, commit $(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)$(git -C "$ROOT" status --porcelain src scripts hooks plugin 2>/dev/null | grep -q . && echo +dirty)"; cat "$out"; } >> "$RESULTS/e2e-failures.log"
         echo "   (recorded in $RESULTS/e2e-failures.log)"
@@ -1240,4 +1320,7 @@ for m in "${modes[@]}"; do
     done
   done
 done
+echo "================ models: Claude Code ${CLAUDE_VERSION:-(version unknown)}, model $MODEL_NOTE"
+models_of
+[ -s "$E2E_MODELS.err" ] && { echo "   (reading the sessions' transcripts failed at least once: $(head -1 "$E2E_MODELS.err" | cut -c1-200))"; }
 exit $status

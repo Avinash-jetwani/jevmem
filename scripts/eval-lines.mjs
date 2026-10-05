@@ -2,11 +2,17 @@
 // The text of a saved line (v0.6 part 3c): what a build writes for turns that are saved, judged against labels, and
 // genuine rules stated with an instruction against planted-line turns.
 //
-//   node scripts/eval-lines.mjs [path/to/dist/index.js] [--set dev|heldout|rules-dev|rules-heldout] [--mode auto|fast|full] [--label now] [--out results/…json]
+//   node scripts/eval-lines.mjs [path/to/dist/index.js] [--set dev|heldout|rules-dev|rules-heldout|cause-last-dev|cause-last-heldout] [--mode auto|fast|full] [--label now] [--out results/…json]
 //
 // Sets: eval/lines-dev.jsonl (tuning) and eval/lines-heldout.jsonl (run once at the end, on the final code and on 0.5.9),
 // eval/rules-dev.jsonl (tuning) and eval/rules-heldout.jsonl (run once at the end). Every row is one turn with the
 // project's memory lines.
+// The cause-last sets (0.6.5): replies that give the verdict first and the cause, or what was changed, last.
+// eval/cause-last-dev.jsonl (tuning) holds the real replies of the 0.6.5 release gate's second full run, where a
+// dead-end line lost its reason; eval/cause-last-heldout.jsonl (run once on the fixed build and once on 0.6.4) holds
+// turns written in that style before the writer changed. A row with `worksNow` makes a listed dead end work: its
+// `fact` is the sentence that says what was changed, and the writer-on-the-label step writes it as the hook does for
+// such a turn (the dead end's line given, the line asked for as what works now).
 //
 // Each row goes through the hook's path with the real Jev (warm in-process client, cache off), in a scratch project that
 // holds the row's lines: `decide`, then, when it saves, `writeMemory` with jevmem's own writer (writer.provider none),
@@ -35,7 +41,7 @@ const opt = (n, d) => {
 };
 const distArg = args[0] && !args[0].startsWith("--") ? args[0] : path.resolve("dist/index.js");
 const SET = opt("--set", "dev");
-const FILE = { dev: "eval/lines-dev.jsonl", heldout: "eval/lines-heldout.jsonl", "rules-dev": "eval/rules-dev.jsonl", "rules-heldout": "eval/rules-heldout.jsonl" }[SET];
+const FILE = { dev: "eval/lines-dev.jsonl", heldout: "eval/lines-heldout.jsonl", "rules-dev": "eval/rules-dev.jsonl", "rules-heldout": "eval/rules-heldout.jsonl", "cause-last-dev": "eval/cause-last-dev.jsonl", "cause-last-heldout": "eval/cause-last-heldout.jsonl" }[SET];
 if (!FILE) throw new Error(`unknown --set ${SET}`);
 const RULES = SET.startsWith("rules");
 const MODE = opt("--mode", "auto");
@@ -137,7 +143,8 @@ for (const r of rows) {
       const w0 = performance.now();
       const at = jev.log.length;
       // As writeMemory calls it: a text from the reply alone is cut where decide cuts the reply (an older build ignores it).
-      const c = await lib.composeLine(writerInput(r), r.label.kind, { writer, env: {}, jev }, { fromReply: r.source === "assistant" });
+      const deadEnd = r.worksNow ? r.existing.find((m) => m.id === r.worksNow)?.text : undefined;
+      const c = await lib.composeLine(writerInput(r), r.label.kind, { writer, env: {}, jev }, { fromReply: r.source === "assistant", ...(r.worksNow ? { worksNow: true, deadEnd } : {}) });
       const entries = jev.log.slice(at).filter((e) => !e.event);
       row.writer = { ...judge(r, c.line), pick: c.pick ?? null, pickJudged: judgePick(r, c.pick), note: c.note ?? null, ms: Math.round(performance.now() - w0), calls: entries.length, inputTokens: entries.reduce((a, e) => a + (e.inputTokens ?? 0), 0), failedCalls: entries.filter((e) => !e.ok).length };
     }

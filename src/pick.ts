@@ -27,6 +27,8 @@ export interface Pick {
   main: string | null;
   /** The sentence that gives its reason, when Jev named one (it is left out of `chosen` when the two do not fit). */
   second: string | null;
+  /** Jev's first answer to the reason question was the main sentence itself: that sentence holds its own reason. */
+  ownReason?: boolean;
   /** The request failed or ran past its budget: the line was written without Jev's pick. */
   error?: string;
 }
@@ -48,6 +50,15 @@ const WORKS_NOW = { it: "what works now that had failed before", why: "what was 
 // A retest's line is the earlier line, then "retried:" and the new reason (src/llm/index.ts, combineRetest): what matters
 // is the new reason, so that is what is asked first; what was tried again is already in the earlier line.
 const RETEST = { it: "why the approach failed this time: the new reason", why: "what was tried again" };
+
+/**
+ * When Jev's first answer to the reason question is the main sentence itself, another sentence counts as the reason only
+ * at this probability or more. Below it the runner-up is what is left over, not an answer: on the 0.6.5 gate's replies
+ * (a verdict sentence, then the sentence with the attempt and its cause; eval/cause-last-dev.jsonl) the main sentence
+ * got 0.88 and the verdict before it 0.06, level with the answer for no sentence, and taking the verdict as the reason
+ * used up the line before the cause.
+ */
+export const OTHER_REASON_MIN = 0.2;
 
 /** Most sentences sent in one request (the text a hook passes is capped where decide caps it: 6,000 and 2,000 characters). */
 export const MAX_SENTENCES = 60;
@@ -120,13 +131,16 @@ export async function pickSentences(jev: JevCaller, sentences: Sentence[], kind:
   const known = new Set(sentences.map((s) => s.id));
   const main = known.has(String(a.states_the_memory?.choice)) ? String(a.states_the_memory!.choice) : sentences[0]!.id;
   // The reason: the most likely answer other than the main sentence itself (Jev may put the main one first when it holds
-  // its own reason), and none when none is more likely than every other sentence.
+  // its own reason), and none when none is more likely than every other sentence. When the main sentence is Jev's first
+  // answer, the runner-up also needs OTHER_REASON_MIN: what is left of the probability is not an answer.
   const probs = a.gives_the_reason?.probabilities ?? {};
-  const ranked = Object.entries(probs).filter(([id]) => id !== main && (id === "none" || known.has(id))).sort((x, y) => y[1] - x[1]);
+  const all = Object.entries(probs).filter(([id]) => id === "none" || known.has(id)).sort((x, y) => y[1] - x[1]);
+  const ownReason = (all[0]?.[0] ?? String(a.gives_the_reason?.choice ?? "none")) === main;
+  const ranked = all.filter(([id]) => id !== main);
   const top = ranked[0]?.[0] ?? String(a.gives_the_reason?.choice ?? "none");
-  const second = top !== "none" && top !== main && known.has(top) ? top : null;
+  const second = top !== "none" && top !== main && known.has(top) && (!ownReason || (probs[top] ?? 0) >= OTHER_REASON_MIN) ? top : null;
   const order = (ids: string[]) => sentences.filter((s) => ids.includes(s.id)).map((s) => s.id);
-  return { asked: true, sentences, chosen: order(second ? [main, second] : [main]), main, second };
+  return { asked: true, sentences, chosen: order(second ? [main, second] : [main]), main, second, ...(ownReason ? { ownReason } : {}) };
 }
 
 /** The chosen sentences' texts, in text order, each but the last ending in a full stop when it had no end mark. */

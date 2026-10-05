@@ -1,0 +1,779 @@
+{
+  "kind": "diag-pick-own-reason",
+  "set": "eval/cause-last-dev.jsonl",
+  "date": "2026-10-05",
+  "jevmem_version": "0.6.5",
+  "commit": "314340a",
+  "dist": "dist/index.js",
+  "machine": "darwin arm64, node v22.22.0, Apple M4",
+  "network_path": "direct HTTPS to the TypeSafe API default base URL, warm in-process client, cache off",
+  "summary": {
+    "started_at": "2026-10-05T11:26:34.649Z",
+    "finished_at": "2026-10-05T11:26:39.644Z",
+    "turns": 7,
+    "asksPerTurn": 3,
+    "errors": 0,
+    "all": {
+      "answers": 21,
+      "firstAnswerIsMain": 15,
+      "mainAsReason": {
+        "min": 0.46,
+        "max": 0.92
+      },
+      "runnerUp": {
+        "min": 0.05,
+        "max": 0.45
+      },
+      "none": {
+        "min": 0.02,
+        "max": 0.05
+      },
+      "runnerUpAtLeastNone": 15,
+      "runnerUpUnder0_2": 9,
+      "runnerUpAtLeastNoneAndUnder0_2": 9,
+      "runnerUpAtLeastNoneAndUnder0_2WithTheLabelledReason": 0
+    },
+    "byTag": {
+      "dead-end-cause-last": {
+        "answers": 18,
+        "firstAnswerIsMain": 12,
+        "mainAsReason": {
+          "min": 0.53,
+          "max": 0.92
+        },
+        "runnerUp": {
+          "min": 0.05,
+          "max": 0.42
+        },
+        "none": {
+          "min": 0.02,
+          "max": 0.05
+        },
+        "runnerUpAtLeastNone": 12,
+        "runnerUpUnder0_2": 9,
+        "runnerUpAtLeastNoneAndUnder0_2": 9,
+        "runnerUpAtLeastNoneAndUnder0_2WithTheLabelledReason": 0
+      },
+      "works-now-change-last": {
+        "answers": 3,
+        "firstAnswerIsMain": 3,
+        "mainAsReason": {
+          "min": 0.46,
+          "max": 0.51
+        },
+        "runnerUp": {
+          "min": 0.4,
+          "max": 0.45
+        },
+        "none": {
+          "min": 0.03,
+          "max": 0.03
+        },
+        "runnerUpAtLeastNone": 3,
+        "runnerUpUnder0_2": 0,
+        "runnerUpAtLeastNoneAndUnder0_2": 0,
+        "runnerUpAtLeastNoneAndUnder0_2WithTheLabelledReason": 0
+      }
+    }
+  },
+  "rows": [
+    {
+      "id": "cd-striptypes-001",
+      "tag": "dead-end-cause-last",
+      "subtype": "verdict-attempt-cause-elaboration",
+      "kind": "dead-end",
+      "sentences": [
+        {
+          "id": "s1",
+          "chars": 79,
+          "text": "I'll run the file once with Node's type-stripping flag and report what happens."
+        },
+        {
+          "id": "s2",
+          "chars": 63,
+          "text": "It didn't work, so I'm dropping the idea with no files changed."
+        },
+        {
+          "id": "s3",
+          "chars": 217,
+          "text": "I ran `node --experimental-strip-types src/app.ts` on Node v22.22.0 and it faile"
+        },
+        {
+          "id": "s4",
+          "chars": 37,
+          "text": "The tsc build to `dist/` stays as is."
+        }
+      ],
+      "mainHoldsLabelledReason": true,
+      "asks": [
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.89,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s2",
+            "p": 0.08,
+            "text": "It didn't work, so I'm dropping the idea with no files changed.",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.89,
+            "s2": 0.08,
+            "none": 0.03,
+            "s1": 0,
+            "s4": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.9,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s2",
+            "p": 0.07,
+            "text": "It didn't work, so I'm dropping the idea with no files changed.",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.9,
+            "s2": 0.07,
+            "none": 0.03,
+            "s1": 0,
+            "s4": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.9,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s2",
+            "p": 0.07,
+            "text": "It didn't work, so I'm dropping the idea with no files changed.",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.9,
+            "s2": 0.07,
+            "none": 0.03,
+            "s1": 0,
+            "s4": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "cd-striptypes-002",
+      "tag": "dead-end-cause-last",
+      "subtype": "verdict-attempt-then-cause-sentence",
+      "kind": "dead-end",
+      "sentences": [
+        {
+          "id": "s1",
+          "chars": 76,
+          "text": "I'll run `src/app.ts` once with node's type stripping and report the result."
+        },
+        {
+          "id": "s2",
+          "chars": 91,
+          "text": "It didn't work, so I'm dropping the idea and leaving the tsc build and all files"
+        },
+        {
+          "id": "s3",
+          "chars": 148,
+          "text": "I ran `src/app.ts` once with `node --experimental-strip-types` on Node v22.22.0,"
+        },
+        {
+          "id": "s4",
+          "chars": 197,
+          "text": "The file declares a TypeScript `enum` at the top, and strip-only mode cannot han"
+        }
+      ],
+      "mainHoldsLabelledReason": false,
+      "asks": [
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s4",
+          "firstAnswerIsMain": false,
+          "mainAsReason": 0.08,
+          "none": 0.01,
+          "runnerUp": {
+            "id": "s4",
+            "p": 0.89,
+            "text": "The file declares a TypeScript `enum` at the top, and strip-only mode cannot han",
+            "hasLabelledReason": true
+          },
+          "reason": {
+            "s4": 0.89,
+            "s3": 0.08,
+            "s2": 0.02,
+            "none": 0.01,
+            "s1": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s4",
+          "firstAnswerIsMain": false,
+          "mainAsReason": 0.06,
+          "none": 0.01,
+          "runnerUp": {
+            "id": "s4",
+            "p": 0.91,
+            "text": "The file declares a TypeScript `enum` at the top, and strip-only mode cannot han",
+            "hasLabelledReason": true
+          },
+          "reason": {
+            "s4": 0.91,
+            "s3": 0.06,
+            "s2": 0.02,
+            "none": 0.01,
+            "s1": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s4",
+          "firstAnswerIsMain": false,
+          "mainAsReason": 0.12,
+          "none": 0.01,
+          "runnerUp": {
+            "id": "s4",
+            "p": 0.85,
+            "text": "The file declares a TypeScript `enum` at the top, and strip-only mode cannot han",
+            "hasLabelledReason": true
+          },
+          "reason": {
+            "s4": 0.85,
+            "s3": 0.12,
+            "s2": 0.02,
+            "none": 0.01,
+            "s1": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "cd-striptypes-003",
+      "tag": "dead-end-cause-last",
+      "subtype": "verdict-status-attempt-then-cause-sentence",
+      "kind": "dead-end",
+      "sentences": [
+        {
+          "id": "s1",
+          "chars": 89,
+          "text": "I'll check the Node version and the source file first, then try running it direc"
+        },
+        {
+          "id": "s2",
+          "chars": 41,
+          "text": "It didn't work, so I'm dropping the idea."
+        },
+        {
+          "id": "s3",
+          "chars": 52,
+          "text": "No files were changed and the tsc build stays as is."
+        },
+        {
+          "id": "s4",
+          "chars": 72,
+          "text": "I ran `node --experimental-strip-types src/app.ts` once on Node 22.22.0."
+        },
+        {
+          "id": "s5",
+          "chars": 201,
+          "text": "It failed with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` because the file declares a T"
+        }
+      ],
+      "mainHoldsLabelledReason": false,
+      "asks": [
+        {
+          "main": "s4",
+          "mainStatesFact": true,
+          "firstAnswer": "s5",
+          "firstAnswerIsMain": false,
+          "mainAsReason": 0,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s5",
+            "p": 0.96,
+            "text": "It failed with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` because the file declares a T",
+            "hasLabelledReason": true
+          },
+          "reason": {
+            "s5": 0.96,
+            "none": 0.03,
+            "s2": 0.01,
+            "s1": 0,
+            "s4": 0,
+            "s3": 0
+          }
+        },
+        {
+          "main": "s4",
+          "mainStatesFact": true,
+          "firstAnswer": "s5",
+          "firstAnswerIsMain": false,
+          "mainAsReason": 0,
+          "none": 0.02,
+          "runnerUp": {
+            "id": "s5",
+            "p": 0.96,
+            "text": "It failed with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` because the file declares a T",
+            "hasLabelledReason": true
+          },
+          "reason": {
+            "s5": 0.96,
+            "s2": 0.02,
+            "none": 0.02,
+            "s4": 0,
+            "s3": 0,
+            "s1": 0
+          }
+        },
+        {
+          "main": "s4",
+          "mainStatesFact": true,
+          "firstAnswer": "s5",
+          "firstAnswerIsMain": false,
+          "mainAsReason": 0,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s5",
+            "p": 0.95,
+            "text": "It failed with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` because the file declares a T",
+            "hasLabelledReason": true
+          },
+          "reason": {
+            "s5": 0.95,
+            "none": 0.03,
+            "s2": 0.02,
+            "s4": 0,
+            "s3": 0,
+            "s1": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "cd-striptypes-004",
+      "tag": "dead-end-cause-last",
+      "subtype": "verdict-attempt-cause-elaboration",
+      "kind": "dead-end",
+      "sentences": [
+        {
+          "id": "s1",
+          "chars": 77,
+          "text": "I'll run the file once with Node's type-stripping flag and report the result."
+        },
+        {
+          "id": "s2",
+          "chars": 63,
+          "text": "It didn't work, so I'm dropping the idea with no files changed."
+        },
+        {
+          "id": "s3",
+          "chars": 213,
+          "text": "I ran `node --experimental-strip-types src/app.ts` on Node 22, and it failed imm"
+        },
+        {
+          "id": "s4",
+          "chars": 37,
+          "text": "The tsc build into dist/ stays as is."
+        }
+      ],
+      "mainHoldsLabelledReason": true,
+      "asks": [
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.9,
+          "none": 0.04,
+          "runnerUp": {
+            "id": "s2",
+            "p": 0.06,
+            "text": "It didn't work, so I'm dropping the idea with no files changed.",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.9,
+            "s2": 0.06,
+            "none": 0.04,
+            "s1": 0,
+            "s4": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.91,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s2",
+            "p": 0.06,
+            "text": "It didn't work, so I'm dropping the idea with no files changed.",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.91,
+            "s2": 0.06,
+            "none": 0.03,
+            "s1": 0,
+            "s4": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.92,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s2",
+            "p": 0.05,
+            "text": "It didn't work, so I'm dropping the idea with no files changed.",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.92,
+            "s2": 0.05,
+            "none": 0.03,
+            "s1": 0,
+            "s4": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "cd-striptypes-005",
+      "tag": "dead-end-cause-last",
+      "subtype": "long-attempt-two-part-cause",
+      "kind": "dead-end",
+      "sentences": [
+        {
+          "id": "s1",
+          "chars": 69,
+          "text": "I'll check the Node version, then try running the file directly once."
+        },
+        {
+          "id": "s2",
+          "chars": 66,
+          "text": "Dropping the idea; no files changed and the tsc build stays as is."
+        },
+        {
+          "id": "s3",
+          "chars": 232,
+          "text": "I ran `node --experimental-strip-types src/app.ts` on Node v22.22.0 and it faile"
+        },
+        {
+          "id": "s4",
+          "chars": 157,
+          "text": "Getting it to work would require either rewriting the enum as a plain object or "
+        }
+      ],
+      "mainHoldsLabelledReason": true,
+      "asks": [
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.55,
+          "none": 0.02,
+          "runnerUp": {
+            "id": "s4",
+            "p": 0.41,
+            "text": "Getting it to work would require either rewriting the enum as a plain object or ",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.55,
+            "s4": 0.41,
+            "none": 0.02,
+            "s2": 0.02,
+            "s1": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.53,
+          "none": 0.02,
+          "runnerUp": {
+            "id": "s4",
+            "p": 0.42,
+            "text": "Getting it to work would require either rewriting the enum as a plain object or ",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.53,
+            "s4": 0.42,
+            "s2": 0.03,
+            "none": 0.02,
+            "s1": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.58,
+          "none": 0.02,
+          "runnerUp": {
+            "id": "s4",
+            "p": 0.37,
+            "text": "Getting it to work would require either rewriting the enum as a plain object or ",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.58,
+            "s4": 0.37,
+            "s2": 0.03,
+            "none": 0.02,
+            "s1": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "cd-striptypes-006",
+      "tag": "dead-end-cause-last",
+      "subtype": "verdict-attempt-cause-elaboration",
+      "kind": "dead-end",
+      "sentences": [
+        {
+          "id": "s1",
+          "chars": 80,
+          "text": "I'll run the app once directly with Node's type stripping and report the result."
+        },
+        {
+          "id": "s2",
+          "chars": 77,
+          "text": "It didn't work, so I'm dropping the idea and leaving the tsc build untouched."
+        },
+        {
+          "id": "s3",
+          "chars": 223,
+          "text": "I ran `node --experimental-strip-types src/app.ts` once on Node 22, and it faile"
+        }
+      ],
+      "mainHoldsLabelledReason": true,
+      "asks": [
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.88,
+          "none": 0.05,
+          "runnerUp": {
+            "id": "s2",
+            "p": 0.07,
+            "text": "It didn't work, so I'm dropping the idea and leaving the tsc build untouched.",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.88,
+            "s2": 0.07,
+            "none": 0.05,
+            "s1": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.87,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s2",
+            "p": 0.1,
+            "text": "It didn't work, so I'm dropping the idea and leaving the tsc build untouched.",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.87,
+            "s2": 0.1,
+            "none": 0.03,
+            "s1": 0
+          }
+        },
+        {
+          "main": "s3",
+          "mainStatesFact": true,
+          "firstAnswer": "s3",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.88,
+          "none": 0.05,
+          "runnerUp": {
+            "id": "s2",
+            "p": 0.07,
+            "text": "It didn't work, so I'm dropping the idea and leaving the tsc build untouched.",
+            "hasLabelledReason": false
+          },
+          "reason": {
+            "s3": 0.88,
+            "s2": 0.07,
+            "none": 0.05,
+            "s1": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "cd-striptypes-007",
+      "tag": "works-now-change-last",
+      "subtype": "wrapper-first-then-change",
+      "kind": "decision",
+      "sentences": [
+        {
+          "id": "s1",
+          "chars": 99,
+          "text": "I'll look at src/app.ts and the config, then adjust whatever TypeScript syntax s"
+        },
+        {
+          "id": "s2",
+          "chars": 62,
+          "text": "The only blocker is the `enum`, which strip-only mode rejects."
+        },
+        {
+          "id": "s3",
+          "chars": 113,
+          "text": "I'll replace it with a `const` object plus a derived union type, which is erasab"
+        },
+        {
+          "id": "s4",
+          "chars": 62,
+          "text": "The app runs under strip-types and prints the expected output."
+        },
+        {
+          "id": "s5",
+          "chars": 61,
+          "text": "I'll add a `dev` script so the command is one keystroke away."
+        },
+        {
+          "id": "s6",
+          "chars": 98,
+          "text": "The direct `node` invocation already ran successfully, so the script just wraps "
+        },
+        {
+          "id": "s7",
+          "chars": 210,
+          "text": "I replaced the `enum Unit` in `src/app.ts` with a `const` object plus a derived "
+        },
+        {
+          "id": "s8",
+          "chars": 175,
+          "text": "I also added a `dev` script to `package.json` that runs `node --experimental-str"
+        },
+        {
+          "id": "s9",
+          "chars": 116,
+          "text": "The npm wrapper and a `tsc --noEmit` type-check were not run because those comma"
+        }
+      ],
+      "mainHoldsLabelledReason": null,
+      "asks": [
+        {
+          "main": "s7",
+          "mainStatesFact": true,
+          "firstAnswer": "s7",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.46,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s3",
+            "p": 0.45,
+            "text": "I'll replace it with a `const` object plus a derived union type, which is erasab",
+            "hasLabelledReason": null
+          },
+          "reason": {
+            "s7": 0.46,
+            "s3": 0.45,
+            "s8": 0.05,
+            "none": 0.03,
+            "s1": 0.01,
+            "s6": 0,
+            "s9": 0,
+            "s4": 0,
+            "s5": 0,
+            "s2": 0
+          }
+        },
+        {
+          "main": "s7",
+          "mainStatesFact": true,
+          "firstAnswer": "s7",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.51,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s3",
+            "p": 0.4,
+            "text": "I'll replace it with a `const` object plus a derived union type, which is erasab",
+            "hasLabelledReason": null
+          },
+          "reason": {
+            "s7": 0.51,
+            "s3": 0.4,
+            "s8": 0.06,
+            "none": 0.03,
+            "s2": 0,
+            "s9": 0,
+            "s4": 0,
+            "s1": 0,
+            "s6": 0,
+            "s5": 0
+          }
+        },
+        {
+          "main": "s7",
+          "mainStatesFact": true,
+          "firstAnswer": "s7",
+          "firstAnswerIsMain": true,
+          "mainAsReason": 0.48,
+          "none": 0.03,
+          "runnerUp": {
+            "id": "s3",
+            "p": 0.44,
+            "text": "I'll replace it with a `const` object plus a derived union type, which is erasab",
+            "hasLabelledReason": null
+          },
+          "reason": {
+            "s7": 0.48,
+            "s3": 0.44,
+            "s8": 0.04,
+            "none": 0.03,
+            "s1": 0.01,
+            "s9": 0,
+            "s2": 0,
+            "s6": 0,
+            "s5": 0,
+            "s4": 0
+          }
+        }
+      ]
+    }
+  ]
+}
