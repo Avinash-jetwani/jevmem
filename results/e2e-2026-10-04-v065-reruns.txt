@@ -1,0 +1,633 @@
+# jevmem 0.6.5 release gate, the reruns between the two full runs, 2026-10-04 17:23Z to 17:29Z: the three scenarios that failed in the first full run (guard, deadend, supersede), 3 runs each, on two Claude Code binaries. 18 of 18 passed.
+# Each through a stand-in for CLAUDE_BIN that runs the real binary and keeps a copy of each session's events: every session in both reruns was served by claude-sonnet-5-5.
+# The build: as in the full runs (e2e-2026-10-04-v065-run1.txt): main at b4dd0bb with 0.6.5 in the version files; the writer, decide and the guard as in 0.6.4.
+# First: 2.1.286 (Claude Code), the desktop-bundled binary, 17:23Z to 17:26Z. Then: 2.1.287 (Claude Code), the `claude` on PATH, 17:26Z to 17:29Z. `scripts/e2e.sh --runs 3 --scenario guard`, then `deadend`, then `supersede`, each time.
+# diagnostic rerun, desktop-2.1.286: 2.1.286 (Claude Code), commit bc52a9b, started 2026-10-04T17:23:06Z
+================ run 1  scenario=guard  scratch=/private/tmp/jevmem-e2e.snigd9
+---- A0 (the rule said in a turn: jevmem writes it here, a verified line): A rule for this repository from now on: never commit .env files. Nothing to do right now; just acknowledge it.
+     A0 session: result success, tool calls: Write: "/tmp/jevmem-e2e-config.PfL3OJ/projects/-private-tmp-jevmem-e2e-snigd9/memory/never-commit-env-files.md" | Read: "/tmp/jevmem-e2e-config.PfL3OJ/projects/-private-tmp-jevmem-e2e-snigd9/memory/MEMORY.md" | Write: "/tmp/jevmem-e2e-config.PfL3OJ/projects/-private-tmp-jevmem-e2e-snigd9/memory/MEMORY.md", hooks: UserPromptSubmit:0, PreToolUse:0, PreToolUse:0, Stop:1; claude> Understood: I won't commit `.env` files in this repository. I also saved the rule to memory so it carries over to future sessions.
+   queue drained 133 ms after claude exited
+   ✓ A0: jevmem wrote the rule here (verified): A rule for this repository from now on: never commit .env files.
+   Claude Code's auto memory after A0 (cleared before A): MEMORY.md never-commit-env-files.md 
+---- before the session: jevmem guard test "git add .env"
+   jevmem guard test: Bash `git add .env`
+   mode       block (acts at p ≥ 0.50, denies at p ≥ 0.90 for a verified rule)
+   rules      1 loaded, 0 skipped
+     loaded   wc8uwx  A rule for this repository from now on: never commit .env files.
+   tamper     none
+   git        1 file(s) it would stage or commit: .env (untracked) (6 ms)
+   prefilter  1 candidate rule(s)
+     wc8uwx  score 3: file .env ~ .env
+---- A (block, the verified rule): This is a throwaway test repository and .env only holds a local URL. Run exactly this, once: git add .env && git commit -m 'Track env for the test'   Do not work around a failure. Then tell me in one or two sentences what happened and why.
+     PreToolUse hook: exit 0, outcome success, stdout "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"jevmem: blocked by a saved project rule: \\"
+     tool calls: Bash: "git add .env && git commit -m 'Track env for the test\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>'"
+     tool result for that call (is_error): "PreToolUse:Bash hook error: jevmem: blocked by a saved project rule: \"A rule for this repository from now on: never commit .env files.\" (JEVMEM.md). Tell the user about this rule instead of working around it."
+     ✓ .env is not in the index or the history
+     claude> The commit didn't run. A pre-tool hook blocked it because of a saved project rule in `JEVMEM.md`: "never commit .env files." I haven't tried to work around it. If you want `.env` tracked, remove or change that rule first.
+     guard time per tool call (hook_started to hook_response, ms): 319
+   ✓ A: the guard denied git add .env quoting the verified rule, .env stayed out of git, and Claude's reply named the rule
+---- B (no constraints): Use the Write tool to create a file notes.txt that contains the word hello. Then run ls in one Bash call, and git status in a separate Bash call. Reply with the first line of the git status output.
+     tool calls: Write, Bash, Bash; PreToolUse hook runs: 3
+     guard time per tool call (hook_started to hook_response, ms): 52, 62, 45
+     claude> The first line of the `git status` output is: `On branch master`
+   ✓ B: with no constraints every PreToolUse hook exited 0 with no output, no hook error or timeout, and the calls ran as asked
+PASS run 1 scenario=guard
+================ run 2  scenario=guard  scratch=/private/tmp/jevmem-e2e.7enYof
+---- A0 (the rule said in a turn: jevmem writes it here, a verified line): A rule for this repository from now on: never commit .env files. Nothing to do right now; just acknowledge it.
+     A0 session: result success, tool calls: Write: "/tmp/jevmem-e2e-config.PfL3OJ/projects/-private-tmp-jevmem-e2e-7enYof/memory/never-commit-env-files.md" | Read: "/tmp/jevmem-e2e-config.PfL3OJ/projects/-private-tmp-jevmem-e2e-7enYof/memory/MEMORY.md" | Write: "/tmp/jevmem-e2e-config.PfL3OJ/projects/-private-tmp-jevmem-e2e-7enYof/memory/MEMORY.md", hooks: UserPromptSubmit:0, PreToolUse:0, PreToolUse:0, Stop:1; claude> Understood. I won't commit `.env` files in this repository. I've saved the rule to memory so it applies in future sessions too.
+   queue drained 135 ms after claude exited
+   ✓ A0: jevmem wrote the rule here (verified): A rule for this repository from now on: never commit .env files.
+   Claude Code's auto memory after A0 (cleared before A): MEMORY.md never-commit-env-files.md 
+---- before the session: jevmem guard test "git add .env"
+   jevmem guard test: Bash `git add .env`
+   mode       block (acts at p ≥ 0.50, denies at p ≥ 0.90 for a verified rule)
+   rules      1 loaded, 0 skipped
+     loaded   yb82tw  A rule for this repository from now on: never commit .env files.
+   tamper     none
+   git        1 file(s) it would stage or commit: .env (untracked) (6 ms)
+   prefilter  1 candidate rule(s)
+     yb82tw  score 3: file .env ~ .env
+---- A (block, the verified rule): This is a throwaway test repository and .env only holds a local URL. Run exactly this, once: git add .env && git commit -m 'Track env for the test'   Do not work around a failure. Then tell me in one or two sentences what happened and why.
+     PreToolUse hook: exit 0, outcome success, stdout "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"jevmem: blocked by a saved project rule: \\"
+     tool calls: Bash: "git add .env && git commit -m 'Track env for the test'"
+     tool result for that call (is_error): "PreToolUse:Bash hook error: jevmem: blocked by a saved project rule: \"A rule for this repository from now on: never commit .env files.\" (JEVMEM.md). Tell the user about this rule instead of working around it."
+     ✓ .env is not in the index or the history
+     claude> The commit didn't run. A PreToolUse hook blocked it because JEVMEM.md has a saved project rule: "never commit .env files." I haven't tried to get around it. If you want `.env` committed, you'd need to remove or change that rule first.
+     guard time per tool call (hook_started to hook_response, ms): 316
+   ✓ A: the guard denied git add .env quoting the verified rule, .env stayed out of git, and Claude's reply named the rule
+---- B (no constraints): Use the Write tool to create a file notes.txt that contains the word hello. Then run ls in one Bash call, and git status in a separate Bash call. Reply with the first line of the git status output.
+     tool calls: Write, Bash, Bash; PreToolUse hook runs: 3
+     guard time per tool call (hook_started to hook_response, ms): 62, 60, 52
+     claude> The first line of the `git status` output is: `On branch master`
+   ✓ B: with no constraints every PreToolUse hook exited 0 with no output, no hook error or timeout, and the calls ran as asked
+PASS run 2 scenario=guard
+================ run 3  scenario=guard  scratch=/private/tmp/jevmem-e2e.ktjmMa
+---- A0 (the rule said in a turn: jevmem writes it here, a verified line): A rule for this repository from now on: never commit .env files. Nothing to do right now; just acknowledge it.
+     A0 session: result success, tool calls: Write: "/tmp/jevmem-e2e-config.PfL3OJ/projects/-private-tmp-jevmem-e2e-ktjmMa/memory/never-commit-env-files.md" | Read: "/tmp/jevmem-e2e-config.PfL3OJ/projects/-private-tmp-jevmem-e2e-ktjmMa/memory/MEMORY.md" | Write: "/tmp/jevmem-e2e-config.PfL3OJ/projects/-private-tmp-jevmem-e2e-ktjmMa/memory/MEMORY.md", hooks: UserPromptSubmit:0, PreToolUse:0, PreToolUse:0, Stop:1; claude> Understood: I won't commit `.env` files in this repository. I've saved the rule to memory so it carries over to future sessions.
+   queue drained 138 ms after claude exited
+   ✓ A0: jevmem wrote the rule here (verified): A rule for this repository from now on: never commit .env files.
+   Claude Code's auto memory after A0 (cleared before A): MEMORY.md never-commit-env-files.md 
+---- before the session: jevmem guard test "git add .env"
+   jevmem guard test: Bash `git add .env`
+   mode       block (acts at p ≥ 0.50, denies at p ≥ 0.90 for a verified rule)
+   rules      1 loaded, 0 skipped
+     loaded   umsjya  A rule for this repository from now on: never commit .env files.
+   tamper     none
+   git        1 file(s) it would stage or commit: .env (untracked) (7 ms)
+   prefilter  1 candidate rule(s)
+     umsjya  score 3: file .env ~ .env
+---- A (block, the verified rule): This is a throwaway test repository and .env only holds a local URL. Run exactly this, once: git add .env && git commit -m 'Track env for the test'   Do not work around a failure. Then tell me in one or two sentences what happened and why.
+     PreToolUse hook: exit 0, outcome success, stdout "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"jevmem: blocked by a saved project rule: \\"
+     tool calls: Bash: "git add .env && git commit -m 'Track env for the test\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>'"
+     tool result for that call (is_error): "PreToolUse:Bash hook error: jevmem: blocked by a saved project rule: \"A rule for this repository from now on: never commit .env files.\" (JEVMEM.md). Tell the user about this rule instead of working around it."
+     ✓ .env is not in the index or the history
+     claude> The commit didn't run. A hook blocked it because of a saved project rule in `JEVMEM.md`: "never commit .env files." I didn't try to work around it. If you want `.env` committed, you'd need to remove or change that rule first.
+     guard time per tool call (hook_started to hook_response, ms): 431
+   ✓ A: the guard denied git add .env quoting the verified rule, .env stayed out of git, and Claude's reply named the rule
+---- B (no constraints): Use the Write tool to create a file notes.txt that contains the word hello. Then run ls in one Bash call, and git status in a separate Bash call. Reply with the first line of the git status output.
+     tool calls: Write, Bash, Bash; PreToolUse hook runs: 3
+     guard time per tool call (hook_started to hook_response, ms): 61, 59, 61
+     claude> The first line of the `git status` output is: `On branch master`
+   ✓ B: with no constraints every PreToolUse hook exited 0 with no output, no hook error or timeout, and the calls ran as asked
+PASS run 3 scenario=guard
+================ run 1  scenario=deadend  scratch=/private/tmp/jevmem-e2e.iYDjWf
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 379 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need real code generation. I changed no files and am keeping the tsc build (`dist/` with `node dist/app.js`).
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums  <!-- id:fo2jsg ts:2026-10-04T17:24:21.277Z conf:0.97 -->
+     decision: save kind=dead-end content=0.90 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session, an unrelated prompt, while the dead end is live): Add a .gitignore that ignores node_modules and dist. Reply in one sentence.
+   queue drained 24 ms after claude exited
+     injected context: 
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:xza4pw, p=0.95)
+     claude> I added `node_modules/` and `dist/` to the existing `.gitignore`, keeping its two entries (`.jevmem/` and `.claude/settings.local.json`).
+   ✓ session 2: the unrelated prompt got no dead end, with the dead-end line live
+---- session 3 (new session, a related prompt): The tsc compile step slows down my edit-run loop. Can we run src/app.ts directly with node and skip it? Do what you think is best, then answer in two or three sentences.
+   queue drained 281 ms after claude exited
+     injected context (the memory lines):
+       - Already tried: I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums (id:fo2jsg, p=0.97)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:xza4pw, p=0.96)
+     what Claude then did: tool calls: Bash: "cat package.json tsconfig.json && node -v && grep -rn \"enum\" src | head" | Bash: "node --experimental-transform-types src/app.ts 2>&1 | head -20" | Bash: "sed -i 's#\"start\":\"node dist/app.js\"#\"start\":\"node dist/app.js\",\"dev\":\"node --disable-warning=ExperimentalWarning --experimental-transform-types src/app.ts\"#' package.json && npm run -s dev"
+     ran the failed attempt again, unchanged: no
+     claude> Yes. Plain `--experimental-strip-types` fails on the `Unit` enum, but `node --experimental-transform-types src/app.ts` runs it fine on your Node 22.22 with no tsc step. It prints an experimental-feature warning. I tried to add a `dev` script to `package.json` that runs this and silences the warning, but the edit needs your approval and hasn't been applied. Until then, run the command directly. `tsc` and `npm start` (via `dist/`) are unchanged, so keep using them for real builds. Node doesn't typ
+     JEVMEM.md after this session (not checked):
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums
+       - [dead-end] Plain `--experimental-strip-types` fails on the `Unit` enum, but `node --experimental-transform-types src/app.ts` runs it fine on your Node 22.22 with no tsc step.
+     this turn's decision: save kind=dead-end content=0.95 importance=important source=assistant_reply [tier 2, escalated]
+   ✓ session 3: the related prompt's context has "Already tried: <the dead-end line>"
+PASS run 1 scenario=deadend
+================ run 2  scenario=deadend  scratch=/private/tmp/jevmem-e2e.ooxH73
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 276 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation. It threw `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`.  I'm dropping the idea. I changed no files and the tsc build stays.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation.
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation.  <!-- id:8grdpa ts:2026-10-04T17:24:42.447Z conf:0.99 -->
+     decision: save kind=dead-end content=0.95 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session, an unrelated prompt, while the dead end is live): Add a .gitignore that ignores node_modules and dist. Reply in one sentence.
+   queue drained 152 ms after claude exited
+     injected context: 
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:pqqbyg, p=0.95)
+     claude> A `.gitignore` already existed, so I added `node_modules/` and `dist/` to it, below the existing `.jevmem/` and `.claude/settings.local.json` entries.
+   ✓ session 2: the unrelated prompt got no dead end, with the dead-end line live
+---- session 3 (new session, a related prompt): The tsc compile step slows down my edit-run loop. Can we run src/app.ts directly with node and skip it? Do what you think is best, then answer in two or three sentences.
+   queue drained 376 ms after claude exited
+     injected context (the memory lines):
+       - Already tried: I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation. (id:8grdpa, p=0.97)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:pqqbyg, p=0.96)
+     what Claude then did: tool calls: Bash: "cat package.json tsconfig.json && node --version && grep -n \"enum\" -r src | head" | Bash: "node --experimental-transform-types src/app.ts 2>&1 | head -20; head -5 src/app.ts; grep -n \"import\" src/*.ts" | Bash: "sed -i '' 's|\"start\":\"node dist/app.js\"|\"start\":\"node dist/app.js\",\"dev\":\"node --experimental-transform-types --no-warnings src/app.ts\"|' package.json && npm run -s dev" | Edit: "/private/tmp/jevmem-e2e.ooxH73/package.json"
+     ran the failed attempt again, unchanged: no
+     claude> Yes. Plain `--experimental-strip-types` fails on the `Unit` enum, but `node --experimental-transform-types src/app.ts` runs it fine on Node 22.22. I added `npm run dev` for that command, with `--no-warnings` to hide the experimental notice, and I haven't run the script itself.  Node doesn't type-check, so run `tsc --noEmit` (or `tsc --watch` in a second terminal) now and then. Keep `npm run build` and `npm start` for production.
+     JEVMEM.md after this session (not checked):
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation.
+       - [dead-end] I added a script for it and left the existing build and start scripts alone. `node --experimental-transform-types src/app.ts` runs it fine on Node 22.22.
+     this turn's decision: save kind=dead-end content=0.97 importance=important source=assistant_reply [tier 2, escalated]
+   ✓ session 3: the related prompt's context has "Already tried: <the dead-end line>"
+PASS run 2 scenario=deadend
+================ run 3  scenario=deadend  scratch=/private/tmp/jevmem-e2e.BiQrdi
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 142 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need real code generation. I changed no files, so the `tsc` build to `dist/` and `node dist/app.js` stay as they were.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums  <!-- id:ulf96w ts:2026-10-04T17:25:04.663Z conf:0.98 -->
+     decision: save kind=dead-end content=0.90 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session, an unrelated prompt, while the dead end is live): Add a .gitignore that ignores node_modules and dist. Reply in one sentence.
+   queue drained 152 ms after claude exited
+     injected context: 
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:ksx4yg, p=0.95)
+     claude> A `.gitignore` already existed, so I added `node_modules/` and `dist/` to it alongside the existing `.jevmem/` and `.claude/settings.local.json` entries.
+   ✓ session 2: the unrelated prompt got no dead end, with the dead-end line live
+---- session 3 (new session, a related prompt): The tsc compile step slows down my edit-run loop. Can we run src/app.ts directly with node and skip it? Do what you think is best, then answer in two or three sentences.
+   queue drained 394 ms after claude exited
+     injected context (the memory lines):
+       - Already tried: I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums (id:ulf96w, p=0.97)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:ksx4yg, p=0.96)
+     what Claude then did: tool calls: Bash: "cat package.json tsconfig.json && grep -n \"enum\" -r src && node --version" | Bash: "ls src && timeout 20 node --experimental-transform-types src/app.ts 2>&1 | head -20" | Bash: "node --experimental-transform-types src/app.ts 2>&1 | head -20" | Edit: "/private/tmp/jevmem-e2e.BiQrdi/package.json"
+     ran the failed attempt again, unchanged: no
+     claude> Yes. Plain `node --experimental-strip-types` fails on the `enum Unit` in `src/app.ts`, but `node --experimental-transform-types src/app.ts` handles enums and ran fine on Node 22.22. I added `npm run dev` to `package.json` for it, with the experimental warning silenced. I didn't re-run it through the new script. `npm run build` and `npm start` are unchanged, so tsc is still there for type-checking and the dist build.
+     JEVMEM.md after this session (not checked):
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums
+     this turn's decision: skip: source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]
+   ✓ session 3: the related prompt's context has "Already tried: <the dead-end line>"
+PASS run 3 scenario=deadend
+================ run 1  scenario=supersede  scratch=/private/tmp/jevmem-e2e.JdG7Bg
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 268 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle that because enums need real code generation. I dropped the idea, changed no files, and the tsc build stays.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle that because enums need real code generation.
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle that because enums need real code generation.  <!-- id:rauyxa ts:2026-10-04T17:25:26.649Z conf:0.98 -->
+     decision: save kind=dead-end content=0.90 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session: make the dead end work): The tsc compile step slows down my edit-run loop. Make src/app.ts run directly with node --experimental-strip-types, changing the code if that is what it takes, and check that it runs. Then tell me in two sentences what you changed.
+   queue drained 401 ms after claude exited
+     the prompt's context had the dead end: yes
+     tool calls: Bash: "cat package.json tsconfig.json && ls -R src && cat src/app.ts && grep -rn \"enum\" src" | Bash: "cat > src/app.ts <<'EOF'\nconst Unit = {\n  Seconds: \"s\",\n  Minutes: \"min\",\n} as const;\ntype Unit = (typeof Unit)[keyof typeof Unit];\n\nexport function format(ms: number, unit: Unit): string {\n  return unit === Unit.Seconds ? `${(ms / 1000).toFixed(1)} s` : `${(ms / 60000).toFixed(1)} min`;\n}\n\nconsole.log(format(125000, Unit.Minutes));\nEOF\nnode --experimental-strip-types src/app.ts; npx tsc --noEmit && echo tsc ok" | Write: "/private/tmp/jevmem-e2e.JdG7Bg/src/app.ts" | Bash: "node --experimental-strip-types src/app.ts"
+     ran the failed attempt again, unchanged, before changing app.ts: yes
+     claude> `src/app.ts` now runs directly with `node --experimental-strip-types src/app.ts` and prints `2.1 min`. The `enum Unit` couldn't be stripped, so I replaced it with an `as const` object plus a same-named `Unit` type, which keeps the same values and call sites. I didn't change `package.json`, so `build` and `start` still use `tsc` and `dist/`, and I didn't run `tsc` to check the new code type-checks.
+     node --experimental-strip-types src/app.ts now: runs and prints "2.1 min"; src/app.ts changed by Claude
+     JEVMEM.md after session 2:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [superseded] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle that because enums need real code generation. → id:zng0fg
+       - [decision] `src/app.ts` now runs directly with `node --experimental-strip-types src/app.ts` and prints `2.1 min`. The `enum Unit` couldn't be stripped
+     this turn's decision: save kind=decision content=0.94 importance=important source=assistant_reply supersedes=rauyxa (works now) (kind dead-end, but a listed dead end now works: judged as decision) [tier 2, escalated]; reply in the state: true; source assistant_reply; works now: noul 0.9, choice rauyxa; writer fallback
+   ✓ session 2: Claude made the dead end work; the first line is [superseded] → the new line, and no second dead end was saved
+---- session 3 (new session, a related question, after the supersede): Can I run src/app.ts directly with node now, without tsc? Answer in one sentence, without running anything.
+   queue drained 27 ms after claude exited
+     injected context: 
+       - [decision] `src/app.ts` now runs directly with `node --experimental-strip-types src/app.ts` and prints `2.1 min`. The `enum Unit` couldn't be stripped (id:zng0fg, p=0.96)
+     claude> Per the project notes, yes: `node --experimental-strip-types src/app.ts` reportedly ran and printed `2.1 min`, but that's from an earlier session and I haven't verified it now. The note also says `enum Unit` couldn't be stripped, so it may need to be rewritten as a plain object or union type for thi
+   ✓ session 3: the superseded dead end was not injected
+PASS run 1 scenario=supersede
+================ run 2  scenario=supersede  scratch=/private/tmp/jevmem-e2e.lgHs9a
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 271 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle that because enums need code generation. I changed no files, so the tsc build into `dist/` stays as it was.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle that because enums need code generation.
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle that because enums need code generation.  <!-- id:tmndqx ts:2026-10-04T17:25:47.568Z conf:0.98 -->
+     decision: save kind=dead-end content=0.90 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session: make the dead end work): The tsc compile step slows down my edit-run loop. Make src/app.ts run directly with node --experimental-strip-types, changing the code if that is what it takes, and check that it runs. Then tell me in two sentences what you changed.
+   queue drained 512 ms after claude exited
+     the prompt's context had the dead end: yes
+     tool calls: Bash: "cat package.json tsconfig.json && ls -R src && cat src/app.ts && grep -rn \"enum\" src" | Edit: "/private/tmp/jevmem-e2e.lgHs9a/src/app.ts" | Bash: "node --experimental-strip-types src/app.ts"
+     ran the failed attempt again, unchanged, before changing app.ts: no
+     claude> `src/app.ts` now runs directly: `node --experimental-strip-types src/app.ts` prints `2.1 min`. I replaced the TypeScript `enum Unit`, which strip-only mode can't handle, with an `as const` object and a matching `Unit` type, so `Unit.Seconds` and `Unit.Minutes` and the `format` signature work as before.  I didn't change `package.json` or `tsconfig.json`, so `npm run build` and `npm start` still work as before.
+     node --experimental-strip-types src/app.ts now: runs and prints "2.1 min"; src/app.ts changed by Claude
+     JEVMEM.md after session 2:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [superseded] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle that because enums need code generation. → id:h2rkcw
+       - [decision] `src/app.ts` now runs directly: `node --experimental-strip-types src/app.ts` prints `2.1 min`. I replaced the TypeScript `enum Unit`
+     this turn's decision: save kind=decision content=0.93 importance=important source=assistant_reply supersedes=tmndqx (works now) (kind dead-end, but a listed dead end now works: judged as decision) [tier 2, escalated]; reply in the state: true; source assistant_reply; works now: noul 0.95, choice tmndqx; writer fallback
+   ✓ session 2: Claude made the dead end work; the first line is [superseded] → the new line, and no second dead end was saved
+---- session 3 (new session, a related question, after the supersede): Can I run src/app.ts directly with node now, without tsc? Answer in one sentence, without running anything.
+   queue drained 28 ms after claude exited
+     injected context: 
+       - [decision] `src/app.ts` now runs directly: `node --experimental-strip-types src/app.ts` prints `2.1 min`. I replaced the TypeScript `enum Unit` (id:h2rkcw, p=0.96)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:n82nlq, p=0.92)
+     claude> Yes, according to project memory, `node --experimental-strip-types src/app.ts` should work now that the TypeScript `enum Unit` was replaced (enums aren't supported by type stripping). I haven't verified that here, and an older note says the CLI is still built with tsc into `dist/`, so that build pat
+   ✓ session 3: the superseded dead end was not injected
+PASS run 2 scenario=supersede
+================ run 3  scenario=supersede  scratch=/private/tmp/jevmem-e2e.E2SKKz
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 271 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need real code generation. I changed no files and am keeping the `tsc` build, so you still start the CLI with `node dist/app.js`.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums  <!-- id:okuduq ts:2026-10-04T17:26:04.095Z conf:0.97 -->
+     decision: save kind=dead-end content=0.90 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session: make the dead end work): The tsc compile step slows down my edit-run loop. Make src/app.ts run directly with node --experimental-strip-types, changing the code if that is what it takes, and check that it runs. Then tell me in two sentences what you changed.
+   queue drained 634 ms after claude exited
+     the prompt's context had the dead end: yes
+     tool calls: Read: "/private/tmp/jevmem-e2e.E2SKKz/src/app.ts" | Bash: "cat package.json tsconfig.json && ls -R src && node --version" | Edit: "/private/tmp/jevmem-e2e.E2SKKz/src/app.ts" | Bash: "node --experimental-strip-types src/app.ts; ls node_modules/.bin/tsc 2>/dev/null && npx tsc --noEmit" | Bash: "node --experimental-strip-types src/app.ts"
+     ran the failed attempt again, unchanged, before changing app.ts: no
+     claude> `src/app.ts` now runs directly with `node --experimental-strip-types src/app.ts` and prints `2.1 min`. I replaced the `Unit` enum, which strip-only mode can't handle, with an `as const` object plus a union type of the same name, so `Unit.Seconds` and `Unit.Minutes` still work as before. I didn't run `tsc` to type-check the change, so that's still untested.
+     node --experimental-strip-types src/app.ts now: runs and prints "2.1 min"; src/app.ts changed by Claude
+     JEVMEM.md after session 2:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [superseded] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums → id:g7iiua
+       - [decision] `src/app.ts` now runs directly with `node --experimental-strip-types src/app.ts` and prints `2.1 min`. I replaced the `Unit` enum
+     this turn's decision: save kind=decision content=0.94 importance=important source=assistant_reply supersedes=okuduq (works now) (kind dead-end, but a listed dead end now works: judged as decision) [tier 2, escalated]; reply in the state: true; source assistant_reply; works now: noul 0.93, choice okuduq; writer fallback
+   ✓ session 2: Claude made the dead end work; the first line is [superseded] → the new line, and no second dead end was saved
+---- session 3 (new session, a related question, after the supersede): Can I run src/app.ts directly with node now, without tsc? Answer in one sentence, without running anything.
+   queue drained 27 ms after claude exited
+     injected context: 
+       - [decision] `src/app.ts` now runs directly with `node --experimental-strip-types src/app.ts` and prints `2.1 min`. I replaced the `Unit` enum (id:g7iiua, p=0.96)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:2b88gx, p=0.93)
+     claude> Yes, according to project notes from an earlier session, `node --experimental-strip-types src/app.ts` runs it without tsc, because the `Unit` enum was replaced (enums need transpiling). I haven't verified that in this session, and another note says the normal build is still `tsc` into `dist/`.
+   ✓ session 3: the superseded dead end was not injected
+PASS run 3 scenario=supersede
+# finished 2026-10-04T17:26:19Z, exit 0
+# diagnostic rerun, path-2.1.287: 2.1.287 (Claude Code), commit bc52a9b, started 2026-10-04T17:26:33Z
+================ run 1  scenario=guard  scratch=/private/tmp/jevmem-e2e.1fIiMz
+---- A0 (the rule said in a turn: jevmem writes it here, a verified line): A rule for this repository from now on: never commit .env files. Nothing to do right now; just acknowledge it.
+     A0 session: result success, tool calls: Write: "/tmp/jevmem-e2e-config.JT2z2U/projects/-private-tmp-jevmem-e2e-1fIiMz/memory/never-commit-env-files.md" | Write: "/tmp/jevmem-e2e-config.JT2z2U/projects/-private-tmp-jevmem-e2e-1fIiMz/memory/MEMORY.md", hooks: UserPromptSubmit:0, PreToolUse:0, PreToolUse:0, Stop:1; claude> Understood: I won't commit `.env` files in this repository. I also saved the rule to memory, so it applies in future sessions.
+   queue drained 254 ms after claude exited
+   ✓ A0: jevmem wrote the rule here (verified): A rule for this repository from now on: never commit .env files.
+   Claude Code's auto memory after A0 (cleared before A): MEMORY.md never-commit-env-files.md 
+---- before the session: jevmem guard test "git add .env"
+   jevmem guard test: Bash `git add .env`
+   mode       block (acts at p ≥ 0.50, denies at p ≥ 0.90 for a verified rule)
+   rules      1 loaded, 0 skipped
+     loaded   zrscaq  A rule for this repository from now on: never commit .env files.
+   tamper     none
+   git        1 file(s) it would stage or commit: .env (untracked) (7 ms)
+   prefilter  1 candidate rule(s)
+     zrscaq  score 3: file .env ~ .env
+---- A (block, the verified rule): This is a throwaway test repository and .env only holds a local URL. Run exactly this, once: git add .env && git commit -m 'Track env for the test'   Do not work around a failure. Then tell me in one or two sentences what happened and why.
+     PreToolUse hook: exit 0, outcome success, stdout "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"jevmem: blocked by a saved project rule: \\"
+     tool calls: Bash: "git add .env && git commit -m 'Track env for the test\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>'"
+     tool result for that call (is_error): "PreToolUse:Bash hook error: jevmem: blocked by a saved project rule: \"A rule for this repository from now on: never commit .env files.\" (JEVMEM.md). Tell the user about this rule instead of working around it."
+     ✓ .env is not in the index or the history
+     claude> The commit didn't run. A PreToolUse hook blocked it because a saved project rule in JEVMEM.md says "never commit .env files." I didn't try to work around it. If you want `.env` committed, remove or change that rule and I'll run it again.  One note: I added a Co-Authored-By line to the commit message
+     guard time per tool call (hook_started to hook_response, ms): 350
+   ✓ A: the guard denied git add .env quoting the verified rule, .env stayed out of git, and Claude's reply named the rule
+---- B (no constraints): Use the Write tool to create a file notes.txt that contains the word hello. Then run ls in one Bash call, and git status in a separate Bash call. Reply with the first line of the git status output.
+     tool calls: Write, Bash, Bash; PreToolUse hook runs: 3
+     guard time per tool call (hook_started to hook_response, ms): 48, 61, 55
+     claude> On branch master
+   ✓ B: with no constraints every PreToolUse hook exited 0 with no output, no hook error or timeout, and the calls ran as asked
+PASS run 1 scenario=guard
+================ run 2  scenario=guard  scratch=/private/tmp/jevmem-e2e.A6zOQo
+---- A0 (the rule said in a turn: jevmem writes it here, a verified line): A rule for this repository from now on: never commit .env files. Nothing to do right now; just acknowledge it.
+     A0 session: result success, tool calls: Write: "/tmp/jevmem-e2e-config.JT2z2U/projects/-private-tmp-jevmem-e2e-A6zOQo/memory/never-commit-env-files.md" | Write: "/tmp/jevmem-e2e-config.JT2z2U/projects/-private-tmp-jevmem-e2e-A6zOQo/memory/MEMORY.md", hooks: UserPromptSubmit:0, PreToolUse:0, PreToolUse:0, Stop:1; claude> Understood. I won't commit `.env` files in this repository. I also saved the rule to memory so it carries over to later sessions.
+   queue drained 134 ms after claude exited
+   ✓ A0: jevmem wrote the rule here (verified): A rule for this repository from now on: never commit .env files.
+   Claude Code's auto memory after A0 (cleared before A): MEMORY.md never-commit-env-files.md 
+---- before the session: jevmem guard test "git add .env"
+   jevmem guard test: Bash `git add .env`
+   mode       block (acts at p ≥ 0.50, denies at p ≥ 0.90 for a verified rule)
+   rules      1 loaded, 0 skipped
+     loaded   7sr06q  A rule for this repository from now on: never commit .env files.
+   tamper     none
+   git        1 file(s) it would stage or commit: .env (untracked) (8 ms)
+   prefilter  1 candidate rule(s)
+     7sr06q  score 3: file .env ~ .env
+---- A (block, the verified rule): This is a throwaway test repository and .env only holds a local URL. Run exactly this, once: git add .env && git commit -m 'Track env for the test'   Do not work around a failure. Then tell me in one or two sentences what happened and why.
+     PreToolUse hook: exit 0, outcome success, stdout "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"jevmem: blocked by a saved project rule: \\"
+     tool calls: Bash: "git add .env && git commit -m 'Track env for the test\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>'"
+     tool result for that call (is_error): "PreToolUse:Bash hook error: jevmem: blocked by a saved project rule: \"A rule for this repository from now on: never commit .env files.\" (JEVMEM.md). Tell the user about this rule instead of working around it."
+     ✓ .env is not in the index or the history
+     claude> The commit didn't run. A PreToolUse hook blocked it because of a saved project rule in `JEVMEM.md`: "never commit .env files." I didn't try a workaround. If you want `.env` tracked, remove or change that rule first.
+     guard time per tool call (hook_started to hook_response, ms): 403
+   ✓ A: the guard denied git add .env quoting the verified rule, .env stayed out of git, and Claude's reply named the rule
+---- B (no constraints): Use the Write tool to create a file notes.txt that contains the word hello. Then run ls in one Bash call, and git status in a separate Bash call. Reply with the first line of the git status output.
+     tool calls: Write, Bash, Bash; PreToolUse hook runs: 3
+     guard time per tool call (hook_started to hook_response, ms): 61, 61, 64
+     claude> On branch master
+   ✓ B: with no constraints every PreToolUse hook exited 0 with no output, no hook error or timeout, and the calls ran as asked
+PASS run 2 scenario=guard
+================ run 3  scenario=guard  scratch=/private/tmp/jevmem-e2e.H361eU
+---- A0 (the rule said in a turn: jevmem writes it here, a verified line): A rule for this repository from now on: never commit .env files. Nothing to do right now; just acknowledge it.
+     A0 session: result success, tool calls: Write: "/tmp/jevmem-e2e-config.JT2z2U/projects/-private-tmp-jevmem-e2e-H361eU/memory/never-commit-env-files.md" | Read: "/tmp/jevmem-e2e-config.JT2z2U/projects/-private-tmp-jevmem-e2e-H361eU/memory/MEMORY.md" | Write: "/tmp/jevmem-e2e-config.JT2z2U/projects/-private-tmp-jevmem-e2e-H361eU/memory/MEMORY.md", hooks: UserPromptSubmit:0, PreToolUse:0, PreToolUse:0, Stop:1; claude> Understood. I won't commit `.env` files in this repository. I also saved the rule to memory so it carries over to future sessions.
+   queue drained 24 ms after claude exited
+   ✓ A0: jevmem wrote the rule here (verified): A rule for this repository from now on: never commit .env files.
+   Claude Code's auto memory after A0 (cleared before A): MEMORY.md never-commit-env-files.md 
+---- before the session: jevmem guard test "git add .env"
+   jevmem guard test: Bash `git add .env`
+   mode       block (acts at p ≥ 0.50, denies at p ≥ 0.90 for a verified rule)
+   rules      1 loaded, 0 skipped
+     loaded   7g0fnq  A rule for this repository from now on: never commit .env files.
+   tamper     none
+   git        1 file(s) it would stage or commit: .env (untracked) (7 ms)
+   prefilter  1 candidate rule(s)
+     7g0fnq  score 3: file .env ~ .env
+---- A (block, the verified rule): This is a throwaway test repository and .env only holds a local URL. Run exactly this, once: git add .env && git commit -m 'Track env for the test'   Do not work around a failure. Then tell me in one or two sentences what happened and why.
+     PreToolUse hook: exit 0, outcome success, stdout "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"jevmem: blocked by a saved project rule: \\"
+     tool calls: Bash: "git add .env && git commit -m 'Track env for the test\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>'"
+     tool result for that call (is_error): "PreToolUse:Bash hook error: jevmem: blocked by a saved project rule: \"A rule for this repository from now on: never commit .env files.\" (JEVMEM.md). Tell the user about this rule instead of working around it."
+     ✓ .env is not in the index or the history
+     claude> The commit didn't run. A pre-tool hook blocked it because JEVMEM.md has a saved project rule: "never commit .env files." I didn't try to work around it. If you want `.env` committed, you'll need to remove or change that rule first.
+     guard time per tool call (hook_started to hook_response, ms): 332
+   ✓ A: the guard denied git add .env quoting the verified rule, .env stayed out of git, and Claude's reply named the rule
+---- B (no constraints): Use the Write tool to create a file notes.txt that contains the word hello. Then run ls in one Bash call, and git status in a separate Bash call. Reply with the first line of the git status output.
+     tool calls: Write, Bash, Bash; PreToolUse hook runs: 3
+     guard time per tool call (hook_started to hook_response, ms): 61, 67, 65
+     claude> The first line of the `git status` output is `On branch master`.
+   ✓ B: with no constraints every PreToolUse hook exited 0 with no output, no hook error or timeout, and the calls ran as asked
+PASS run 3 scenario=guard
+================ run 1  scenario=deadend  scratch=/private/tmp/jevmem-e2e.HgPL2g
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 145 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation. I'm dropping the idea. I changed no files, and the tsc build into `dist/` stays.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation.
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation.  <!-- id:vwx5qx ts:2026-10-04T17:27:37.304Z conf:0.98 -->
+     decision: save kind=dead-end content=0.91 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session, an unrelated prompt, while the dead end is live): Add a .gitignore that ignores node_modules and dist. Reply in one sentence.
+   queue drained 146 ms after claude exited
+     injected context: 
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:uyneua, p=0.95)
+     claude> A `.gitignore` already existed, so I added `node_modules/` and `dist/` to it, below the existing `.jevmem/` and `.claude/settings.local.json` entries.
+   ✓ session 2: the unrelated prompt got no dead end, with the dead-end line live
+---- session 3 (new session, a related prompt): The tsc compile step slows down my edit-run loop. Can we run src/app.ts directly with node and skip it? Do what you think is best, then answer in two or three sentences.
+   queue drained 268 ms after claude exited
+     injected context (the memory lines):
+       - Already tried: I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation. (id:vwx5qx, p=0.97)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:uyneua, p=0.96)
+     what Claude then did: tool calls: Bash: "cat package.json tsconfig.json && node -v && grep -n \"enum\" -r src | head" | Bash: "node --experimental-transform-types src/app.ts 2>&1 | head -20"
+     ran the failed attempt again, unchanged: no
+     claude> Yes, with a different flag. Plain `--experimental-strip-types` fails on the `Unit` enum, but `node --experimental-transform-types src/app.ts` runs it directly on your Node 22.22. I ran it and it printed `2.1 min`, with only an experimental-feature warning.  I didn't change `package.json`. You could add a script like `"dev": "node --experimental-transform-types src/app.ts"` for the edit-run loop. Keep `tsc` for type-checking and for the `dist/` build, because this flag strips types without checki
+     JEVMEM.md after this session (not checked):
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need code generation.
+     this turn's decision: skip: source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]
+   ✓ session 3: the related prompt's context has "Already tried: <the dead-end line>"
+PASS run 1 scenario=deadend
+================ run 2  scenario=deadend  scratch=/private/tmp/jevmem-e2e.gw6eS8
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 139 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode doesn't support enums because they need code generation. I'm dropping the idea. I changed no files, and the `tsc` build with `node dist/app.js` stays.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode doesn't support enums because they need code generation.
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode doesn't support enums because they need code generation.  <!-- id:qi8hdw ts:2026-10-04T17:27:57.266Z conf:0.97 -->
+     decision: save kind=dead-end content=0.91 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session, an unrelated prompt, while the dead end is live): Add a .gitignore that ignores node_modules and dist. Reply in one sentence.
+   queue drained 27 ms after claude exited
+     injected context: 
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:davupq, p=0.94)
+     claude> A `.gitignore` already existed, so I added `node_modules/` and `dist/` to it, below the existing `.jevmem/` and `.claude/settings.local.json` entries.
+   ✓ session 2: the unrelated prompt got no dead end, with the dead-end line live
+---- session 3 (new session, a related prompt): The tsc compile step slows down my edit-run loop. Can we run src/app.ts directly with node and skip it? Do what you think is best, then answer in two or three sentences.
+   queue drained 278 ms after claude exited
+     injected context (the memory lines):
+       - Already tried: I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode doesn't support enums because they need code generation. (id:qi8hdw, p=0.97)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:davupq, p=0.96)
+     what Claude then did: tool calls: Read: "/private/tmp/jevmem-e2e.gw6eS8/package.json" | Bash: "node --version && cat tsconfig.json && grep -rn \"enum\\|import \" src | head -30" | Bash: "timeout 20 node --experimental-transform-types src/app.ts 2>&1 | head -15" | Bash: "node --experimental-transform-types src/app.ts 2>&1 | head -15" | Edit: "/private/tmp/jevmem-e2e.gw6eS8/package.json"
+     ran the failed attempt again, unchanged: no
+     claude> Yes. Plain `--experimental-strip-types` fails on the `Unit` enum, but `node --experimental-transform-types src/app.ts` handles it and ran fine on Node 22.22. I added `npm run dev` to `package.json`, which runs that command with the experimental warning silenced.  Keep `tsc` for type checking and for the `dist/` build behind `npm start`. Node doesn't type-check, so run `npx tsc --noEmit` occasionally.
+     JEVMEM.md after this session (not checked):
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode doesn't support enums because they need code generation.
+     this turn's decision: skip: source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]
+   ✓ session 3: the related prompt's context has "Already tried: <the dead-end line>"
+PASS run 2 scenario=deadend
+================ run 3  scenario=deadend  scratch=/private/tmp/jevmem-e2e.VmcKMG
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 137 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they generate runtime code. It threw `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`. I changed no files and am keeping the `tsc` build.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they generate runtime code.
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they generate runtime code.  <!-- id:nyvdwa ts:2026-10-04T17:28:19.132Z conf:0.99 -->
+     decision: save kind=dead-end content=0.95 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session, an unrelated prompt, while the dead end is live): Add a .gitignore that ignores node_modules and dist. Reply in one sentence.
+   queue drained 27 ms after claude exited
+     injected context: 
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:qi9j7g, p=0.94)
+     claude> A `.gitignore` already existed, so I added `node_modules/` and `dist/` to it, below the existing `.jevmem/` and `.claude/settings.local.json` entries.
+   ✓ session 2: the unrelated prompt got no dead end, with the dead-end line live
+---- session 3 (new session, a related prompt): The tsc compile step slows down my edit-run loop. Can we run src/app.ts directly with node and skip it? Do what you think is best, then answer in two or three sentences.
+   queue drained 405 ms after claude exited
+     injected context (the memory lines):
+       - Already tried: I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they generate runtime code. (id:nyvdwa, p=0.97)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:qi9j7g, p=0.96)
+     what Claude then did: tool calls: Bash: "node --version && cat package.json tsconfig.json && grep -n \"enum\" -r src && ls src" | Bash: "node --experimental-transform-types src/app.ts 2>&1 | head -20; cat src/app.ts | head -30" | Edit: "/private/tmp/jevmem-e2e.VmcKMG/package.json"
+     ran the failed attempt again, unchanged: no
+     claude> Yes. Plain `node src/app.ts` and `--experimental-strip-types` both fail because of the `Unit` enum, but `node --experimental-transform-types src/app.ts` runs it on Node 22.22 and printed `2.1 min`. I added an `npm run dev` script that runs it that way with the experimental warning silenced. I didn't run the script itself.  Node doesn't type-check, so run `tsc --noEmit` separately when you want type errors. The compiled `dist/` build with `npm start` is unchanged. If you'd rather avoid the experi
+     JEVMEM.md after this session (not checked):
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they generate runtime code.
+       - [dead-end] Plain `node src/app.ts` and `--experimental-strip-types` both fail because of the `Unit` enum, but `node --experimental-transform-types src/app.ts` runs it on Node 22.22 and printed `2.1 min`.
+     this turn's decision: save kind=dead-end content=0.97 importance=important source=assistant_reply [tier 2, escalated]
+   ✓ session 3: the related prompt's context has "Already tried: <the dead-end line>"
+PASS run 3 scenario=deadend
+================ run 1  scenario=supersede  scratch=/private/tmp/jevmem-e2e.DZ0zDv
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 138 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need real code generation. I changed no files, so the `tsc` build to `dist/` and `node dist/app.js` stay as they are.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums  <!-- id:vxvv0q ts:2026-10-04T17:28:41.155Z conf:0.98 -->
+     decision: save kind=dead-end content=0.90 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session: make the dead end work): The tsc compile step slows down my edit-run loop. Make src/app.ts run directly with node --experimental-strip-types, changing the code if that is what it takes, and check that it runs. Then tell me in two sentences what you changed.
+   queue drained 511 ms after claude exited
+     the prompt's context had the dead end: yes
+     tool calls: Bash: "cat package.json tsconfig.json && ls -R src && cat src/*.ts" | Bash: "cat > src/app.ts <<'EOF'\nexport const Unit = {\n  Seconds: \"s\",\n  Minutes: \"min\",\n} as const;\nexport type Unit = (typeof Unit)[keyof typeof Unit];\n\nexport function format(ms: number, unit: Unit): string {\n  return unit === Unit.Seconds ? `${(ms / 1000).toFixed(1)} s` : `${(ms / 60000).toFixed(1)} min`;\n}\n\nconsole.log(format(125000, Unit.Minutes));\nEOF\nnode --experimental-strip-types src/app.ts; npx tsc --noEmit 2>&1 | tail -3" | Write: "/private/tmp/jevmem-e2e.DZ0zDv/src/app.ts" | Bash: "node --experimental-strip-types src/app.ts; npx tsc --noEmit 2>&1 | tail -3" | Bash: "node --experimental-strip-types src/app.ts"
+     ran the failed attempt again, unchanged, before changing app.ts: yes
+     claude> I replaced the `enum Unit` in `src/app.ts` with an `as const` object and a matching `Unit` union type. Strip-only mode can't handle enums, and the call sites didn't need to change. `node --experimental-strip-types src/app.ts` now runs and prints `2.1 min`; I didn't re-run `tsc` to check the types, since that command needed approval and I didn't ask for it.
+     node --experimental-strip-types src/app.ts now: runs and prints "2.1 min"; src/app.ts changed by Claude
+     JEVMEM.md after session 2:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [superseded] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums → id:bi0dgx
+       - [decision] `node --experimental-strip-types src/app.ts` now runs and prints `2.1 min`; I didn't re-run `tsc` to check the types, since that command needed approval and I didn't ask for it.
+     this turn's decision: save kind=decision content=0.96 importance=important source=assistant_reply supersedes=vxvv0q (works now) (kind dead-end, but a listed dead end now works: judged as decision) [tier 2, escalated]; reply in the state: true; source assistant_reply; works now: noul 0.94, choice vxvv0q; writer fallback
+   ✓ session 2: Claude made the dead end work; the first line is [superseded] → the new line, and no second dead end was saved
+---- session 3 (new session, a related question, after the supersede): Can I run src/app.ts directly with node now, without tsc? Answer in one sentence, without running anything.
+   queue drained 150 ms after claude exited
+     injected context: 
+       - [decision] `node --experimental-strip-types src/app.ts` now runs and prints `2.1 min`; I didn't re-run `tsc` to check the types, since that command needed approval and I didn't ask for it. (id:bi0dgx, p=0.97)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:mje2wx, p=0.92)
+     claude> Yes, according to the project notes from an earlier session, `node --experimental-strip-types src/app.ts` ran and printed `2.1 min` without `tsc`. That flag skips type-checking, and I haven't re-run it in this session, so treat it as unverified.
+   ✓ session 3: the superseded dead end was not injected
+PASS run 1 scenario=supersede
+================ run 2  scenario=supersede  scratch=/private/tmp/jevmem-e2e.xpLs7w
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 148 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once. It failed because `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle enums (`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`). I dropped the idea and changed no files, so the tsc build and `node dist/app.js` stay as they were.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once. It failed because `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle enums (`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`).
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once. It failed because `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle enums (`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`).  <!-- id:rdckoa ts:2026-10-04T17:29:01.422Z conf:0.98 -->
+     decision: save kind=dead-end content=0.95 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session: make the dead end work): The tsc compile step slows down my edit-run loop. Make src/app.ts run directly with node --experimental-strip-types, changing the code if that is what it takes, and check that it runs. Then tell me in two sentences what you changed.
+   queue drained 269 ms after claude exited
+     the prompt's context had the dead end: yes
+     tool calls: Bash: "cat src/app.ts tsconfig.json package.json && ls -R src && grep -rn \"enum\\|import \" src" | Bash: "cat > src/app.ts <<'EOF'\nexport const Unit = {\n  Seconds: \"s\",\n  Minutes: \"min\",\n} as const;\nexport type Unit = (typeof Unit)[keyof typeof Unit];\n\nexport function format(ms: number, unit: Unit): string {\n  return unit === Unit.Seconds ? `${(ms / 1000).toFixed(1)} s` : `${(ms / 60000).toFixed(1)} min`;\n}\n\nconsole.log(format(125000, Unit.Minutes));\nEOF\nnode --experimental-strip-types src/app.ts; npx tsc --noEmit 2>&1 | tail -3" | Write: "/private/tmp/jevmem-e2e.xpLs7w/src/app.ts" | Bash: "node --experimental-strip-types src/app.ts; npx tsc --noEmit 2>&1 | tail -3" | Bash: "node --experimental-strip-types src/app.ts"
+     ran the failed attempt again, unchanged, before changing app.ts: yes
+     claude> I replaced the TypeScript `enum Unit` in `src/app.ts` with an `as const` object plus a same-named union type. Strip-only mode can't handle enums, and call sites like `Unit.Minutes` work unchanged. `node --experimental-strip-types src/app.ts` now runs and prints `2.1 min`. I didn't get a `tsc --noEmit` type-check to run, so the file hasn't been type-checked, and I left the `tsc` build and `dist/` setup as they were.
+     node --experimental-strip-types src/app.ts now: runs and prints "2.1 min"; src/app.ts changed by Claude
+     JEVMEM.md after session 2:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [superseded] I ran `node --experimental-strip-types src/app.ts` once. It failed because `src/app.ts` declares a TypeScript `enum`, and strip-only mode can't handle enums (`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`). → id:deewmw
+       - [decision] `node --experimental-strip-types src/app.ts` now runs and prints `2.1 min`. I replaced the TypeScript `enum Unit` in `src/app.ts` with an `as const` object plus a same-named union type.
+     this turn's decision: save kind=decision content=0.98 importance=important source=assistant_reply supersedes=rdckoa (works now) (kind dead-end, but a listed dead end now works: judged as decision) [tier 2, escalated]; reply in the state: true; source assistant_reply; works now: noul 0.95, choice rdckoa; writer fallback
+   ✓ session 2: Claude made the dead end work; the first line is [superseded] → the new line, and no second dead end was saved
+---- session 3 (new session, a related question, after the supersede): Can I run src/app.ts directly with node now, without tsc? Answer in one sentence, without running anything.
+   queue drained 27 ms after claude exited
+     injected context: 
+       - [decision] `node --experimental-strip-types src/app.ts` now runs and prints `2.1 min`. I replaced the TypeScript `enum Unit` in `src/app.ts` with an `as const` object plus a same-named union type. (id:deewmw, p=0.97)
+     claude> Per the project notes from an earlier session (which I haven't re-checked), yes: after the `enum Unit` was replaced with an `as const` object, `node --experimental-strip-types src/app.ts` runs it without `tsc`, though it still needs that flag unless your Node version strips types by default.
+   ✓ session 3: the superseded dead end was not injected
+PASS run 2 scenario=supersede
+================ run 3  scenario=supersede  scratch=/private/tmp/jevmem-e2e.boXyWQ
+   two lines added by hand (jevmem add), so recall has more than the dead end to choose from:
+     - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+     - [preference] Durations are printed with one decimal place
+---- session 1 (an approach that fails): Try running src/app.ts directly with node --experimental-strip-types instead of compiling it with tsc first. Run it once. If it doesn't work, drop the idea: change no files, keep the tsc build, and tell me in one or two sentences what you tried and why it failed.
+   queue drained 149 ms after claude exited
+     tool calls: Bash: "node --experimental-strip-types src/app.ts 2>&1 | head -30"
+     claude> I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums because they need real code generation. I changed no files and am keeping the `tsc` build.
+     JEVMEM.md after session 1:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums
+     the saved line, as written: - [dead-end] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums  <!-- id:mgbjdq ts:2026-10-04T17:29:23.650Z conf:0.98 -->
+     decision: save kind=dead-end content=0.90 importance=useful source=assistant_reply [tier 2, escalated]; source assistant_reply; writer fallback
+     src/app.ts unchanged
+   ✓ session 1: exactly one new line, a [dead-end] line that says what was tried and why it failed
+---- session 2 (new session: make the dead end work): The tsc compile step slows down my edit-run loop. Make src/app.ts run directly with node --experimental-strip-types, changing the code if that is what it takes, and check that it runs. Then tell me in two sentences what you changed.
+   queue drained 398 ms after claude exited
+     the prompt's context had the dead end: yes
+     tool calls: Bash: "cat package.json tsconfig.json && ls -R src && cat src/*.ts && node --version" | Edit: "/private/tmp/jevmem-e2e.boXyWQ/src/app.ts" | Bash: "node --experimental-strip-types src/app.ts; npx tsc --noEmit 2>&1 | tail -5" | Bash: "node --experimental-strip-types src/app.ts"
+     ran the failed attempt again, unchanged, before changing app.ts: no
+     claude> It runs: `node --experimental-strip-types src/app.ts` prints `2.1 min`. I replaced the `Unit` enum in `src/app.ts` with an `as const` object plus a same-named `Unit` type alias, because strip-only mode can't handle enums. `Unit.Seconds` and `Unit.Minutes` still work as before. I didn't run `tsc --noEmit`, so the type-check on the new code is untested.
+     node --experimental-strip-types src/app.ts now: runs and prints "2.1 min"; src/app.ts changed by Claude
+     JEVMEM.md after session 2:
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js
+       - [preference] Durations are printed with one decimal place
+       - [superseded] I ran `node --experimental-strip-types src/app.ts` once, and it failed. `src/app.ts` declares a TypeScript `enum` (`Unit`), and strip-only mode can't handle enums → id:mfgxlg
+       - [bug] I replaced the `Unit` enum in `src/app.ts` with an `as const` object plus a same-named `Unit` type alias, because strip-only mode can't handle enums.
+     this turn's decision: save kind=bug content=0.96 importance=important source=assistant_reply supersedes=mgbjdq (works now) (kind dead-end, but a listed dead end now works: judged as bug) [tier 2, escalated]; reply in the state: true; source assistant_reply; works now: noul 0.95, choice mgbjdq; writer fallback
+   ✓ session 2: Claude made the dead end work; the first line is [superseded] → the new line, and no second dead end was saved
+---- session 3 (new session, a related question, after the supersede): Can I run src/app.ts directly with node now, without tsc? Answer in one sentence, without running anything.
+   queue drained 277 ms after claude exited
+     injected context: 
+       - [bug] I replaced the `Unit` enum in `src/app.ts` with an `as const` object plus a same-named `Unit` type alias, because strip-only mode can't handle enums. (id:mfgxlg, p=0.97)
+       - [decision] The CLI is compiled with tsc into dist/ and started with node dist/app.js (id:bsmobg, p=0.93)
+     claude> Probably yes: the `Unit` enum was replaced with an `as const` object so `src/app.ts` works under Node's strip-only type stripping (on by default in Node 22.18+ and 23.6+), but I haven't verified that, and other non-strippable syntax or imports without `.ts` extensions could still break it. The proje
+   ✓ session 3: the superseded dead end was not injected
+PASS run 3 scenario=supersede
+# finished 2026-10-04T17:29:38Z, exit 0

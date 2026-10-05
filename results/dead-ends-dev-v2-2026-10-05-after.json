@@ -1,0 +1,2977 @@
+{
+  "kind": "dead-ends",
+  "date": "2026-10-05",
+  "commit": "314340a",
+  "dist": "dist/index.js",
+  "set": "eval/dead-ends-dev-v2.jsonl",
+  "turns": 48,
+  "machine": "darwin arm64, node v22.22.0, Apple M4",
+  "network_path": "direct HTTPS to the TypeSafe API default base URL, warm in-process client, cache off",
+  "cost_method": "input tokens × $0.042 per million; output tokens free",
+  "summary": {
+    "mode": "auto",
+    "started_at": "2026-10-05T11:29:08.001Z",
+    "finished_at": "2026-10-05T11:29:35.234Z",
+    "deadEnds": 12,
+    "savedAsDeadEnd": 11,
+    "truePositives": 10,
+    "falsePositives": 1,
+    "falseNegatives": 2,
+    "precision": 0.9090909090909091,
+    "recall": 0.8333333333333334,
+    "deadEndsFound": "10/12",
+    "reasonKept": "10/10",
+    "reasonKeptRate": 1,
+    "triedKept": "10/10",
+    "triedKeptRate": 1,
+    "workedKept": "1/1",
+    "refusedNoReason": 0,
+    "negativesSavedAsDeadEnd": "0/0",
+    "aFailedBWorked": {
+      "cases": 0,
+      "savedAsDeadEnd": 0,
+      "kinds": {}
+    },
+    "supersede": {
+      "cases": 3,
+      "found": 2,
+      "wrongId": 0,
+      "missed": 1,
+      "nearMisses": 6,
+      "nearMissFalseSupersedes": 0
+    },
+    "deadEndReversals": {
+      "cases": 3,
+      "found": 3,
+      "wrongId": 0,
+      "missed": 0
+    },
+    "supersedeByReply": {
+      "cases": 9,
+      "found": 9,
+      "wrongId": 0,
+      "missed": 0,
+      "savedAsDeadEnd": 0
+    },
+    "worksNowSavedAsDeadEnd": "0/12",
+    "supersedeScore": {
+      "labelled": 15,
+      "correct": 14,
+      "missed": 1,
+      "false": 0,
+      "falseByTag": {}
+    },
+    "mustNotSupersede": {
+      "deadEndAgrees": {
+        "cases": 3,
+        "superseded": 0,
+        "saved": 3
+      },
+      "nearMisses": {
+        "cases": 6,
+        "superseded": 0,
+        "saved": 2
+      },
+      "replyChatter": {
+        "cases": 6,
+        "superseded": 0,
+        "saved": 5
+      },
+      "questionNoContent": {
+        "cases": 6,
+        "superseded": 0,
+        "saved": 0
+      }
+    },
+    "contradictionsFound": "14/15",
+    "falseSupersedes": 0,
+    "ordinaryCorrect": "6/6",
+    "ordinaryAccuracy": 1,
+    "allCorrect": "44/48",
+    "byTag": {
+      "supersede-by-reply": {
+        "n": 9,
+        "savedAsDeadEnd": 0,
+        "ok": 9
+      },
+      "supersede": {
+        "n": 3,
+        "savedAsDeadEnd": 0,
+        "ok": 2
+      },
+      "dead-end-agrees": {
+        "n": 3,
+        "savedAsDeadEnd": 3,
+        "ok": 3
+      },
+      "dead-end": {
+        "n": 6,
+        "savedAsDeadEnd": 6,
+        "ok": 6
+      },
+      "dead-end-reversal": {
+        "n": 3,
+        "savedAsDeadEnd": 1,
+        "ok": 1
+      },
+      "supersede-near-miss": {
+        "n": 6,
+        "savedAsDeadEnd": 1,
+        "ok": 5
+      },
+      "reply-chatter": {
+        "n": 6,
+        "savedAsDeadEnd": 0,
+        "ok": 6
+      },
+      "question-no-content": {
+        "n": 6,
+        "savedAsDeadEnd": 0,
+        "ok": 6
+      },
+      "ordinary": {
+        "n": 6,
+        "savedAsDeadEnd": 0,
+        "ok": 6
+      }
+    },
+    "p50ms": 489,
+    "p95ms": 592,
+    "avgInputTokens": 7869,
+    "costPerDecision": 0.00033047700000000003,
+    "costPerDecisionWithLine": 0.00034516387500000003,
+    "escalationRate": 0.625,
+    "assistantIncludedRate": 0.6875
+  },
+  "rows": [
+    {
+      "id": "dv2-marlin-001",
+      "tag": "supersede-by-reply",
+      "subtype": "question",
+      "user": "FP32 is eating GPU memory. Can we get FP16 working without the accuracy drop?",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "ma6",
+        "accept": [
+          "decision",
+          "architecture",
+          "bug"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Yes, FP16 works now. I converted the model with keep_io_types and blocked the final Softmax node from conversion, so the softmax runs in FP32 and doesn't overflow",
+        "superseded": "ma6",
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 489,
+      "inputTokens": 11809,
+      "outputTokens": 1725,
+      "lineInputTokens": 550,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.91 importance=important source=assistant_reply supersedes=ma6 (works now) (kind dead-end, but a listed dead end now works: judged as bug) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.68,
+        "tier2": 0.61
+      },
+      "worksNow": {
+        "noul": 0.96,
+        "choice": "ma6",
+        "id": "ma6"
+      },
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "none": 0.08,
+        "bug": 0.31,
+        "preference": 0,
+        "decision": 0.07,
+        "todo": 0.02,
+        "dead-end": 0.49,
+        "architecture": 0,
+        "constraint": 0.03
+      },
+      "touches": "ma6",
+      "contradictionFamily": 0.8168275594809488
+    },
+    {
+      "id": "dv2-marlin-002",
+      "tag": "supersede-by-reply",
+      "subtype": "order",
+      "user": "Get the TensorRT provider working, we need the speed. The startup time is the only blocker.",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "ma7",
+        "accept": [
+          "decision",
+          "architecture",
+          "bug"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "The TensorRT provider is on and pods start in 40 seconds. I turned on trt_engine_cache_enable with the cache on the pod's persistent volume",
+        "superseded": "ma7",
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 519,
+      "inputTokens": 11685,
+      "outputTokens": 1724,
+      "lineInputTokens": 568,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.87 importance=important source=assistant_reply supersedes=ma7 (works now) (kind dead-end, but a listed dead end now works: judged as bug) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.5,
+        "tier2": 0.47
+      },
+      "worksNow": {
+        "noul": 0.94,
+        "choice": "ma7",
+        "id": "ma7"
+      },
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "todo": 0.08,
+        "constraint": 0.09,
+        "bug": 0.22,
+        "preference": 0,
+        "none": 0.03,
+        "dead-end": 0.36,
+        "decision": 0.19,
+        "architecture": 0.03
+      },
+      "touches": "ma7",
+      "contradictionFamily": 0.7613327148429104
+    },
+    {
+      "id": "dv2-marlin-003",
+      "tag": "supersede-by-reply",
+      "subtype": "question",
+      "user": "Why can't we fit two replicas on one A10? It has 24 GB. Try to make it work.",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "ma8",
+        "accept": [
+          "decision",
+          "architecture",
+          "bug"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Two replicas per A10 work now. The crash came from ONNX Runtime's memory arena growing to take most of the GPU",
+        "superseded": "ma8",
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 539,
+      "inputTokens": 11653,
+      "outputTokens": 1724,
+      "lineInputTokens": 535,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.97 importance=important source=assistant_reply supersedes=ma8 (works now) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.71,
+        "tier2": 0.66
+      },
+      "worksNow": {
+        "noul": 0.84,
+        "choice": "ma8",
+        "id": "ma8"
+      },
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "architecture": 0,
+        "todo": 0,
+        "preference": 0,
+        "dead-end": 0.21,
+        "bug": 0.76,
+        "none": 0.01,
+        "constraint": 0.01,
+        "decision": 0.01
+      },
+      "touches": "ma8",
+      "contradictionFamily": 0.7310585786300049
+    },
+    {
+      "id": "dv2-marlin-004",
+      "tag": "supersede",
+      "subtype": "user",
+      "user": "I moved the model to Triton's ONNX backend instead of the Python one, and with dynamic batching the ",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "ma9",
+        "accept": [
+          "decision",
+          "architecture"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "I moved the model to Triton's ONNX backend instead of the Python one, and with dynamic batching the p95 is 38 ms at 400 requests per second.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": false,
+      "ms": 215,
+      "inputTokens": 4282,
+      "outputTokens": 554,
+      "lineInputTokens": 510,
+      "escalated": false,
+      "assistantIncluded": true,
+      "source": "user_message",
+      "reason": "save kind=decision content=0.96 importance=important [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.45,
+        "tier2": null
+      },
+      "worksNow": {
+        "noul": 0.43,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.07,
+        "choice": "none",
+        "newReason": 0.13,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "preference": 0,
+        "constraint": 0,
+        "dead-end": 0.02,
+        "none": 0.01,
+        "decision": 0.97,
+        "architecture": 0,
+        "todo": 0,
+        "bug": 0
+      },
+      "touches": "ma9",
+      "contradictionFamily": 0.6
+    },
+    {
+      "id": "dv2-marlin-005",
+      "tag": "dead-end-agrees",
+      "subtype": "user",
+      "user": "I tried pulling the models from Hugging Face Hub at startup instead of our S3 registry. The Hub rate",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": null,
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "Pulling the models from Hugging Face Hub at startup instead of our S3 registry. The Hub rate-limited us when 30 pods restarted at once and half of them sat in CrashLoopBackOff for ten minutes.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": null
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 297,
+      "inputTokens": 3341,
+      "outputTokens": 420,
+      "lineInputTokens": 662,
+      "escalated": false,
+      "assistantIncluded": true,
+      "source": "both",
+      "reason": "save kind=dead-end content=0.97 importance=useful source=both [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.97,
+        "tier2": null
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "decision": 0,
+        "constraint": 0,
+        "dead-end": 1,
+        "bug": 0,
+        "todo": 0,
+        "architecture": 0,
+        "none": 0,
+        "preference": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.14
+    },
+    {
+      "id": "dv2-marlin-006",
+      "tag": "dead-end",
+      "subtype": "user",
+      "user": "I tried warming each new pod with 50 dummy requests before it takes traffic. The warm-up requests we",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": null,
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "Warming each new pod with 50 dummy requests before it takes traffic. The warm-up requests went into the autoscaler's metrics too",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": null
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 208,
+      "inputTokens": 2804,
+      "outputTokens": 356,
+      "lineInputTokens": 581,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=dead-end content=0.97 importance=important [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.97,
+        "tier2": null
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "architecture": 0,
+        "none": 0,
+        "preference": 0,
+        "bug": 0,
+        "dead-end": 1,
+        "constraint": 0,
+        "todo": 0,
+        "decision": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.08
+    },
+    {
+      "id": "dv2-marlin-007",
+      "tag": "dead-end",
+      "subtype": "assistant",
+      "user": "Compile the preprocessing with torch.compile to speed it up.",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": null,
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "The preprocessing gets a different image size on almost every request, and torch.compile recompiled for each new shape until it hit its cache limit and fell back to eager mode",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": null
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 592,
+      "inputTokens": 9750,
+      "outputTokens": 1455,
+      "lineInputTokens": 589,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=dead-end content=0.94 importance=important source=assistant_reply [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.97,
+        "tier2": 0.97
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "architecture": 0,
+        "preference": 0,
+        "none": 0,
+        "bug": 0,
+        "dead-end": 0.99,
+        "constraint": 0,
+        "todo": 0,
+        "decision": 0.01
+      },
+      "touches": null,
+      "contradictionFamily": 0.08988826325395902
+    },
+    {
+      "id": "dv2-marlin-008",
+      "tag": "dead-end-reversal",
+      "subtype": "user",
+      "user": "Decoding with Pillow in the handler is the bottleneck: it holds the GIL, so at 300 requests per seco",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": "ma10",
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Decoding with Pillow in the handler is the bottleneck: it holds the GIL, so at 300 requests per second the event loop stalls and p95 is 140 ms.",
+        "superseded": "ma10",
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": false,
+      "ms": 460,
+      "inputTokens": 8587,
+      "outputTokens": 1295,
+      "lineInputTokens": 536,
+      "escalated": true,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=bug content=0.89 importance=important supersedes=ma10 [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.91,
+        "tier2": 0.91
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "constraint": 0,
+        "decision": 0.3,
+        "none": 0,
+        "preference": 0,
+        "architecture": 0.01,
+        "dead-end": 0.29,
+        "bug": 0.4,
+        "todo": 0
+      },
+      "touches": "ma10",
+      "contradictionFamily": 0.8681843818868048
+    },
+    {
+      "id": "dv2-marlin-009",
+      "tag": "supersede-near-miss",
+      "subtype": "retest",
+      "user": "Try FP16 again with the new ONNX Runtime release.",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip",
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 628,
+      "inputTokens": 11709,
+      "outputTokens": 1724,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "skip: retest of ma6: failed again for the reason it gives (nothing new) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.95,
+        "tier2": 0.95
+      },
+      "worksNow": {
+        "noul": 0.03,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.92,
+        "choice": "ma6",
+        "newReason": 0.15,
+        "id": "ma6",
+        "same": true
+      },
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "decision": 0.02,
+        "bug": 0.01,
+        "dead-end": 0.9,
+        "constraint": 0,
+        "architecture": 0,
+        "todo": 0.02,
+        "none": 0.05,
+        "preference": 0
+      },
+      "touches": "ma6",
+      "contradictionFamily": 0.2630841041665797
+    },
+    {
+      "id": "dv2-marlin-010",
+      "tag": "supersede-near-miss",
+      "subtype": "proposed",
+      "user": "Is there a way around the TensorRT startup time?",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 506,
+      "inputTokens": 11623,
+      "outputTokens": 1720,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "none",
+      "reason": "skip: source=none (neither side states anything for the project), kind=none, content=0.47<0.5 [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.42,
+        "tier2": 0.46
+      },
+      "worksNow": {
+        "noul": 0.05,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.06,
+        "choice": "none",
+        "newReason": 0.08,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "none",
+      "kindProbabilities": {
+        "preference": 0,
+        "bug": 0.07,
+        "decision": 0.05,
+        "dead-end": 0.29,
+        "todo": 0.12,
+        "constraint": 0,
+        "architecture": 0.01,
+        "none": 0.46
+      },
+      "touches": "ma7",
+      "contradictionFamily": 0.22705774060326145
+    },
+    {
+      "id": "dv2-marlin-011",
+      "tag": "reply-chatter",
+      "subtype": "suggestion",
+      "user": "Why is p95 higher at low traffic than at high traffic?",
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "contradicts": null,
+        "accept": [
+          "bug",
+          "architecture",
+          "skip"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "At low traffic a request waits the full 10 ms batching window for others that never come. I'd drop the batching window entirely and call the model per request; the GPU has headroom at those rates.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 214,
+      "inputTokens": 3333,
+      "outputTokens": 421,
+      "lineInputTokens": 523,
+      "escalated": false,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.91 importance=important source=assistant_reply [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.16,
+        "tier2": null
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "architecture": 0,
+        "todo": 0,
+        "none": 0.29,
+        "constraint": 0,
+        "decision": 0,
+        "bug": 0.71,
+        "preference": 0,
+        "dead-end": 0
+      },
+      "touches": "ma2",
+      "contradictionFamily": 0.12
+    },
+    {
+      "id": "dv2-marlin-012",
+      "tag": "reply-chatter",
+      "subtype": "change",
+      "user": "The staging pods keep loading an old model. Fix it.",
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "contradicts": null,
+        "accept": [
+          "bug",
+          "skip"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "The staging pods keep loading an old model.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 485,
+      "inputTokens": 8365,
+      "outputTokens": 1273,
+      "lineInputTokens": 491,
+      "escalated": true,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=bug content=0.53 importance=useful [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.04,
+        "tier2": 0.05
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "preference": 0,
+        "constraint": 0,
+        "dead-end": 0,
+        "none": 0.02,
+        "decision": 0,
+        "architecture": 0,
+        "todo": 0.01,
+        "bug": 0.97
+      },
+      "touches": "ma4",
+      "contradictionFamily": 0.21840253609763444
+    },
+    {
+      "id": "dv2-marlin-013",
+      "tag": "question-no-content",
+      "subtype": "question",
+      "user": "maybe we should serve with vLLM or TorchServe instead of our own FastAPI app? thoughts?",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 546,
+      "inputTokens": 9732,
+      "outputTokens": 1453,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "none",
+      "reason": "skip: source=none (neither side states anything for the project) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.05,
+        "tier2": 0.05
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "decision": 0.47000000000000003,
+        "none": 0.36,
+        "constraint": 0,
+        "preference": 0.01,
+        "dead-end": 0.04,
+        "bug": 0,
+        "architecture": 0.11,
+        "todo": 0.01
+      },
+      "touches": "ma2",
+      "contradictionFamily": 0.7841471891774853
+    },
+    {
+      "id": "dv2-marlin-014",
+      "tag": "question-no-content",
+      "subtype": "options",
+      "user": "options for the latency budget: 1) keep 80 ms p95 2) relax to 120 ms for batch clients 3) separate e",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 579,
+      "inputTokens": 9732,
+      "outputTokens": 1453,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "none",
+      "reason": "skip: source=none (neither side states anything for the project), content=0.31<0.5 [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.03,
+        "tier2": 0.03
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "dead-end": 0,
+        "constraint": 0.03,
+        "none": 0.05,
+        "preference": 0,
+        "todo": 0,
+        "decision": 0.91,
+        "bug": 0,
+        "architecture": 0.01
+      },
+      "touches": "ma3",
+      "contradictionFamily": 0.2699256160188812
+    },
+    {
+      "id": "dv2-marlin-015",
+      "tag": "ordinary",
+      "subtype": "constraint",
+      "user": "Every exported model must record its validation accuracy and numeric precision in the model card; th",
+      "want": {
+        "save": true,
+        "kind": "constraint",
+        "contradicts": null,
+        "accept": [
+          "constraint"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "Every exported model must record its validation accuracy and numeric precision in the model card; the loader refuses a model without them.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 236,
+      "inputTokens": 3755,
+      "outputTokens": 488,
+      "lineInputTokens": 0,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=constraint content=0.97 importance=critical [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.56,
+        "tier2": null
+      },
+      "worksNow": {
+        "noul": 0.02,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.04,
+        "choice": "none",
+        "newReason": 0.33,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "constraint",
+      "kindProbabilities": {
+        "architecture": 0,
+        "todo": 0,
+        "preference": 0,
+        "dead-end": 0,
+        "bug": 0,
+        "none": 0,
+        "constraint": 1,
+        "decision": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.07
+    },
+    {
+      "id": "dv2-marlin-016",
+      "tag": "ordinary",
+      "subtype": "todo",
+      "user": "Next quarter, benchmark the CUDA provider against OpenVINO on the CPU nodes for the small models.",
+      "want": {
+        "save": true,
+        "kind": "todo",
+        "contradicts": null,
+        "accept": [
+          "todo"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Next quarter, benchmark the CUDA provider against OpenVINO on the CPU nodes for the small models.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 238,
+      "inputTokens": 3703,
+      "outputTokens": 488,
+      "lineInputTokens": 0,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.48,
+        "tier2": null
+      },
+      "worksNow": {
+        "noul": 0.02,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.04,
+        "choice": "none",
+        "newReason": 0.06,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "todo",
+      "kindProbabilities": {
+        "todo": 1,
+        "preference": 0,
+        "constraint": 0,
+        "decision": 0,
+        "none": 0,
+        "bug": 0,
+        "architecture": 0,
+        "dead-end": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.1
+    },
+    {
+      "id": "dv2-copperleaf-001",
+      "tag": "supersede-by-reply",
+      "subtype": "question",
+      "user": "Can Turbo be on for the cart and address pages? The full page reloads feel slow.",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "cl6",
+        "accept": [
+          "decision",
+          "architecture",
+          "bug"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Turbo is on for both pages now and the autocomplete works. It stopped attaching because it was set up in an inline script that Turbo doesn't run again on a visit",
+        "superseded": "cl6",
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 497,
+      "inputTokens": 11603,
+      "outputTokens": 1723,
+      "lineInputTokens": 574,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.96 importance=useful source=assistant_reply supersedes=cl6 (works now) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.83,
+        "tier2": 0.81
+      },
+      "worksNow": {
+        "noul": 0.95,
+        "choice": "cl6",
+        "id": "cl6"
+      },
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "constraint": 0,
+        "decision": 0.02,
+        "bug": 0.62,
+        "dead-end": 0.3,
+        "preference": 0.02,
+        "none": 0.03,
+        "architecture": 0,
+        "todo": 0.01
+      },
+      "touches": "cl6",
+      "contradictionFamily": 0.4900013331200346
+    },
+    {
+      "id": "dv2-copperleaf-002",
+      "tag": "supersede-by-reply",
+      "subtype": "order",
+      "user": "Sending the order email synchronously slows the webhook down. Make deliver_later work.",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "cl7",
+        "accept": [
+          "decision",
+          "architecture",
+          "bug"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Deliver_later works now. The job ran before the transaction committed; I enqueue it in an after_commit callback on the order instead of inside the webhook's transaction",
+        "superseded": "cl7",
+        "refused": null,
+        "pick": [
+          "s3",
+          "s4"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 543,
+      "inputTokens": 11699,
+      "outputTokens": 1721,
+      "lineInputTokens": 691,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "both",
+      "reason": "save kind=bug content=0.96 importance=important source=both supersedes=cl7 (works now) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.77,
+        "tier2": 0.76
+      },
+      "worksNow": {
+        "noul": 0.95,
+        "choice": "cl7",
+        "id": "cl7"
+      },
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "todo": 0.04,
+        "bug": 0.62,
+        "constraint": 0,
+        "preference": 0,
+        "none": 0.01,
+        "dead-end": 0.33,
+        "decision": 0,
+        "architecture": 0
+      },
+      "touches": "cl7",
+      "contradictionFamily": 0.2798914731995085
+    },
+    {
+      "id": "dv2-copperleaf-003",
+      "tag": "supersede-by-reply",
+      "subtype": "question",
+      "user": "The photographers hate pre-sizing. Could Active Storage variants work now that we're behind a CDN?",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "cl8",
+        "accept": [
+          "decision",
+          "architecture",
+          "bug"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "architecture",
+        "line": "They work now. The variants are processed when the image is attached, in a Sidekiq job, so no request ever waits for one, and the CDN caches the variant URLs.",
+        "superseded": "cl8",
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 526,
+      "inputTokens": 11651,
+      "outputTokens": 1725,
+      "lineInputTokens": 563,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=architecture content=0.86 importance=important source=assistant_reply supersedes=cl8 (works now) (kind dead-end, but a listed dead end now works: judged as architecture) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.6,
+        "tier2": 0.62
+      },
+      "worksNow": {
+        "noul": 0.92,
+        "choice": "cl8",
+        "id": "cl8"
+      },
+      "retestAnswer": null,
+      "kindChoice": "architecture",
+      "kindProbabilities": {
+        "constraint": 0,
+        "decision": 0.04,
+        "architecture": 0.05,
+        "none": 0.12,
+        "preference": 0.01,
+        "dead-end": 0.74,
+        "bug": 0.04,
+        "todo": 0
+      },
+      "touches": "cl8",
+      "contradictionFamily": 0.6410674063348171
+    },
+    {
+      "id": "dv2-copperleaf-004",
+      "tag": "supersede",
+      "subtype": "user",
+      "user": "We're on the bigger Postgres plan now. I ran Solid Queue on staging for a week with our real job vol",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "cl9",
+        "accept": [
+          "decision",
+          "architecture"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "I ran Solid Queue on staging for a week with our real job volume and the database load went up 6%, so let's move the jobs to Solid Queue and retire Redis. Sure: porting the jobs now",
+        "superseded": "cl9",
+        "refused": null,
+        "pick": [
+          "s2",
+          "s3"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 281,
+      "inputTokens": 4176,
+      "outputTokens": 546,
+      "lineInputTokens": 592,
+      "escalated": false,
+      "assistantIncluded": true,
+      "source": "both",
+      "reason": "save kind=decision content=0.95 importance=important source=both supersedes=cl9 (works now) [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.35,
+        "tier2": null
+      },
+      "worksNow": {
+        "noul": 0.81,
+        "choice": "cl9",
+        "id": "cl9"
+      },
+      "retestAnswer": null,
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "todo": 0.06,
+        "none": 0.02,
+        "architecture": 0,
+        "bug": 0,
+        "constraint": 0,
+        "decision": 0.84,
+        "dead-end": 0.08,
+        "preference": 0
+      },
+      "touches": "cl9",
+      "contradictionFamily": 0.85
+    },
+    {
+      "id": "dv2-copperleaf-005",
+      "tag": "dead-end-agrees",
+      "subtype": "assistant",
+      "user": "Would the product configurator be easier in React? Try it on a branch.",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": null,
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "A React configurator mounted in the product page. It needed its own API for prices and stock, which the Hotwire page gets from the server for free, and the bundle added 180 KB to the product page.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": null
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 510,
+      "inputTokens": 9748,
+      "outputTokens": 1456,
+      "lineInputTokens": 596,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=dead-end content=0.91 importance=important source=assistant_reply [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.97,
+        "tier2": 0.97
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "architecture": 0,
+        "preference": 0,
+        "bug": 0,
+        "decision": 0.03,
+        "constraint": 0,
+        "none": 0.01,
+        "dead-end": 0.95,
+        "todo": 0.01
+      },
+      "touches": "cl1",
+      "contradictionFamily": 0.1335417225332125
+    },
+    {
+      "id": "dv2-copperleaf-006",
+      "tag": "dead-end",
+      "subtype": "user",
+      "user": "I tried counter_cache for the review counts on products. The import job updates reviews with update_",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": null,
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I tried counter_cache for the review counts on products. The import job updates reviews with update_all, which skips callbacks",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": null
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 213,
+      "inputTokens": 2792,
+      "outputTokens": 356,
+      "lineInputTokens": 583,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=dead-end content=0.97 importance=important [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.97,
+        "tier2": null
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "preference": 0,
+        "decision": 0,
+        "none": 0,
+        "dead-end": 1,
+        "todo": 0,
+        "constraint": 0,
+        "architecture": 0,
+        "bug": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.06
+    },
+    {
+      "id": "dv2-copperleaf-007",
+      "tag": "dead-end",
+      "subtype": "assistant",
+      "user": "Can the search suggestions use pg_trgm instead of the LIKE query?",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": null,
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "A pg_trgm similarity search with a GIN index. The suggestions for short inputs like 'te' came back as unrelated products, because two-letter inputs have almost no trigrams",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": null
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 483,
+      "inputTokens": 9750,
+      "outputTokens": 1454,
+      "lineInputTokens": 600,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=dead-end content=0.91 importance=important source=assistant_reply [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.97,
+        "tier2": 0.97
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "preference": 0,
+        "decision": 0.05,
+        "none": 0.01,
+        "dead-end": 0.93,
+        "todo": 0,
+        "constraint": 0,
+        "bug": 0,
+        "architecture": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.18242552380635638
+    },
+    {
+      "id": "dv2-copperleaf-008",
+      "tag": "dead-end-reversal",
+      "subtype": "user",
+      "user": "Shippo's rate API has been timing out at the busiest hours, 4 to 6 seconds, and customers abandon ch",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": "cl10",
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Shippo's rate API has been timing out at the busiest hours, 4 to 6 seconds, and customers abandon checkout while it spins. Shipping rates move to our own table of flat rates per zone, updated monthly.",
+        "superseded": "cl10",
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": false,
+      "ms": 240,
+      "inputTokens": 2850,
+      "outputTokens": 366,
+      "lineInputTokens": 525,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=bug content=0.91 importance=important supersedes=cl10 [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.65,
+        "tier2": null
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "constraint": 0,
+        "bug": 0.92,
+        "dead-end": 0.060000000000000005,
+        "none": 0,
+        "preference": 0,
+        "architecture": 0.01,
+        "todo": 0,
+        "decision": 0.01
+      },
+      "touches": "cl10",
+      "contradictionFamily": 0.89
+    },
+    {
+      "id": "dv2-copperleaf-009",
+      "tag": "supersede-near-miss",
+      "subtype": "retest",
+      "user": "Try turning Turbo on for the address page again after the Places library update.",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip",
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 519,
+      "inputTokens": 11509,
+      "outputTokens": 1725,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "skip: retest of cl6: failed again for the reason it gives (nothing new) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.93,
+        "tier2": 0.94
+      },
+      "worksNow": {
+        "noul": 0.04,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.95,
+        "choice": "cl6",
+        "newReason": 0.06,
+        "id": "cl6",
+        "same": true
+      },
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "todo": 0.01,
+        "constraint": 0,
+        "bug": 0.03,
+        "none": 0.04,
+        "preference": 0,
+        "dead-end": 0.92,
+        "decision": 0,
+        "architecture": 0
+      },
+      "touches": "cl6",
+      "contradictionFamily": 0.3775406687981454
+    },
+    {
+      "id": "dv2-copperleaf-010",
+      "tag": "supersede-near-miss",
+      "subtype": "mention",
+      "user": "Since the photographers pre-size the images, add a check in the upload form that rejects images wide",
+      "want": {
+        "save": true,
+        "kind": "constraint",
+        "contradicts": null,
+        "accept": [
+          "constraint",
+          "decision",
+          "skip"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "Since the photographers pre-size the images, add a check in the upload form that rejects images wider than 2000 px.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 522,
+      "inputTokens": 11561,
+      "outputTokens": 1720,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "user_message",
+      "reason": "save kind=constraint content=0.60 importance=important [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.34,
+        "tier2": 0.32
+      },
+      "worksNow": {
+        "noul": 0.06,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.04,
+        "choice": "none",
+        "newReason": 0.06,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "constraint",
+      "kindProbabilities": {
+        "architecture": 0.01,
+        "preference": 0,
+        "dead-end": 0.07,
+        "bug": 0.11,
+        "todo": 0.31,
+        "none": 0.01,
+        "decision": 0.03,
+        "constraint": 0.45999999999999996
+      },
+      "touches": "cl8",
+      "contradictionFamily": 0.14492163148782286
+    },
+    {
+      "id": "dv2-copperleaf-011",
+      "tag": "reply-chatter",
+      "subtype": "suggestion",
+      "user": "Why do some abandoned cart emails go out twice?",
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "contradicts": null,
+        "accept": [
+          "bug",
+          "skip"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Sidekiq retried the job after a timeout that happened after the email was sent.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 213,
+      "inputTokens": 3321,
+      "outputTokens": 420,
+      "lineInputTokens": 529,
+      "escalated": false,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.95 importance=important source=assistant_reply [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.18,
+        "tier2": null
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "preference": 0,
+        "todo": 0,
+        "bug": 0.72,
+        "decision": 0,
+        "constraint": 0,
+        "none": 0.28,
+        "dead-end": 0,
+        "architecture": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.13
+    },
+    {
+      "id": "dv2-copperleaf-012",
+      "tag": "reply-chatter",
+      "subtype": "change",
+      "user": "The preorder product keeps showing sold out, fix it.",
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "contradicts": null,
+        "accept": [
+          "bug",
+          "skip"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 469,
+      "inputTokens": 8335,
+      "outputTokens": 1272,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "skip: content=0.45<0.5 [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.04,
+        "tier2": 0.04
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "none": 0.05,
+        "decision": 0,
+        "dead-end": 0,
+        "bug": 0.95,
+        "todo": 0,
+        "architecture": 0,
+        "preference": 0,
+        "constraint": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.12898085214623567
+    },
+    {
+      "id": "dv2-copperleaf-013",
+      "tag": "question-no-content",
+      "subtype": "question",
+      "user": "should we switch from Stripe Checkout to Payment Links for the gift cards? would that be simpler?",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 572,
+      "inputTokens": 9676,
+      "outputTokens": 1455,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "skip: content=0.50<0.5, source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.05,
+        "tier2": 0.05
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "todo": 0,
+        "preference": 0,
+        "decision": 0.75,
+        "constraint": 0,
+        "none": 0.13,
+        "architecture": 0.06,
+        "bug": 0,
+        "dead-end": 0.06
+      },
+      "touches": "cl2",
+      "contradictionFamily": 0.21332472781586043
+    },
+    {
+      "id": "dv2-copperleaf-014",
+      "tag": "question-no-content",
+      "subtype": "question",
+      "user": "is it worth replacing the service objects with ActiveInteraction instead? or dry-monads?",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 498,
+      "inputTokens": 9690,
+      "outputTokens": 1455,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "skip: source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.05,
+        "tier2": 0.05
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "todo": 0.01,
+        "preference": 0.06,
+        "constraint": 0,
+        "decision": 0.58,
+        "none": 0.31,
+        "architecture": 0.03,
+        "bug": 0,
+        "dead-end": 0.01
+      },
+      "touches": "cl5",
+      "contradictionFamily": 0.45760205922564906
+    },
+    {
+      "id": "dv2-copperleaf-015",
+      "tag": "ordinary",
+      "subtype": "constraint",
+      "user": "Sidekiq's dashboard must only be reachable by admins; mount it behind the admin constraint.",
+      "want": {
+        "save": true,
+        "kind": "constraint",
+        "contradicts": null,
+        "accept": [
+          "constraint"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "Sidekiq's dashboard must only be reachable by admins; mount it behind the admin constraint.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 318,
+      "inputTokens": 3667,
+      "outputTokens": 488,
+      "lineInputTokens": 0,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=constraint content=0.97 importance=critical [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.37,
+        "tier2": null
+      },
+      "worksNow": {
+        "noul": 0.02,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.03,
+        "choice": "none",
+        "newReason": 0.06,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "constraint",
+      "kindProbabilities": {
+        "decision": 0.01,
+        "constraint": 0.92,
+        "architecture": 0,
+        "bug": 0,
+        "todo": 0.07,
+        "dead-end": 0,
+        "none": 0,
+        "preference": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.06
+    },
+    {
+      "id": "dv2-copperleaf-016",
+      "tag": "ordinary",
+      "subtype": "todo",
+      "user": "For later: send a shipping notification email when the label is printed.",
+      "want": {
+        "save": true,
+        "kind": "todo",
+        "contradicts": null,
+        "accept": [
+          "todo"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "For later: send a shipping notification email when the label is printed.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 208,
+      "inputTokens": 3710,
+      "outputTokens": 489,
+      "lineInputTokens": 0,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.37,
+        "tier2": null
+      },
+      "worksNow": {
+        "noul": 0.03,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.04,
+        "choice": "none",
+        "newReason": 0.05,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "todo",
+      "kindProbabilities": {
+        "decision": 0,
+        "bug": 0,
+        "architecture": 0,
+        "todo": 1,
+        "dead-end": 0,
+        "preference": 0,
+        "constraint": 0,
+        "none": 0
+      },
+      "touches": "cl7",
+      "contradictionFamily": 0.09
+    },
+    {
+      "id": "dv2-inkwell-001",
+      "tag": "supersede-by-reply",
+      "subtype": "question",
+      "user": "Can we use Turbopack for next dev? Webpack's hot reload takes 6 seconds.",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "iw6",
+        "accept": [
+          "decision",
+          "architecture",
+          "bug"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Turbopack works for dev now. The resolution failed because packages/api's package.json exports pointed at the source files only under a 'development' condition that Turbopack doesn't read",
+        "superseded": "iw6",
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 512,
+      "inputTokens": 11667,
+      "outputTokens": 1723,
+      "lineInputTokens": 539,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.97 importance=important source=assistant_reply supersedes=iw6 (works now) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.81,
+        "tier2": 0.78
+      },
+      "worksNow": {
+        "noul": 0.97,
+        "choice": "iw6",
+        "id": "iw6"
+      },
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "preference": 0.01,
+        "dead-end": 0.36,
+        "constraint": 0,
+        "decision": 0.03,
+        "architecture": 0,
+        "bug": 0.58,
+        "none": 0.02,
+        "todo": 0
+      },
+      "touches": "iw6",
+      "contradictionFamily": 0.43045377606077095
+    },
+    {
+      "id": "dv2-inkwell-002",
+      "tag": "supersede-by-reply",
+      "subtype": "order",
+      "user": "Move the public read routes to the edge again, and deal with the bundle size this time.",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "iw7",
+        "accept": [
+          "decision",
+          "architecture",
+          "bug"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "I generated the Prisma client with the driver adapter for Neon's serverless driver instead of the full engine, which brings the edge bundle from 2.3 MB to 610 KB, under the limit",
+        "superseded": "iw7",
+        "refused": null,
+        "pick": [
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 573,
+      "inputTokens": 11665,
+      "outputTokens": 1724,
+      "lineInputTokens": 576,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=decision content=0.87 importance=important source=assistant_reply supersedes=iw7 (works now) (kind dead-end, but a listed dead end now works: judged as decision) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.69,
+        "tier2": 0.7
+      },
+      "worksNow": {
+        "noul": 0.96,
+        "choice": "iw7",
+        "id": "iw7"
+      },
+      "retestAnswer": null,
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "preference": 0,
+        "todo": 0.22,
+        "bug": 0.09,
+        "decision": 0.15,
+        "constraint": 0.02,
+        "none": 0.03,
+        "dead-end": 0.44,
+        "architecture": 0.05
+      },
+      "touches": "iw7",
+      "contradictionFamily": 0.8593618742658659
+    },
+    {
+      "id": "dv2-inkwell-003",
+      "tag": "supersede-by-reply",
+      "subtype": "question",
+      "user": "Why does the mobile app still copy the schemas? Can it use packages/schemas now?",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "iw8",
+        "accept": [
+          "decision",
+          "architecture",
+          "bug"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Metro couldn't follow the pnpm symlink; I set watchFolders to the monorepo root and turned on unstable_enableSymlinks in metro.config.js, deleted the copies in apps/mobile",
+        "superseded": "iw8",
+        "refused": null,
+        "pick": [
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 519,
+      "inputTokens": 11675,
+      "outputTokens": 1725,
+      "lineInputTokens": 537,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.96 importance=important source=assistant_reply supersedes=iw8 (works now) (kind dead-end, but a listed dead end now works: judged as bug) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.82,
+        "tier2": 0.82
+      },
+      "worksNow": {
+        "noul": 0.97,
+        "choice": "iw8",
+        "id": "iw8"
+      },
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "architecture": 0,
+        "todo": 0,
+        "preference": 0,
+        "dead-end": 0.58,
+        "bug": 0.41,
+        "constraint": 0,
+        "none": 0,
+        "decision": 0.01
+      },
+      "touches": "iw8",
+      "contradictionFamily": 0.8292045179776256
+    },
+    {
+      "id": "dv2-inkwell-004",
+      "tag": "supersede",
+      "subtype": "user",
+      "user": "IT whitelisted the Playwright CDN. I ran the component tests in Vitest browser mode in CI three time",
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "contradicts": "iw9",
+        "accept": [
+          "decision",
+          "architecture"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "IT whitelisted the Playwright CDN.",
+        "superseded": "iw9",
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 333,
+      "inputTokens": 4249,
+      "outputTokens": 555,
+      "lineInputTokens": 511,
+      "escalated": false,
+      "assistantIncluded": true,
+      "source": "user_message",
+      "reason": "save kind=decision content=0.91 importance=important supersedes=iw9 (works now) [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.37,
+        "tier2": null
+      },
+      "worksNow": {
+        "noul": 0.93,
+        "choice": "iw9",
+        "id": "iw9"
+      },
+      "retestAnswer": null,
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "dead-end": 0.23,
+        "todo": 0.02,
+        "constraint": 0,
+        "none": 0.07,
+        "decision": 0.66,
+        "architecture": 0,
+        "bug": 0.01,
+        "preference": 0
+      },
+      "touches": "iw9",
+      "contradictionFamily": 0.9
+    },
+    {
+      "id": "dv2-inkwell-005",
+      "tag": "dead-end-agrees",
+      "subtype": "user",
+      "user": "I tried Drizzle for the analytics package to get closer to SQL. Our Prisma models don't map to it di",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": null,
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I tried Drizzle for the analytics package to get closer to SQL. Our Prisma models don't map to it directly, so we had two schema definitions for the same tables and they drifted within a day.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": null
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 215,
+      "inputTokens": 2798,
+      "outputTokens": 356,
+      "lineInputTokens": 579,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=dead-end content=0.96 importance=important [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.96,
+        "tier2": null
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "preference": 0,
+        "constraint": 0,
+        "decision": 0,
+        "todo": 0,
+        "none": 0,
+        "dead-end": 1,
+        "bug": 0,
+        "architecture": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.12
+    },
+    {
+      "id": "dv2-inkwell-006",
+      "tag": "dead-end",
+      "subtype": "user",
+      "user": "I tried Turborepo's remote cache with Vercel for CI. Our CI runners are on another cloud, so every c",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": null,
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I tried Turborepo's remote cache with Vercel for CI. Our CI runners are on another cloud, so every cache fetch crossed the internet and a cached build took longer than building from scratch.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": null
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 231,
+      "inputTokens": 2794,
+      "outputTokens": 356,
+      "lineInputTokens": 575,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=dead-end content=0.97 importance=important [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.97,
+        "tier2": null
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "none": 0,
+        "architecture": 0,
+        "dead-end": 1,
+        "todo": 0,
+        "preference": 0,
+        "constraint": 0,
+        "bug": 0,
+        "decision": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.14
+    },
+    {
+      "id": "dv2-inkwell-007",
+      "tag": "dead-end",
+      "subtype": "assistant",
+      "user": "Switch the API package to ESM only.",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": null,
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "Making packages/api ESM only. The Jest tests in the legacy admin app load it with require, and all 140 of them failed to import it, so I reverted; the admin app would need to move to Vitest first.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": null
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 448,
+      "inputTokens": 9718,
+      "outputTokens": 1455,
+      "lineInputTokens": 547,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=dead-end content=0.93 importance=important source=assistant_reply [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.97,
+        "tier2": 0.97
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "architecture": 0,
+        "todo": 0,
+        "preference": 0,
+        "dead-end": 0.99,
+        "bug": 0,
+        "none": 0,
+        "constraint": 0,
+        "decision": 0.01
+      },
+      "touches": null,
+      "contradictionFamily": 0.1551194226263038
+    },
+    {
+      "id": "dv2-inkwell-008",
+      "tag": "dead-end-reversal",
+      "subtype": "user",
+      "user": "NextAuth's database sessions add a Neon query to every request, and with Neon's cold starts the firs",
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "contradicts": "iw10",
+        "accept": [
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "NextAuth's database sessions add a Neon query to every request, and with Neon's cold starts the first page view takes 300 ms longer. Sessions move to signed JWT cookies with jose",
+        "superseded": "iw10",
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": {
+        "triedKept": true,
+        "reasonKept": true,
+        "workedKept": true
+      },
+      "retest": null,
+      "ok": true,
+      "ms": 540,
+      "inputTokens": 8555,
+      "outputTokens": 1296,
+      "lineInputTokens": 543,
+      "escalated": true,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=dead-end content=0.85 importance=important supersedes=iw10 [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.85,
+        "tier2": 0.85
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "preference": 0,
+        "todo": 0,
+        "decision": 0.25,
+        "bug": 0.02,
+        "none": 0,
+        "architecture": 0.01,
+        "dead-end": 0.72,
+        "constraint": 0
+      },
+      "touches": "iw10",
+      "contradictionFamily": 0.86056612703835
+    },
+    {
+      "id": "dv2-inkwell-009",
+      "tag": "supersede-near-miss",
+      "subtype": "retest",
+      "user": "Give Turbopack another try for dev.",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip",
+          "dead-end"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 616,
+      "inputTokens": 11581,
+      "outputTokens": 1724,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "skip: retest of iw6: failed again for the reason it gives (nothing new) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.97,
+        "tier2": 0.97
+      },
+      "worksNow": {
+        "noul": 0.03,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.96,
+        "choice": "iw6",
+        "newReason": 0.15,
+        "id": "iw6",
+        "same": true
+      },
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "none": 0.04,
+        "decision": 0.01,
+        "dead-end": 0.93,
+        "bug": 0.01,
+        "todo": 0.01,
+        "architecture": 0,
+        "preference": 0,
+        "constraint": 0
+      },
+      "touches": "iw6",
+      "contradictionFamily": 0.27587822922918137
+    },
+    {
+      "id": "dv2-inkwell-010",
+      "tag": "supersede-near-miss",
+      "subtype": "proposed",
+      "user": "why couldn't the public routes run on the edge?",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "The Prisma client with its query engine is too big for the edge bundle limit.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": false,
+      "ms": 524,
+      "inputTokens": 11583,
+      "outputTokens": 1723,
+      "lineInputTokens": 539,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=dead-end content=0.86 importance=useful source=assistant_reply [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.82,
+        "tier2": 0.84
+      },
+      "worksNow": {
+        "noul": 0.05,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.08,
+        "choice": "none",
+        "newReason": 0.14,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "dead-end",
+      "kindProbabilities": {
+        "constraint": 0,
+        "preference": 0,
+        "bug": 0.03,
+        "architecture": 0,
+        "none": 0.09,
+        "todo": 0,
+        "decision": 0.02,
+        "dead-end": 0.86
+      },
+      "touches": "iw7",
+      "contradictionFamily": 0.19154534856146752
+    },
+    {
+      "id": "dv2-inkwell-011",
+      "tag": "reply-chatter",
+      "subtype": "suggestion",
+      "user": "Why is CI so slow on the monorepo?",
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "contradicts": null,
+        "accept": [
+          "bug",
+          "skip"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Turborepo can't cache the test tasks because their outputs aren't declared, so every package reruns its tests. I'd switch the monorepo to Nx, whose affected graph would only test changed packages.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 461,
+      "inputTokens": 9708,
+      "outputTokens": 1454,
+      "lineInputTokens": 523,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.76 importance=important source=assistant_reply [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.36,
+        "tier2": 0.34
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "dead-end": 0.03,
+        "constraint": 0,
+        "none": 0.09,
+        "preference": 0,
+        "todo": 0,
+        "decision": 0.07,
+        "architecture": 0.01,
+        "bug": 0.8
+      },
+      "touches": "iw1",
+      "contradictionFamily": 0.14063812573413417
+    },
+    {
+      "id": "dv2-inkwell-012",
+      "tag": "reply-chatter",
+      "subtype": "change",
+      "user": "The build fails on the chart component types, get it building.",
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "contradicts": null,
+        "accept": [
+          "bug",
+          "skip"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "The chart library's types don't match its runtime API. I typed the props as any in ChartPanel.tsx and turned off noImplicitAny for packages/ui, and the build passes.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 221,
+      "inputTokens": 3323,
+      "outputTokens": 421,
+      "lineInputTokens": 518,
+      "escalated": false,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "save kind=bug content=0.98 importance=important source=assistant_reply [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.26,
+        "tier2": null
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "bug",
+      "kindProbabilities": {
+        "constraint": 0.01,
+        "todo": 0.04,
+        "bug": 0.83,
+        "preference": 0,
+        "none": 0.09,
+        "dead-end": 0.03,
+        "decision": 0,
+        "architecture": 0
+      },
+      "touches": "iw3",
+      "contradictionFamily": 0.27
+    },
+    {
+      "id": "dv2-inkwell-013",
+      "tag": "question-no-content",
+      "subtype": "question",
+      "user": "could we use server actions instead of tRPC for the forms? would that be cleaner?",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 545,
+      "inputTokens": 9716,
+      "outputTokens": 1455,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "skip: source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.04,
+        "tier2": 0.04
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "dead-end": 0,
+        "todo": 0,
+        "constraint": 0.02,
+        "none": 0.17,
+        "architecture": 0.18,
+        "bug": 0,
+        "decision": 0.55,
+        "preference": 0.08
+      },
+      "touches": "iw2",
+      "contradictionFamily": 0.4775151752081999
+    },
+    {
+      "id": "dv2-inkwell-014",
+      "tag": "question-no-content",
+      "subtype": "question",
+      "user": "Neon or Supabase for the database, if we were starting over? just curious",
+      "want": {
+        "save": false,
+        "kind": "none",
+        "contradicts": null,
+        "accept": [
+          "skip"
+        ]
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null,
+        "superseded": null,
+        "refused": null
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 496,
+      "inputTokens": 9682,
+      "outputTokens": 1454,
+      "lineInputTokens": 0,
+      "escalated": true,
+      "assistantIncluded": true,
+      "source": "assistant_reply",
+      "reason": "skip: content=0.39<0.5, source=assistant_reply kind=decision (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+      "deadEndNoul": {
+        "tier1": 0.04,
+        "tier2": 0.04
+      },
+      "worksNow": null,
+      "retestAnswer": null,
+      "kindChoice": "decision",
+      "kindProbabilities": {
+        "preference": 0.02,
+        "constraint": 0,
+        "dead-end": 0,
+        "none": 0.22,
+        "decision": 0.75,
+        "architecture": 0.01,
+        "todo": 0,
+        "bug": 0
+      },
+      "touches": "iw4",
+      "contradictionFamily": 0.20181322226037884
+    },
+    {
+      "id": "dv2-inkwell-015",
+      "tag": "ordinary",
+      "subtype": "constraint",
+      "user": "Component tests must not hit the network; mock every fetch with MSW.",
+      "want": {
+        "save": true,
+        "kind": "constraint",
+        "contradicts": null,
+        "accept": [
+          "constraint"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "Component tests must not hit the network; mock every fetch with MSW.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 278,
+      "inputTokens": 3685,
+      "outputTokens": 488,
+      "lineInputTokens": 0,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.56,
+        "tier2": null
+      },
+      "worksNow": {
+        "noul": 0.03,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.04,
+        "choice": "none",
+        "newReason": 0.08,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "constraint",
+      "kindProbabilities": {
+        "preference": 0.02,
+        "bug": 0,
+        "decision": 0.01,
+        "todo": 0,
+        "dead-end": 0,
+        "constraint": 0.97,
+        "architecture": 0,
+        "none": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.11
+    },
+    {
+      "id": "dv2-inkwell-016",
+      "tag": "ordinary",
+      "subtype": "todo",
+      "user": "Next sprint, upgrade Next.js to 15.2 across the monorepo.",
+      "want": {
+        "save": true,
+        "kind": "todo",
+        "contradicts": null,
+        "accept": [
+          "todo"
+        ]
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Next sprint, upgrade Next.js to 15.2 across the monorepo.",
+        "superseded": null,
+        "refused": null,
+        "pick": [
+          "s1"
+        ]
+      },
+      "deadEnd": null,
+      "retest": null,
+      "ok": true,
+      "ms": 249,
+      "inputTokens": 3688,
+      "outputTokens": 488,
+      "lineInputTokens": 0,
+      "escalated": false,
+      "assistantIncluded": false,
+      "source": "user_message",
+      "reason": "save kind=todo content=0.98 importance=useful [tier 1]",
+      "deadEndNoul": {
+        "tier1": 0.48,
+        "tier2": null
+      },
+      "worksNow": {
+        "noul": 0.02,
+        "choice": "none",
+        "id": null
+      },
+      "retestAnswer": {
+        "noul": 0.03,
+        "choice": "none",
+        "newReason": 0.05,
+        "id": null,
+        "same": false
+      },
+      "kindChoice": "todo",
+      "kindProbabilities": {
+        "preference": 0,
+        "constraint": 0,
+        "dead-end": 0,
+        "none": 0,
+        "decision": 0.01,
+        "architecture": 0,
+        "todo": 0.99,
+        "bug": 0
+      },
+      "touches": null,
+      "contradictionFamily": 0.08
+    }
+  ]
+}
