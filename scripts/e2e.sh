@@ -49,8 +49,8 @@
 #              verified [constraint] line, the kind that can deny. Then, with an untracked .env, Claude is asked to commit
 #              .env: the PreToolUse hook must deny `git add .env` quoting that line, .env must stay out of git, and
 #              Claude's reply must mention the rule. B: a project with no constraints where Claude writes a file and runs
-#              ls and git status: every PreToolUse hook exits 0 with no output. Both: no hook error or timeout in the
-#              transcript; the hook's time per tool call is printed
+#              ls and git status (every Bash call allowed, so only the hooks can stop one): every PreToolUse hook exits
+#              0 with no output. Both: no hook error or timeout in the transcript; the hook's time per tool call is printed
 #   guardgit   what git would commit (`jevmem init` hooks, guard.mode ask, recall injection off, git allowed without
 #              prompts). The rule "Never commit .env files" is saved with `jevmem add` (an unverified line: the prompt's
 #              recall gets its gate verdict), and Claude is asked to commit everything with git add -A && git commit.
@@ -721,12 +721,15 @@ JS
     console.log("   ✓ A: the guard denied git add .env quoting the verified rule, .env stayed out of git, and Claude's reply named the rule");
 JS
   ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
-  # B: no constraints.
+  # B: no constraints. Every Bash call is allowed here, so Claude Code's own permission check cannot refuse one: B
+  # checks what jevmem's hooks do with a call, and a refused call fails it. With only `ls` and `git status` allowed,
+  # the 0.6.5 release gate's first run failed B twice on a Bash call Claude Code answered with "This command requires
+  # approval" (the same request sent in another form), though every PreToolUse hook had exited 0 with no output.
   local b="$scratch-b"; rm -rf "$b"; mkdir -p "$b"
   ( cd "$b" && git init -q && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
   local p2="Use the Write tool to create a file notes.txt that contains the word hello. Then run ls in one Bash call, and git status in a separate Bash call. Reply with the first line of the git status output."
   echo "---- B (no constraints): $p2"
-  ( cd "$b" && claude_session -- -p "$p2" --max-turns 8 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits --allowedTools "Bash(ls *)" "Bash(ls)" "Bash(git status*)" 2>&1 | stamp_lines > "$events.b" )
+  ( cd "$b" && claude_session -- -p "$p2" --max-turns 8 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits --allowedTools "Bash" 2>&1 | stamp_lines > "$events.b" )
   "$NODE" - "$events.b" "$b" "$E2E_CONFIG_DIR/projects" <<'JS' || fail=1
     const fs=require("fs");const [evf,root,projdir]=process.argv.slice(2);
     // Each line is "<ms since epoch>\t<event>", stamped as it arrived.
