@@ -32,6 +32,8 @@ function project(task: any) {
   fs.cpSync(path.join(ROOT, PROJECTS[task.project].dir), root, { recursive: true });
   for (const [f, text] of Object.entries(task.files ?? {})) fs.writeFileSync(path.join(root, f), text as string);
   git(root, ["init", "-q", "-b", "main"]);
+  // No background maintenance here: a commit can otherwise leave a detached `git maintenance` repacking in .git while judge() removes the repository.
+  git(root, ["config", "maintenance.auto", "false"]);
   git(root, ["add", "-A"]);
   git(root, ["commit", "-q", "-m", "initial import"]);
   const base = git(root, ["rev-parse", "HEAD"]).trim();
