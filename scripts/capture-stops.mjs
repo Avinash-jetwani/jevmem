@@ -2,10 +2,18 @@
 // Real transcripts for the Stop hook's eval sets (v0.6 part 3b): what jevmem's Stop hook sees, captured from real
 // Claude Code sessions.
 //
-//   node scripts/capture-stops.mjs --cases <cases.mjs> --out <set.jsonl> [--concurrency 4] [--only id,id] [--claude-version 2.1.281]
+//   node scripts/capture-stops.mjs --cases <cases.mjs> --out <set.jsonl> [--concurrency 4] [--only id,id] [--claude-version 2.1.281] [--model NAME]
+//
+// The Claude Code binary: CLAUDE_BIN, else the desktop app's bundled binary, else the `claude` on PATH. The desktop app
+// keeps its binary under ~/Library/Application Support/Claude/claude-code/, up to 2.1.284 in <version>/claude.app/ and
+// since 2.1.286 one folder deeper, in <version>/<build>/claude.app/. Both places are checked, as scripts/e2e.sh does:
+// the newest version wins, and within a version the build written last; --claude-version picks one version's folder.
+// The first line printed names the binary, where it came from and its version. --model pins a model for every session
+// (a case's own `model` wins); without either, a session gets Claude Code's default. Each row records the model that
+// served it, read from the session's assistant events.
 //
 // One `claude -p` session per case (a follow-up prompt runs with --resume in the same session), in a scratch copy of the
-// case's project (eval/stops/projects/<project>, or an outcome A/B project), committed as the first commit of a new git
+// case's project (eval/stops/projects/<project>, eval/attempts/projects/<project>, or an outcome A/B project), committed as the first commit of a new git
 // repository, with a new, empty CLAUDE_CONFIG_DIR and a temporary HOME, as scripts/ab.mjs runs its sessions. jevmem is not
 // installed: a capture hook on Stop, SubagentStop and UserPromptSubmit saves each hook's payload and a copy of the session
 // transcript at that moment. Modes:
@@ -35,13 +43,67 @@ const CASES_FILE = path.resolve(opt("--cases", ""));
 const OUT = path.resolve(opt("--out", ""));
 const CONCURRENCY = Number(opt("--concurrency", "4"));
 const ONLY = opt("--only", null)?.split(",") ?? null;
-const VERSION = opt("--claude-version", "2.1.281");
-const MODEL = opt("--model", "claude-sonnet-5");
+const VERSION = opt("--claude-version", null);
+const MODEL = opt("--model", null);
 const MAX_TURNS = Number(opt("--max-turns", "25"));
 if (!fs.existsSync(CASES_FILE) || !opt("--out")) throw new Error("usage: --cases <cases.mjs> --out <set.jsonl>");
 
 const { SET, CASES } = await import(pathToFileURL(CASES_FILE).href);
-const CLAUDE = process.env.CLAUDE_BIN ?? path.join(os.homedir(), `Library/Application Support/Claude/claude-code/${VERSION}/claude.app/Contents/MacOS/claude`);
+
+/** The desktop app's bundled binary: the newest version's (or `version`'s), and within a version the build written last. */
+function desktopClaude(version) {
+  const base = path.join(os.homedir(), "Library/Application Support/Claude/claude-code");
+  const tail = "claude.app/Contents/MacOS/claude";
+  const found = [];
+  let versions = [];
+  try {
+    versions = fs.readdirSync(base);
+  } catch {
+    return null;
+  }
+  for (const v of versions) {
+    if (version && v !== version) continue;
+    const candidates = [path.join(base, v, tail)];
+    try {
+      for (const build of fs.readdirSync(path.join(base, v))) candidates.push(path.join(base, v, build, tail));
+    } catch {
+      /* not a folder */
+    }
+    for (const p of candidates) {
+      try {
+        found.push({ v, p, mtime: fs.statSync(p).mtimeMs });
+      } catch {
+        /* no binary there */
+      }
+    }
+  }
+  const byVersion = (a, b) => a.v.localeCompare(b.v, undefined, { numeric: true });
+  found.sort((a, b) => byVersion(a, b) || a.mtime - b.mtime);
+  return found.at(-1)?.p ?? null;
+}
+function onPath(name) {
+  for (const d of (process.env.PATH ?? "").split(path.delimiter)) {
+    const p = path.join(d, name);
+    try {
+      fs.accessSync(p, fs.constants.X_OK);
+      return p;
+    } catch {
+      /* not here */
+    }
+  }
+  return null;
+}
+let CLAUDE = process.env.CLAUDE_BIN ?? null;
+let CLAUDE_FROM = "CLAUDE_BIN";
+if (!CLAUDE) {
+  CLAUDE = desktopClaude(VERSION);
+  CLAUDE_FROM = "the desktop app's bundled binary";
+}
+if (!CLAUDE && !VERSION) {
+  CLAUDE = onPath("claude");
+  CLAUDE_FROM = "the claude on PATH";
+}
+if (!CLAUDE) throw new Error(VERSION ? `no desktop-bundled Claude Code ${VERSION} (set CLAUDE_BIN)` : "no claude binary (set CLAUDE_BIN)");
 let TOKEN = process.env.CLAUDE_CODE_OAUTH_TOKEN ?? null;
 const tokenFile = process.env.E2E_TOKEN_FILE ?? path.join(os.homedir(), ".jevmem/e2e-oauth-token");
 if (!TOKEN && fs.existsSync(tokenFile)) TOKEN = fs.readFileSync(tokenFile, "utf8").trim();
@@ -49,7 +111,7 @@ if (!TOKEN && !process.env.ANTHROPIC_API_KEY) throw new Error("set CLAUDE_CODE_O
 const CLAUDE_VERSION = execFileSync(CLAUDE, ["--version"], { encoding: "utf8", env: { ...process.env, DISABLE_AUTOUPDATER: "1" } }).trim();
 
 const projectDir = (name) => {
-  for (const d of [path.join(ROOT, "eval/stops/projects", name), path.join(ROOT, "eval/ab/projects", name)]) if (fs.existsSync(d)) return d;
+  for (const d of [path.join(ROOT, "eval/stops/projects", name), path.join(ROOT, "eval/attempts/projects", name), path.join(ROOT, "eval/ab/projects", name)]) if (fs.existsSync(d)) return d;
   throw new Error(`no project ${name}`);
 };
 
@@ -74,9 +136,21 @@ if (p.transcript_path && fs.existsSync(p.transcript_path)) fs.copyFileSync(p.tra
 
 const git = (cwd, a) => execFileSync("git", a, { cwd, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "Sam Rivera", GIT_AUTHOR_EMAIL: "sam@example.com", GIT_COMMITTER_NAME: "Sam Rivera", GIT_COMMITTER_EMAIL: "sam@example.com" }, stdio: ["ignore", "pipe", "pipe"] });
 
+// A case with `bashAll` may run any shell command: an attempt has to be run to fail (the session works in a scratch copy
+// of the project, with a temporary HOME).
 function allowedTools(c) {
   const bash = ["git status", "git diff:*", "git log:*", "ls:*", "node --test:*", "npm test", ...(c.bash ?? [])];
-  return ["Read", "Edit", "Write", "Glob", "Grep", "Agent", "Task", ...bash.map((b) => `Bash(${b})`)];
+  return ["Read", "Edit", "Write", "Glob", "Grep", "Agent", "Task", ...(c.bashAll ? ["Bash"] : bash.map((b) => `Bash(${b})`))];
+}
+
+/** The models that served a run's main-agent replies, in order of first use (Claude Code's own `<synthetic>` replies left out). */
+function servedBy(events) {
+  const models = [];
+  for (const e of events) {
+    const m = e?.type === "assistant" && !e.parent_tool_use_id ? e.message?.model : null;
+    if (typeof m === "string" && m && m !== "<synthetic>" && !models.includes(m)) models.push(m);
+  }
+  return models;
 }
 
 function runClaude({ root, home, config, capture, prompt, resume, c }) {
@@ -86,7 +160,8 @@ function runClaude({ root, home, config, capture, prompt, resume, c }) {
     else env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (c.mode === "background") env.CLAUDE_CODE_FORK_SUBAGENT = "1";
     if (c.mode === "foreground") env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS = "1";
-    const a = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--include-hook-events", "--permission-mode", "acceptEdits", "--max-turns", String(MAX_TURNS), "--model", MODEL, "--allowedTools", ...allowedTools(c)];
+    const model = c.model ?? MODEL;
+    const a = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--include-hook-events", "--permission-mode", "acceptEdits", "--max-turns", String(MAX_TURNS), ...(model ? ["--model", model] : []), "--allowedTools", ...allowedTools(c)];
     if (resume) a.unshift("--resume", resume);
     const child = spawn(CLAUDE, a, { cwd: root, env, stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
@@ -173,7 +248,7 @@ async function session(c) {
     const r = await runClaude({ root, home, config, capture, prompt, resume: i > 0 ? sessionId : null, c });
     sessionId = r.events.find((e) => e.type === "system" && e.subtype === "init")?.session_id ?? sessionId;
     const results = r.events.filter((e) => e.type === "result");
-    runs.push({ exit: r.code, results: results.map((x) => ({ subtype: x.subtype, turns: x.num_turns, cost: x.total_cost_usd })), model: r.events.find((e) => e.type === "system" && e.subtype === "init")?.model ?? null, backgrounded: r.events.filter((e) => e.type === "system" && e.subtype === "task_started").map((e) => ({ type: e.task_type, backgrounded: e.is_backgrounded })), stderr: r.code === 0 ? undefined : r.stderr });
+    runs.push({ exit: r.code, results: results.map((x) => ({ subtype: x.subtype, turns: x.num_turns, cost: x.total_cost_usd })), model: r.events.find((e) => e.type === "system" && e.subtype === "init")?.model ?? null, served_by: servedBy(r.events), backgrounded: r.events.filter((e) => e.type === "system" && e.subtype === "task_started").map((e) => ({ type: e.task_type, backgrounded: e.is_backgrounded })), stderr: r.code === 0 ? undefined : r.stderr });
   }
   const tmpReal = fs.realpathSync(os.tmpdir());
   const norm = normaliser([
@@ -237,6 +312,8 @@ async function session(c) {
     note: c.note ?? null,
     claude_code: CLAUDE_VERSION,
     model: runs[0]?.model ?? null,
+    model_pinned: c.model ?? MODEL ?? null,
+    served_by: [...new Set(runs.flatMap((r) => r.served_by))],
     captured_at: new Date(t0).toISOString(),
     ms: Date.now() - t0,
     runs,
@@ -252,7 +329,8 @@ const rows = [];
 let next = 0;
 const partial = OUT.replace(/\.jsonl$/, ".partial.jsonl");
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
-console.error(`${cases.length} sessions, ${CONCURRENCY} at a time; ${CLAUDE_VERSION}, ${MODEL}`);
+console.error(`Claude Code ${CLAUDE_VERSION}: ${CLAUDE} (${CLAUDE_FROM}); model: ${MODEL ?? "Claude Code's default (not pinned)"}${cases.some((c) => c.model) ? ", with some cases pinned to their own" : ""}`);
+console.error(`${cases.length} sessions, ${CONCURRENCY} at a time`);
 async function worker() {
   while (next < cases.length) {
     const c = cases[next++];
@@ -260,7 +338,7 @@ async function worker() {
     rows.push(row);
     fs.appendFileSync(partial, JSON.stringify(row) + "\n");
     const running = row.stops.filter((s) => (s.payload.background_tasks ?? []).some((t) => t.status === "running")).length;
-    console.error(`${row.id} (${row.mode}): ${row.stops.length} Stop(s), ${running} with a background task running; ${row.runs.map((r) => r.backgrounded.map((b) => `${b.type}${b.backgrounded ? " bg" : " fg"}`).join(",") || "no task").join(" | ")}; exit ${row.runs.map((r) => r.exit).join(",")}; ${Math.round(row.ms / 1000)} s`);
+    console.error(`${row.id} (${row.mode}): ${row.stops.length} Stop(s), ${running} with a background task running; ${row.runs.map((r) => r.backgrounded.map((b) => `${b.type}${b.backgrounded ? " bg" : " fg"}`).join(",") || "no task").join(" | ")}; exit ${row.runs.map((r) => r.exit).join(",")}; served by ${row.served_by.join(", ") || "(no reply)"}; ${Math.round(row.ms / 1000)} s`);
   }
 }
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
