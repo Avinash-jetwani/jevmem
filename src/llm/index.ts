@@ -299,8 +299,8 @@ function leadWith(sentences: string[], main = 0): string[] {
  * keeping the reason. Used on the sentences `extractDeadEnd` takes from the turn, and on the ones Jev picked (v0.6 part 3c).
  * With Jev's pick, `roles` says which sentence states the memory and whether it holds its own reason: when it does and
  * the sentences do not fit as written, it goes first ("It didn't work, so I'm dropping the idea. I ran X, and it failed
- * because Y" keeps the second sentence, not the verdict), and when its cause comes last and it is longer than the
- * line, the cut keeps the cause (`keepCause`).
+ * because Y" keeps the second sentence, not the verdict). When the attempt's sentence gives its cause last and is
+ * longer than the line, the cut keeps the cause (`keepCause`).
  */
 export function composeDeadEnd(sentences: string[], maxChars: number, roles: PickedRoles = {}): string {
   const [first, ...rest] = mainFirst(sentences, maxChars, roles);
@@ -340,11 +340,12 @@ export function composeDeadEnd(sentences: string[], maxChars: number, roles: Pic
     }
     break;
   }
-  // The attempt's sentence gives its own cause last and the cut dropped it ("I ran X on Y and it failed with Z,
-  // because A and B"): the cause is the point of the line, so it stays and something else goes. Only when Jev said the
-  // sentence holds its own reason, or when it is the only sentence: with the reason in another sentence, the room is
-  // that sentence's.
-  if (roles.ownReason || rest.length === 0) {
+  // The cut fell inside the attempt's own sentence, before the cause it gives last ("I ran X on Y and it failed with Z,
+  // because A and B"): nothing of a later sentence is in the line either, so the cause stays and something else goes.
+  // Whichever sentence Jev named as the reason: on one real reply its first answer was the attempt's sentence in some
+  // runs and the next sentence in others, and the next sentence never fits behind a sentence longer than the line.
+  // Not when the sentence has a "but" clause: the clause after "but" is its reason, kept above.
+  if (!own && squashed(line).length <= squashed(attempt).length) {
     const cause = causeAt(attempt);
     if (cause && !squashed(line).includes(squashed(attempt.slice(cause.at + cause.length)).slice(0, 24))) line = keepCause(attempt, maxChars) ?? line;
   }

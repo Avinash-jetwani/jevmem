@@ -80,6 +80,14 @@ describe("a dead end keeps its reason when the reply puts the cause last", () =>
     // The second run's long reply: 232 characters in the attempt's sentence, the cause last, no clause end inside it.
     const long = await composeLine(RUN2_LONG, "dead-end", { writer, jev: picks("s3", { s3: 0.7, s4: 0.25, none: 0.03, s2: 0.02 }) }, { fromReply: true });
     expect(long.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node v22.22.0 and it failed immediately with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`, because the file declares a TypeScript `enum` at line 1");
+    // The same reply when Jev's first answer to the reason question is the next sentence (it was, in one run of three):
+    // that sentence does not fit behind a sentence longer than the line, and the cause still stays.
+    const later = await composeLine(RUN2_LONG, "dead-end", { writer, jev: picks("s3", { s4: 0.5, s3: 0.45, none: 0.03, s2: 0.02 }) }, { fromReply: true });
+    expect(later.pick).toMatchObject({ main: "s3", second: "s4" });
+    expect(later.line).toBe(long.line);
+    // A sentence with a "but" clause keeps that clause, as before: what comes after "but" is its reason.
+    const but = "Parsing the files with a generic CSV library seemed the fast way because it handled the big four out of the box with no configuration at all, but three banks put separators inside amounts and a fourth quotes nothing whatsoever.";
+    expect(composeDeadEnd([but], 200)).toContain("but three banks put separators inside amounts");
     // The text before the cause leaves it no room: what was tried, then the cause after a colon.
     const crowded = "I ran the whole export through the new streaming encoder on the staging box with compression switched on and it failed after about twenty minutes of steady progress, because the encoder holds every open file handle until the end of the run.";
     expect(composeDeadEnd([crowded], 200, { main: 0, ownReason: true })).toBe("I ran the whole export through the new streaming encoder on the staging box with compression switched on: the encoder holds every open file handle until the end of the run");
