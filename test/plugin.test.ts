@@ -24,7 +24,7 @@ describe("plugin files", () => {
     const market = json(".claude-plugin/marketplace.json");
     expect(manifest.name).toBe("jevmem");
     expect(manifest.displayName).toBe("jevmem"); // the brand is lowercase; the directory shows displayName
-    expect(manifest.homepage).toBe("https://github.com/Avinash-jetwani/jevmem#readme"); // the manifest's documentation URL
+    expect(manifest.homepage).toBe("https://avinash-jetwani.github.io/jevmem/"); // the docs site
     expect(manifest.version).toBe(pkg.version);
     expect(manifest.mcpServers.jevmem.env.JEVMEM_PLUGIN_VERSION).toBe(pkg.version);
     expect(market.plugins.find((p: any) => p.name === "jevmem").source).toBe("./plugin");

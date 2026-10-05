@@ -2,11 +2,12 @@
 
 # Limits
 
-## Known limits in 0.6.4
+## Known limits in 0.6.5
 
 - **A plain statement can fall under the content threshold.** A rule said without must, never or prefer ("user-facing copy is British English") can be skipped: 2 of the 12 genuine rules on the genuine-rule held-out set, in 0.5.9 too ([docs/benchmark.md](benchmark.md#genuine-rules-and-the-injection-check)).
 - **No way to mark your own rules as verified.** A line you add with `jevmem add` or by hand is unverified: the poisoning gate checks it before recall serves it, and the guard asks about it but never denies on it.
-- **A line is at most two sentences, and Jev can pick the wrong one** ([docs/benchmark.md](benchmark.md#the-line-part-3c)). Jev picks the sentence that states the memory and the one that gives its reason; a fact told in two sentences keeps one of them, and on the line-text held-out set one rule's line was its consequence without the rule (1 of 63), and one to-do kept "don't start on it today" as its second sentence. The line comes from the text decide chose: a bug whose cause only Claude's reply found gets your description of it. When the pick request fails, the line is one sentence chosen by words, as in 0.5.9.
+- **A line is at most two sentences, and Jev can pick the wrong one** ([docs/benchmark.md](benchmark.md#the-line-part-3c)). Jev picks the sentence that states the memory and the one that gives its reason; a fact told in two sentences keeps one of them, and on the line-text held-out set one rule's line was its consequence without the rule in two of the set's three runs (1 of 63 on 2026-09-29; 1 of 64, then 0 of 64, on 2026-10-05), and one to-do kept "don't start on it today" as its second sentence in all three. The line comes from the text decide chose: a bug whose cause only Claude's reply found gets your description of it. When the pick request fails, the line is one sentence chosen by words, as in 0.5.9.
+- **A dead end Claude reports is saved only when decide reads the reply, and a cause in a second sentence can still be cut** ([docs/benchmark.md](benchmark.md#the-cause-last-065)). 0.6.5 keeps a dead end's reason when the reply gives the verdict first and the cause last; this is what it leaves. On 13 held-out dead ends written for it (a request to try something once, and such a reply; one run, 2026-10-05), decide read Claude's reply in 6 and saved each as a dead end with its reason. In the other 7 the reply was not read: the request was not a question or a bug report, and the reply's verdict used none of the words decide looks for ("didn't work", "reverted", "tried" …). There the dead end was not saved, and the request itself was saved as a decision or a to-do in 5 of the 7. 0.6.4 does the same. With the reply given to the writer as a dead end, 12 of 13 lines kept the reason; the one that lost it has the cause in a second sentence, behind a long opening clause. Of 5 lines for a turn that makes a listed dead end work, 3 said what was changed.
 - **A second line one line crowds out.** When the first line takes the whole "most relevant" choice, a second line is kept only at relevance 0.97 or more: 3 of 6 two-line prompts on retrieval held-out v2 lost their second line.
 - **More than 250 live lines.** Only the 250 sharing the most words with the prompt are asked about; on a 500-line dev file, 8 of 9 missed lines were never sent. Sending all of them would cost about twice as much per prompt on such a file.
 - **Rules every task must follow.** Recall judges each line against the prompt; a convention nothing in the prompt points at belongs in `CLAUDE.md`.
@@ -16,7 +17,7 @@
 
 ## Honest limits
 
-- **Early:** 0.6.4; every eval set was written by the author, and none is an independent benchmark.
+- **Early:** 0.6.5; every eval set was written by the author, and none is an independent benchmark.
 - **Not the most accurate:** GPT-6 Astra and Claude Opus 5.5 scored higher on save+kind; jevmem's edge is speed and cost.
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.
