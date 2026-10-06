@@ -20,7 +20,8 @@
     "recallRelevanceMin": 0.8
   },
   "jev": { "model": "jev-latest", "timeoutMs": 2000, "recallTimeoutMs": 1000, "maxIdsPerCall": 200, "maxRecallCandidates": 60,
-           "maxRecallLines": 250, "usdPerMillionTokens": 0.042, "cache": true, "zeroDataRetention": "auto" },
+           "maxRecallLines": 250, "usdPerMillionTokens": 0.042, "cache": true, "zeroDataRetention": "auto",
+           "askAboutReply": true },
   "writer": { "provider": "none", "maxChars": 200, "timeoutMs": 8000 },
   "daemon": { "enabled": true, "idleMinutes": 30 },
   "tiers": {
@@ -36,7 +37,7 @@
 }
 ```
 
-`thresholds.deadEndMin`, `thresholds.recallRelevanceMin`, `thresholds.recallChoiceMin`, `jev.maxRecallLines`, `jev.recallTimeoutMs` and `guard` are new in 0.6.0; 0.5.10 accepts them in the file and does nothing with them, and a file written by an earlier version has none of them and gets the defaults.
+`thresholds.deadEndMin`, `thresholds.recallRelevanceMin`, `thresholds.recallChoiceMin`, `jev.maxRecallLines`, `jev.recallTimeoutMs` and `guard` are new in 0.6.0; 0.5.10 accepts them in the file and does nothing with them, and a file written by an earlier version has none of them and gets the defaults. `jev.askAboutReply` is new in 0.6.6: with `true`, a turn whose message reads as a request to try or change something gets one small extra request that asks whether Claude's reply reports a failed attempt and why, and is decided with the reply when it does ([How it works](how-it-works.md#the-decider-two-tiers-srcdecidets-srcquestionsts-srccombinets), [PRIVACY.md](../PRIVACY.md)); `false` reads the reply only as 0.6.5 did. A file written by an earlier version has no such key and gets `true`.
 
 Recall (since 0.6.0): each prompt's call names every live line, up to `jev.maxRecallLines` (beyond it, the lines sharing the most words with the prompt), and asks Jev per line whether it bears on the prompt. A line is injected when that answer is at least `recallRelevanceMin` and either the "most relevant" choice gives it `recallChoiceMin` (0.03) or the answer is 0.97 or more; `recallTopK` lines at most. `recallRelevanceMin` above 1 turns recall off. The choice's floor was `recallMin` (0.05) until part 3b lowered it, so that a second line the first crowds out of the choice is kept; every file `jevmem init` wrote holds `"recallMin": 0.05`, so the floor has a key of its own and the prompt hook no longer reads `recallMin`. The prompt's Jev call has `jev.recallTimeoutMs` (1,000 ms; `jev.timeoutMs`, 2,000 ms, stays for the Stop hook's calls); when the call fails or runs past it, the prompt gets the lines that share at least two words with it, the most first, `recallTopK` at most, from the lines the poisoning gate serves without asking. `jevmem stats` counts the prompts served each way. `jev.maxRecallCandidates` now caps only MCP `search_memory` and `jevmem search`; until now it also capped recall, at 60 lines picked by shared words. A project set up with `jevmem init` or `jevmem enable` has every default written into its file, including `"maxRecallCandidates": 60` and `"recallMin": 0.05`, which is why recall's cap is a new key. How this was measured: [Benchmark: retrieval](benchmark.md#retrieval-does-the-right-line-get-injected).
 
