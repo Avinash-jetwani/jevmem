@@ -7,7 +7,7 @@ order: 4
 
 In jevmem, Jev (a model by TypeSafe AI) is what decides: it scores each message of a Claude Code chat so that jevmem can tell whether it holds a decision, a rule or a failed approach worth saving, it picks the saved lines that bear on your next prompt, and it judges whether a command or a file edit may break a saved rule.
 
-Deciding what to save takes 0.28 s and costs $0.00016 per message, and was right on save or skip for 98.5% of 66 held-out turns (jevmem 0.6.0, one run on 2026-09-30, [results](../../results/eval-heldout-2026-09-30-v060.json)). This page covers only what jevmem does with Jev. What Jev itself is: [TypeSafe's docs](https://docs.typesafe.ai) and [their launch post](https://typesafe.ai/blog/introducing-system-one-models-and-jev).
+Deciding what to save takes 0.25 s and costs $0.00016 per message, and was right on save or skip for 98.5% of 66 held-out turns (jevmem 0.6.6, one run on 2026-10-06, [results](../../results/eval-heldout-2026-10-06-v066.json)). This page covers only what jevmem does with Jev. What Jev itself is: [TypeSafe's docs](https://docs.typesafe.ai) and [their launch post](https://typesafe.ai/blog/introducing-system-one-models-and-jev).
 
 ## How jevmem asks Jev
 

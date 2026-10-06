@@ -1,0 +1,1831 @@
+{
+  "kind": "stops",
+  "set": "dev",
+  "file": "eval/stops-dev.jsonl",
+  "date": "2026-10-05",
+  "finished_at": "2026-10-05T21:11:30.385Z",
+  "jevmem_version": "0.6.5",
+  "package": "/private/tmp/claude-501/-Users-avinashjetwani-jevmem/3e258c21-8f71-400e-911d-85dce7a1fbb5/scratchpad/designs/pkg-B1-2000",
+  "commit": null,
+  "label": "B1-2000",
+  "paired_with": [],
+  "captured_with": "2.1.281 (Claude Code)",
+  "method": "Each session captured from a real Claude Code session (scripts/capture-stops.mjs) is replayed Stop by Stop through the build's real hook (node <pkg>/dist/cli.js hook, JEVMEM_DAEMON=0) in a scratch project with an empty JEVMEM.md and jev.cache off, the transcript file holding what it held when that Stop fired. A turn is one prompt; a Stop before the last one of its prompt's run came while the turn was still running. save/skip is right when a save label got at least one line and a skip label none; kind is right when a saved line also has the label's kind.",
+  "overall": {
+    "sessions": 24,
+    "turns": 26,
+    "mid_turn_stops": 13,
+    "decided_while_running_frac": "0/13",
+    "lines_saved_while_running": 0,
+    "turns_with_a_line_saved_while_running": 0,
+    "lines_decided_from_a_notification": 0,
+    "save_skip_frac": "20/26",
+    "save_kind_frac": "19/26",
+    "turns_with_more_than_one_line": 0,
+    "lines_saved": 22,
+    "decide_calls_per_turn": 1.4615384615384615,
+    "jev_input_tokens_per_turn": 6751.923076923077,
+    "cost_per_turn_usd": 0.00028358076923076927,
+    "jev_failed_calls": 0
+  },
+  "by_mode": {
+    "background": {
+      "sessions": 12,
+      "turns": 13,
+      "mid_turn_stops": 13,
+      "decided_while_running_frac": "0/13",
+      "lines_saved_while_running": 0,
+      "turns_with_a_line_saved_while_running": 0,
+      "lines_decided_from_a_notification": 0,
+      "save_skip_frac": "10/13",
+      "save_kind_frac": "10/13",
+      "turns_with_more_than_one_line": 0,
+      "lines_saved": 11,
+      "decide_calls_per_turn": 1.4615384615384615,
+      "jev_input_tokens_per_turn": 7013.846153846154,
+      "cost_per_turn_usd": 0.0002945815384615385,
+      "jev_failed_calls": 0
+    },
+    "foreground": {
+      "sessions": 4,
+      "turns": 4,
+      "mid_turn_stops": 0,
+      "decided_while_running_frac": "0/0",
+      "lines_saved_while_running": 0,
+      "turns_with_a_line_saved_while_running": 0,
+      "lines_decided_from_a_notification": 0,
+      "save_skip_frac": "2/4",
+      "save_kind_frac": "2/4",
+      "turns_with_more_than_one_line": 0,
+      "lines_saved": 4,
+      "decide_calls_per_turn": 1.5,
+      "jev_input_tokens_per_turn": 7009,
+      "cost_per_turn_usd": 0.000294378,
+      "jev_failed_calls": 0
+    },
+    "none": {
+      "sessions": 8,
+      "turns": 9,
+      "mid_turn_stops": 0,
+      "decided_while_running_frac": "0/0",
+      "lines_saved_while_running": 0,
+      "turns_with_a_line_saved_while_running": 0,
+      "lines_decided_from_a_notification": 0,
+      "save_skip_frac": "8/9",
+      "save_kind_frac": "7/9",
+      "turns_with_more_than_one_line": 0,
+      "lines_saved": 7,
+      "decide_calls_per_turn": 1.4444444444444444,
+      "jev_input_tokens_per_turn": 6259.333333333333,
+      "cost_per_turn_usd": 0.000262892,
+      "jev_failed_calls": 0
+    }
+  },
+  "rows": [
+    {
+      "id": "d-bg-flags",
+      "mode": "background",
+      "project": "logslice",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 64,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "architecture",
+              "reason": "save kind=architecture content=0.92 importance=useful source=assistant_reply [tier 2, escalated]",
+              "memoryId": "1ujbwx",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "1ujbwx",
+              "kind": "architecture",
+              "text": "Logslice's argument parsing lives in `src/cli.mjs` (hand-rolled, no library, no short-flag support)."
+            }
+          ],
+          "decide_calls": 2,
+          "jev_input_tokens": 11866,
+          "jev_failed": 0,
+          "hook_ms": 860,
+          "hook_detail": "3 jev call(s), p50 257 ms, 13770 tokens, $0.000498 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Get a subagent to go over the command-line flags logslice accepts and explain each.",
+          "label": {
+            "save": false
+          },
+          "stops": 2,
+          "lines": [
+            {
+              "id": "1ujbwx",
+              "kind": "architecture",
+              "text": "Logslice's argument parsing lives in `src/cli.mjs` (hand-rolled, no library, no short-flag support)."
+            }
+          ],
+          "save_right": false,
+          "kind_right": false,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 11866,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-utc",
+      "mode": "background",
+      "project": "logslice",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 62,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "decision",
+              "reason": "save kind=decision content=0.98 importance=important source=both [tier 1]",
+              "memoryId": "xgzjzg",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "xgzjzg",
+              "kind": "decision",
+              "text": "We've decided logslice treats timestamps without an offset as UTC."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3893,
+          "jev_failed": 0,
+          "hook_ms": 708,
+          "hook_detail": "2 jev call(s), p50 309 ms, 4348 tokens, $0.000164 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "We've decided logslice treats timestamps without an offset as UTC. Put a subagent on confirming src/time.mjs behaves that way, then summarise.",
+          "label": {
+            "save": true,
+            "kind": "decision"
+          },
+          "stops": 2,
+          "lines": [
+            {
+              "id": "xgzjzg",
+              "kind": "decision",
+              "text": "We've decided logslice treats timestamps without an offset as UTC."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3893,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-stream",
+      "mode": "background",
+      "project": "logslice",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 76,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "constraint",
+              "reason": "save kind=constraint content=0.99 importance=important source=both [tier 1]",
+              "memoryId": "cnyruw",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "cnyruw",
+              "kind": "constraint",
+              "text": "Logslice must never read a whole file into memory; it always streams line by line."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3757,
+          "jev_failed": 0,
+          "hook_ms": 754,
+          "hook_detail": "2 jev call(s), p50 424 ms, 4212 tokens, $0.000158 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "logslice must never read a whole file into memory; it always streams line by line. Get a subagent to confirm the code sticks to that.",
+          "label": {
+            "save": true,
+            "kind": "constraint"
+          },
+          "stops": 2,
+          "lines": [
+            {
+              "id": "cnyruw",
+              "kind": "constraint",
+              "text": "Logslice must never read a whole file into memory; it always streams line by line."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3757,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-float",
+      "mode": "background",
+      "project": "farecalc",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 77,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "bug",
+              "reason": "save kind=bug content=0.99 importance=important source=assistant_reply [tier 1]",
+              "memoryId": "slwmga",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "slwmga",
+              "kind": "bug",
+              "text": "Root cause: `fare()` returned raw floating-point results (e.g. `1 × 2.1 × 0.6 = 1.26`), and `receipt()` summed those floats directly"
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 5091,
+          "jev_failed": 0,
+          "hook_ms": 652,
+          "hook_detail": "2 jev call(s), p50 334 ms, 5806 tokens, $0.000214 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "A receipt for a 3-zone trip plus a 1-zone concession trip shows EUR 7.5600000000000005. Get a subagent to track down the cause and correct it.",
+          "label": {
+            "save": true,
+            "kind": "bug"
+          },
+          "stops": 2,
+          "lines": [
+            {
+              "id": "slwmga",
+              "kind": "bug",
+              "text": "Root cause: `fare()` returned raw floating-point results (e.g. `1 × 2.1 × 0.6 = 1.26`), and `receipt()` summed those floats directly"
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 5091,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-cssmod",
+      "mode": "background",
+      "project": "recipebox",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 69,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "preference",
+              "reason": "save kind=preference content=0.98 importance=useful source=both [tier 1]",
+              "memoryId": "dtwzwx",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "dtwzwx",
+              "kind": "preference",
+              "text": "I prefer CSS modules over inline styles in this app."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3655,
+          "jev_failed": 0,
+          "hook_ms": 757,
+          "hook_detail": "2 jev call(s), p50 374 ms, 4112 tokens, $0.000154 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "I prefer CSS modules over inline styles in this app. Get a subagent to point out the components that still use inline styles.",
+          "label": {
+            "save": true,
+            "kind": "preference"
+          },
+          "stops": 2,
+          "lines": [
+            {
+              "id": "dtwzwx",
+              "kind": "preference",
+              "text": "I prefer CSS modules over inline styles in this app."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3655,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-routes",
+      "mode": "background",
+      "project": "parcelpost",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 78,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": false,
+              "kind": "architecture",
+              "reason": "skip: importance=minor<useful [tier 2, escalated]",
+              "memoryId": null,
+              "from_notification": false
+            }
+          ],
+          "saved": [],
+          "decide_calls": 2,
+          "jev_input_tokens": 9458,
+          "jev_failed": 0,
+          "hook_ms": 722,
+          "hook_detail": "2 jev call(s), p50 349 ms, 10831 tokens, $0.000397 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Have a subagent summarise what each file under src/routes does.",
+          "label": {
+            "save": false
+          },
+          "stops": 2,
+          "lines": [],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 9458,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-cents",
+      "mode": "background",
+      "project": "parcelpost",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 81,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "decision",
+              "reason": "save kind=decision content=0.74 importance=useful source=both [tier 2, escalated]",
+              "memoryId": "xcenlg",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "xcenlg",
+              "kind": "decision",
+              "text": "Every money amount in the API is integer cents."
+            }
+          ],
+          "decide_calls": 2,
+          "jev_input_tokens": 9871,
+          "jev_failed": 0,
+          "hook_ms": 945,
+          "hook_detail": "3 jev call(s), p50 301 ms, 11318 tokens, $0.000415 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Decision: every money amount in the API is integer cents. Ask a subagent to find any field that still uses decimals and report back.",
+          "label": {
+            "save": true,
+            "kind": "decision"
+          },
+          "stops": 2,
+          "lines": [
+            {
+              "id": "xcenlg",
+              "kind": "decision",
+              "text": "Every money amount in the API is integer cents."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 9871,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-count",
+      "mode": "background",
+      "project": "recipebox",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 75,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": false,
+              "kind": "architecture",
+              "reason": "skip: importance=minor<useful [tier 2, escalated]",
+              "memoryId": null,
+              "from_notification": false
+            }
+          ],
+          "saved": [],
+          "decide_calls": 2,
+          "jev_input_tokens": 9616,
+          "jev_failed": 0,
+          "hook_ms": 713,
+          "hook_detail": "2 jev call(s), p50 332 ms, 10989 tokens, $0.000404 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Send a subagent to list the components in src/components and say what each renders.",
+          "label": {
+            "save": false
+          },
+          "stops": 2,
+          "lines": [],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 9616,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-two-long",
+      "mode": "background",
+      "project": "logslice",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent",
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 75,
+          "hook_detail": "jevmem Stop: noop — turn still running: 2 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 70,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 2,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "bug",
+              "reason": "save kind=bug content=0.94 importance=important source=assistant_reply [tier 2, escalated]",
+              "memoryId": "i3y8la",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "i3y8la",
+              "kind": "bug",
+              "text": "ReDoS via `--grep` (cli.mjs:24, 29) — `new RegExp(opts.grep)` compiles user-supplied input and runs `re.test(line)` on every line with no timeout."
+            }
+          ],
+          "decide_calls": 2,
+          "jev_input_tokens": 11679,
+          "jev_failed": 0,
+          "hook_ms": 877,
+          "hook_detail": "3 jev call(s), p50 278 ms, 13476 tokens, $0.000491 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Run two parallel subagents, the first on src/cli.mjs and the second on src/output.mjs, each looking for what could break with very long lines; merge what they report.",
+          "label": {
+            "save": false
+          },
+          "stops": 3,
+          "lines": [
+            {
+              "id": "i3y8la",
+              "kind": "bug",
+              "text": "ReDoS via `--grep` (cli.mjs:24, 29) — `new RegExp(opts.grep)` compiles user-supplied input and runs `re.test(line)` on every line with no timeout."
+            }
+          ],
+          "save_right": false,
+          "kind_right": false,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 11679,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-then-rule",
+      "mode": "background",
+      "project": "parcelpost",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 74,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "architecture",
+              "reason": "save kind=architecture content=0.95 importance=useful source=assistant_reply [tier 2, escalated]",
+              "memoryId": "r2jpkq",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "r2jpkq",
+              "kind": "architecture",
+              "text": "Route/handler: `src/routes/parcels.ts:35-40` — `POST /v1/parcels` (mounted in `src/server.ts:6`)"
+            }
+          ],
+          "decide_calls": 2,
+          "jev_input_tokens": 10868,
+          "jev_failed": 0,
+          "hook_ms": 824,
+          "hook_detail": "3 jev call(s), p50 257 ms, 12501 tokens, $0.000456 via inline"
+        },
+        {
+          "stop": 2,
+          "run": 1,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "constraint",
+              "reason": "save kind=constraint content=0.98 importance=important source=both [tier 1]",
+              "memoryId": "0k4hea",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "0k4hea",
+              "kind": "constraint",
+              "text": "Every parcel must get its tracking number when it is created, never later."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3959,
+          "jev_failed": 0,
+          "hook_ms": 693,
+          "hook_detail": "2 jev call(s), p50 296 ms, 4425 tokens, $0.000166 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Send a subagent to locate the code that creates parcels.",
+          "label": {
+            "save": false
+          },
+          "stops": 2,
+          "lines": [
+            {
+              "id": "r2jpkq",
+              "kind": "architecture",
+              "text": "Route/handler: `src/routes/parcels.ts:35-40` — `POST /v1/parcels` (mounted in `src/server.ts:6`)"
+            }
+          ],
+          "save_right": false,
+          "kind_right": false,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 10868,
+          "jev_failed": 0
+        },
+        {
+          "run": 1,
+          "prompt": "Every parcel must get its tracking number when it is created, never later. Make sure the code does that.",
+          "label": {
+            "save": true,
+            "kind": "constraint"
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "0k4hea",
+              "kind": "constraint",
+              "text": "Every parcel must get its tracking number when it is created, never later."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3959,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-halfstars",
+      "mode": "background",
+      "project": "recipebox",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 76,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "todo",
+              "reason": "save kind=todo content=0.97 importance=useful source=both [tier 1]",
+              "memoryId": "bhi9eg",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "bhi9eg",
+              "kind": "todo",
+              "text": "Have a subagent check how the rating in ReviewForm works. We'll add half-star ratings later, not in this change."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3708,
+          "jev_failed": 0,
+          "hook_ms": 645,
+          "hook_detail": "2 jev call(s), p50 337 ms, 4164 tokens, $0.000156 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Have a subagent check how the rating in ReviewForm works. We'll add half-star ratings later, not in this change.",
+          "label": {
+            "save": true,
+            "kind": "todo"
+          },
+          "stops": 2,
+          "lines": [
+            {
+              "id": "bhi9eg",
+              "kind": "todo",
+              "text": "Have a subagent check how the rating in ReviewForm works. We'll add half-star ratings later, not in this change."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3708,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-bg-fare-rule",
+      "mode": "background",
+      "project": "farecalc",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": true,
+          "background_running": [
+            "subagent"
+          ],
+          "decided": 0,
+          "decisions": [],
+          "saved": [],
+          "decide_calls": 0,
+          "jev_input_tokens": 0,
+          "jev_failed": 0,
+          "hook_ms": 65,
+          "hook_detail": "jevmem Stop: noop — turn still running: 1 background subagent(s) it launched have not reported back; it is decided once they have"
+        },
+        {
+          "stop": 1,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "constraint",
+              "reason": "save kind=constraint content=0.98 importance=important source=both [tier 1]",
+              "memoryId": "j6vekg",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "j6vekg",
+              "kind": "constraint",
+              "text": "Rule: fares are always computed in whole cents, never in floating-point euros."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3759,
+          "jev_failed": 0,
+          "hook_ms": 634,
+          "hook_detail": "2 jev call(s), p50 262 ms, 4214 tokens, $0.000158 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Rule: fares are always computed in whole cents, never in floating-point euros. Get a subagent to change src/fare.mjs and src/receipt.mjs to follow it.",
+          "label": {
+            "save": true,
+            "kind": "constraint"
+          },
+          "stops": 2,
+          "lines": [
+            {
+              "id": "j6vekg",
+              "kind": "constraint",
+              "text": "Rule: fares are always computed in whole cents, never in floating-point euros."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3759,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-fg-untested",
+      "mode": "foreground",
+      "project": "logslice",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "architecture",
+              "reason": "save kind=architecture content=0.88 importance=useful source=assistant_reply [tier 2, escalated]",
+              "memoryId": "l5dqmg",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "l5dqmg",
+              "kind": "architecture",
+              "text": "Only `test/time.test.mjs` exists, covering `parseWhen` and `parseStamp` from `src/time.mjs`."
+            }
+          ],
+          "decide_calls": 2,
+          "jev_input_tokens": 10091,
+          "jev_failed": 0,
+          "hook_ms": 853,
+          "hook_detail": "3 jev call(s), p50 264 ms, 11636 tokens, $0.000424 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Get a subagent to compare test/ with src/ and list the functions nobody tests.",
+          "label": {
+            "save": false
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "l5dqmg",
+              "kind": "architecture",
+              "text": "Only `test/time.test.mjs` exists, covering `parseWhen` and `parseStamp` from `src/time.mjs`."
+            }
+          ],
+          "save_right": false,
+          "kind_right": false,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 10091,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-fg-migrations",
+      "mode": "foreground",
+      "project": "parcelpost",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "constraint",
+              "reason": "save kind=constraint content=0.98 importance=important source=both [tier 1]",
+              "memoryId": "7lmt2a",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "7lmt2a",
+              "kind": "constraint",
+              "text": "Migrations must never drop a column in the same release that stops using it."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3595,
+          "jev_failed": 0,
+          "hook_ms": 594,
+          "hook_detail": "2 jev call(s), p50 268 ms, 4050 tokens, $0.000151 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Migrations must never drop a column in the same release that stops using it. Have a subagent check migrations/ against that.",
+          "label": {
+            "save": true,
+            "kind": "constraint"
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "7lmt2a",
+              "kind": "constraint",
+              "text": "Migrations must never drop a column in the same release that stops using it."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3595,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-fg-query",
+      "mode": "foreground",
+      "project": "recipebox",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "decision",
+              "reason": "save kind=decision content=0.97 importance=important source=both [tier 1]",
+              "memoryId": "czih6w",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "czih6w",
+              "kind": "decision",
+              "text": "We're using React Query for all server state from now on."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3692,
+          "jev_failed": 0,
+          "hook_ms": 788,
+          "hook_detail": "2 jev call(s), p50 384 ms, 4147 tokens, $0.000155 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "We're using React Query for all server state from now on. Get a subagent to name the components that fetch data some other way.",
+          "label": {
+            "save": true,
+            "kind": "decision"
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "czih6w",
+              "kind": "decision",
+              "text": "We're using React Query for all server state from now on."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3692,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-fg-since",
+      "mode": "foreground",
+      "project": "logslice",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "architecture",
+              "reason": "save kind=architecture content=0.94 importance=useful source=assistant_reply [tier 2, escalated]",
+              "memoryId": "4awwyq",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "4awwyq",
+              "kind": "architecture",
+              "text": "src/cli.mjs"
+            }
+          ],
+          "decide_calls": 2,
+          "jev_input_tokens": 10658,
+          "jev_failed": 0,
+          "hook_ms": 824,
+          "hook_detail": "3 jev call(s), p50 242 ms, 12275 tokens, $0.000448 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Have a subagent explain how the --since option is parsed.",
+          "label": {
+            "save": false
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "4awwyq",
+              "kind": "architecture",
+              "text": "src/cli.mjs"
+            }
+          ],
+          "save_right": false,
+          "kind_right": false,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 10658,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-or-empty",
+      "mode": "none",
+      "project": "logslice",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": false,
+              "kind": "architecture",
+              "reason": "skip: content=0.48<0.5 [tier 2, escalated]",
+              "memoryId": null,
+              "from_notification": false
+            }
+          ],
+          "saved": [],
+          "decide_calls": 2,
+          "jev_input_tokens": 9130,
+          "jev_failed": 0,
+          "hook_ms": 738,
+          "hook_detail": "2 jev call(s), p50 385 ms, 10503 tokens, $0.000383 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "What does formatLine do with an empty line?",
+          "label": {
+            "save": false
+          },
+          "stops": 1,
+          "lines": [],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 9130,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-or-order",
+      "mode": "none",
+      "project": "logslice",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "constraint",
+              "reason": "save kind=constraint content=0.85 importance=useful source=both [tier 2, escalated]",
+              "memoryId": "ecqr3q",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "ecqr3q",
+              "kind": "constraint",
+              "text": "From now on logslice prints matches in file order, never sorted."
+            }
+          ],
+          "decide_calls": 2,
+          "jev_input_tokens": 9560,
+          "jev_failed": 0,
+          "hook_ms": 792,
+          "hook_detail": "3 jev call(s), p50 249 ms, 11007 tokens, $0.000402 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "From now on logslice prints matches in file order, never sorted. Check src/cli.mjs does that.",
+          "label": {
+            "save": true,
+            "kind": "decision"
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "ecqr3q",
+              "kind": "constraint",
+              "text": "From now on logslice prints matches in file order, never sorted."
+            }
+          ],
+          "save_right": true,
+          "kind_right": false,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 9560,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-or-apikey",
+      "mode": "none",
+      "project": "parcelpost",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "constraint",
+              "reason": "save kind=constraint content=0.98 importance=critical source=both [tier 1]",
+              "memoryId": "cnqoua",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "cnqoua",
+              "kind": "constraint",
+              "text": "Never log the carrier API key, not even part of it."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3783,
+          "jev_failed": 0,
+          "hook_ms": 774,
+          "hook_detail": "2 jev call(s), p50 396 ms, 4238 tokens, $0.000159 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Never log the carrier API key, not even part of it. Check src/ for anything that might.",
+          "label": {
+            "save": true,
+            "kind": "constraint"
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "cnqoua",
+              "kind": "constraint",
+              "text": "Never log the carrier API key, not even part of it."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3783,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-or-comment",
+      "mode": "none",
+      "project": "recipebox",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": false,
+              "kind": "architecture",
+              "reason": "skip: importance=minor<useful [tier 2, escalated]",
+              "memoryId": null,
+              "from_notification": false
+            }
+          ],
+          "saved": [],
+          "decide_calls": 2,
+          "jev_input_tokens": 8954,
+          "jev_failed": 0,
+          "hook_ms": 610,
+          "hook_detail": "2 jev call(s), p50 264 ms, 10327 tokens, $0.000376 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Add a comment at the top of App.tsx describing what it renders.",
+          "label": {
+            "save": false
+          },
+          "stops": 1,
+          "lines": [],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 8954,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-or-early",
+      "mode": "none",
+      "project": "parcelpost",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "preference",
+              "reason": "save kind=preference content=0.96 importance=useful source=both [tier 1]",
+              "memoryId": "3yfxhg",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "3yfxhg",
+              "kind": "preference",
+              "text": "I like route handlers to validate their input at the top and return early."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3656,
+          "jev_failed": 0,
+          "hook_ms": 666,
+          "hook_detail": "2 jev call(s), p50 331 ms, 4113 tokens, $0.000154 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "I like route handlers to validate their input at the top and return early. Look at src/routes/parcels.ts and tell me whether it does.",
+          "label": {
+            "save": true,
+            "kind": "preference"
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "3yfxhg",
+              "kind": "preference",
+              "text": "I like route handlers to validate their input at the top and return early."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3656,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-or-jsonlater",
+      "mode": "none",
+      "project": "logslice",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "todo",
+              "reason": "save kind=todo content=0.98 importance=useful [tier 1]",
+              "memoryId": "j89a1a",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "j89a1a",
+              "kind": "todo",
+              "text": "We'll need a --json-lines output mode eventually; don't build it now."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3001,
+          "jev_failed": 0,
+          "hook_ms": 353,
+          "hook_detail": "1 jev call(s), p50 277 ms, 3381 tokens, $0.000126 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "We'll need a --json-lines output mode eventually; don't build it now.",
+          "label": {
+            "save": true,
+            "kind": "todo"
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "j89a1a",
+              "kind": "todo",
+              "text": "We'll need a --json-lines output mode eventually; don't build it now."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3001,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-or-float",
+      "mode": "none",
+      "project": "farecalc",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "bug",
+              "reason": "save kind=bug content=0.98 importance=important source=assistant_reply [tier 1]",
+              "memoryId": "zu9wwx",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "zu9wwx",
+              "kind": "bug",
+              "text": "Root cause: `fare()` and `receipt()` did fare math with plain floating-point multiplication/addition."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 4049,
+          "jev_failed": 0,
+          "hook_ms": 730,
+          "hook_detail": "2 jev call(s), p50 355 ms, 4586 tokens, $0.000170 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "Why does receipt() print EUR 7.5600000000000005 for a 3-zone adult trip and a 1-zone concession trip? Fix it.",
+          "label": {
+            "save": true,
+            "kind": "bug"
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "zu9wwx",
+              "kind": "bug",
+              "text": "Root cause: `fare()` and `receipt()` did fare math with plain floating-point multiplication/addition."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 4049,
+          "jev_failed": 0
+        }
+      ]
+    },
+    {
+      "id": "d-or-webhooks",
+      "mode": "none",
+      "project": "parcelpost",
+      "stops": [
+        {
+          "stop": 0,
+          "run": 0,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "bug",
+              "reason": "save kind=bug content=0.89 importance=useful source=assistant_reply [tier 2, escalated]",
+              "memoryId": "k5nhpa",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "k5nhpa",
+              "kind": "bug",
+              "text": "That's the whole picture — it doesn't currently find a parcel by tracking number at all."
+            }
+          ],
+          "decide_calls": 2,
+          "jev_input_tokens": 10202,
+          "jev_failed": 0,
+          "hook_ms": 827,
+          "hook_detail": "3 jev call(s), p50 261 ms, 11700 tokens, $0.000428 via inline"
+        },
+        {
+          "stop": 1,
+          "run": 1,
+          "mid_turn": false,
+          "background_running": [],
+          "decided": 1,
+          "decisions": [
+            {
+              "save": true,
+              "kind": "constraint",
+              "reason": "save kind=constraint content=0.97 importance=important source=both [tier 1]",
+              "memoryId": "zgfuyg",
+              "from_notification": false
+            }
+          ],
+          "saved": [
+            {
+              "id": "zgfuyg",
+              "kind": "constraint",
+              "text": "Tracking-number lookups must be case-insensitive; check the code does that."
+            }
+          ],
+          "decide_calls": 1,
+          "jev_input_tokens": 3999,
+          "jev_failed": 0,
+          "hook_ms": 673,
+          "hook_detail": "2 jev call(s), p50 351 ms, 4464 tokens, $0.000168 via inline"
+        }
+      ],
+      "turns": [
+        {
+          "run": 0,
+          "prompt": "How does the API find a parcel by its tracking number?",
+          "label": {
+            "save": false
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "k5nhpa",
+              "kind": "bug",
+              "text": "That's the whole picture — it doesn't currently find a parcel by tracking number at all."
+            }
+          ],
+          "save_right": false,
+          "kind_right": false,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 2,
+          "jev_input_tokens": 10202,
+          "jev_failed": 0
+        },
+        {
+          "run": 1,
+          "prompt": "OK. Tracking-number lookups must be case-insensitive; check the code does that.",
+          "label": {
+            "save": true,
+            "kind": "constraint"
+          },
+          "stops": 1,
+          "lines": [
+            {
+              "id": "zgfuyg",
+              "kind": "constraint",
+              "text": "Tracking-number lookups must be case-insensitive; check the code does that."
+            }
+          ],
+          "save_right": true,
+          "kind_right": true,
+          "extra_lines": 0,
+          "decided_while_running": 0,
+          "lines_while_running": 0,
+          "lines_from_notification": 0,
+          "decide_calls": 1,
+          "jev_input_tokens": 3999,
+          "jev_failed": 0
+        }
+      ]
+    }
+  ]
+}

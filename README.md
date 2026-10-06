@@ -139,12 +139,12 @@ The MCP server is on the [MCP Registry](https://registry.modelcontextprotocol.io
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-dark.svg"><img alt="Median time to decide one message on 66 held-out turns: jevmem 0.28 s, six current LLMs 2.78 to 4.29 s." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-light.svg"></picture>
 
-Deciding what to save takes 0.28 s and costs $0.00016 per message, in the background: Claude doesn't wait for it.
+Deciding what to save takes 0.25 s and costs $0.00016 per message, in the background: Claude doesn't wait for it.
 jevmem tied the best LLM on save or skip (98.5%); two LLMs were better at picking the kind of line.
 
 <details><summary>The full benchmark: accuracy, cost and how it was run</summary>
 
-66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](docs/benchmark.md)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is 0.6.0's run of the same set on 2026-09-30 ([results](results/eval-heldout-2026-09-30-v060.json); [every mode, three builds](docs/benchmark.md#every-mode-three-builds)), where 0.5.9 and v0.4.2 score the same and cost less:
+66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](docs/benchmark.md)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is 0.6.0's run of the same set on 2026-09-30 ([results](results/eval-heldout-2026-09-30-v060.json); [every mode, three builds](docs/benchmark.md#every-mode-four-builds)), where 0.5.9 and v0.4.2 score the same and cost less:
 
 | Decider | save/skip | save+kind | contradictions | p50 | $/decision |
 |---|---|---|---|---|---|
@@ -154,13 +154,13 @@ jevmem tied the best LLM on save or skip (98.5%); two LLMs were better at pickin
 | Claude Opus 5.5 | 97.0% | 97.0% | 5/5 | 2,784 ms | $0.005186 |
 | Gemini 3.8 Flash | 92.4% | 92.4% | 5/5 | 2,850 ms | $0.001174 |
 | Grok 4.7 | 90.9% | 90.9% | 4/5 | 3,320 ms | $0.004602 |
-| **jevmem 0.6.0 `auto`** | **98.5%** | **95.5%** | **5/5** | **276 ms** | $0.000157 |
+| **jevmem 0.6.6 `auto`** | **98.5%** | **95.5%** | **5/5** | **253 ms** | $0.000159 |
 
-The 0.28 s is the Jev API decision (p95 527 ms; a saved turn's line costs one more request, $0.000159 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](results/ops-2026-09-26-v056.json), [cost and latency](docs/cost.md)).
+The 0.25 s is the Jev API decision (p95 509 ms; a saved turn's line costs one more request, $0.000160 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](results/ops-2026-09-26-v056.json), [cost and latency](docs/cost.md)).
 
-On 66 held-out turns, jevmem 0.6.0's median decision took 0.28 s, against 2.8–4.3 s for six current LLMs.
+On 66 held-out turns, jevmem 0.6.6's median decision took 0.25 s (one run, 2026-10-06; the graphic above shows 0.6.0's run of 2026-09-30, 0.28 s, with the same counts), against 2.8–4.3 s for six current LLMs.
 Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 95.5% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%) and Claude Opus 5.5 (97.0%) were more accurate on save+kind; Claude Fable 5.1 tied; GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
-GPT-6 Luna was cheaper ($0.000089 against $0.000157) but less accurate (93.9%) and about 11× slower.
+GPT-6 Luna was cheaper ($0.000089 against $0.000159) but less accurate (93.9%) and about 12× slower.
 Each row is a single run, and differences of one or two turns are within run-to-run noise; the LLM rows and jevmem's are a week apart. If the most accurate decision matters most, GPT-6 Astra or Claude Opus 5.5 are better, at about 33–48× the cost per decision and 10–13× the latency. jevmem is for when you want a fast, cheap decision on every message.
 
 </details>
@@ -205,7 +205,7 @@ In plain terms, with the third parties' privacy policies and how to delete your 
 
 ## Limits
 
-- **Early:** 0.6.5, and every test set was written by the author. None is an independent benchmark.
+- **Early:** 0.6.6, and every test set was written by the author or captured from Claude Code sessions on scratch projects built for it. None is an independent benchmark.
 - **Not the most accurate:** two LLMs scored higher at picking the kind of line. jevmem's edge is speed and cost.
 - **Answer quality isn't measured:** the tests check that the right lines reach Claude, not that its answers get better.
 - **Automatic saving is Claude Code only** (and Codex while `jevmem watch` runs).
@@ -222,6 +222,7 @@ Every limit, with the numbers: [docs/limits.md](docs/limits.md).
 - **Background subagents:** a turn is saved once, when it is over, and a subagent's report isn't read as your message.
 - **0.6.1 to 0.6.3:** a guard fix for `if [ … ]` in a command, and a clearer `jevmem doctor`.
 - **0.6.4:** this README, shorter and with graphics; the details moved to pages in `docs/`. Docs only.
+- **0.6.6:** a failed attempt is saved as a dead end, not as a decision: when you ask Claude to try or change something and its reply says that failed and why, jevmem reads the reply and saves the dead end instead of the request (40 written held-out failed attempts: 0.6.5 saved 12 as dead ends and the request as a decision or to-do in 21; 0.6.6 saves 37 and 2). The reply is sent on more turns ([PRIVACY.md](PRIVACY.md)). [Details](docs/whats-new.md).
 - **0.6.5:** a dead end keeps its reason when Claude's reply gives the verdict first and the cause last. `jevmem init --tool claude-desktop` prints `<your TypeSafe API key>` where your key goes, and the descriptions and links point at the docs site.
 
 Details and measurements: [docs/whats-new.md](docs/whats-new.md) · Upgrading: [docs/upgrading.md](docs/upgrading.md) · [CHANGELOG](CHANGELOG.md)
@@ -256,7 +257,7 @@ jevmem guard test "<command>" | --edit <path>  Dry run of the PreToolUse guard o
 jevmem guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
 ```
 
-These are 0.6.5's commands: 0.5.10's and `jevmem guard` (0.6.0). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
+These are 0.6.6's commands: 0.5.10's and `jevmem guard` (0.6.0). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
 
 </details>
 

@@ -1,0 +1,5085 @@
+{
+  "kind": "attempts",
+  "set": "eval/attempts-heldout.jsonl",
+  "label": "0.6.5",
+  "date": "2026-10-06",
+  "jevmem_version": "0.6.5",
+  "commit": "197b79e",
+  "dist": "node_modules/.cache/jevmem-v0.6.5-npm/node_modules/jevmem/dist/index.js",
+  "baseline": null,
+  "turns": 80,
+  "machine": "darwin arm64, node v22.22.0, Apple M4",
+  "network_path": "direct HTTPS to the TypeSafe API default base URL, warm in-process client, cache off",
+  "cost_method": "input tokens × $0.042 per million; output tokens free",
+  "judge": "in code: reasonKeys / factKeys / requestKeys substring checks (case-insensitive), no LLM",
+  "summary": {
+    "mode": "auto",
+    "started_at": "2026-10-06T13:15:48.741Z",
+    "finished_at": "2026-10-06T13:16:36.199Z",
+    "errors": 0,
+    "sent": {
+      "turns": 80,
+      "replySent": "22/80",
+      "replySentShare": 0.275,
+      "meanReplyCharsWhenSent": 437,
+      "maxReplyCharsSent": 697,
+      "meanReplyCharsPerTurn": 120,
+      "decideCallsPerTurn": 1.6875
+    },
+    "perTurn": {
+      "turns": 80,
+      "decideP50ms": 518,
+      "decideP95ms": 640,
+      "meanInputTokens": 6841,
+      "costPerTurnUsd": 0.00028733512500000004,
+      "costPerTurnWithLineUsd": 0.000300672225
+    },
+    "attemptFailed": {
+      "turns": 40,
+      "replyRead": "12/40",
+      "savedAsDeadEnd": "12/40",
+      "deadEndKeepsReason": "6/12",
+      "deadEndSaysWhatWasTried": "11/12",
+      "deadEndWithReason": "6/40",
+      "requestSaved": "21/40",
+      "requestSavedAsDecisionOrTodo": "21/40",
+      "savedAsAnotherKindFromTheReply": "0/40",
+      "nothingSaved": "7/40",
+      "requestSavedKinds": {
+        "decision": 14,
+        "todo": 7
+      },
+      "byModel": {}
+    },
+    "attemptOpen": {
+      "turns": 0,
+      "replyRead": "0/0",
+      "savedAsDeadEnd": "0/0",
+      "requestSaved": "0/0",
+      "requestSavedAsDecisionOrTodo": "0/0",
+      "savedAsAnotherKindFromTheReply": "0/0",
+      "nothingSaved": "0/0"
+    },
+    "attemptWorked": {
+      "turns": 12,
+      "replyRead": "1/12",
+      "saveSkipRight": "9/12",
+      "savedAsAccepted": "3/12",
+      "savedAsDeadEnd": "0/12",
+      "statesFact": "7/9",
+      "gotKinds": {
+        "bug": 3,
+        "decision": 3,
+        "none": 3,
+        "todo": 3
+      }
+    },
+    "decisionRequest": {
+      "turns": 12,
+      "replyRead": "2/12",
+      "saveSkipRight": "12/12",
+      "savedAsAccepted": "10/12",
+      "savedAsDeadEnd": "0/12",
+      "statesFact": "11/12",
+      "gotKinds": {
+        "constraint": 11,
+        "decision": 1
+      }
+    },
+    "ordinary": {
+      "turns": 16,
+      "replyRead": "7/16",
+      "saveSkipRight": "15/16",
+      "savedAsAccepted": "15/16",
+      "savedAsDeadEnd": "0/16",
+      "statesFact": "3/5",
+      "gotKinds": {
+        "architecture": 2,
+        "bug": 3,
+        "none": 7,
+        "todo": 4
+      }
+    },
+    "otherTags": {},
+    "allControls": {
+      "turns": 40,
+      "replyRead": "10/40",
+      "saveSkipRight": "36/40",
+      "savedAsAccepted": "28/40",
+      "savedAsDeadEnd": "0/40",
+      "statesFact": "21/26",
+      "gotKinds": {
+        "architecture": 2,
+        "bug": 6,
+        "constraint": 11,
+        "decision": 4,
+        "none": 10,
+        "todo": 7
+      }
+    },
+    "deadEndLines": 12
+  },
+  "rows": [
+    {
+      "id": "ah-harborlight-001",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "try-with-fallback.account-then-outcome.cause-in-own-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 621,
+        "decideCalls": 2
+      },
+      "ms": 546,
+      "inputTokens": 8301,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.55 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.08,
+        "kindProbabilities": {
+          "constraint": 0.08,
+          "decision": 0.15,
+          "none": 0.21000000000000002,
+          "todo": 0.47000000000000003,
+          "preference": 0,
+          "dead-end": 0.02,
+          "architecture": 0.04,
+          "bug": 0.03
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Try replacing the overlap validation on `Booking` with a Postgres exclusion constraint on berth and date range. If the migration won't apply, roll it back and tell me what's in the way.",
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "lineInputTokens": 506,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-002",
+      "project": "harborlight",
+      "tag": "ordinary",
+      "subtype": "question.general-knowledge.nothing-to-keep",
+      "model": null,
+      "want": {
+        "save": false,
+        "accept": [],
+        "source": "none"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 461,
+        "replyCharsInTurn": 453,
+        "decideCalls": 2
+      },
+      "ms": 527,
+      "inputTokens": 9794,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "none",
+        "assistantIncluded": true,
+        "reason": "skip: source=none (neither side states anything for the project), kind=none [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "bug": 0,
+          "preference": 0,
+          "decision": 0.01,
+          "dead-end": 0,
+          "todo": 0,
+          "constraint": 0,
+          "architecture": 0.16,
+          "none": 0.8200000000000001
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-003",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "plain-bump-with-fallback.outcome-first.cause-in-fact-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 411,
+        "decideCalls": 2
+      },
+      "ms": 546,
+      "inputTokens": 8301,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: content=0.45<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.14,
+        "kindProbabilities": {
+          "todo": 0.78,
+          "architecture": 0,
+          "decision": 0.02,
+          "bug": 0.02,
+          "none": 0.13,
+          "preference": 0,
+          "dead-end": 0,
+          "constraint": 0.05
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-harborlight-004",
+      "project": "harborlight",
+      "tag": "attempt-worked",
+      "subtype": "plain-move.worked.checked-by-measurement",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 475,
+        "decideCalls": 2
+      },
+      "ms": 533,
+      "inputTokens": 8291,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.72 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "constraint": 0.06,
+          "architecture": 0.15,
+          "none": 0.01,
+          "decision": 0.16,
+          "bug": 0.01,
+          "dead-end": 0,
+          "preference": 0,
+          "todo": 0.61
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Move the reminder emails off the `default` queue onto their own `reminders` queue with a lower weight, so a big reminder run can't hold up hold expiry.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-005",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "give-it-a-go-with-fallback.outcome-first.cause-in-own-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 746,
+        "decideCalls": 1
+      },
+      "ms": 239,
+      "inputTokens": 2735,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.72 importance=useful [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.08,
+        "kindProbabilities": {
+          "dead-end": 0.02,
+          "preference": 0.02,
+          "none": 0.08,
+          "constraint": 0,
+          "decision": 0.11,
+          "architecture": 0,
+          "bug": 0.04,
+          "todo": 0.73
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "If it misbehaves, put the frame reload back the way it was.",
+        "pick": [
+          "s2"
+        ]
+      },
+      "lineInputTokens": 504,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": false,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-006",
+      "project": "harborlight",
+      "tag": "decision-request",
+      "subtype": "from-now-on.convert-remaining-call-sites",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "preference",
+        "accept": [
+          "preference",
+          "decision"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 397,
+        "decideCalls": 2
+      },
+      "ms": 550,
+      "inputTokens": 8299,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=constraint content=0.74 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.05,
+        "kindProbabilities": {
+          "dead-end": 0,
+          "preference": 0.14,
+          "none": 0.01,
+          "constraint": 0.37,
+          "decision": 0.3,
+          "architecture": 0,
+          "bug": 0.02,
+          "todo": 0.16
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "From now on every date shown to customers goes through `l(date, format: :berth)`, no more hand-rolled `strftime`.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 512,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-007",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "lets-with-fallback.two-sentences.cause-in-fact-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 464,
+        "decideCalls": 2
+      },
+      "ms": 551,
+      "inputTokens": 8307,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.83 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.2,
+        "kindProbabilities": {
+          "bug": 0,
+          "constraint": 0.05,
+          "architecture": 0.02,
+          "todo": 0.04,
+          "dead-end": 0.02,
+          "decision": 0.86,
+          "none": 0.01,
+          "preference": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Let's make `total_pence` on bookings a stored generated column so it can never drift from the nights and the nightly rate.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 506,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-008",
+      "project": "harborlight",
+      "tag": "ordinary",
+      "subtype": "bug-report.root-cause-and-fix-in-reply",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "accept": [
+          "bug"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 666,
+        "replyCharsInTurn": 666,
+        "decideCalls": 1
+      },
+      "ms": 256,
+      "inputTokens": 3409,
+      "decide": {
+        "save": true,
+        "kind": "bug",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=bug content=0.99 importance=important source=assistant_reply [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.14,
+        "kindProbabilities": {
+          "todo": 0.01,
+          "none": 0.03,
+          "constraint": 0,
+          "dead-end": 0,
+          "decision": 0,
+          "architecture": 0,
+          "bug": 0.96,
+          "preference": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "`Booking` has `after_save :send_confirmation, if: :confirmed?`, and `Payments::Capture#call` saves the booking twice, once to set `status` to `confirmed` and again to store `paid_at`",
+        "pick": [
+          "s3",
+          "s5"
+        ]
+      },
+      "lineInputTokens": 737,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-009",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "see-if.measurement.outcome-last.cause-in-own-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 592,
+        "decideCalls": 2
+      },
+      "ms": 539,
+      "inputTokens": 8281,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: content=0.27<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "decision": 0.03,
+          "none": 0.12,
+          "todo": 0.39,
+          "bug": 0.44,
+          "architecture": 0,
+          "dead-end": 0,
+          "preference": 0,
+          "constraint": 0.02
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-harborlight-010",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "plain-switch.outcome-first.cause-in-own-sentence.no-end-state",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 654,
+        "decideCalls": 2
+      },
+      "ms": 554,
+      "inputTokens": 8291,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.85 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.53,
+        "kindProbabilities": {
+          "todo": 0.32,
+          "none": 0.04,
+          "constraint": 0.02,
+          "decision": 0.58,
+          "dead-end": 0.02,
+          "architecture": 0,
+          "preference": 0.01,
+          "bug": 0.01
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Truncating forty-odd tables before every example is most of our eleven minutes.",
+        "pick": [
+          "s2"
+        ]
+      },
+      "lineInputTokens": 498,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": false,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-011",
+      "project": "harborlight",
+      "tag": "attempt-worked",
+      "subtype": "try.worked.stumble-on-the-way-put-right",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 612,
+        "replyCharsInTurn": 612,
+        "decideCalls": 2
+      },
+      "ms": 700,
+      "inputTokens": 9896,
+      "decide": {
+        "save": true,
+        "kind": "bug",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=bug content=0.99 importance=useful source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.46,
+        "kindProbabilities": {
+          "bug": 0.47,
+          "preference": 0,
+          "todo": 0.12,
+          "none": 0.04,
+          "decision": 0.15,
+          "architecture": 0.13,
+          "dead-end": 0.05,
+          "constraint": 0.04
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "The first migration run failed with `PG::ActiveSqlTransaction: CREATE INDEX CONCURRENTLY cannot run inside a transaction block`; I had left out `disable_ddl_transaction!`, added it and reran.",
+        "pick": [
+          "s2"
+        ]
+      },
+      "lineInputTokens": 749,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": false,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-012",
+      "project": "harborlight",
+      "tag": "ordinary",
+      "subtype": "thanks.small-talk",
+      "model": null,
+      "want": {
+        "save": false,
+        "accept": [],
+        "source": "none"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 63,
+        "decideCalls": 1
+      },
+      "ms": 231,
+      "inputTokens": 2723,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: kind=none, content=0.10<0.5, importance=trivial<useful [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.05,
+        "kindProbabilities": {
+          "bug": 0,
+          "decision": 0,
+          "none": 1,
+          "constraint": 0,
+          "dead-end": 0,
+          "todo": 0,
+          "preference": 0,
+          "architecture": 0
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-013",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "question-with-fallback.answer-no-first.cause-in-fact-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 697,
+        "replyCharsInTurn": 697,
+        "decideCalls": 2
+      },
+      "ms": 510,
+      "inputTokens": 9908,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.98 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.98,
+        "kindProbabilities": {
+          "constraint": 0,
+          "decision": 0,
+          "none": 0,
+          "todo": 0.01,
+          "preference": 0,
+          "dead-end": 0.98,
+          "architecture": 0,
+          "bug": 0.01
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I changed `SeasonImport#call` to build the 3,180 rows and write them with `Booking.insert_all` in batches of 500, but `insert_all` skips callbacks and validations",
+        "pick": [
+          "s3"
+        ]
+      },
+      "lineInputTokens": 775,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": true,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-014",
+      "project": "harborlight",
+      "tag": "decision-request",
+      "subtype": "we-agreed-yesterday.go-ahead.done-first",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 504,
+        "decideCalls": 2
+      },
+      "ms": 450,
+      "inputTokens": 8293,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=constraint content=0.84 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.46,
+        "kindProbabilities": {
+          "constraint": 0.47,
+          "decision": 0.31,
+          "none": 0,
+          "dead-end": 0,
+          "preference": 0,
+          "todo": 0.1,
+          "architecture": 0,
+          "bug": 0.12
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "We agreed yesterday that a provisional hold lasts 20 minutes, not 15, because card checks keep timing people out.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 509,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-015",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "have-a-go.no-preamble.account-then-outcome.cause-in-own-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 627,
+        "decideCalls": 1
+      },
+      "ms": 220,
+      "inputTokens": 2735,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.89 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "preference": 0.04,
+          "bug": 0,
+          "decision": 0.1,
+          "architecture": 0.06,
+          "none": 0.06,
+          "constraint": 0,
+          "todo": 0.74,
+          "dead-end": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "I'd love to delete that table and its cleanup job.",
+        "pick": [
+          "s2"
+        ]
+      },
+      "lineInputTokens": 504,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": false,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-016",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "were-going-to-go-ahead.tried-and-verdict-in-one-sentence.cause-in-fact-sentence.no-end-state",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 588,
+        "decideCalls": 2
+      },
+      "ms": 518,
+      "inputTokens": 8269,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.62 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "dead-end": 0,
+          "preference": 0,
+          "none": 0,
+          "constraint": 0.09,
+          "decision": 0.13,
+          "architecture": 0.01,
+          "bug": 0,
+          "todo": 0.77
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "We're going to encrypt `boats.registration_number` with Active Record encryption before the audit, go ahead and add it.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-017",
+      "project": "harborlight",
+      "tag": "ordinary",
+      "subtype": "todo.note-for-later.acknowledged",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "todo",
+        "accept": [
+          "todo"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 191,
+        "decideCalls": 2
+      },
+      "ms": 523,
+      "inputTokens": 8301,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.95 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "preference": 0,
+          "bug": 0,
+          "decision": 0,
+          "dead-end": 0,
+          "todo": 1,
+          "constraint": 0,
+          "architecture": 0,
+          "none": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Note for later: we still need a rate limit on the public availability endpoint before the boat show weekend, it's wide open right now. Not today though, carry on with the pontoon import.",
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "lineInputTokens": 506,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-018",
+      "project": "harborlight",
+      "tag": "attempt-worked",
+      "subtype": "check-whether.worked.answer-first.query-count",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 368,
+        "decideCalls": 1
+      },
+      "ms": 317,
+      "inputTokens": 2723,
+      "decide": {
+        "save": true,
+        "kind": "bug",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=bug content=0.84 importance=useful [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.12,
+        "kindProbabilities": {
+          "architecture": 0,
+          "todo": 0.08,
+          "dead-end": 0,
+          "constraint": 0,
+          "none": 0.05,
+          "bug": 0.87,
+          "preference": 0,
+          "decision": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "It's firing a query per row for the boat and another for the berth.",
+        "pick": [
+          "s2"
+        ]
+      },
+      "lineInputTokens": 505,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": false,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-019",
+      "project": "harborlight",
+      "tag": "attempt-failed",
+      "subtype": "plain-replace.two-progress-lines.outcome-first.cause-in-fact-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 728,
+        "decideCalls": 1
+      },
+      "ms": 218,
+      "inputTokens": 2727,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.81 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.27,
+        "kindProbabilities": {
+          "preference": 0.01,
+          "constraint": 0.03,
+          "dead-end": 0.01,
+          "none": 0.02,
+          "decision": 0.77,
+          "architecture": 0,
+          "todo": 0.15,
+          "bug": 0.01
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Replace wicked_pdf with Grover for the invoice PDFs. The wkhtmltopdf binary is unmaintained and I want it out of the image.",
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "lineInputTokens": 493,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-harborlight-020",
+      "project": "harborlight",
+      "tag": "decision-request",
+      "subtype": "rule-from-the-business.enforce-it.done-with-specs",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "constraint",
+        "accept": [
+          "constraint",
+          "decision"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 547,
+        "decideCalls": 1
+      },
+      "ms": 221,
+      "inputTokens": 2732,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "preference": 0,
+          "bug": 0,
+          "decision": 0,
+          "architecture": 0,
+          "none": 0,
+          "constraint": 0.95,
+          "todo": 0.05,
+          "dead-end": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "The harbour master has ruled that nobody can book more than 28 nights in one stay in high season.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 508,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-001",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "try-give-it-a-go.cause-in-same-sentence.no-state",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 398,
+        "decideCalls": 2
+      },
+      "ms": 479,
+      "inputTokens": 8237,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.62 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "dead-end": 0,
+          "constraint": 0,
+          "preference": 0.22,
+          "none": 0.03,
+          "todo": 0.11,
+          "architecture": 0,
+          "bug": 0.01,
+          "decision": 0.63
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Give mimalloc a go as the global allocator, the manifest load feels allocation-heavy.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-002",
+      "project": "ironbark",
+      "tag": "attempt-worked",
+      "subtype": "try-imperative.measured-win",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 466,
+        "decideCalls": 1
+      },
+      "ms": 212,
+      "inputTokens": 2710,
+      "decide": {
+        "save": true,
+        "kind": "bug",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=bug content=0.77 importance=useful [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.09,
+        "kindProbabilities": {
+          "preference": 0.02,
+          "bug": 0.75,
+          "decision": 0.02,
+          "todo": 0.16,
+          "dead-end": 0,
+          "constraint": 0,
+          "architecture": 0,
+          "none": 0.05
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "Try wrapping the manifest writer in a BufWriter; the final flush on a big push sits there for ages.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-003",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "try-see-if.with-fallback.outcome-first.cause-own-sentence.state-stated",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 431,
+        "replyCharsInTurn": 431,
+        "decideCalls": 2
+      },
+      "ms": 515,
+      "inputTokens": 9752,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.94 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "constraint": 0,
+          "decision": 0.01,
+          "none": 0,
+          "dead-end": 0.98,
+          "preference": 0,
+          "todo": 0.01,
+          "architecture": 0,
+          "bug": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I replaced the polling loop in `src/watch.rs` with a `notify::RecommendedWatcher` and copied twelve `.tally` files onto the SMB mount from another machine; not a single event arrived.",
+        "pick": [
+          "s2",
+          "s3"
+        ]
+      },
+      "lineInputTokens": 662,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-004",
+      "project": "ironbark",
+      "tag": "decision-request",
+      "subtype": "from-now-on.convert-call-sites.done-with-checks",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 347,
+        "replyCharsInTurn": 347,
+        "decideCalls": 2
+      },
+      "ms": 531,
+      "inputTokens": 9754,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "both",
+        "assistantIncluded": true,
+        "reason": "save kind=constraint content=0.93 importance=important source=both [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "todo": 0.16,
+          "architecture": 0.1,
+          "none": 0.01,
+          "preference": 0,
+          "bug": 0.03,
+          "decision": 0.16,
+          "constraint": 0.54,
+          "dead-end": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "From now on the library returns ironbark::Error from every public function and anyhow stays in the binary only.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 511,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-005",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "try-check-whether.outcome-first.cause-in-same-sentence.no-state",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 309,
+        "decideCalls": 2
+      },
+      "ms": 548,
+      "inputTokens": 8253,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: kind=none, content=0.28<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "architecture": 0.01,
+          "todo": 0.09,
+          "dead-end": 0,
+          "constraint": 0.04,
+          "none": 0.78,
+          "bug": 0,
+          "preference": 0.01,
+          "decision": 0.07
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-ironbark-006",
+      "project": "ironbark",
+      "tag": "ordinary",
+      "subtype": "question.how-it-works.architecture-in-reply",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "architecture",
+        "accept": [
+          "architecture"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 418,
+        "replyCharsInTurn": 418,
+        "decideCalls": 2
+      },
+      "ms": 548,
+      "inputTokens": 9716,
+      "decide": {
+        "save": true,
+        "kind": "architecture",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=architecture content=0.93 importance=useful source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "bug": 0,
+          "decision": 0,
+          "todo": 0,
+          "dead-end": 0,
+          "preference": 0,
+          "architecture": 0.89,
+          "constraint": 0,
+          "none": 0.11
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "architecture",
+        "line": "`Planner::diff` in `src/planner.rs` walks the survey directory and looks up each file in the manifest by its object key.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 603,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": false,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-007",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "try-have-a-go.with-fallback.result-then-cause.state-stated",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 573,
+        "replyCharsInTurn": 573,
+        "decideCalls": 2
+      },
+      "ms": 581,
+      "inputTokens": 9822,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.96 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "bug": 0.01,
+          "preference": 0,
+          "decision": 0.01,
+          "dead-end": 0.97,
+          "todo": 0.01,
+          "constraint": 0,
+          "architecture": 0,
+          "none": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "Installing `cargo-nextest` and running the whole suite under it. Fixing that needs a bucket per test and a rewrite of the fixture loader, which is more than a test-runner switch should drag in.",
+        "pick": [
+          "s1",
+          "s4"
+        ]
+      },
+      "lineInputTokens": 741,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-008",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "plain-switch.measure-then-cause.state-stated",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 466,
+        "decideCalls": 1
+      },
+      "ms": 224,
+      "inputTokens": 2712,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.78 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.07,
+        "kindProbabilities": {
+          "dead-end": 0,
+          "preference": 0.08,
+          "none": 0.03,
+          "constraint": 0.01,
+          "decision": 0.66,
+          "architecture": 0.05,
+          "bug": 0.01,
+          "todo": 0.16
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Switch the CLI to tokio's current_thread runtime, we don't need the multi-thread scheduler for a command-line tool.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-009",
+      "project": "ironbark",
+      "tag": "attempt-worked",
+      "subtype": "plain-replace.hiccup-missing-import.tests-pass",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 507,
+        "decideCalls": 2
+      },
+      "ms": 490,
+      "inputTokens": 8255,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.75 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "bug": 0.16,
+          "constraint": 0.05,
+          "architecture": 0,
+          "todo": 0.68,
+          "dead-end": 0,
+          "none": 0.02,
+          "decision": 0.08,
+          "preference": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Replace the fixed 2-second sleep between part retries in uploader.rs with exponential backoff plus jitter, capped at 30 seconds.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-010",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "plain-bump.with-fallback.two-sentences.cause-in-same-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 275,
+        "decideCalls": 2
+      },
+      "ms": 521,
+      "inputTokens": 8269,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.73 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "preference": 0.01,
+          "constraint": 0.23,
+          "dead-end": 0,
+          "none": 0.02,
+          "decision": 0.51,
+          "architecture": 0,
+          "todo": 0.23,
+          "bug": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Bump aws-sdk-s3 to 1.68 so we get the new checksum defaults. Leave it on the current version if it drags in anything nasty.",
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "lineInputTokens": 497,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-011",
+      "project": "ironbark",
+      "tag": "ordinary",
+      "subtype": "bug-report.root-cause-and-fix",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "accept": [
+          "bug"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 629,
+        "replyCharsInTurn": 629,
+        "decideCalls": 1
+      },
+      "ms": 300,
+      "inputTokens": 3407,
+      "decide": {
+        "save": true,
+        "kind": "bug",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=bug content=0.98 importance=important source=assistant_reply [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.18,
+        "kindProbabilities": {
+          "constraint": 0,
+          "decision": 0,
+          "none": 0.01,
+          "dead-end": 0,
+          "preference": 0,
+          "todo": 0,
+          "bug": 0.99,
+          "architecture": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "On the next run the planner compares the local CRLF file against them, never gets a match, and queues it again; `.laz` tiles are uploaded raw, so theirs line up.",
+        "pick": [
+          "s3",
+          "s4"
+        ]
+      },
+      "lineInputTokens": 767,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": false,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-012",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "plain-turn-on.numbers-first.verdict-last.state-stated",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 508,
+        "decideCalls": 2
+      },
+      "ms": 553,
+      "inputTokens": 8237,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: content=0.41<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "decision": 0.65,
+          "dead-end": 0,
+          "architecture": 0,
+          "constraint": 0.08,
+          "none": 0.05,
+          "preference": 0.11,
+          "bug": 0,
+          "todo": 0.11
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-ironbark-013",
+      "project": "ironbark",
+      "tag": "decision-request",
+      "subtype": "we-agreed.go-ahead.done-with-tests",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 470,
+        "decideCalls": 2
+      },
+      "ms": 819,
+      "inputTokens": 8269,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=constraint content=0.93 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "preference": 0,
+          "constraint": 0.7,
+          "dead-end": 0,
+          "none": 0,
+          "decision": 0.2,
+          "architecture": 0,
+          "todo": 0.09,
+          "bug": 0.01
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "We agreed yesterday that manifest timestamps are always UTC in RFC 3339, never local time.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 507,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-014",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "intent-lets.outcome-in-fact-sentence.cause-own-sentence.state-stated",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 524,
+        "replyCharsInTurn": 524,
+        "decideCalls": 2
+      },
+      "ms": 525,
+      "inputTokens": 9796,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.96 importance=useful source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "bug": 0,
+          "preference": 0.01,
+          "todo": 0.02,
+          "none": 0,
+          "decision": 0.01,
+          "architecture": 0,
+          "dead-end": 0.96,
+          "constraint": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I switched `ManifestEntry` to `&'a str` fields with `#[serde(borrow)]`, and the crate no longer compiles. `Planner::run` moves entries into `tokio::spawn`, which only accepts `'static` data",
+        "pick": [
+          "s2",
+          "s3"
+        ]
+      },
+      "lineInputTokens": 730,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-015",
+      "project": "ironbark",
+      "tag": "ordinary",
+      "subtype": "thanks.short-reply",
+      "model": null,
+      "want": {
+        "save": false,
+        "accept": [],
+        "source": "none"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 43,
+        "decideCalls": 1
+      },
+      "ms": 266,
+      "inputTokens": 2698,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: kind=none, content=0.15<0.5, importance=trivial<useful, chit_chat=0.96 [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "constraint": 0,
+          "decision": 0,
+          "none": 1,
+          "todo": 0,
+          "preference": 0,
+          "dead-end": 0,
+          "architecture": 0,
+          "bug": 0
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-016",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "intent-going-to.with-fallback.account-first.verdict-last",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 340,
+        "decideCalls": 1
+      },
+      "ms": 254,
+      "inputTokens": 2721,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.96 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.06,
+        "kindProbabilities": {
+          "todo": 0.01,
+          "architecture": 0,
+          "bug": 0,
+          "preference": 0.01,
+          "none": 0,
+          "decision": 0.9,
+          "constraint": 0.08,
+          "dead-end": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "We're going to raise the default --concurrency from 8 to 32 for push, go ahead.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 497,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-017",
+      "project": "ironbark",
+      "tag": "attempt-worked",
+      "subtype": "try-see-whether.measured-win.final-only",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 373,
+        "decideCalls": 2
+      },
+      "ms": 536,
+      "inputTokens": 8267,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: content=0.48<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.05,
+        "kindProbabilities": {
+          "decision": 0.1,
+          "none": 0.08,
+          "todo": 0.53,
+          "bug": 0.27,
+          "architecture": 0,
+          "dead-end": 0,
+          "preference": 0,
+          "constraint": 0.01
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-ironbark-018",
+      "project": "ironbark",
+      "tag": "attempt-failed",
+      "subtype": "question-could-you.with-fallback.outcome-first.cause-own-sentence.state-stated",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 579,
+        "replyCharsInTurn": 579,
+        "decideCalls": 2
+      },
+      "ms": 520,
+      "inputTokens": 9870,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.95 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "todo": 0,
+          "decision": 0.01,
+          "constraint": 0,
+          "none": 0,
+          "dead-end": 0.99,
+          "architecture": 0,
+          "preference": 0,
+          "bug": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I ported `S3Store` onto `object_store::aws::AmazonS3` behind our `Store` trait. The multipart API in `object_store` 0.11 has no way to set `x-amz-checksum-sha256` on individual parts",
+        "pick": [
+          "s2",
+          "s3"
+        ]
+      },
+      "lineInputTokens": 753,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": true,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-019",
+      "project": "ironbark",
+      "tag": "decision-request",
+      "subtype": "preference-dont-want.make-it-so.done",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "preference",
+        "accept": [
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 408,
+        "decideCalls": 1
+      },
+      "ms": 261,
+      "inputTokens": 2722,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "todo": 0.06,
+          "none": 0,
+          "constraint": 0.87,
+          "dead-end": 0,
+          "decision": 0,
+          "architecture": 0,
+          "bug": 0.03,
+          "preference": 0.04
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "The crews pipe everything into log files.",
+        "pick": [
+          "s2"
+        ]
+      },
+      "lineInputTokens": 540,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": false,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-ironbark-020",
+      "project": "ironbark",
+      "tag": "ordinary",
+      "subtype": "todo-for-later.acknowledged",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "todo",
+        "accept": [
+          "todo"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 179,
+        "decideCalls": 1
+      },
+      "ms": 235,
+      "inputTokens": 2720,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.96 importance=useful [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "constraint": 0,
+          "decision": 0,
+          "none": 0,
+          "dead-end": 0,
+          "preference": 0,
+          "todo": 1,
+          "bug": 0,
+          "architecture": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Not for now, but put it on the list: ironbark verify needs a --json output mode so the ops dashboard can read results without scraping text.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-001",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "try-imperative.failure-instruction.cause-same-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 380,
+        "replyCharsInTurn": 380,
+        "decideCalls": 2
+      },
+      "ms": 545,
+      "inputTokens": 9636,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.97 importance=useful source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "constraint": 0.01,
+          "none": 0.01,
+          "todo": 0.01,
+          "preference": 0,
+          "dead-end": 0.97,
+          "architecture": 0,
+          "bug": 0,
+          "decision": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I set `experimental.ppr: 'incremental'` in `next.config.ts` and ran `pnpm build`, and it stopped with `CanaryOnlyError` because that option is only available in Next.js canary releases",
+        "pick": [
+          "s2",
+          "s3"
+        ]
+      },
+      "lineInputTokens": 638,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": true,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-002",
+      "project": "lumenfold",
+      "tag": "ordinary",
+      "subtype": "question.explanation-no-save",
+      "model": null,
+      "want": {
+        "save": false,
+        "accept": [],
+        "source": "none"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 328,
+        "replyCharsInTurn": 328,
+        "decideCalls": 2
+      },
+      "ms": 500,
+      "inputTokens": 9558,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "none",
+        "assistantIncluded": true,
+        "reason": "skip: source=none (neither side states anything for the project), kind=none, content=0.28<0.5, importance=minor<useful [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "dead-end": 0,
+          "constraint": 0,
+          "preference": 0,
+          "none": 0.9,
+          "todo": 0,
+          "architecture": 0.1,
+          "bug": 0,
+          "decision": 0
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-003",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "try-experiment.outcome-first.cause-own-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 224,
+        "decideCalls": 2
+      },
+      "ms": 601,
+      "inputTokens": 8143,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.80 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.06,
+        "kindProbabilities": {
+          "constraint": 0.03,
+          "decision": 0.58,
+          "none": 0.07,
+          "dead-end": 0,
+          "preference": 0.15,
+          "todo": 0.17,
+          "architecture": 0,
+          "bug": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Experiment with swapping `zod` for `valibot` in the checkout form validation, I want a smaller bundle.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-004",
+      "project": "lumenfold",
+      "tag": "decision-request",
+      "subtype": "from-now-on.convert-call-sites",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 282,
+        "decideCalls": 2
+      },
+      "ms": 481,
+      "inputTokens": 8163,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=constraint content=0.90 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "architecture": 0,
+          "todo": 0.08,
+          "dead-end": 0,
+          "constraint": 0.73,
+          "none": 0,
+          "bug": 0.01,
+          "preference": 0.07,
+          "decision": 0.11
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "From now on every internal link uses `Link` from `next/link`, never a plain `<a href>`; convert the two call sites that still use `<a>`.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-005",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "try-check-whether.failure-instruction.regression-measured",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 376,
+        "decideCalls": 2
+      },
+      "ms": 525,
+      "inputTokens": 8151,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: kind=none, content=0.34<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.06,
+        "kindProbabilities": {
+          "todo": 0.34,
+          "architecture": 0,
+          "decision": 0.22,
+          "bug": 0,
+          "none": 0.4,
+          "preference": 0.01,
+          "dead-end": 0,
+          "constraint": 0.03
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-lumenfold-006",
+      "project": "lumenfold",
+      "tag": "attempt-worked",
+      "subtype": "try-imperative.worked-with-measurement",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 348,
+        "decideCalls": 1
+      },
+      "ms": 229,
+      "inputTokens": 2656,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.77 importance=useful [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "bug": 0.04,
+          "decision": 0.01,
+          "none": 0.21,
+          "constraint": 0,
+          "dead-end": 0,
+          "todo": 0.69,
+          "preference": 0.04,
+          "architecture": 0.01
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Try wrapping the product reviews in a `Suspense` boundary so the rest of the page isn't held up.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-007",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "try-give-a-go.account-then-cause.no-state",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 418,
+        "decideCalls": 2
+      },
+      "ms": 567,
+      "inputTokens": 8137,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.80 importance=useful [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "architecture": 0,
+          "constraint": 0,
+          "dead-end": 0,
+          "todo": 0.04,
+          "none": 0.06,
+          "bug": 0,
+          "preference": 0.11,
+          "decision": 0.79
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Give `next/font/local` a go for the Fraunces headings, instead of the Google font loader.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-008",
+      "project": "lumenfold",
+      "tag": "ordinary",
+      "subtype": "bug-report.root-cause-and-fix",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "accept": [
+          "bug"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 394,
+        "decideCalls": 2
+      },
+      "ms": 487,
+      "inputTokens": 8131,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: content=0.45<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.18,
+        "kindProbabilities": {
+          "decision": 0,
+          "none": 0,
+          "todo": 0,
+          "bug": 1,
+          "architecture": 0,
+          "dead-end": 0,
+          "preference": 0,
+          "constraint": 0
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-lumenfold-009",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "change-switch.revert-instruction.five-sentence-account",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 544,
+        "replyCharsInTurn": 544,
+        "decideCalls": 2
+      },
+      "ms": 488,
+      "inputTokens": 9672,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.98 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "todo": 0,
+          "architecture": 0,
+          "decision": 0,
+          "none": 0,
+          "bug": 0.01,
+          "preference": 0,
+          "dead-end": 0.99,
+          "constraint": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I replaced the reducer in `CartProvider.tsx` with a Zustand store in `src/state/cart-store.ts` and ran `pnpm test:e2e cart`. The store is a module-level singleton",
+        "pick": [
+          "s2",
+          "s4"
+        ]
+      },
+      "lineInputTokens": 723,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": true,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-010",
+      "project": "lumenfold",
+      "tag": "decision-request",
+      "subtype": "we-agreed.go-ahead-update",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 277,
+        "decideCalls": 2
+      },
+      "ms": 522,
+      "inputTokens": 8159,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=constraint content=0.93 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "decision": 0.3,
+          "preference": 0.05,
+          "bug": 0,
+          "none": 0,
+          "architecture": 0,
+          "dead-end": 0,
+          "constraint": 0.5700000000000001,
+          "todo": 0.08
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "We agreed yesterday that Playwright specs use `data-testid` selectors only, no CSS class selectors; go ahead and update the three specs that still use classes.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-011",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "change-bump.verdict-first.cause-own-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 336,
+        "decideCalls": 2
+      },
+      "ms": 523,
+      "inputTokens": 8127,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: content=0.48<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "constraint": 0.02,
+          "architecture": 0,
+          "none": 0.1,
+          "decision": 0.27,
+          "bug": 0,
+          "dead-end": 0,
+          "preference": 0,
+          "todo": 0.61
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-lumenfold-012",
+      "project": "lumenfold",
+      "tag": "ordinary",
+      "subtype": "thanks.small-talk-no-save",
+      "model": null,
+      "want": {
+        "save": false,
+        "accept": [],
+        "source": "none"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 69,
+        "decideCalls": 1
+      },
+      "ms": 233,
+      "inputTokens": 2642,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: kind=none, content=0.21<0.5, importance=trivial<useful, chit_chat=0.96 [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "dead-end": 0,
+          "preference": 0,
+          "none": 1,
+          "constraint": 0,
+          "decision": 0,
+          "architecture": 0,
+          "bug": 0,
+          "todo": 0
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-013",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "change-turn-on.test-failure.cause-same-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 399,
+        "decideCalls": 2
+      },
+      "ms": 533,
+      "inputTokens": 8115,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.59 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "constraint": 0.03,
+          "none": 0.24,
+          "todo": 0.36,
+          "preference": 0.04,
+          "dead-end": 0,
+          "architecture": 0.01,
+          "decision": 0.32,
+          "bug": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Turn on the React Compiler in `next.config.ts`.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": false,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-014",
+      "project": "lumenfold",
+      "tag": "attempt-worked",
+      "subtype": "change-move.first-run-failed-then-fixed",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 394,
+        "decideCalls": 2
+      },
+      "ms": 514,
+      "inputTokens": 8145,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.90 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.06,
+        "kindProbabilities": {
+          "bug": 0,
+          "decision": 0.72,
+          "dead-end": 0,
+          "todo": 0.22,
+          "preference": 0.02,
+          "architecture": 0,
+          "none": 0.03,
+          "constraint": 0.01
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Move the date formatting over to `Intl.DateTimeFormat` and drop `date-fns` from `package.json`.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-015",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "decision-lets.say-why.verdict-first",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 522,
+        "decideCalls": 2
+      },
+      "ms": 575,
+      "inputTokens": 8163,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.83 importance=useful [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.05,
+        "kindProbabilities": {
+          "decision": 0.28,
+          "preference": 0.01,
+          "none": 0.2,
+          "bug": 0,
+          "dead-end": 0.01,
+          "architecture": 0.04,
+          "constraint": 0,
+          "todo": 0.45
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Let's replace the `/api/stock` polling with server-sent events on the product page. If it can't be done, tell me what got in the way.",
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "lineInputTokens": 501,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-016",
+      "project": "lumenfold",
+      "tag": "decision-request",
+      "subtype": "lets-make-it-a-rule.wire-up-check",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "constraint",
+        "accept": [
+          "constraint",
+          "decision"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 355,
+        "replyCharsInTurn": 355,
+        "decideCalls": 1
+      },
+      "ms": 265,
+      "inputTokens": 3302,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "both",
+        "assistantIncluded": true,
+        "reason": "save kind=constraint content=0.98 importance=important source=both [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "preference": 0,
+          "bug": 0,
+          "decision": 0,
+          "dead-end": 0,
+          "todo": 0.02,
+          "constraint": 0.98,
+          "architecture": 0,
+          "none": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "Let's make it a rule: the client bundle for any route stays under 200 kB gzipped, and CI fails if it doesn't.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 516,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-017",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "decision-were-going-to.go-ahead.limit-hit",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 509,
+        "decideCalls": 1
+      },
+      "ms": 261,
+      "inputTokens": 2657,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.97 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.07,
+        "kindProbabilities": {
+          "bug": 0,
+          "preference": 0,
+          "decision": 0.99,
+          "dead-end": 0,
+          "todo": 0,
+          "constraint": 0,
+          "architecture": 0.01,
+          "none": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "We're going to keep the wishlist in a signed cookie instead of the `wishlists` table, so go ahead.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-018",
+      "project": "lumenfold",
+      "tag": "ordinary",
+      "subtype": "developer-todo.acknowledged",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "todo",
+        "accept": [
+          "todo"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 57,
+        "decideCalls": 1
+      },
+      "ms": 258,
+      "inputTokens": 2656,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "dead-end": 0,
+          "constraint": 0,
+          "preference": 0,
+          "none": 0,
+          "todo": 1,
+          "architecture": 0,
+          "bug": 0,
+          "decision": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Not now, but before launch we still need to add `lastmod` to the sitemap for the collection pages.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-lumenfold-019",
+      "project": "lumenfold",
+      "tag": "attempt-worked",
+      "subtype": "try-see-if.worked-with-measurement",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 317,
+        "decideCalls": 2
+      },
+      "ms": 519,
+      "inputTokens": 8141,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: content=0.16<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "constraint": 0.01,
+          "none": 0.24,
+          "todo": 0.56,
+          "dead-end": 0,
+          "preference": 0,
+          "architecture": 0,
+          "bug": 0,
+          "decision": 0.19
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-lumenfold-020",
+      "project": "lumenfold",
+      "tag": "attempt-failed",
+      "subtype": "question-could-you.drop-and-say-why.verdict-first",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 339,
+        "replyCharsInTurn": 339,
+        "decideCalls": 2
+      },
+      "ms": 521,
+      "inputTokens": 9634,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.95 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.98,
+        "kindProbabilities": {
+          "bug": 0,
+          "decision": 0,
+          "none": 0,
+          "constraint": 0,
+          "dead-end": 1,
+          "todo": 0,
+          "preference": 0,
+          "architecture": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "I added `generateStaticParams` to `app/collections/[slug]/page.tsx` and ran `pnpm build` in a clean checkout: each of the 1,840 slugs fetches the catalog on its own",
+        "pick": [
+          "s2"
+        ]
+      },
+      "lineInputTokens": 631,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-001",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "try-report-if-breaks.final-only.cause-in-own-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 259,
+        "replyCharsInTurn": 259,
+        "decideCalls": 2
+      },
+      "ms": 489,
+      "inputTokens": 9532,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.93 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "todo": 0.03,
+          "none": 0.02,
+          "constraint": 0.01,
+          "decision": 0,
+          "dead-end": 0.88,
+          "architecture": 0,
+          "preference": 0,
+          "bug": 0.06
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "Updated the prometheus image tag in values.yaml from 2.45.0 to 2.46.0 and deployed to staging.",
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "lineInputTokens": 602,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-002",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "see-if.preline.outcome-first.cause-in-own-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 331,
+        "decideCalls": 2
+      },
+      "ms": 551,
+      "inputTokens": 8115,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.50 importance=useful [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "preference": 0,
+          "constraint": 0.04,
+          "dead-end": 0,
+          "none": 0.18,
+          "decision": 0.01,
+          "architecture": 0,
+          "todo": 0.77,
+          "bug": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "See if we can reduce the memory request for the backup-restore Lambda to 512MB from 1024MB.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 501,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": false,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-003",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "change-leave-if-rejected.two-sentences.cause-in-fact-sentence",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 229,
+        "decideCalls": 2
+      },
+      "ms": 589,
+      "inputTokens": 8105,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.62 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.1,
+        "kindProbabilities": {
+          "todo": 0.3,
+          "architecture": 0.02,
+          "decision": 0.4,
+          "bug": 0,
+          "none": 0.03,
+          "preference": 0.13,
+          "dead-end": 0,
+          "constraint": 0.12
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Move the CORS config from the ingress annotation to a separate values key. If the controller won't accept it there, leave it as an annotation.",
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "lineInputTokens": 493,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": false,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-004",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "change-plain.final-only.cause-in-fact-sentence.state-last",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 306,
+        "decideCalls": 2
+      },
+      "ms": 513,
+      "inputTokens": 8089,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.84 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "constraint": 0.02,
+          "architecture": 0.01,
+          "decision": 0.5,
+          "none": 0.14,
+          "bug": 0,
+          "dead-end": 0.07,
+          "preference": 0.01,
+          "todo": 0.25
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Replace the CloudWatch log group retention policy with a tag-based S3 lifecycle rule in Terraform.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-005",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "have-a-go.preline.cause-in-own-sentence.rolled-back",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 335,
+        "replyCharsInTurn": 335,
+        "decideCalls": 2
+      },
+      "ms": 535,
+      "inputTokens": 9532,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.96 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "decision": 0,
+          "none": 0,
+          "todo": 0.01,
+          "bug": 0.01,
+          "architecture": 0,
+          "dead-end": 0.98,
+          "preference": 0,
+          "constraint": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "Set maxUnavailable: 50% and maxSurge: 50% in the api-service deployment. When the rolling update started, pods were torn down faster than new ones accepted traffic, causing a 90-second service outage.",
+        "pick": [
+          "s2",
+          "s3"
+        ]
+      },
+      "lineInputTokens": 678,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": true,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-006",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "lets-decision.final-only.cause-in-own-sentence.not-yet-undone",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 255,
+        "decideCalls": 2
+      },
+      "ms": 612,
+      "inputTokens": 8103,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.64 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "todo": 0.06,
+          "architecture": 0,
+          "decision": 0.68,
+          "none": 0.05,
+          "bug": 0,
+          "preference": 0,
+          "dead-end": 0,
+          "constraint": 0.21
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Let's tighten the CPU limits to force optimization. Drop them from 500m to 200m for all API servers.",
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "lineInputTokens": 492,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-007",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "question-keep-separate-if-trouble.outcome-first.alternative-kept",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 295,
+        "replyCharsInTurn": 295,
+        "decideCalls": 2
+      },
+      "ms": 942,
+      "inputTokens": 9516,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.99 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "todo": 0,
+          "architecture": 0,
+          "decision": 0,
+          "bug": 0.01,
+          "none": 0.01,
+          "preference": 0,
+          "dead-end": 0.98,
+          "constraint": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "Merged alert-cpu.yaml, alert-memory.yaml. But Prometheus failed to load—'duplicate alert name cpu_usage_high found'—because the merge created conflicts in rule IDs.",
+        "pick": [
+          "s2",
+          "s3"
+        ]
+      },
+      "lineInputTokens": 628,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": true,
+        "saysWhatWasTried": false,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-008",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "change-plain.final-only.cause-in-fact-sentence.re-enabled",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 254,
+        "decideCalls": 2
+      },
+      "ms": 583,
+      "inputTokens": 8069,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: kind=none [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "constraint": 0.02,
+          "architecture": 0.01,
+          "none": 0.64,
+          "decision": 0.02,
+          "bug": 0,
+          "dead-end": 0,
+          "preference": 0.02,
+          "todo": 0.29
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-copperfield-009",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "try-revert-if-spike.two-prelines.measured.switched-back",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 395,
+        "replyCharsInTurn": 395,
+        "decideCalls": 2
+      },
+      "ms": 518,
+      "inputTokens": 9548,
+      "decide": {
+        "save": true,
+        "kind": "dead-end",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=dead-end content=0.91 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.97,
+        "kindProbabilities": {
+          "bug": 0,
+          "none": 0,
+          "decision": 0.01,
+          "constraint": 0,
+          "dead-end": 0.98,
+          "todo": 0.01,
+          "preference": 0,
+          "architecture": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "dead-end",
+        "line": "Updated the backend policy in the ingress controller from round-robin to least-conn. The least-conn strategy doesn't match our API request patterns.",
+        "pick": [
+          "s3",
+          "s6"
+        ]
+      },
+      "lineInputTokens": 752,
+      "judged": {
+        "deadEnd": true,
+        "keepsReason": false,
+        "saysWhatWasTried": true,
+        "statesFact": null,
+        "lineIsRequest": false,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-010",
+      "project": "copperfield",
+      "tag": "attempt-failed",
+      "subtype": "going-to-put-back-if-broken.preline.cause-in-own-sentence.restored",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "dead-end",
+        "accept": [
+          "dead-end"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 389,
+        "decideCalls": 1
+      },
+      "ms": 277,
+      "inputTokens": 2644,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.94 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "bug": 0,
+          "constraint": 0.01,
+          "architecture": 0.01,
+          "todo": 0.18,
+          "dead-end": 0,
+          "decision": 0.7,
+          "none": 0.1,
+          "preference": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "We're going to reduce the namespace count from 5 to 3 to simplify management.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 530,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": false,
+        "saysWhatWasTried": false,
+        "statesFact": null,
+        "lineIsRequest": true,
+        "requestSaved": true,
+        "acceptedKind": false,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-011",
+      "project": "copperfield",
+      "tag": "attempt-worked",
+      "subtype": "try-alert-latency.cpu-reduction",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 222,
+        "decideCalls": 2
+      },
+      "ms": 640,
+      "inputTokens": 8107,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: content=0.45<0.5 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.04,
+        "kindProbabilities": {
+          "bug": 0.01,
+          "preference": 0,
+          "todo": 0.62,
+          "none": 0.03,
+          "decision": 0.3,
+          "architecture": 0,
+          "dead-end": 0,
+          "constraint": 0.04
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": false,
+        "saveRight": false
+      }
+    },
+    {
+      "id": "ah-copperfield-012",
+      "project": "copperfield",
+      "tag": "attempt-worked",
+      "subtype": "change-secrets.preline.provider-hiccup-fixed",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 321,
+        "decideCalls": 2
+      },
+      "ms": 513,
+      "inputTokens": 8077,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.92 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "dead-end": 0,
+          "constraint": 0.07,
+          "preference": 0.01,
+          "none": 0.09,
+          "todo": 0.32,
+          "architecture": 0.01,
+          "bug": 0,
+          "decision": 0.5
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Switch the Helm values to use secrets instead of ConfigMaps for database credentials.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-013",
+      "project": "copperfield",
+      "tag": "attempt-worked",
+      "subtype": "try-karpenter-consolidation.cost-reduction",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "architecture",
+          "preference",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 234,
+        "decideCalls": 2
+      },
+      "ms": 489,
+      "inputTokens": 8091,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.58 importance=important [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "constraint": 0,
+          "none": 0.08,
+          "todo": 0.09,
+          "dead-end": 0,
+          "preference": 0.01,
+          "architecture": 0,
+          "decision": 0.82,
+          "bug": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "Give the EKS auto-scaler a go with the new consolidation mode—should reduce costs on idle nodes.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-014",
+      "project": "copperfield",
+      "tag": "decision-request",
+      "subtype": "policy-resource-tagging",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 205,
+        "decideCalls": 1
+      },
+      "ms": 237,
+      "inputTokens": 2633,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "architecture": 0,
+          "todo": 0.04,
+          "dead-end": 0,
+          "constraint": 0.94,
+          "none": 0,
+          "bug": 0,
+          "preference": 0.01,
+          "decision": 0.01
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "From now on, all Terraform files must include a 'purpose' tag on every resource.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 497,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-015",
+      "project": "copperfield",
+      "tag": "decision-request",
+      "subtype": "alert-runbook-links",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 206,
+        "decideCalls": 1
+      },
+      "ms": 223,
+      "inputTokens": 2631,
+      "decide": {
+        "save": true,
+        "kind": "decision",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=decision content=0.97 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "constraint": 0.08,
+          "architecture": 0,
+          "none": 0,
+          "decision": 0.68,
+          "bug": 0,
+          "dead-end": 0,
+          "preference": 0,
+          "todo": 0.24
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "decision",
+        "line": "We decided yesterday that all production alerts need a runbook link.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 485,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-016",
+      "project": "copperfield",
+      "tag": "decision-request",
+      "subtype": "pr-template-terraform-plan.preline",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "decision",
+        "accept": [
+          "decision",
+          "constraint"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 218,
+        "decideCalls": 1
+      },
+      "ms": 239,
+      "inputTokens": 2632,
+      "decide": {
+        "save": true,
+        "kind": "constraint",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=constraint content=0.96 importance=important [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "todo": 0.19,
+          "decision": 0.12,
+          "constraint": 0.67,
+          "none": 0.01,
+          "dead-end": 0,
+          "architecture": 0,
+          "preference": 0.01,
+          "bug": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "constraint",
+        "line": "Going forward, all infra PRs need a 'terraform plan' output in the description.",
+        "pick": [
+          "s1"
+        ]
+      },
+      "lineInputTokens": 496,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-017",
+      "project": "copperfield",
+      "tag": "ordinary",
+      "subtype": "question-architecture-state",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "architecture",
+        "accept": [
+          "architecture"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 259,
+        "replyCharsInTurn": 259,
+        "decideCalls": 2
+      },
+      "ms": 523,
+      "inputTokens": 9458,
+      "decide": {
+        "save": true,
+        "kind": "architecture",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=architecture content=0.71 importance=important source=assistant_reply [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.02,
+        "kindProbabilities": {
+          "dead-end": 0,
+          "preference": 0,
+          "none": 0.03,
+          "constraint": 0,
+          "decision": 0.01,
+          "architecture": 0.96,
+          "bug": 0,
+          "todo": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "architecture",
+        "line": "Each environment has its own S3 backend: prod-tf-state and staging-tf-state buckets with separate DynamoDB locks. State is never mixed—different IAM roles per environment.",
+        "pick": [
+          "s1",
+          "s3"
+        ]
+      },
+      "lineInputTokens": 561,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-018",
+      "project": "copperfield",
+      "tag": "ordinary",
+      "subtype": "bug-canary-maxsurge",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "bug",
+        "accept": [
+          "bug"
+        ],
+        "source": "assistant"
+      },
+      "sent": {
+        "replySent": true,
+        "replyChars": 183,
+        "replyCharsInTurn": 183,
+        "decideCalls": 1
+      },
+      "ms": 289,
+      "inputTokens": 3210,
+      "decide": {
+        "save": true,
+        "kind": "bug",
+        "source": "assistant_reply",
+        "assistantIncluded": true,
+        "reason": "save kind=bug content=0.97 importance=important source=assistant_reply [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.42,
+        "kindProbabilities": {
+          "dead-end": 0.01,
+          "preference": 0,
+          "none": 0.07,
+          "constraint": 0,
+          "decision": 0,
+          "architecture": 0,
+          "bug": 0.92,
+          "todo": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "bug",
+        "line": "The issue is maxSurge is set to 0, so no new pods can start while old ones drain. Set maxSurge to at least 1, and the canary will progress.",
+        "pick": [
+          "s1",
+          "s2"
+        ]
+      },
+      "lineInputTokens": 560,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": true,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-019",
+      "project": "copperfield",
+      "tag": "ordinary",
+      "subtype": "thanks-state-setup",
+      "model": null,
+      "want": {
+        "save": false,
+        "accept": [],
+        "source": "none"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 109,
+        "decideCalls": 2
+      },
+      "ms": 588,
+      "inputTokens": 8079,
+      "decide": {
+        "save": false,
+        "kind": "none",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "skip: kind=none, content=0.30<0.5, importance=trivial<useful, chit_chat=0.51 [tier 2, escalated]",
+        "tier": 2,
+        "escalated": true,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "bug": 0,
+          "none": 1,
+          "decision": 0,
+          "constraint": 0,
+          "dead-end": 0,
+          "todo": 0,
+          "preference": 0,
+          "architecture": 0
+        }
+      },
+      "got": {
+        "save": false,
+        "kind": "none",
+        "line": null
+      },
+      "lineInputTokens": 0,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    },
+    {
+      "id": "ah-copperfield-020",
+      "project": "copperfield",
+      "tag": "ordinary",
+      "subtype": "todo-deferred-alert-documentation",
+      "model": null,
+      "want": {
+        "save": true,
+        "kind": "todo",
+        "accept": [
+          "todo"
+        ],
+        "source": "user"
+      },
+      "sent": {
+        "replySent": false,
+        "replyChars": 0,
+        "replyCharsInTurn": 195,
+        "decideCalls": 1
+      },
+      "ms": 236,
+      "inputTokens": 2643,
+      "decide": {
+        "save": true,
+        "kind": "todo",
+        "source": "user_message",
+        "assistantIncluded": false,
+        "reason": "save kind=todo content=0.98 importance=useful [tier 1]",
+        "tier": 1,
+        "escalated": false,
+        "deadEndNoul": 0.03,
+        "kindProbabilities": {
+          "decision": 0,
+          "bug": 0,
+          "dead-end": 0,
+          "todo": 1,
+          "preference": 0,
+          "none": 0,
+          "architecture": 0,
+          "constraint": 0
+        }
+      },
+      "got": {
+        "save": true,
+        "kind": "todo",
+        "line": "Not now though, it can wait until the on-call rota is settled.",
+        "pick": [
+          "s2"
+        ]
+      },
+      "lineInputTokens": 500,
+      "judged": {
+        "deadEnd": false,
+        "keepsReason": null,
+        "saysWhatWasTried": null,
+        "statesFact": null,
+        "lineIsRequest": null,
+        "requestSaved": false,
+        "acceptedKind": true,
+        "saveRight": true
+      }
+    }
+  ]
+}
