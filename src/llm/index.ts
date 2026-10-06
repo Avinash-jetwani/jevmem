@@ -603,6 +603,12 @@ export function extractWorksNow(message: string, maxChars: number, deadEnd?: str
 const URL_RE = /^[a-z][a-z0-9+.-]*:\/\/\S+|^www\.\S+/i;
 
 const FILLER_LABEL = /^(?:decision|decided|constraint|bug|to-?do|preference|update|note|fyi|reminder|change of plan|heads[ -]?up|quick note|context)\s*:\s*/i;
+/**
+ * The labels a reply puts in front of its findings ("Why it fails:", "What I tried:", "The problem:", "Current state."):
+ * never part of the memory, so they go from a candidate sentence (src/pick.ts) and from the line (0.6.6, on the real
+ * replies of eval/attempts-dev.jsonl, where a line began "Why it failed:" and the cut then fell before the cause).
+ */
+export const REPORT_LABEL = /^(?:why(?: (?:it|this|that) (?:fails|failed|loses|lost|broke|breaks|happens|happened|does(?:n'?t| not) (?:work|help)|did(?:n'?t| not) (?:work|help)))?|what (?:happened|went wrong|got in the way|i (?:tried|did|changed|found|saw|ran)|changed|broke|blocks it|this means)|the (?:problem|cause|blocker|result|failure|error|issue|fix|upshot|short answer|reason|catch)|result|results|current state|state of the tree|bottom line|in short|short answer|tl;?dr|summary|outcome|findings?|conclusion|verdict|details?|notes?|caveats?|measurements?|numbers)\s*[:.]\s*/i;
 // "Remember that …" / "Remember: …" (a bare "Remember" is kept: "Remember-me tokens expire after 30 days").
 const FILLER_LEAD = /^(?:please\s+)?remember(?:\s+that\b\s*|\s*:\s*)/i;
 const FILLER_WORD = /^(?:actually|so|ok|okay|also|well|alright|right|anyway|basically|honestly|just so you know|to be clear|for the record|btw|by the way)\b/i;
@@ -616,7 +622,7 @@ export function stripFiller(line: string): string {
   let t = line.trim();
   // Peel filler from the front: "Label:" prefixes, and filler words followed by punctuation or by another filler word.
   for (;;) {
-    const label = FILLER_LABEL.exec(t) ?? FILLER_LEAD.exec(t);
+    const label = FILLER_LABEL.exec(t) ?? REPORT_LABEL.exec(t) ?? FILLER_LEAD.exec(t);
     if (label) {
       t = t.slice(label[0].length).trimStart();
       continue;

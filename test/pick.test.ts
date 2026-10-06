@@ -32,7 +32,37 @@ describe("candidateSentences", () => {
 
   it("drops code blocks, bullets, numbers, headings and bold markers; keeps e.g. and version numbers inside a sentence", () => {
     const s = candidateSentences("## Cause\nThe cache is keyed by path, e.g. /tmp/a, in v1.2.3 too.\n```\nrm -rf /\n```\n- **Fixed** the key.\n2. Added a test.");
-    expect(s.map((x) => x.text)).toEqual(["Cause", "The cache is keyed by path, e.g. /tmp/a, in v1.2.3 too.", "Fixed the key.", "Added a test."]);
+    expect(s.map((x) => x.text)).toEqual(["The cache is keyed by path, e.g. /tmp/a, in v1.2.3 too.", "Fixed the key.", "Added a test."]);
+  });
+
+  it("from a reply (0.6.6): no table row, no heading written as its own line, no plan line, and no report label in front of a finding", () => {
+    const reply = [
+      "I'll look at the current helper and run the tests once.",
+      "Now let me swap the decoder in.",
+      "The decoder did not survive. It is off again and the file is back to its committed state.",
+      "**What happened.**",
+      "Why.",
+      "**Why it fails:** the library decodes the originals at full size, so frames drop.",
+      "The suite passes:",
+      "| Run | Result |",
+      "|---|---|",
+      "| With decoder | 13 tests, 4 errors |",
+      "What I tried: one shared session per gateway.",
+      "It leaked. I removed it.",
+    ].join("\n");
+    expect(candidateSentences(reply, { fromReply: true }).map((x) => x.text)).toEqual([
+      "The decoder did not survive.",
+      "It is off again and the file is back to its committed state.",
+      "the library decodes the originals at full size, so frames drop.",
+      "The suite passes:",
+      "one shared session per gateway.",
+      "It leaked.",
+      "I removed it.",
+    ]);
+    // The user's side keeps its short sentences and plans: they are the user's words, which may be the memory.
+    expect(candidateSentences("USER: Use pnpm.\n\nASSISTANT: I'll switch the lockfile.").map((x) => [x.from, x.text])).toEqual([["user", "Use pnpm."]]);
+    // A gerund-led finding is not a plan ("Adding the decorator broke the build").
+    expect(candidateSentences("Adding the decorator to apply_template broke the build, so I took it back off.", { fromReply: true })).toHaveLength(1);
   });
 
   it("splits a merged turn back into its sides, and a sentence typed in lowercase after a full stop is its own", () => {

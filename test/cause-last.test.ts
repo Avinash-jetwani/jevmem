@@ -50,7 +50,8 @@ describe("a dead end keeps its reason when the reply puts the cause last", () =>
   it("the gate's replies: the line is the attempt with its cause, not the verdict and half the attempt", async () => {
     const r1 = await composeLine(RUN1, "dead-end", { writer, jev: picks("s2", { s2: 0.89, s1: 0.07, none: 0.04 }) }, { fromReply: true });
     expect(r1.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node 22, and it failed immediately because the file declares a TypeScript enum");
-    const r2 = await composeLine(RUN2_SHORT, "dead-end", { writer, jev: picks("s3", { s3: 0.89, s2: 0.07, none: 0.04 }) }, { fromReply: true });
+    // RUN2_SHORT opens with a plan line ("I'll run the file once …"), which is no candidate since 0.6.6: the verdict is s1, the attempt s2.
+    const r2 = await composeLine(RUN2_SHORT, "dead-end", { writer, jev: picks("s2", { s2: 0.89, s1: 0.07, none: 0.04 }) }, { fromReply: true });
     expect(r2.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node 22, and it failed immediately with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` because the file declares a TypeScript `enum`");
     for (const r of [r1, r2]) {
       expect(r.line.length).toBeLessThanOrEqual(200);
@@ -78,12 +79,13 @@ describe("a dead end keeps its reason when the reply puts the cause last", () =>
 
   it("an attempt sentence longer than the line keeps its cause: cut at the cause's own clause end, or what was tried and the cause after a colon", async () => {
     // The second run's long reply: 232 characters in the attempt's sentence, the cause last, no clause end inside it.
-    const long = await composeLine(RUN2_LONG, "dead-end", { writer, jev: picks("s3", { s3: 0.7, s4: 0.25, none: 0.03, s2: 0.02 }) }, { fromReply: true });
+    // RUN2_LONG's plan line is no candidate since 0.6.6: the attempt is s2 and the sentence after it s3.
+    const long = await composeLine(RUN2_LONG, "dead-end", { writer, jev: picks("s2", { s2: 0.7, s3: 0.25, none: 0.03, s1: 0.02 }) }, { fromReply: true });
     expect(long.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node v22.22.0 and it failed immediately with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`, because the file declares a TypeScript `enum` at line 1");
     // The same reply when Jev's first answer to the reason question is the next sentence (it was, in one run of three):
     // that sentence does not fit behind a sentence longer than the line, and the cause still stays.
-    const later = await composeLine(RUN2_LONG, "dead-end", { writer, jev: picks("s3", { s4: 0.5, s3: 0.45, none: 0.03, s2: 0.02 }) }, { fromReply: true });
-    expect(later.pick).toMatchObject({ main: "s3", second: "s4" });
+    const later = await composeLine(RUN2_LONG, "dead-end", { writer, jev: picks("s2", { s3: 0.5, s2: 0.45, none: 0.03, s1: 0.02 }) }, { fromReply: true });
+    expect(later.pick).toMatchObject({ main: "s2", second: "s3" });
     expect(later.line).toBe(long.line);
     // A sentence with a "but" clause keeps that clause, as before: what comes after "but" is its reason.
     const but = "Parsing the files with a generic CSV library seemed the fast way because it handled the big four out of the box with no configuration at all, but three banks put separators inside amounts and a fourth quotes nothing whatsoever.";
@@ -119,8 +121,10 @@ describe("a line that makes a dead end work keeps what was changed", () => {
     // The second run's supersede scenario, session 2, as the hook passes it (shortened to the sentences that matter).
     const turn =
       "The only blocker is the `enum`, which strip-only mode rejects. I'll replace it with a `const` object plus a derived union type, which is erasable and keeps the same call sites.\nI replaced the `enum Unit` in `src/app.ts` with a `const` object plus a derived `Unit` union type, because strip-only mode rejects enums as non-erasable syntax while leaving the call sites and output unchanged.";
-    const r = await composeLine(turn, "decision", { writer, jev: picks("s3", { s3: 0.48, s2: 0.44, none: 0.03, s1: 0.05 }) }, { fromReply: true, worksNow: true, deadEnd: DEAD_END });
-    expect(r.pick).toMatchObject({ chosen: ["s2", "s3"], main: "s3" });
+    // Since 0.6.6 the plan line ("I'll replace it with …") is no candidate at all: the blocker is s1, the statement s2.
+    expect(candidateSentences(turn, { fromReply: true }).map((x) => x.text.slice(0, 20))).toEqual(["The only blocker is ", "I replaced the `enum"]);
+    const r = await composeLine(turn, "decision", { writer, jev: picks("s2", { s2: 0.48, s1: 0.44, none: 0.03 }) }, { fromReply: true, worksNow: true, deadEnd: DEAD_END });
+    expect(r.pick).toMatchObject({ chosen: ["s1", "s2"], main: "s2" });
     expect(r.line).toMatch(/^I replaced the `enum Unit` in `src\/app\.ts` with a `const` object plus a derived `Unit` union type/);
     expect(r.line).not.toContain("I'll replace it");
   });

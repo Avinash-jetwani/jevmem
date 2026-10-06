@@ -7,6 +7,7 @@
  */
 import { choice, type ChoiceCriteria, type EntryType, type Questions } from "@typesafe-ai/sdk";
 import type { JevCaller } from "./jev.js";
+import { REPORT_LABEL } from "./llm/index.js";
 import { scrubSecrets } from "./scrub.js";
 
 export interface Sentence {
@@ -65,6 +66,17 @@ export const MAX_SENTENCES = 60;
 const MAX_USER_CHARS = 6000;
 const MAX_REPLY_CHARS = 2000;
 
+/**
+ * Lines of a reply that are never the memory (0.6.6, from the real replies of eval/attempts-dev.jsonl): a table row, a
+ * heading on its own ("## Cause", "What happened.", "Why."), and the lines Claude writes before and between its tool
+ * calls that say what it is about to do ("I'll open that file next", "Now let me time both"): a plan, not what was
+ * tried nor why it failed. Jev picked such a line as the attempt in 6 of 49 dead ends. A short real sentence inside
+ * a longer line stays ("It leaked."), as does one typed by the user ("Use pnpm.").
+ */
+const TABLE_ROW = /^\s*\|/;
+const HEADING = /^\s*#{1,6}\s/;
+const PLAN_LINE = /^(?:(?:ok(?:ay)?|right|good|now|next|first|then|so)[,:]?\s+)*(?:i(?:'ll| will|'m going to| am going to|'m about to| need to| want to| should)|let me|let's|we'll|we will|time to|going to)\b/i;
+
 /** Sentence ends: before an upper- or lowercase word (typed quickly), not after e.g., i.e., vs., etc., approx. */
 const SENTENCE_END = /(?<=[.!?])(?<!\b(?:e\.g|i\.e|vs|etc|approx|cf)\.)\s+(?=[A-Za-z0-9"'(`[])/i;
 
@@ -86,14 +98,20 @@ export function candidateSentences(text: string, opts: { fromReply?: boolean } =
   for (const side of sides) {
     const body = side.text.slice(0, side.from === "user" ? MAX_USER_CHARS : MAX_REPLY_CHARS);
     for (const raw of body.split(/\n+/)) {
+      if (TABLE_ROW.test(raw) || HEADING.test(raw)) continue;
       const line = raw
-        .replace(/^\s*(?:#{1,6}\s+|>\s*|(?:[-*•+]|\d+[.)])\s+)+/, "")
+        .replace(/^\s*(?:>\s*|(?:[-*•+]|\d+[.)])\s+)+/, "")
         .replace(/\*\*|__/g, "")
-        .trim();
+        .trim()
+        .replace(REPORT_LABEL, "");
       if (!line) continue;
+      // A heading written as a line of its own, in bold or plain ("What happened.", "Why:"): two words at most.
+      if (side.from === "assistant" && line.split(/\s+/).length <= 2 && /[.:]$/.test(line)) continue;
       for (const s of line.split(SENTENCE_END)) {
-        const t = s.trim();
-        if (/[A-Za-z]/.test(t) && t.length >= 3) out.push({ id: `s${out.length + 1}`, text: t, from: side.from });
+        const t = s.trim().replace(REPORT_LABEL, "");
+        if (!/[A-Za-z]/.test(t) || t.length < 3) continue;
+        if (side.from === "assistant" && PLAN_LINE.test(t)) continue;
+        out.push({ id: `s${out.length + 1}`, text: t, from: side.from });
         if (out.length >= MAX_SENTENCES) return out;
       }
     }
