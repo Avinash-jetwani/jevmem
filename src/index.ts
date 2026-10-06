@@ -37,8 +37,8 @@ export type { Kind, Importance, Memory, Thresholds, JevmemConfig, GuardConfig, G
 export { combine, defaultWeights, mergeWeights, fit, fitThresholds, sigmoid } from "./combine.js";
 export type { Weights, FamilyWeights, LabelledExample, FitResult } from "./combine.js";
 export { ATOMIC_NOULS, FAMILIES, KIND_FAMILIES, DECIDE_QUESTION_COUNT, TIER1_NOULS, TIER1_NOUL_NAMES, TIER1_QUESTION_COUNT, buildTier1Questions, tier1Families } from "./questions.js";
-export { borderlineReasons, buildDecideState, splitTurn, looksLikeQuestion, reportsAnAttempt } from "./decide.js";
-export { atomicNoulsFor, tier1NoulsFor, SOURCE_OPTIONS } from "./questions.js";
+export { borderlineReasons, buildDecideState, splitTurn, looksLikeQuestion, looksLikeRequest, reportsAnAttempt, REPLY_MIN, REPLY_CHARS } from "./decide.js";
+export { atomicNoulsFor, tier1NoulsFor, SOURCE_OPTIONS, buildReplyQuestions, REPLY_NOUL } from "./questions.js";
 export { ASSISTANT_KINDS } from "./combine.js";
 export type { DecideState, TierAnswers } from "./decide.js";
 export { examplesByTier } from "./labels.js";

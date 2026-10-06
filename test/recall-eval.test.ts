@@ -39,7 +39,9 @@ const setTexts = (rows: any[]) => rows.flatMap((r) => (r.row === "file" ? r.line
 /** Texts of every other eval set in eval/, whatever its shape. */
 function otherTexts(): { file: string; text: string }[] {
   const out: { file: string; text: string }[] = [];
-  for (const f of fs.readdirSync("eval").filter((f) => f.endsWith(".jsonl") && !f.startsWith("recall-"))) {
+  // The attempts sets (0.6.6) are left out: real model output and prompts written by other hands share stock phrases
+  // with any authored set; they have their own overlap test, test/attempts-eval.test.ts.
+  for (const f of fs.readdirSync("eval").filter((f) => f.endsWith(".jsonl") && !f.startsWith("recall-") && !f.startsWith("attempts-"))) {
     for (const r of read(path.join("eval", f))) {
       const texts: string[] = [];
       if (r.row === "session") texts.push(...r.prompts);

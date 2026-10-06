@@ -72,6 +72,27 @@ const NEW_REASON_NO = {
   examples: ["A dead end says the export ran out of memory; after the upgrade it still does."],
 };
 
+/**
+ * The reply question (0.6.6): asked about Claude's reply in a small request of its own, beside the usual one, on turns
+ * where decide would not otherwise read the reply. Only when it says the reply reports a failed attempt and why does
+ * decide read the reply (src/decide.ts, REPLY_MIN). It is one noul about the reply alone, so that every other answer
+ * stays what it was without the reply: a request carried out stays the user's decision, and Claude's summaries,
+ * options and acknowledgements are never the memory (docs/how-it-works.md).
+ */
+export const REPLY_NOUL = "reply_reports_a_failed_attempt";
+const REPLY_QUESTION = "Does the assistant reply say that something it tried or changed in this turn failed, was undone, or was not kept, and why?";
+const REPLY_YES = {
+  what: "The reply reports how an attempt made in this turn ended: something was run, changed or measured, it did not work or was not worth keeping, and the reply gives the cause (an error, a limit, a measurement, an incompatibility).",
+  examples: ["I moved the job queue to SQS and it added 300 ms per job, so the queue is back on the database."],
+};
+const REPLY_NO = {
+  what: "The reply reports work that is done and in place, answers a question, describes a bug it found and fixed, only acknowledges, plans or lists options, explains why something would not work without having tried it, or says something failed without giving a cause.",
+  examples: ["Done: the job queue runs on SQS now and the tests pass."],
+};
+export function buildReplyQuestions(): Questions {
+  return { [REPLY_NOUL]: noul(REPLY_QUESTION, { true: REPLY_YES, false: REPLY_NO }) };
+}
+
 export interface AtomicNoul {
   name: string;
   family: Family;

@@ -241,7 +241,7 @@ export function formatWhy(rec: DecisionRecord): string {
   out.push("");
   out.push(`outcome: ${d.save ? "SAVED" : "SKIPPED"}  ${d.reason}`);
   if (d.mode) out.push(`tiers: mode=${d.mode}, final answer from tier ${d.tier ?? 2}${d.escalated ? ` (escalated: ${d.escalationReasons.join("; ")})` : d.tier === 1 ? " (tier 1 was sure)" : ""}`);
-  if (d.assistantIncluded !== undefined) out.push(`state: user message${d.assistantIncluded ? " + assistant reply (user asked a question)" : " only (user made a statement; assistant reply not sent)"}; content source: ${d.source ?? "user_message"}`);
+  if (d.assistantIncluded !== undefined) out.push(`state: user message${d.assistantIncluded ? ` + assistant reply (${d.replyNoul !== undefined ? `the reply question read it as a failed attempt, ${d.replyNoul.toFixed(2)}` : "a question, a reported attempt or a live dead end"})` : d.replyNoul !== undefined ? ` only (the reply question read no failed attempt in the reply, ${d.replyNoul.toFixed(2)})` : " only (user made a statement; assistant reply not sent)"}; content source: ${d.source ?? "user_message"}`);
   const gate = (f: string, v: number) => {
     if (f === "chit_chat") return `  max ${t.chitChatMax} ${v < t.chitChatMax ? "✓" : "✗"}`;
     if (f === "injection") return `  max ${t.injectionMax} ${v < t.injectionMax ? "✓" : "✗"}`;

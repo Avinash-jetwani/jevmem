@@ -98,6 +98,12 @@ export interface JevmemConfig {
     usdPerMillionTokens: number;
     /** Cache identical (state, questions) → answers in `.jevmem/cache/`. */
     cache: boolean;
+    /**
+     * Ask the reply question after each turn (0.6.6): a small request with your message and the first 2,000 characters
+     * of Claude's reply, asking whether the reply reports a failed attempt and why; when it does, the turn is decided
+     * with the reply (docs/how-it-works.md, PRIVACY.md). `false`: the reply is read only as 0.6.5 read it.
+     */
+    askAboutReply: boolean;
     /** Send `zeroDataRetention: true` with every request. `"auto"` turns it on when the base URL is a Vercel AI Gateway. */
     zeroDataRetention: boolean | "auto";
   };
@@ -212,6 +218,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     maxRecallLines: 250,
     usdPerMillionTokens: 0.042,
     cache: true,
+    askAboutReply: true,
     zeroDataRetention: "auto",
   },
   writer: {

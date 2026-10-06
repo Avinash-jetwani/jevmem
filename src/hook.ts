@@ -321,7 +321,7 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
   const decision = await decide(
     jev,
     { userMessage: user, assistantReply: assistant, recentContext: previous, existingMemories: existing },
-    { thresholds: cfg.thresholds, weights: cfg.weights, tiers: cfg.tiers, maxIds: cfg.jev.maxIdsPerCall, timeoutMs: cfg.jev.timeoutMs },
+    { thresholds: cfg.thresholds, weights: cfg.weights, tiers: cfg.tiers, maxIds: cfg.jev.maxIdsPerCall, timeoutMs: cfg.jev.timeoutMs, askAboutReply: cfg.jev.askAboutReply },
   );
   if (!decision.save) {
     recordDecision(store.root, { hash, message, decision });

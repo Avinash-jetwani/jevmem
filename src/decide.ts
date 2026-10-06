@@ -1,6 +1,6 @@
 import type { JevCaller } from "./jev.js";
 import { combine, defaultWeights, evaluatePolicy, mergeWeights, resolveKind, supersedeTarget, type PolicyInput, type Weights } from "./combine.js";
-import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildTier1Questions, NEW_REASON_NOUL, RETEST_CHOICE, RETEST_NOUL, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, WORKS_NOW_CHOICE, WORKS_NOW_NOUL, type Family } from "./questions.js";
+import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildReplyQuestions, buildTier1Questions, NEW_REASON_NOUL, REPLY_NOUL, RETEST_CHOICE, RETEST_NOUL, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, WORKS_NOW_CHOICE, WORKS_NOW_NOUL, type Family } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
 import { mergeTurn } from "./transcript.js";
 import { DEFAULT_CONFIG, type BorderlineRule, type Importance, type Kind, type Memory, type Thresholds, type TiersConfig } from "./types.js";
@@ -32,6 +32,12 @@ export interface DecideOptions {
   /** Max characters of `message` sent to Jev. */
   maxMessageChars?: number;
   maxContextChars?: number;
+  /**
+   * Ask the reply question (0.6.6) on a turn where the reply would not otherwise be read: a small request of its own,
+   * beside the usual one. `false` turns it off (`jev.askAboutReply` in jevmem.config.json): decide then reads the reply
+   * only as 0.6.5 did. Default on.
+   */
+  askAboutReply?: boolean;
 }
 
 /** What one tier answered, kept for `why` and `fit`. */
@@ -111,8 +117,17 @@ export interface Decision {
   thresholds: Thresholds;
   /** Where the saved content comes from. `user_message` unless the assistant reply was in the state and Jev said otherwise. */
   source: "user_message" | "assistant_reply" | "both" | "none";
-  /** True when the assistant reply was sent to Jev (a question, a reported attempt, or a turn about a live dead end). */
+  /**
+   * True when the assistant reply was in the state of the request that decided the turn (a question, a reported
+   * attempt, a turn about a live dead end, or the reply question said it reports a failed attempt).
+   */
   assistantIncluded: boolean;
+  /**
+   * The reply question's answer, when it was asked (0.6.6): how surely the reply reports a failed attempt and why. At
+   * REPLY_MIN or more the turn was decided again with the reply in the state (unless the user's own message already
+   * gave a dead end). Absent when the reply was already in the state, there was no reply, or the question is off.
+   */
+  replyNoul?: number;
   /**
    * The text the writer should condense: the assistant reply when `source` is `assistant_reply`, else the user message.
    * For a dead end with `source` `both`, the whole turn: what was tried is often in the request, why it failed in the reply.
@@ -165,6 +180,16 @@ export function splitTurn(message: string): { user: string; assistant: string } 
   if (a) return { user: "", assistant: (a[1] ?? "").trim() };
   return { user: message.trim(), assistant: "" };
 }
+
+/** Characters of the reply decide sends when it reads it: its first 2,000, which hold the outcome in the replies measured. */
+export const REPLY_CHARS = 2000;
+
+/**
+ * The reply question's noul at or above which decide reads the reply (0.6.6). On the dev set (eval/attempts-dev.jsonl)
+ * replies that report a failed attempt score 0.69 to 0.99, attempts carried out 0.19 or less, bug fixes 0.12 or less;
+ * replies that decline from reading the code, or ask which way to go, fall on both sides.
+ */
+export const REPLY_MIN = 0.5;
 
 const QUESTION_START = /^(why|how|what|where|which|when|who|whose|whom|can|could|would|should|does|do|is|are|did|was|were|will|explain|tell me|help me|show me|any idea|anyone know|find out|investigate|debug|diagnose|look into|check why|figure out)\b/i;
 
@@ -320,17 +345,18 @@ export type DecideState = {
  * reports an attempt (`reportsAnAttempt`), when the turn is about a live dead-end line (`aboutADeadEnd`), or when there
  * is no user text at all, because otherwise the assistant's acknowledgement, options, or summary would be remembered.
  */
-export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "maxIds" | "maxMessageChars" | "maxContextChars"> = {}) {
+export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "maxIds" | "maxMessageChars" | "maxContextChars"> & { replyRead?: boolean } = {}) {
   const parts = input.userMessage !== undefined ? { user: input.userMessage, assistant: input.assistantReply ?? "" } : splitTurn(input.message ?? "");
   // Secrets and PII are stripped here, before anything is batched into the state. (createJev scrubs again at the
   // HTTP boundary; doing it here too means a mocked or custom JevCaller never sees a credential either.)
   const userMessage = scrubSecrets(parts.user).slice(0, opts.maxMessageChars ?? 6000);
   // Also included when there is no user text at all (transcript unreadable, only `last_assistant_message`): the
-  // content_source choice then decides, and only bug, architecture and dead-end may come from the assistant.
+  // content_source choice then decides, and only bug, architecture and dead-end may come from the assistant. And when
+  // the reply question said the reply reports a failed attempt (`replyRead`, from `decide`).
   const assistantIncluded =
     parts.assistant.trim().length > 0 &&
-    (looksLikeQuestion(userMessage) || userMessage.trim().length === 0 || reportsAnAttempt(parts.assistant) || aboutADeadEnd(`${userMessage} ${scrubSecrets(parts.assistant).slice(0, 2000)}`, input.existingMemories));
-  const assistantReply = assistantIncluded ? scrubSecrets(parts.assistant).slice(0, 2000) : "";
+    (Boolean(opts.replyRead) || looksLikeQuestion(userMessage) || userMessage.trim().length === 0 || reportsAnAttempt(parts.assistant) || aboutADeadEnd(`${userMessage} ${scrubSecrets(parts.assistant).slice(0, REPLY_CHARS)}`, input.existingMemories));
+  const assistantReply = assistantIncluded ? scrubSecrets(parts.assistant).slice(0, REPLY_CHARS) : "";
   const recent = scrubSecrets(input.recentContext ?? "").slice(-(opts.maxContextChars ?? 1500));
   const candidates = prefilterByOverlap(userMessage + " " + assistantReply, input.existingMemories, opts.maxIds ?? DEFAULT_CONFIG.jev.maxIdsPerCall).map((m) => ({ ...m, text: scrubSecrets(m.text) }));
   const state: DecideState = {
@@ -345,14 +371,71 @@ export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "
 /**
  * Two-tier decide. Tier 1 (10 broad nouls) runs every turn; tier 2 (31 atomic nouls) runs only when the
  * borderline rule says tier 1 is unsure. `tiers.mode` forces `fast` (tier 1 only) or `full` (always tier 2).
+ *
+ * The reply question (0.6.6, docs/how-it-works.md): on a turn with a reply the state would not hold (the user made a
+ * statement or a request, and the reply reports no attempt in words the heuristic knows), one small request runs beside
+ * the usual one, with the user's message and the reply's first REPLY_CHARS characters, and asks whether the reply says
+ * something tried in this turn failed and why. At REPLY_MIN the turn is decided again with the reply in the state,
+ * so a request that failed is saved as a dead end from the reply and not as the request. A dead end the user's own
+ * message already gave is kept: nothing in the reply can improve on it. Everything else is decided as before: the
+ * small request's one answer is never used for anything but this choice.
  */
 export async function decide(jev: JevCaller, input: DecideInput, opts: DecideOptions = {}): Promise<Decision> {
+  const maxIds = opts.maxIds ?? DEFAULT_CONFIG.jev.maxIdsPerCall;
+  const plain = buildDecideState(input, { ...opts, maxIds });
+  const ask = (opts.askAboutReply ?? true) && !plain.assistantIncluded && plain.parts.assistant.trim().length > 0 && askAboutReply(plain.state.user_message);
+  if (!ask) return decideOnce(jev, input, opts, false);
+  const reply = scrubSecrets(plain.parts.assistant).slice(0, REPLY_CHARS);
+  const [first, asked] = await Promise.all([
+    decideOnce(jev, input, opts, false),
+    jev.call({ user_message: plain.state.user_message, assistant_reply: reply }, buildReplyQuestions(), { label: "decide", tier: 1, timeoutMs: opts.timeoutMs }),
+  ]);
+  const replyNoul = (asked.answers as any)[REPLY_NOUL]?.noul ?? 0;
+  const extra = { inputTokens: asked.usage.input_tokens, outputTokens: asked.usage.output_tokens };
+  const own = first.save && first.kind === "dead-end";
+  const chosen = replyNoul >= REPLY_MIN && !own ? await decideOnce(jev, input, opts, true) : first;
+  const read = chosen !== first;
+  const both = read ? { inputTokens: first.usage.inputTokens + chosen.usage.inputTokens, outputTokens: first.usage.outputTokens + chosen.usage.outputTokens } : first.usage;
+  return {
+    ...chosen,
+    replyNoul,
+    usage: { inputTokens: both.inputTokens + extra.inputTokens, outputTokens: both.outputTokens + extra.outputTokens },
+    cacheHit: chosen.cacheHit && Boolean((asked as { cacheHit?: boolean }).cacheHit),
+    reason: `${chosen.reason} [reply question: ${replyNoul.toFixed(2)}${read ? ", the reply read" : own ? ", a dead end from the user's message kept" : ", the reply not read"}]`,
+  };
+}
+
+// A request to try or change something, in the user's words: an instruction verb at the start, after an opener ("ok,",
+// "please", "can you", "go ahead and") or in "let's …", "we're going to …", "we'll …". The verbs are the ones such
+// requests use for code (try, see if, switch, replace, use, turn on, add, bump, make, run, …); a statement of a
+// decision ("For search we'll adopt Meilisearch.") or a to-do ("Note for later: …") is not one. Built from everyday
+// English and the dev set's prompts, not from any held-out set.
+const REQUEST = new RegExp(
+  "^(?:(?:ok(?:ay)?|right|so|now|next|then|also|and|please|hey|hi|great|good|thanks|thank you|yes|no|sure|actually|quick one)[,.:!]?\\s+)*(?:(?:can|could|would|will) you\\s+|(?:i(?:'d| would) like (?:you )?to|i want (?:you )?to|we should|we need to|you should)\\s+)?(?:please\\s+)?(?:go ahead and\\s+)?(?:(?:let'?s|let us|we(?:'re| are) going to|we(?:'ll| will))\\s+\\w+|try|see (?:if|whether)|check (?:if|whether)|test (?:if|whether)|find out (?:if|whether)|give\\b.{1,60}?\\ba (?:go|try|shot|spin|whirl)|have a (?:go|try|crack|stab)|take a (?:crack|stab|run)|experiment with|attempt|switch|swap|replace|move|migrate|convert|change|rewrite|refactor|port|use|adopt|introduce|turn (?:on|off)|enable|disable|add|remove|drop|delete|bump|upgrade|downgrade|update|pin|raise|lower|increase|reduce|cut|split|merge|inline|extract|rename|cache|wire|hook up|make|set|run|put|install|configure|flip|point|route|wrap|batch|parallelise|parallelize)\\b",
+  "i",
+);
+
+/**
+ * Does the user's message read as a request to try or change something? Then the reply question is asked (0.6.6):
+ * only such a turn can end in an attempt that failed, and on the 66-turn benchmark set it is 4 turns beyond the 14
+ * whose reply the state already holds, where asking on every turn would send the reply on all 66.
+ */
+export function looksLikeRequest(user: string): boolean {
+  return REQUEST.test(user.trim());
+}
+
+/** Whether the reply question is asked for this turn, given the user's message (the state not holding the reply). */
+export function askAboutReply(userMessage: string): boolean {
+  return looksLikeRequest(userMessage);
+}
+
+async function decideOnce(jev: JevCaller, input: DecideInput, opts: DecideOptions, replyRead: boolean): Promise<Decision> {
   const thresholds: Thresholds = { ...DEFAULT_CONFIG.thresholds, ...opts.thresholds };
   const tiers: TiersConfig = { ...DEFAULT_CONFIG.tiers, ...opts.tiers, borderline: { ...DEFAULT_CONFIG.tiers.borderline, ...opts.tiers?.borderline } };
   const tier1Thresholds: Thresholds = { ...thresholds, ...tiers.tier1Thresholds };
   const weights = resolveWeights(opts.weights);
   const maxIds = opts.maxIds ?? DEFAULT_CONFIG.jev.maxIdsPerCall;
-  const { state, parts, assistantIncluded, candidates } = buildDecideState(input, { ...opts, maxIds });
+  const { state, parts, assistantIncluded, candidates } = buildDecideState(input, { ...opts, maxIds, replyRead });
   const tier1Names = tier1NoulsFor(assistantIncluded).map((n) => n.name);
   const tier2Names = atomicNoulsFor(assistantIncluded).map((n) => n.name);
 

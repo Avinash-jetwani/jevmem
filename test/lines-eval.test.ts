@@ -42,7 +42,10 @@ const rowTexts = (r: any): string[] => [r.user, r.assistant, ...(r.existing ?? [
 /** Texts of every other eval set in eval/, whatever its shape, and the outcome A/B's literals. */
 function otherTexts(): { file: string; text: string }[] {
   const out: { file: string; text: string }[] = [];
-  for (const f of fs.readdirSync("eval").filter((f) => f.endsWith(".jsonl") && !OWN.includes(f))) {
+  // The attempts sets (0.6.6) are left out: their replies are real model output, their prompts were written by other
+  // hands, and real text shares stock phrases ("can you find out why", an error's name) with any authored set. They have
+  // their own overlap test, test/attempts-eval.test.ts.
+  for (const f of fs.readdirSync("eval").filter((f) => f.endsWith(".jsonl") && !OWN.includes(f) && !f.startsWith("attempts-"))) {
     for (const r of read(path.join("eval", f))) {
       const texts: string[] = [];
       if (r.row === "session") texts.push(...r.prompts);

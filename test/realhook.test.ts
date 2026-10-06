@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { REPLY_NOUL } from "../src/questions.js";
 import { envFileCandidates, loadEnvFallbacks, parseEnvFile, resolveJevKey } from "../src/env.js";
 import { hookEvent, hookRoot, runHook } from "../src/hook.js";
 import { init, resolveGuardCommand, resolveStopCommand, registerClaudeHooks, resolveHookCommand, unregisterClaudeHooks } from "../src/init.js";
@@ -42,6 +43,9 @@ describe("real Claude Code payloads", () => {
     expect(saved[0]!.text).toContain("Postgres 16");
     expect(saved[0]!.text).not.toContain("Switched db.ts");
 
+    // A statement, not a request to try or change something: the reply question (0.6.6) is not asked either.
+    expect(jev.calls).toHaveLength(1);
+    expect(jev.calls.some((c) => REPLY_NOUL in c.questions)).toBe(false);
     // Same turn again with stop_hook_active=true (another hook made Claude continue): deduped, no second Jev call.
     const again = await runHook({ ...payload, stop_hook_active: true }, { jev, env });
     expect(again.action).toBe("noop");
@@ -283,12 +287,14 @@ describe("clampLine", () => {
 });
 
 describe("assistant reply handling", () => {
-  it("is sent only when the user asked a question, and a meta reply (options / summary / hook commentary) is skipped", async () => {
+  it("is in the usual request only when the user asked a question, and a meta reply (options / summary / hook commentary) is skipped", async () => {
     const root = tmp();
     const seen: any[] = [];
     const jev = mockJev((q, state: any) => {
       // The pick of a saved line's sentences (src/pick.ts): the mock's default, the first sentence and no reason.
       if ("states_the_memory" in q) return {};
+      // The reply question (0.6.6), asked beside the usual request on a statement: the mock's answer is low.
+      if (REPLY_NOUL in q) return {};
       seen.push({ keys: Object.keys(state), hasMeta: "assistant_reply_is_meta" in q || "assistant_lists_options_or_next_steps" in q });
       if (/thanks/.test(state.user_message)) return CHIT_CHAT;
       if (/why is the login test flaky/.test(state.user_message)) return { ...T1_QUIET, contains_bug_finding: 0.95, kind: "bug", importance: 3, content_source: "assistant_reply", assistant_reply_is_meta: 0.05 };
