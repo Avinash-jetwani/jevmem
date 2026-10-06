@@ -2,7 +2,7 @@
 // Real transcripts for the Stop hook's eval sets (v0.6 part 3b): what jevmem's Stop hook sees, captured from real
 // Claude Code sessions.
 //
-//   node scripts/capture-stops.mjs --cases <cases.mjs> --out <set.jsonl> [--concurrency 4] [--only id,id] [--claude-version 2.1.281] [--model NAME]
+//   node scripts/capture-stops.mjs --cases <cases.mjs> --out <set.jsonl> [--concurrency 4] [--only id,id] [--claude-version 2.1.281] [--model NAME] [--max-turns 25] [--tool-cut 2000]
 //
 // The Claude Code binary: CLAUDE_BIN, else the desktop app's bundled binary, else the `claude` on PATH. The desktop app
 // keeps its binary under ~/Library/Application Support/Claude/claude-code/, up to 2.1.284 in <version>/claude.app/ and
@@ -10,7 +10,7 @@
 // the newest version wins, and within a version the build written last; --claude-version picks one version's folder.
 // The first line printed names the binary, where it came from and its version. --model pins a model for every session
 // (a case's own `model` wins); without either, a session gets Claude Code's default. Each row records the model that
-// served it, read from the session's assistant events.
+// served it, read from the session's assistant events, and a case's `meta` as it is.
 //
 // One `claude -p` session per case (a follow-up prompt runs with --resume in the same session), in a scratch copy of the
 // case's project (eval/stops/projects/<project>, eval/attempts/projects/<project>, or an outcome A/B project), committed as the first commit of a new git
@@ -25,7 +25,7 @@
 // kind), and every Stop with its payload and the transcript as it was when the hook ran. Transcripts are trimmed before
 // they are written: `attachment` entries (Claude Code's environment, system prompt and tool listings) and a few
 // bookkeeping entry types are dropped, thinking blocks are emptied, tool results and tool inputs are cut to 2,000
-// characters, and the scratch paths are replaced by <project>, <config>, <tmp> and <home>. The user and assistant
+// characters (--tool-cut), and the scratch paths are replaced by <project>, <config>, <tmp> and <home>. The user and assistant
 // entries, their order, and the fields that mark a prompt's origin and an async launch are kept as written.
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
@@ -46,6 +46,7 @@ const ONLY = opt("--only", null)?.split(",") ?? null;
 const VERSION = opt("--claude-version", null);
 const MODEL = opt("--model", null);
 const MAX_TURNS = Number(opt("--max-turns", "25"));
+const TOOL_CUT = Number(opt("--tool-cut", "2000"));
 if (!fs.existsSync(CASES_FILE) || !opt("--out")) throw new Error("usage: --cases <cases.mjs> --out <set.jsonl>");
 
 const { SET, CASES } = await import(pathToFileURL(CASES_FILE).href);
@@ -183,7 +184,7 @@ function runClaude({ root, home, config, capture, prompt, resume, c }) {
   });
 }
 
-const cut = (s, n = 2000) => (typeof s === "string" && s.length > n ? s.slice(0, n) + ` [… ${s.length - n} characters cut]` : s);
+const cut = (s, n = TOOL_CUT) => (typeof s === "string" && s.length > n ? s.slice(0, n) + ` [… ${s.length - n} characters cut]` : s);
 
 /** A transcript entry as it is kept: the fields that say what it is and where it came from, its message, trimmed. */
 function trimEntry(e) {
@@ -310,6 +311,7 @@ async function session(c) {
     prompts: c.prompts,
     labels: c.labels,
     note: c.note ?? null,
+    ...(c.meta ? { meta: c.meta } : {}),
     claude_code: CLAUDE_VERSION,
     model: runs[0]?.model ?? null,
     model_pinned: c.model ?? MODEL ?? null,
