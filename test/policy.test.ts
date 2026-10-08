@@ -23,7 +23,7 @@ describe("question set", () => {
     const q = buildDecideQuestions([{ id: "m1", kind: "decision", text: "Use Postgres" }]);
     expect(Object.keys(q)).toHaveLength(35); // 34, plus the restatement question when a memory is listed (0.7.0)
     const qa = buildDecideQuestions([{ id: "m1", kind: "decision", text: "Use Postgres" }], { withAssistant: true });
-    expect(Object.keys(qa)).toHaveLength(38);
+    expect(Object.keys(qa)).toHaveLength(39); // 38, plus the restatement question (0.7.0)
     expect(Object.keys((qa.content_source as any).criteria)).toEqual(["user_message", "assistant_reply", "both", "none"]);
     expect(Object.keys((q.kind as any).criteria)).toEqual(["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end", "none"]);
     expect(Object.keys((q.touches_memory_id as any).criteria)).toEqual(["m1", "none"]);

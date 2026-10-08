@@ -96,7 +96,7 @@ for (const r of rows) {
     : saved === Boolean(w.save);
   const inputTokens = jev.log.slice(at).filter((e) => !e.event).reduce((a, e) => a + (e.inputTokens ?? 0), 0);
   // The base decision without the duplicate rule, for the sweep: the skip reasons other than the duplicate one.
-  const reasons = String(d.reason ?? "").startsWith("skip: ") ? String(d.reason).slice(6).split(", ").map((s) => s.replace(/ \[.*$/, "")) : [];
+  const reasons = String(d.reason ?? "").startsWith("skip: ") ? String(d.reason).slice(6).replace(/ \[tier .*$/, "").replace(/ \[reply question.*$/, "").split(", ") : [];
   const otherSkip = reasons.filter((s) => !/^duplicate of /.test(s)).length > 0;
   const baseSave = saved || (!otherSkip && Boolean(d.duplicate?.applied));
   out.push({
