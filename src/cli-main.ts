@@ -691,6 +691,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         const waiting = deferredTurns(root).length;
         if (waiting) io.out(`turns waiting for their background subagents: ${waiting} (decided once the subagents report back, a later prompt closes them, or their session goes quiet)\n`);
         for (const line of formatFailures(recentFailures(allEntries), "failures: ", "  ")) io.out(line + "\n");
+        const dups = allEntries.filter((e) => e.event === "duplicate").length;
+        if (dups) io.out(`duplicates: ${dups} turn(s) or line(s) not saved because a live line already says it (\`jevmem why\` names it)\n`);
         const withheld = new Set(allEntries.filter((e) => e.event === "withheld").map((e) => e.memoryId)).size;
         if (withheld) io.out(`poisoning gate: ${withheld} line(s) withheld from recall (see \`jevmem audit\`)\n`);
         const guard = formatGuardStats(guardLogStats(readGuardLog(root)));

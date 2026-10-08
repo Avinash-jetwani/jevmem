@@ -77,6 +77,9 @@ export interface PolicyInput {
   retestId?: string;
   /** With `retestId`: it failed for the reason the line already gives (the new-reason noul under NEW_REASON_MIN). */
   retestSame?: boolean;
+  /** The restatement question's answer (0.7.0), and the listed live line `touches_memory_id` picked, when it picked one. */
+  duplicateNoul?: number;
+  duplicateId?: string;
 }
 
 /**
@@ -144,7 +147,7 @@ export function supersedeTarget(a: PolicyInput, t: Thresholds): string | null {
 }
 
 /** The save/contradiction policy over the combined scores. Pure; used by `decide` and by `fit`. */
-export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; contradiction: boolean; supersedes: string | null; reason: string; importance: Importance; content: number } {
+export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; contradiction: boolean; supersedes: string | null; duplicateOf: string | null; reason: string; importance: Importance; content: number } {
   const levelIdx = Math.min(IMPORTANCE_LEVELS.length - 1, Math.max(0, Math.round(a.importanceScore)));
   const importance = IMPORTANCE_LEVELS[levelIdx]!;
   const content = Math.max(...KIND_FAMILIES.map((k) => a.families[k]));
@@ -154,6 +157,12 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
   const target = supersedeTarget(a, t);
   const reversal = target !== null;
   const reasons: string[] = [];
+  // Dedupe on save (0.7.0): the message says again what a listed live line says (the restatement question at
+  // `duplicateMin`, that line picked, no reversal), so there is nothing to add. A reversal is never a duplicate, and a
+  // config written before 0.7.0 has no `duplicateMin`: the default applies.
+  const duplicateMin = t.duplicateMin ?? 0.7;
+  const duplicateOf = a.duplicateId && (a.duplicateNoul ?? 0) >= duplicateMin && !reversal && a.families.contradiction < t.contradictionMin ? a.duplicateId : null;
+  if (duplicateOf) reasons.push(`duplicate of ${duplicateOf} (restates it: ${(a.duplicateNoul ?? 0).toFixed(2)} ≥ ${duplicateMin})`);
   // A turn with no content source (chatter, or a question, a proposal or options nobody decides) states nothing on either
   // side: never saved, so never superseding, whatever the kind choice says. Part 2c changed the question, not this rule.
   if (a.source === "none") reasons.push("source=none (neither side states anything for the project)");
@@ -177,6 +186,7 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
     save,
     contradiction: supersedes !== null,
     supersedes,
+    duplicateOf,
     importance,
     content,
     reason: save

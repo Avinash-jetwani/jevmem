@@ -19,6 +19,7 @@ import { gateLines, hiddenTextReason } from "./guard.js";
 import type { JevCaller } from "./jev.js";
 import { recordDecision } from "./labels.js";
 import { clampLine, combineRetest, stripFiller } from "./llm/index.js";
+import { findDuplicate } from "./dupe.js";
 import { recordProvenance } from "./provenance.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
@@ -274,15 +275,23 @@ export async function runImport(jev: JevCaller, store: MemoryStore, cfg: ReturnT
       row.reason = hidden;
       continue;
     }
-    const dup = live.find((m) => m.text.toLowerCase() === text.toLowerCase());
-    if (dup) {
+    const markDuplicate = (id: string, how: string) => {
       row.outcome = "duplicate";
-      const earlier = /^imp\d+$/.test(dup.id) ? rows[Number(dup.id.slice(3)) - 1] : undefined;
-      row.reason = earlier ? `duplicate of the line from ${earlier.candidate.file}:${earlier.candidate.line}` : `duplicate of ${dup.id}`;
+      const earlier = /^imp\d+$/.test(id) ? rows[Number(id.slice(3)) - 1] : undefined;
+      row.reason = `${earlier ? `duplicate of the line from ${earlier.candidate.file}:${earlier.candidate.line}` : `duplicate of ${id}`}${how}`;
+    };
+    // Dedupe (0.7.0, src/dupe.ts): word for word before any request, then by Jev's restatement question.
+    const dup = findDuplicate(text, live);
+    if (dup) {
+      markDuplicate(dup.id, "");
       continue;
     }
     const d = await decide(jev, { userMessage: text, existingMemories: live }, { thresholds: cfg.thresholds, weights: cfg.weights, tiers: cfg.tiers, maxIds: cfg.jev.maxIdsPerCall });
     decisions.set(row, d);
+    if (d.duplicateOf) {
+      markDuplicate(d.duplicateOf, " (restates it)");
+      continue;
+    }
     if (!d.save || d.kind === "none") {
       row.reason = d.reason;
       continue;

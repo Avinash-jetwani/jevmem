@@ -32,7 +32,8 @@ describe("tier 1 question set", () => {
       expect(n.question).toMatch(/^(Does|Is)\b/);
     }
     const q = buildTier1Questions([{ id: "m1", kind: "decision", text: "x" }]) as any;
-    expect(Object.keys(q)).toHaveLength(13);
+    // With a memory listed, the restatement question (0.7.0, dedupe on save) joins the set.
+    expect(Object.keys(q)).toHaveLength(14);
     for (const c of Object.values(q.kind.criteria) as any[]) expect(c.examples).toHaveLength(1);
     expect(Object.keys(q.touches_memory_id.criteria)).toEqual(["m1", "none"]);
     // Tier 1 is small: well under half of tier 2 (2 examples per side) serialized.

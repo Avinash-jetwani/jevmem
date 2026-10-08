@@ -280,6 +280,8 @@ export function formatWhy(rec: DecisionRecord): string {
   out.push(`kind choice: ${d.kind} (confidence ${d.confidence.toFixed(2)})  [${kp}]  ${d.kind !== "none" ? "✓" : "✗ kind=none"}`);
   out.push(`importance: ${d.importanceScore.toFixed(2)} → ${d.importance}  min ${t.importanceMin} ${IMPORTANCE_LEVELS.indexOf(d.importance) >= IMPORTANCE_LEVELS.indexOf(t.importanceMin) ? "✓" : "✗"}`);
   out.push(`touches memory: ${d.touchesMemoryId ?? "none"}  contradiction: ${d.contradiction ? "yes" : "no"}`);
+  // Recorded from 0.7.0 on, when the state listed memories: the restatement question and whether it stopped the save.
+  if (d.duplicate) out.push(`restates a listed line: ${d.duplicate.noul.toFixed(2)} (min ${t.duplicateMin ?? 0.7}), which: ${d.duplicate.id ?? "none"}  ${d.duplicateOf ? `✓ duplicate of ${d.duplicateOf}: not saved` : "–"}`);
   // Recorded from v0.6 part 2b on, when the state listed a live dead end.
   if (d.worksNow) out.push(`a listed dead end works now: ${d.worksNow.noul.toFixed(2)} (min ${t.contradictionMin}), which: ${d.worksNow.choice}  ${d.worksNow.id ? `✓ supersedes ${d.worksNow.id}` : "✗"}`);
   // Recorded from v0.6 part 2c on, with the works-now answer.

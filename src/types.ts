@@ -59,6 +59,13 @@ export interface Thresholds {
   contradictionMin: number;
   /** `jevmem audit` marks memories below this as `[stale?]`. */
   staleBelow: number;
+  /**
+   * Dedupe on save (0.7.0): the restatement question at or above this, with a listed live line picked and no reversal,
+   * means the turn says the same as that line and is not saved (src/dupe.ts, docs/how-it-works.md). Chosen on
+   * eval/dupes-dev.jsonl, where 0.5 to 0.7 stop the same restatements and nothing else; 0.7 is the bar the contradiction
+   * and dead-end questions use.
+   */
+  duplicateMin: number;
   /** How many memories to inject on UserPromptSubmit, at most. */
   recallTopK: number;
   /**
@@ -211,6 +218,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     metaMax: 0.5,
     contradictionMin: 0.7,
     staleBelow: 0.4,
+    duplicateMin: 0.7,
     recallTopK: 5,
     recallMin: 0.05,
     recallChoiceMin: 0.03,

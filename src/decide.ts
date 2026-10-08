@@ -1,6 +1,6 @@
 import type { JevCaller } from "./jev.js";
 import { combine, defaultWeights, evaluatePolicy, mergeWeights, resolveKind, supersedeTarget, type PolicyInput, type Weights } from "./combine.js";
-import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildReplyQuestions, buildTier1Questions, NEW_REASON_NOUL, REPLY_NOUL, RETEST_CHOICE, RETEST_NOUL, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, WORKS_NOW_CHOICE, WORKS_NOW_NOUL, type Family } from "./questions.js";
+import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildReplyQuestions, buildTier1Questions, DUP_NOUL, NEW_REASON_NOUL, REPLY_NOUL, RETEST_CHOICE, RETEST_NOUL, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, WORKS_NOW_CHOICE, WORKS_NOW_NOUL, type Family } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
 import { mergeTurn } from "./transcript.js";
 import { DEFAULT_CONFIG, type BorderlineRule, type Importance, type Kind, type Memory, type Thresholds, type TiersConfig } from "./types.js";
@@ -55,6 +55,8 @@ export interface TierAnswers {
   worksNow: WorksNow | null;
   /** The retest nouls and choice (asked with the works-now ones), else null. */
   retest: Retest | null;
+  /** The restatement question (0.7.0), asked when the state lists memories: its answer and the listed line picked, else null. */
+  duplicate: { noul: number; id: string | null } | null;
   /** The policy outcome using this tier's answers alone. */
   save: boolean;
   reason: string;
@@ -100,6 +102,13 @@ export interface Decision {
   worksNow: WorksNow | null;
   /** The retest answer, when the state listed a live dead end. */
   retest: Retest | null;
+  /**
+   * Dedupe on save (0.7.0): the restatement question's answer, the listed line picked, and whether the turn was skipped
+   * as a duplicate of it. Absent when the state listed no memory.
+   */
+  duplicate?: { noul: number; id: string | null; applied: boolean };
+  /** The live line the turn restates, when it was skipped as its duplicate (docs/how-it-works.md). */
+  duplicateOf: string | null;
   /** The nouls of the tier that produced the final answer. */
   nouls: Record<string, number>;
   /** Family scores of the tier that produced the final answer. */
@@ -311,7 +320,9 @@ function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families
   const worksNow = worksNowOf(a, deadEndIds, thresholds);
   // A dead end that works now is not also one tried again that failed.
   const retest = worksNow?.id ? null : retestOf(a, deadEndIds, thresholds);
-  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: a.importance.score, families, touchesMemoryId: touches, touchesKind: candidates.find((m) => m.id === touches)?.kind, source, worksNowId: worksNow?.id ?? undefined, retestId: retest?.id ?? undefined, retestSame: retest?.same }, thresholds);
+  const dupAnswer = a[DUP_NOUL];
+  const duplicate = dupAnswer ? { noul: typeof dupAnswer.noul === "number" ? dupAnswer.noul : 0, id: touches !== "none" && candidates.some((m) => m.id === touches) ? touches : null } : null;
+  const policy = evaluatePolicy({ kindChoice: kind, importanceScore: a.importance.score, families, touchesMemoryId: touches, touchesKind: candidates.find((m) => m.id === touches)?.kind, source, worksNowId: worksNow?.id ?? undefined, retestId: retest?.id ?? undefined, retestSame: retest?.same, duplicateNoul: duplicate?.noul, duplicateId: duplicate?.id ?? undefined }, thresholds);
   return {
     tier,
     nouls,
@@ -325,6 +336,7 @@ function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families
     touchesMemoryId: touches,
     worksNow,
     retest,
+    duplicate,
     save: policy.save,
     reason: policy.reason,
     usage: { inputTokens: res.usage.input_tokens, outputTokens: res.usage.output_tokens },
@@ -462,7 +474,7 @@ async function decideOnce(jev: JevCaller, input: DecideInput, opts: DecideOption
   const source = (assistantIncluded ? final.source : "user_message") as Decision["source"];
   const worksNowId = final.worksNow?.id ?? undefined;
   const retest = final.retest;
-  const policyIn: PolicyInput = { kindChoice: final.kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId, touchesKind: candidates.find((m) => m.id === final.touchesMemoryId)?.kind, source, worksNowId, retestId: retest?.id ?? undefined, retestSame: retest?.same };
+  const policyIn: PolicyInput = { kindChoice: final.kind, importanceScore: final.importanceScore, families: final.families, touchesMemoryId: final.touchesMemoryId, touchesKind: candidates.find((m) => m.id === final.touchesMemoryId)?.kind, source, worksNowId, retestId: retest?.id ?? undefined, retestSame: retest?.same, duplicateNoul: final.duplicate?.noul, duplicateId: final.duplicate?.id ?? undefined };
   const { kind, note } = resolveKind(final.kind, final.kindProbabilities, final.families, supersedeTarget(policyIn, t) !== null, t, Boolean(worksNowId));
   const policy = evaluatePolicy({ ...policyIn, kindChoice: kind }, t);
   const usage = { inputTokens: (tier1?.usage.inputTokens ?? 0) + (tier2?.usage.inputTokens ?? 0), outputTokens: (tier1?.usage.outputTokens ?? 0) + (tier2?.usage.outputTokens ?? 0) };
@@ -475,6 +487,8 @@ async function decideOnce(jev: JevCaller, input: DecideInput, opts: DecideOption
     touchesMemoryId: policy.supersedes ?? (final.touchesMemoryId === "none" ? null : final.touchesMemoryId),
     worksNow: final.worksNow,
     retest,
+    ...(final.duplicate ? { duplicate: { ...final.duplicate, applied: policy.duplicateOf !== null } } : {}),
+    duplicateOf: policy.duplicateOf,
     nouls: final.nouls,
     families: final.families,
     content: policy.content,
@@ -499,3 +513,14 @@ async function decideOnce(jev: JevCaller, input: DecideInput, opts: DecideOption
 }
 
 export const FAMILY_OF: Record<string, Family> = Object.fromEntries(ATOMIC_NOULS.map((n) => [n.name, n.family]));
+
+/** The decision recorded for a text that restates a live line word for word: skipped before any request (src/dupe.ts). */
+export function localDuplicateDecision(id: string, thresholds: Thresholds): Decision {
+  const families = Object.fromEntries(["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end", "chit_chat", "injection", "contradiction", "meta"].map((f) => [f, 0])) as Record<Family, number>;
+  return {
+    save: false, kind: "none", importance: "trivial", importanceScore: 0, contradiction: false, touchesMemoryId: id, worksNow: null, retest: null,
+    duplicate: { noul: 1, id, applied: true }, duplicateOf: id, nouls: {}, families, content: 0, kindProbabilities: {}, confidence: 1,
+    reason: `skip: duplicate of ${id} (the text restates it word for word; nothing was sent)`, usage: { inputTokens: 0, outputTokens: 0 }, cacheHit: false,
+    thresholds, source: "user_message", assistantIncluded: false, sourceText: "", tier: 1, mode: "auto", escalated: false, escalationReasons: [],
+  };
+}

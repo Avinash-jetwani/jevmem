@@ -90,12 +90,16 @@ describe("MCP add_memory goes through scrub → decide → write", () => {
     expect(new MemoryStore(root).active().map((m) => m.id)).toEqual([r.body.added.id]);
   });
 
-  it("refuses an exact duplicate of a live line", async () => {
+  it("answers an exact duplicate of a live line with the line that has it, not an error (0.7.0), and asks Jev nothing for it", async () => {
     const root = project();
-    new MemoryStore(root).add({ kind: "decision", text: "We will use Postgres 16 as the primary store." });
-    const { add } = await connect(root, mockJev(() => SAVE_DECISION));
+    const live = new MemoryStore(root).add({ kind: "decision", text: "We will use Postgres 16 as the primary store." });
+    const jev = mockJev(() => SAVE_DECISION);
+    const { add } = await connect(root, jev);
     const r = await add("We will use Postgres 16 as the primary store.");
-    expect(r.body.refused).toMatch(/duplicate/);
+    expect(r.body).toMatchObject({ added: null, duplicate_of: live.id });
+    expect(r.body.note).toMatch(/duplicate of/);
+    expect(r.body.refused).toBeUndefined();
+    expect(jev.calls.filter((c) => c.opts.label === "decide")).toHaveLength(0);
   });
 });
 

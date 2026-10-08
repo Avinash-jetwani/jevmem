@@ -335,8 +335,25 @@ export function worksNowQuestions(memoryIds: { id: string; kind: string; text: s
   };
 }
 
+/**
+ * The restatement question (0.7.0, dedupe on save), asked in both tiers whenever the state lists memories and read with
+ * `touches_memory_id` (whose full wording already asks which memory the message restates). Its examples share no text
+ * with eval/dupes-*.jsonl.
+ */
+export const DUP_NOUL = "restates_a_listed_memory";
+const DUP_QUESTION = "Does the user message state the same decision, rule or fact as one of the existing memories listed in the state, without changing it or adding to it?";
+const DUP_YES = {
+  what: "The message says again what a listed memory already says: the same choice, rule or fact, in the same or other words, with a tag, a quote or a reminder around it, and nothing new.",
+  examples: ["Reminder: every upload goes through the virus scanner first (a memory says uploads are scanned before storage).", "[rule] The main branch is never pushed to directly (a memory says the same)."],
+};
+const DUP_NO = {
+  what: "The message adds a detail, a number, a case or a reason that no listed memory has, changes or reverses one, or is about something no listed memory states.",
+  examples: ["Uploads go through the virus scanner, and from now on anything over 50 MB is scanned asynchronously (the memory says nothing about size).", "We're allowing direct pushes to main for hotfixes after all."],
+};
+
 function sharedQuestions(memoryIds: { id: string; kind: string; text: string }[], examplesPerSide: number, compact = false, withAssistant = false): Questions {
   const q: Questions = {};
+  if (memoryIds.length) q[DUP_NOUL] = noul(DUP_QUESTION, { true: trim(DUP_YES, examplesPerSide), false: trim(DUP_NO, examplesPerSide) });
   if (withAssistant) {
     const src: ChoiceCriteria = {};
     for (const o of SOURCE_OPTIONS) src[o] = trimAny(SOURCE_CRITERIA[o], examplesPerSide);

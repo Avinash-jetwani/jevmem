@@ -2,7 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { loadConfig } from "./config.js";
-import { decide } from "./decide.js";
+import type { Decision } from "./decide.js";
+import { decide, localDuplicateDecision } from "./decide.js";
+import { findDuplicate, normalizeForDupe } from "./dupe.js";
 import { loadEnvFallbacks } from "./env.js";
 import { appendLog, createJev, hasJevKey, summarizeLog, type JevCaller } from "./jev.js";
 import { gatePendingRules } from "./guardrail.js";
@@ -318,6 +320,18 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
   const { hash, user, assistant, previous } = turn;
   const message = mergeTurn(user, assistant);
   const existing = store.active();
+  const duplicate = (id: string, how: string, decision: Decision): HookOutcome => {
+    appendLog(store.root, { ts: new Date().toISOString(), label: "decide", event: "duplicate", ok: true, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, memoryId: id, detail: how });
+    return { event, action: "skipped", detail: `duplicate of ${id} (${how})`, decision };
+  };
+  // Dedupe on save (0.7.0), before any request: the message restates a live line word for word (a leading tag, backticks,
+  // quotes and the final punctuation aside).
+  const local = findDuplicate(user, existing);
+  if (local) {
+    const decision = localDuplicateDecision(local.id, { ...DEFAULT_CONFIG.thresholds, ...cfg.thresholds });
+    recordDecision(store.root, { hash, message, decision });
+    return duplicate(local.id, "the message restates it word for word; nothing was sent", decision);
+  }
   const decision = await decide(
     jev,
     { userMessage: user, assistantReply: assistant, recentContext: previous, existingMemories: existing },
@@ -325,6 +339,8 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
   );
   if (!decision.save) {
     recordDecision(store.root, { hash, message, decision });
+    // Jev's question said the message restates a listed line (and nothing else stopped the save).
+    if (decision.duplicateOf) return duplicate(decision.duplicateOf, `Jev read the message as restating it: ${decision.duplicate?.noul.toFixed(2) ?? "?"}`, decision);
     return { event, action: "skipped", detail: decision.reason, decision };
   }
 
@@ -335,11 +351,12 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
   if (result.writerNote) appendLog(store.root, { ts: new Date().toISOString(), label: "writer", event: "writer-fallback", ok: result.writerUsed !== "fallback" && !result.pick?.error, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, memoryId: result.saved.id, detail: result.writerNote });
   const pick = result.pick ? pickRecord(result.pick) : undefined;
   recordDecision(store.root, { hash, memoryId: result.saved.id, message, decision, writer: result.writerUsed, ...(pick ? { pick } : {}) });
-  // Exact duplicate of a live memory: drop the new line again.
-  const dup = existing.find((m) => m.text.toLowerCase() === result.line.toLowerCase());
+  // The finished line says the same as a live one (normalised as src/dupe.ts compares): drop the new line again.
+  const written = normalizeForDupe(result.line);
+  const dup = existing.find((m) => normalizeForDupe(m.text) === written);
   if (dup && !result.superseded) {
     store.remove(result.saved.id);
-    return { event, action: "skipped", detail: `duplicate of ${dup.id}`, decision };
+    return duplicate(dup.id, "the line written for the turn is the same as that line", decision);
   }
   // The project's first line saved by jevmem is announced on the next prompt (src/notice.ts).
   noteFirstLine(store.root, savedBefore(store.root, result.saved.id));
