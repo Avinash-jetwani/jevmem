@@ -51,6 +51,50 @@ By default jevmem writes the line itself: the most relevant sentence of the turn
 
 The first hook call in a project starts a small **warm daemon** (`jevmem daemon status` to see it) that keeps the Jev client's connection open and evaluates the turn queue. It exits after 30 idle minutes (not while turns are queued) and is off with `JEVMEM_DAEMON=0`, in which case the detached hook process evaluates the queue itself. Through the warm daemon, `UserPromptSubmit` took 302–304 ms end to end including Node start-up, against 629–642 ms as a cold process (v0.5.0, 2026-09-25).
 
+### Local files for the pane
+
+Since 0.7.0 the hooks write two small files in `.jevmem/` (gitignored, and `.jevmem/.gitignore` holds `*`), one prompt or turn each, overwritten by the next, through a temporary file and a rename so a reader never sees half of one. A side pane for Claude Code, planned for 0.7.1, reads them; nothing else does, and nothing in them is sent anywhere.
+
+`.jevmem/last-recall.json`, written by the `UserPromptSubmit` hook after recall, whether or not the prompt got a line:
+
+```json
+{
+  "ts": "2026-10-08T12:00:00.000Z",
+  "session_id": "…",
+  "prompt_hash": "16 hex characters: sha1 of the prompt",
+  "path": "jev",
+  "served": [{ "id": "ab12cd", "kind": "decision", "text": "…", "p": 0.98 }],
+  "withheld": [{ "id": "k3x9ab", "reason": "reads as instructions aimed at an AI (gate 0.91 ≥ 0.5)" }],
+  "gated": 1,
+  "deferred": 0,
+  "ms": 310
+}
+```
+
+`path` is `jev` or `word-match` (then each served line has `shared_words` instead of a meaningful `p`, and `error` says why Jev did not answer); `gated` is how many unverified lines the call checked, `deferred` how many it left for a later prompt. `served` is in the order the lines were injected.
+
+`.jevmem/last-decision.json`, written when a turn's decision is made (by the hook or the daemon, so after the `Stop` hook returns):
+
+```json
+{
+  "ts": "2026-10-08T12:00:05.000Z",
+  "hash": "the turn's hash, as .jevmem/decisions.jsonl has it",
+  "action": "saved",
+  "detail": "[decision] Use Postgres 16 for the main database id:ab12cd via fallback (…)",
+  "kind": "decision",
+  "line": "Use Postgres 16 for the main database",
+  "id": "ab12cd",
+  "superseded": null,
+  "duplicate_of": null,
+  "reason": "save kind=decision content=0.98 importance=important [tier 1]",
+  "source": "user_message",
+  "tier": 1,
+  "ms": 290
+}
+```
+
+`action` is `saved`, `skipped` (then `kind`, `line` and `id` are null and `reason` says why; a duplicate has `duplicate_of`) or `error`. `jevmem why <hash>` has the whole decision behind it.
+
 ### What the hooks actually receive
 
 Observed on Claude Code CLI 2.0.30. `Stop` carries **no message text**; jevmem reads the last user and assistant turn from `transcript_path` (JSONL). Some newer versions document `last_assistant_message` and `user_prompt`; both shapes are handled. On Claude Code 2.1.281 (2026-09-28) the `Stop` payload also has `prompt_id`, `background_tasks` (each `{id, type, status}`, a subagent `running` while the main agent stops mid-turn) and `session_crons`, and the transcript never holds the main agent's final text when the hook runs: it is only in `last_assistant_message`. Since 0.6.0, jevmem adds it to the turn read from the transcript (until then it was used only when the turn had no other text).

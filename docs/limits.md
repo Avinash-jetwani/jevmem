@@ -2,10 +2,11 @@
 
 # Limits
 
-## Known limits in 0.6.6
+## Known limits in 0.7.0
 
 - **A plain statement can fall under the content threshold.** A rule said without must, never or prefer ("user-facing copy is British English") can be skipped: 2 of the 12 genuine rules on the genuine-rule held-out set, in 0.5.9 too ([docs/benchmark.md](benchmark.md#genuine-rules-and-the-injection-check)).
-- **No way to mark your own rules as verified.** A line you add with `jevmem add` or by hand is unverified: the poisoning gate checks it before recall serves it, and the guard asks about it but never denies on it.
+- **A restatement can slip past dedupe when the question and the id choice disagree.** Dedupe (0.7.0) skips a turn as a duplicate only when the restatement question is at 0.7 or more *and* `touches_memory_id` picks the restated line: on the dedupe held-out set one quoted rule got 0.97 from the question and "none" from the choice, and was saved; 24 of 25 restatements were stopped ([docs/benchmark.md](benchmark.md#memory-you-can-see-and-fix-070)). The local check before any request needs the same words as the line (a tag, backticks, quotes and the final punctuation aside), so a paraphrase always goes to Jev.
+- **A retired line is text to older versions.** A jevmem before 0.7.0 keeps a `[retired]` line as it is but, when it rewrites the file, moves it after the memory lines; `jevmem forget` on a `[constraint]` needs a terminal, so a to-do or a decision can be retired from a script and a rule cannot.
 - **A line is at most two sentences, and Jev can pick the wrong one** ([docs/benchmark.md](benchmark.md#the-line-part-3c)). Jev picks the sentence that states the memory and the one that gives its reason; a fact told in two sentences keeps one of them, and on the line-text held-out set one rule's line was its consequence without the rule in two of the set's three runs (1 of 63 on 2026-09-29; 1 of 64, then 0 of 64, on 2026-10-05), and one to-do kept "don't start on it today" as its second sentence in all three. The line comes from the text decide chose: a bug whose cause only Claude's reply found gets your description of it. When the pick request fails, the line is one sentence chosen by words, as in 0.5.9.
 - **A failed attempt is a dead end when the reply question reads it as one, and the line keeps the labelled cause in about half** ([docs/benchmark.md](benchmark.md#a-failed-attempt-is-not-a-decision-066)). On the held-out sets, run once on 2026-10-06, 0.6.6 saves 37 of 40 written and 37 of 47 captured failed attempts as dead ends (0.6.5: 12 and 28) and still saves the request itself as a decision or a to-do in 2 and 3 (21 and 15); the line keeps the labelled cause in 21 of the 37 and 16 of the 37, and says what was tried in 35 and 28. Of the 10 captured failures not saved as dead ends, 4 save nothing because the request, decided with the reply, read as the assistant's own decision. The question also reads a first failure that was put right on the way as a failed attempt: 3 of 12 written and 1 of 26 captured attempts that worked are then not saved (0.6.5 saved them). It is asked only on a request to try or change something, so a dead end told in a statement's reply still depends on the older checks, and a cause in a second sentence can still be cut.
 - **A second line one line crowds out.** When the first line takes the whole "most relevant" choice, a second line is kept only at relevance 0.97 or more: 3 of 6 two-line prompts on retrieval held-out v2 lost their second line.
@@ -17,7 +18,7 @@
 
 ## Honest limits
 
-- **Early:** 0.6.6; the eval sets were written by the author, or captured from Claude Code sessions on scratch projects built for them, and none is an independent benchmark.
+- **Early:** 0.7.0; the eval sets were written by the author, or captured from Claude Code sessions on scratch projects built for them, and none is an independent benchmark.
 - **Not the most accurate:** GPT-6 Astra and Claude Opus 5.5 scored higher on save+kind; jevmem's edge is speed and cost.
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.

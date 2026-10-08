@@ -114,6 +114,16 @@ Now, once decide says save, one more request asks Jev which sentences the line i
 
 The opt-in LLM writer is unchanged: when it writes the line, no pick is asked.
 
+### Duplicates (0.7.0)
+
+A line that says the same as a live one is not saved again. Three checks, in this order ([src/dupe.ts](../src/dupe.ts)):
+
+1. **Before any request**, the message against the live lines, word for word once normalised: a kind or label tag off the front (`[constraint] …`, `[rule] …`), backticks and quotes gone, one space between words, lower case, no final punctuation. A match sends nothing to Jev.
+2. **In the decide call**, one more question whenever the state lists memories, in both tiers: *"Does the user message state the same decision, rule or fact as one of the existing memories listed in the state, without changing it or adding to it?"*, read with the line `touches_memory_id` picks (its full wording already asks which memory the message restates). At `thresholds.duplicateMin` (0.7), with a listed live line picked and no reversal (the contradiction family under `contradictionMin`), the turn is skipped as a duplicate of that line. A reversal is never a duplicate: it supersedes, as before.
+3. **After the writer**, the finished line against the live lines, normalised the same way, which catches a paraphrase the writer reduces to the same sentence.
+
+A skipped duplicate is recorded in `.jevmem/decisions.jsonl`, so `jevmem why <hash>` says which line it restates and the question's answer, and logged as a `duplicate` event in `.jevmem/log.jsonl`, which `jevmem stats` counts. A retired line ([below](#memory-file-format)) is not live, so saying it again saves it anew. MCP `add_memory` answers a duplicate with `{ added: null, duplicate_of: "<id>" }` and no error, and `jevmem import` marks the statement as a duplicate. How it was measured: [Benchmark](benchmark.md#memory-you-can-see-and-fix-070).
+
 ### Contradictions
 
 When a turn replaces a live memory and jevmem misses it, `JEVMEM.md` keeps both lines active and the tools read two conflicting instructions; when it supersedes a line that was not replaced, a valid memory is hidden. Both are measured on a dev set built for this ([`eval/contradictions-dev.jsonl`](../eval/contradictions-dev.jsonl): 43 cases, 27 reversals of every shape (explicit, implicit, different vocabulary, partial, constraint and preference reversals, one of two similar lines) and 16 same-topic near-misses, 3–15 memories each; no shared text with the prompts or the other eval sets). `node scripts/diag-contradictions.mjs`:
@@ -160,7 +170,8 @@ Jev's probabilities are only worth trusting once you check them against your own
 ```bash
 jevmem why k3d9xq                   # every noul, family score, choice distribution, and which threshold it cleared
 jevmem right k3d9xq                 # the decision was correct
-jevmem wrong k3d9xq --should-be none   # it should not have been saved (removes the line)
+jevmem wrong k3d9xq --should-be none   # it should not have been saved (retires the line: it stays in the file as [retired])
+jevmem forget k3d9xq                   # a done to-do, a fixed bug, an obsolete rule or a hand-added line: retired in place (a rule asks for a yes on a terminal)
 jevmem wrong 3f1a9c --should-be bug    # a skipped turn (by hash prefix, from `why`) should have been saved as a bug
 jevmem missed "We must keep the API backwards compatible for two minor versions." --kind constraint
 jevmem fit                          # ≥ 40 labels: refit per-kind weights + thresholds to maximise F1, print a reliability table
@@ -175,7 +186,7 @@ jevmem stats                        # p50/p95 latency, cost per day, cache hit r
 - [kind] text  <!-- id:xxxxxx ts:ISO-8601 conf:0.91 -->
 ```
 
-`kind` ∈ `decision | constraint | preference | bug | architecture | todo | superseded`, and, since 0.6.0, `dead-end` ([Dead ends](dead-ends.md)). Superseded lines carry `→ id:new` in the text and `by:new` in the comment. Audit adds `[stale?]` before the text and `stale:0.31` in the comment. Anything that is not a memory line (headings, prose) is preserved verbatim. The header `init` writes tells AI assistants not to add, edit or remove lines (they otherwise add hand-written duplicates next to jevmem's) and tells people they may edit freely; re-running `init` replaces the pre-0.4.4 default header, and leaves any header you changed alone.
+`kind` ∈ `decision | constraint | preference | bug | architecture | todo | superseded`, since 0.6.0 `dead-end` ([Dead ends](dead-ends.md)), and since 0.7.0 `retired`. Superseded lines carry `→ id:new` in the text and `by:new` in the comment. Audit adds `[stale?]` before the text and `stale:0.31` in the comment. A retired line (`jevmem forget`, or `jevmem wrong … --should-be none`) keeps its text and gets `[retired]` as its kind, with the kind it had in `was:` and the time in `retired:` in the comment: `- [retired] Add a sitemap before the spring launch  <!-- id:ab12cd ts:… conf:0.91 was:todo retired:2026-10-08T12:00:00.000Z -->`. Recall, search, the guard, the MCP tools and decide's own list of existing lines treat it as not there; `jevmem list --all` shows it with the kind it had. A jevmem before 0.7.0 reads `retired` as an unknown kind and keeps the line as text (as readers before 0.6.0 kept `[dead-end]` lines): its text is unchanged, but when that older version rewrites the file it moves the line after the memory lines. Anything that is not a memory line (headings, prose) is preserved verbatim. The header `init` writes tells AI assistants not to add, edit or remove lines (they otherwise add hand-written duplicates next to jevmem's) and tells people they may edit freely; re-running `init` replaces the pre-0.4.4 default header, and leaves any header you changed alone.
 
 ## Security and privacy
 

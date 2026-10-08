@@ -7,7 +7,7 @@
 | Tool | Args | Jev calls | Annotations (readOnly / destructive / idempotent / openWorld) |
 |---|---|---|---|
 | `search_memory` | `query`, `limit?` | 1 (choice over ids + noul per candidate, + a poisoning-gate noul per unverified, unchecked candidate) | true / false / true / true |
-| `add_memory` | `text`, `kind` | 1, or 2 on a borderline line (the hook's decide: scrub, then refuse injection / small talk / duplicates; Jev may correct the kind; a contradiction supersedes the old line) | false / true / false / true |
+| `add_memory` | `text`, `kind` | 1, or 2 on a borderline line (the hook's decide: scrub, then refuse injection / small talk; since 0.7.0 a line a live memory already says is not added and the answer names that line, `duplicate_of`, with no error; Jev may correct the kind; a contradiction supersedes the old line) | false / true / false / true |
 | `list_memory` | `include_superseded?` | 0, or 1 when unverified lines have no cached gate verdict (the poisoning gate alone) | true / false / true / true |
 | `audit_memory` | `apply?` | ⌈memories / 60⌉ | false / true / true / true |
 
