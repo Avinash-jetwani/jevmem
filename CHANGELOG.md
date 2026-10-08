@@ -25,7 +25,7 @@ Memory you can see and fix: `jevmem forget <id>` retires a line in place, `jevme
 - No dependency changed since 0.6.6: no Dependabot pull request was merged between the two releases (eslint 10, [#7](https://github.com/Avinash-jetwani/jevmem/pull/7), stays open until `@eslint/js` 10 and the lint fixes its new rules need go in together).
 
 ### Checked
-- The 0.7.0 build: end to end with the real Claude Code and the real Jev, `scripts/e2e.sh --runs 3 --scenario full` (13 scenarios since the two new ones joined it). *The gate's result is added below once the run ends.*
+- The 0.7.0 build (the code of `bcd7639`): end to end with the real Claude Code 2.1.294 and the real Jev, `scripts/e2e.sh --runs 3 --scenario full` (13 scenarios since `forget` and `trust` joined it; `nokey` runs in three forms), one run on 2026-10-08, the model not pinned: 45 of 45 scenario runs passed ([results](results/e2e-2026-10-08-v070-full.txt)); claude-fable-5-1 served 120 of the 132 claude runs and claude-sonnet-5-5 the other 12 (run 1's linkguard, handwrite and plugin).
 
 ## [0.6.6] - 2026-10-06
 
