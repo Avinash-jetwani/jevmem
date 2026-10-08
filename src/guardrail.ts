@@ -553,6 +553,8 @@ export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction
       if (args[0] === "init" && args.includes("--remove-hooks")) return "jevmem: this runs `jevmem init --remove-hooks`, which removes the hooks the guard runs from.";
       if (args[0] === "wrong" && hasRules && args.includes("none")) return `jevmem: this runs \`jevmem wrong … --should-be none\`, which can retire a saved rule in ${memoryName}.`;
       if (args[0] === "forget" && hasRules) return `jevmem: this runs \`jevmem forget\`, which can retire a saved rule in ${memoryName}.`;
+      // `jevmem trust` marks a line as verified, which lets block mode deny on it: asked whatever the rules are.
+      if (args[0] === "trust" || (args[0] === "add" && args.includes("--trust"))) return `jevmem: this runs \`jevmem ${args[0] === "trust" ? "trust" : "add --trust"}\`, which marks a line in ${memoryName} as verified, so the guard can block on it.`;
       continue;
     }
     const t = touchesOf(c, e);

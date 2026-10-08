@@ -6,7 +6,8 @@ import { knownWithheld, planGate } from "./guard.js";
 import { formatFailures, isNoKey, recentFailures } from "./failures.js";
 import { formatGuardLog, formatGuardStats, guardLogStats, readGuardLog } from "./guardlog.js";
 import { checkCli, initHookClis, pluginLauncherCli } from "./hookcli.js";
-import { isVerified, readProvenance } from "./provenance.js";
+import { isVerified, readProvenance, verifiedVia } from "./provenance.js";
+import { trustLines } from "./trust.js";
 import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
@@ -50,7 +51,8 @@ Usage: jevmem <command> [options]
   guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
   search <query> [--limit N]              Rank memories by relevance to a query (one Jev call)
   list [--all]                            Print memories (live by default; --all adds superseded lines and provenance)
-  add <kind> <text>                       Append a memory line by hand (kinds: ${NEW_KINDS.join(", ")})
+  add [--trust] <kind> <text>             Append a memory line by hand (kinds: ${NEW_KINDS.join(", ")}); --trust marks it verified (asks on a terminal)
+  trust <id> [<id>…]                      Mark a line you wrote as verified, after the poisoning gate (asks on a terminal); the guard can then block on it
   import [--from <sources>] [--apply]     Import CLAUDE.md, AGENTS.md, .cursor/rules/* (dry run unless --apply)
   watch [--replay] [--once]               Capture turns from Codex's session log for this project (Cursor: use MCP)
   why <id|hash>                           Show every Jev answer behind a memory line or a skipped turn
@@ -94,7 +96,7 @@ const stderrWrite = (s: string) => void process.stderr.write(s);
 const defaultIo: CliIo = { out: stdoutWrite, err: stderrWrite };
 let io: CliIo = defaultIo;
 
-export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "guard", "search", "list", "add", "import", "why", "right", "wrong", "forget", "missed", "fit", "stats", "doctor", "key", "log", "watch"] as const;
+export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "guard", "search", "list", "add", "import", "why", "right", "wrong", "forget", "trust", "missed", "fit", "stats", "doctor", "key", "log", "watch"] as const;
 
 export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
   enable: `jevmem enable
@@ -178,12 +180,23 @@ Print live memories (id, kind, text). --all includes superseded and retired line
 verified (jevmem wrote this exact text on this machine) or unverified (hand-written, from git, or jevmem add),
 and whether the poisoning gate withheld it.
 `,
-  add: `jevmem add <kind> <text>
+  add: `jevmem add [--trust] <kind> <text>
 
 Append one memory line by hand. kind: decision | constraint | preference | bug | architecture | todo | dead-end.
-Secrets are scrubbed, and a line longer than the limit loses its trailing clauses. There is no Jev call and no key is
-needed, for any kind (you typed it). For a dead end, say what was tried and why it failed or was dropped
-(docs/dead-ends.md). Like a hand edit, the line is unverified: the poisoning gate checks it before it is served.
+Secrets are scrubbed, a leading [kind] or [rule] tag is dropped, and a line longer than the limit loses its trailing
+clauses. There is no Jev call and no key is needed, for any kind (you typed it). For a dead end, say what was tried and
+why it failed or was dropped (docs/dead-ends.md). Like a hand edit, the line is unverified: the poisoning gate checks it
+before it is served, and the guard asks about a rule from it but never blocks. --trust (0.7.0) then runs jevmem trust on
+the new line: it needs a terminal, shows the line, asks, and marks it verified once the gate has passed it.
+`,
+  trust: `jevmem trust <memory id> [<memory id>…]
+
+Mark a line you wrote as verified, as if jevmem had written it here: recall serves it without the poisoning gate's
+question, and in block mode the guard can block on a [constraint] from it instead of only asking (docs/guardrails.md).
+It needs a terminal, with no flag to skip that: it prints the line and asks "Trust this line? [y/N]", then asks the
+poisoning gate about the line (one Jev call) and refuses one that reads as instructions aimed at an AI, with the reason.
+The record is local (.jevmem/provenance.jsonl, not in git), so a clone trusts nothing by it; a line whose text changes
+afterwards is unverified again. The guard's tamper check asks about an agent running this command.
 `,
   import: `jevmem import [--from claude-md,agents-md,cursor-rules,claude-auto-memory] [--apply] [--memory-dir <dir>]
 
@@ -589,24 +602,45 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const prov = all ? readProvenance(root) : null;
       const held = all ? new Map(planGate(root, mems, cfg.thresholds.injectionMax).withheld.map((w) => [w.memory.id, w])) : null;
       for (const m of mems) {
-        const status = prov ? `${(isVerified(prov, m) ? "verified" : "unverified").padEnd(10)}${held!.has(m.id) ? " WITHHELD" : ""}  ` : "";
+        // A line trusted by hand (0.7.0) is verified; both listings say so.
+        const trusted = verifiedVia(root, m) === "trust";
+        const status = prov ? `${(trusted ? "trusted" : isVerified(prov, m) ? "verified" : "unverified").padEnd(10)}${held!.has(m.id) ? " WITHHELD" : ""}  ` : trusted ? "trusted  " : "";
         io.out(`${m.id}  ${status}[${m.kind}]${m.stale !== undefined ? " [stale?]" : ""} ${m.text}${m.supersededBy ? ` → ${m.supersededBy}` : ""}${m.kind === "retired" ? ` (was ${m.was ?? "?"}${m.retiredAt ? `, retired ${m.retiredAt.slice(0, 10)}` : ""})` : ""}\n`);
       }
       if (mems.length === 0) io.out("no memories\n");
-      if (all && mems.length) io.out(`\nverified: jevmem wrote this exact text on this machine. unverified lines go through the poisoning gate before any agent sees them.\n`);
+      if (all && mems.length) io.out(`\nverified: jevmem wrote this exact text on this machine; trusted: you marked it verified with jevmem trust. unverified lines go through the poisoning gate before any agent sees them.\n`);
       return 0;
     }
     case "add": {
+      const trust = flag(args, "--trust");
       const kind = args.shift() as Kind | undefined;
       const text = args.join(" ").trim();
-      if (!kind || !(NEW_KINDS as readonly string[]).includes(kind) || !text) return fail(`usage: jevmem add <${NEW_KINDS.join("|")}> <text>`);
+      if (!kind || !(NEW_KINDS as readonly string[]).includes(kind) || !text) return fail(`usage: jevmem add [--trust] <${NEW_KINDS.join("|")}> <text>`);
+      // --trust needs a terminal (jevmem trust asks on one): refused before anything is written, so nothing is half done.
+      if (trust && !isTerminal(opts)) return fail("jevmem add --trust: not a terminal, so nothing was added. Run it in a terminal: it shows the line and asks before trusting it, or run jevmem add without --trust.");
       const cfg = loadConfig(root);
       const store = new MemoryStore(root, cfg.memoryFile);
       // Typed by a person, so no Jev call, for every kind (a dead end too, since v0.6 part 2c); secrets are still scrubbed
       // because JEVMEM.md is committed. The line is unverified, so the poisoning gate checks it before recall serves it.
       const m = store.add({ kind, text: clampLine(scrubSecrets(text), cfg.writer.maxChars), conf: 1 });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}\n`);
-      return 0;
+      if (!trust) return 0;
+      requireKey();
+      const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+      return trustLines(root, cfg, store, [m.id], io, { jev, confirm: confirmOnTerminal });
+    }
+    case "trust": {
+      const ids = args.filter((a) => !a.startsWith("--"));
+      if (!ids.length || ids.length !== args.length) return fail("usage: jevmem trust <memory id> [<memory id>…]");
+      // Only a person at a terminal can trust a line: an agent's shell has no terminal, and there is no flag to answer for it.
+      if (!isTerminal(opts)) return fail("jevmem trust: not a terminal, so nothing was changed. Run jevmem trust in a terminal: it shows the line and asks first.");
+      requireKey();
+      const cfg = loadConfig(root);
+      const store = new MemoryStore(root, cfg.memoryFile);
+      const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+      const code = await trustLines(root, cfg, store, ids, io, { jev, confirm: confirmOnTerminal });
+      printJevSummary(jev.log);
+      return code;
     }
     case "import": {
       const apply = flag(args, "--apply");
@@ -1027,6 +1061,17 @@ async function handOffStop(root: string, cfg: ReturnType<typeof loadConfig>, inp
   spawnDaemon(root, cliFile());
   if (!current) return { ...cap.outcome!, via: "daemon" };
   return { event, action: "queued", detail: `daemon starting; it evaluates the ${pending} queued turn(s)`, via: "daemon" };
+}
+
+/** Is there a person at a terminal to answer a question? Tests pass their own stdin, which is never a terminal. */
+function isTerminal(opts: { stdin?: string }): boolean {
+  return opts.stdin === undefined && process.stdin.isTTY === true;
+}
+
+/** `jevmem trust`'s question, answered on the terminal. */
+async function confirmOnTerminal(prompt: string): Promise<boolean> {
+  const answer = (await readLine(prompt)).trim().toLowerCase();
+  return answer === "y" || answer === "yes";
 }
 
 /** All of stdin, as text. */

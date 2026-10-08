@@ -6,14 +6,15 @@
  * machine's jevmem wrote that text after its own gate. Everything else is unverified: hand-written lines, lines that
  * arrived through git from other machines, `jevmem add` / `jevmem missed` lines, and a verified line whose text was
  * edited afterwards (same id, different hash). Unverified lines still work, but every path that serves them to an
- * agent sends them through the poisoning gate first (src/guard.ts).
+ * agent sends them through the poisoning gate first (src/guard.ts). Since 0.7.0 a person can mark a line they wrote
+ * as verified with `jevmem trust` (src/trust.ts), which records it here `via: "trust"` after the gate has passed it.
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { Memory } from "./types.js";
 
-export type ProvenanceVia = "hook" | "mcp" | "import";
+export type ProvenanceVia = "hook" | "mcp" | "import" | "trust";
 
 export interface ProvenanceRecord {
   id: string;
@@ -58,6 +59,34 @@ export function savedBefore(root: string, current: string): boolean {
   if (read("provenance.jsonl").includes('"via":"hook"')) return true;
   for (const m of read("decisions.jsonl").matchAll(/"memoryId":"([^"]+)"/g)) if (m[1] !== current) return true;
   return false;
+}
+
+/** Every record in the file, oldest first (a torn line is skipped). */
+export function readProvenanceRecords(root: string): ProvenanceRecord[] {
+  const out: ProvenanceRecord[] = [];
+  let raw = "";
+  try {
+    raw = fs.readFileSync(provenanceFile(root), "utf8");
+  } catch {
+    return out;
+  }
+  for (const line of raw.split("\n")) {
+    if (!line) continue;
+    try {
+      const r = JSON.parse(line) as ProvenanceRecord;
+      if (typeof r.id === "string" && typeof r.sha === "string") out.push(r);
+    } catch {
+      /* skip a torn line */
+    }
+  }
+  return out;
+}
+
+/** How a verified line came to be verified: the `via` of the record that holds its current text, or null when unverified. */
+export function verifiedVia(root: string, mem: Pick<Memory, "id" | "text">): ProvenanceVia | null {
+  const sha = lineSha(mem.text);
+  const rec = readProvenanceRecords(root).reverse().find((r) => r.id === mem.id && r.sha === sha);
+  return rec?.via ?? null;
 }
 
 /** id → set of text hashes jevmem wrote under that id on this machine. */
