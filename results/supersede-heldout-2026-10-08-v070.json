@@ -1,0 +1,1661 @@
+{
+ "kind": "supersede",
+ "date": "2026-10-08",
+ "commit": "c34430b",
+ "dist": "dist/index.js",
+ "set": "eval/supersede-heldout.jsonl",
+ "mode": "auto",
+ "turns": 52,
+ "machine": "darwin arm64, node v22.22.0, Apple M4",
+ "cost_method": "input tokens × $0.042/M (decide and the line's request)",
+ "summary": {
+  "started_at": "2026-10-08T18:11:18.360Z",
+  "finished_at": "2026-10-08T18:11:40.008Z",
+  "falseSupersedes": "0/40",
+  "falseBySubtype": {
+   "added-detail": {
+    "cases": 12,
+    "superseded": 0
+   },
+   "restatement": {
+    "cases": 8,
+    "superseded": 0
+   },
+   "compatible-addition": {
+    "cases": 12,
+    "superseded": 0
+   },
+   "question": {
+    "cases": 8,
+    "superseded": 0
+   }
+  },
+  "reversals": {
+   "cases": 12,
+   "found": 11,
+   "wrongId": 0,
+   "missed": 1
+  },
+  "reversalsFound": "11/12",
+  "kindAsLabelled": "51/52",
+  "p50ms": 489,
+  "costPerDecisionUsd": 0.0002607
+ },
+ "rows": [
+  {
+   "id": "sh-saffron-001",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "The monthly order partitions are created by a cron job on the 25th, so next month's table always exists before the first order lands.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "The monthly order partitions are created by a cron job on the 25th, so next month's table always exists before the first order lands.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 273,
+   "inputTokens": 3049,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.94 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.06,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-saffron-002",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "Stock reservations expire after 15 minutes; if the card charge hasn't gone through by then, the reservation is released and checkout starts over.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "decision",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Stock reservations expire after 15 minutes; if the card charge hasn't gone through by then, the reservation is released and checkout starts over.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 267,
+   "inputTokens": 3048,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.85 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.06,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-saffron-003",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "The Go order API runs on Fly.io in two regions, lhr and ams.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "The Go order API runs on Fly.io in two regions, lhr and ams.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 242,
+   "inputTokens": 3037,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.98 importance=useful [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.07,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-saffron-004",
+   "tag": "near-miss",
+   "subtype": "restatement",
+   "user": "Just so everyone's clear: no card gets charged until the stock is reserved.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 529,
+   "inputTokens": 8915,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: duplicate of sf2 (restates it: 0.95 ≥ 0.7), content=0.21<0.5 [tier 2, escalated]",
+   "touches": "sf2",
+   "contradictionFamily": 0.13705129257545967,
+   "tier1Contradicts": 0.04,
+   "tier2Reverses": 0.03
+  },
+  {
+   "id": "sh-saffron-005",
+   "tag": "near-miss",
+   "subtype": "restatement",
+   "user": "Reminder that we use sqlc in the Go service rather than an ORM.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "preference",
+     "decision",
+     "constraint",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 528,
+   "inputTokens": 8913,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: duplicate of sf4 (restates it: 0.97 ≥ 0.7) [tier 2, escalated]",
+   "touches": "sf4",
+   "contradictionFamily": 0.259225100817846,
+   "tier1Contradicts": 0.04,
+   "tier2Reverses": 0.03
+  },
+  {
+   "id": "sh-saffron-006",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Couriio can't do same-day slots in Leeds anymore, so for Leeds orders the page only shows next-day slots.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "constraint",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Couriio can't do same-day slots in Leeds anymore, so for Leeds orders the page only shows next-day slots.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 509,
+   "inputTokens": 8933,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.73 importance=important [tier 2, escalated]",
+   "touches": "sf5",
+   "contradictionFamily": 0.33961732692078384,
+   "tier1Contradicts": 0.13,
+   "tier2Reverses": 0.08
+  },
+  {
+   "id": "sh-saffron-007",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Recipe thumbnails in the weekly email are a separate size, 40 KB each.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "decision",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 529,
+   "inputTokens": 8917,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: content=0.24<0.5 [tier 2, escalated]",
+   "touches": "sf6",
+   "contradictionFamily": 0.14368683275882915,
+   "tier1Contradicts": 0.09,
+   "tier2Reverses": 0.07
+  },
+  {
+   "id": "sh-saffron-008",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Refunds also go through the Go service; add a refunds table next to orders.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "Refunds also go through the Go service; add a refunds table next to orders.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 498,
+   "inputTokens": 8917,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.92 importance=important [tier 2, escalated]",
+   "touches": "sf1",
+   "contradictionFamily": 0.14003491562777276,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": 0.05
+  },
+  {
+   "id": "sh-saffron-009",
+   "tag": "near-miss",
+   "subtype": "question",
+   "user": "How long do we keep old order partitions around?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 275,
+   "inputTokens": 3578,
+   "escalated": false,
+   "source": "assistant_reply",
+   "reason": "skip: kind=none, source=assistant_reply kind=none (only bug, architecture and dead-end may come from the assistant) [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.04,
+   "tier1Contradicts": 0.04,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-saffron-010",
+   "tag": "near-miss",
+   "subtype": "question",
+   "user": "Why does checkout reserve stock first?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 767,
+   "inputTokens": 10204,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: source=assistant_reply kind=constraint (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+   "touches": "sf2",
+   "contradictionFamily": 0.13354172253321245,
+   "tier1Contradicts": 0.04,
+   "tier2Reverses": 0.03
+  },
+  {
+   "id": "sh-saffron-011",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "We're moving delivery slot booking off Couriio to our own scheduler; Couriio's API kept double-booking slots.",
+   "want": {
+    "contradicts": "sf5",
+    "accept": [
+     "decision",
+     "decision",
+     "constraint",
+     "architecture",
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "We're moving delivery slot booking off Couriio to our own scheduler; Couriio's API kept double-booking slots.",
+    "superseded": "sf5"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 243,
+   "inputTokens": 3046,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.96 importance=important supersedes=sf5 [tier 1]",
+   "touches": "sf5",
+   "contradictionFamily": 0.96,
+   "tier1Contradicts": 0.96,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-saffron-012",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "Drop sqlc; the Go service moves to GORM so the new team can work with models directly.",
+   "want": {
+    "contradicts": "sf4",
+    "accept": [
+     "decision",
+     "preference",
+     "constraint",
+     "architecture",
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "decision",
+    "line": "Drop sqlc; the Go service moves to GORM so the new team can work with models directly.",
+    "superseded": "sf4"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 281,
+   "inputTokens": 3573,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=decision content=0.97 importance=important supersedes=sf4 (kind dead-end, but dead-end=0.21<0.7: no reason given; a reversal, judged as decision) [tier 1] [reply question: 0.02, the reply not read]",
+   "touches": "sf4",
+   "contradictionFamily": 0.97,
+   "tier1Contradicts": 0.97,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-saffron-013",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "Recipe images can be up to 1 MB now that the CDN resizes them on the fly.",
+   "want": {
+    "contradicts": "sf6",
+    "accept": [
+     "constraint",
+     "decision"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Recipe images can be up to 1 MB now that the CDN resizes them on the fly.",
+    "superseded": "sf6"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 210,
+   "inputTokens": 3039,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.80 importance=important supersedes=sf6 [tier 1]",
+   "touches": "sf6",
+   "contradictionFamily": 0.93,
+   "tier1Contradicts": 0.93,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-driftwood-001",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "The ingester batches readings and writes to TimescaleDB every 2 seconds, or sooner when 5,000 rows are waiting.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "The ingester batches readings and writes to TimescaleDB every 2 seconds, or sooner when 5,000 rows are waiting.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 577,
+   "inputTokens": 8903,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.87 importance=important [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.14246080221548799,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": 0.05
+  },
+  {
+   "id": "sh-driftwood-002",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "The 90-day deletion is a TimescaleDB retention policy on the readings hypertable, run nightly at 03:00 UTC.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "constraint",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "The 90-day deletion is a TimescaleDB retention policy on the readings hypertable, run nightly at 03:00 UTC.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 532,
+   "inputTokens": 8907,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.81 importance=useful [tier 2, escalated]",
+   "touches": "dw2",
+   "contradictionFamily": 0.1486789545839074,
+   "tier1Contradicts": 0.1,
+   "tier2Reverses": 0.06
+  },
+  {
+   "id": "sh-driftwood-003",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "On Tuesdays the firmware goes to 5% of sensors at 10:00 and to the rest at 15:00 if the error rate stays flat.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "decision",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "On Tuesdays the firmware goes to 5% of sensors at 10:00 and to the rest at 15:00 if the error rate stays flat.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 272,
+   "inputTokens": 3566,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.75 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.09,
+   "tier1Contradicts": 0.09,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-driftwood-004",
+   "tag": "near-miss",
+   "subtype": "restatement",
+   "user": "To be clear, raw readings get deleted at 90 days; we don't keep them longer.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 508,
+   "inputTokens": 8887,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: duplicate of dw2 (restates it: 0.96 ≥ 0.7), content=0.47<0.5 [tier 2, escalated]",
+   "touches": "dw2",
+   "contradictionFamily": 0.1449216314878229,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.04
+  },
+  {
+   "id": "sh-driftwood-005",
+   "tag": "near-miss",
+   "subtype": "restatement",
+   "user": "Alerts still go through PagerDuty, same as before.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 535,
+   "inputTokens": 8871,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: duplicate of dw5 (restates it: 0.84 ≥ 0.7), kind=none, content=0.41<0.5, importance=trivial<useful [tier 2, escalated]",
+   "touches": "dw5",
+   "contradictionFamily": 0.1525163168612938,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.05
+  },
+  {
+   "id": "sh-driftwood-006",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Hourly averages are kept for five years in a separate rollup table; only the raw readings are deleted at 90 days.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "architecture",
+     "constraint",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "Hourly averages are kept for five years in a separate rollup table; only the raw readings are deleted at 90 days.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 475,
+   "inputTokens": 8901,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.88 importance=important [tier 2, escalated]",
+   "touches": "dw2",
+   "contradictionFamily": 0.15976199694366905,
+   "tier1Contradicts": 0.1,
+   "tier2Reverses": 0.08
+  },
+  {
+   "id": "sh-driftwood-007",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Battery-low warnings aren't alerts; they go into a weekly email digest instead of paging anyone.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "constraint",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "decision",
+    "line": "Battery-low warnings aren't alerts; they go into a weekly email digest instead of paging anyone.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 283,
+   "inputTokens": 3019,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=decision content=0.82 importance=important [tier 1]",
+   "touches": "dw5",
+   "contradictionFamily": 0.31,
+   "tier1Contradicts": 0.31,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-driftwood-008",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "The ingester also exposes a /health endpoint on port 8081 for the load balancer.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "The ingester also exposes a /health endpoint on port 8081 for the load balancer.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 538,
+   "inputTokens": 3022,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.97 importance=useful [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.05,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-driftwood-009",
+   "tag": "near-miss",
+   "subtype": "question",
+   "user": "Could the ingester keep up if we doubled the sensor count?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 259,
+   "inputTokens": 3578,
+   "escalated": false,
+   "source": "assistant_reply",
+   "reason": "skip: kind=none, importance=minor<useful, source=assistant_reply kind=none (only bug, architecture and dead-end may come from the assistant) [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.04,
+   "tier1Contradicts": 0.04,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-driftwood-010",
+   "tag": "near-miss",
+   "subtype": "question",
+   "user": "Which day do firmware updates go out again?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 496,
+   "inputTokens": 10148,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: content=0.25<0.5, source=assistant_reply kind=constraint (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+   "touches": "dw4",
+   "contradictionFamily": 0.16383036122335895,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.05
+  },
+  {
+   "id": "sh-driftwood-011",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "Rewrite the ingester in Go; the asyncio version tops out at one core and we're dropping readings at peak.",
+   "want": {
+    "contradicts": "dw3",
+    "accept": [
+     "decision",
+     "decision",
+     "constraint",
+     "architecture",
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "decision",
+    "line": "Rewrite the ingester in Go; the asyncio version tops out at one core and we're dropping readings at peak.",
+    "superseded": "dw3"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 526,
+   "inputTokens": 9429,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=decision content=0.88 importance=important supersedes=dw3 [tier 2, escalated] [reply question: 0.02, the reply not read]",
+   "touches": "dw3",
+   "contradictionFamily": 0.8284952300245991,
+   "tier1Contradicts": 0.87,
+   "tier2Reverses": 0.88
+  },
+  {
+   "id": "sh-driftwood-012",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "Firmware updates can go out any weekday now that we have staged rollouts.",
+   "want": {
+    "contradicts": "dw4",
+    "accept": [
+     "constraint",
+     "decision"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Firmware updates can go out any weekday now that we have staged rollouts.",
+    "superseded": "dw4"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 250,
+   "inputTokens": 3016,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.76 importance=important supersedes=dw4 [tier 1]",
+   "touches": "dw4",
+   "contradictionFamily": 0.93,
+   "tier1Contradicts": 0.93,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-driftwood-013",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "We're replacing PagerDuty with Opsgenie for alerts; the contract ends this month.",
+   "want": {
+    "contradicts": "dw5",
+    "accept": [
+     "decision",
+     "decision",
+     "constraint",
+     "architecture",
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "decision",
+    "line": "We're replacing PagerDuty with Opsgenie for alerts; the contract ends this month.",
+    "superseded": "dw5"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 330,
+   "inputTokens": 3019,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=decision content=0.95 importance=important supersedes=dw5 [tier 1]",
+   "touches": "dw5",
+   "contradictionFamily": 0.95,
+   "tier1Contradicts": 0.95,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-quarry-001",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "dbt runs in Cloud Composer four times a day, after the Fivetran loads settle.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "Dbt runs in Cloud Composer four times a day, after the Fivetran loads settle.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 246,
+   "inputTokens": 3031,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.91 importance=useful [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.09,
+   "tier1Contradicts": 0.09,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-quarry-002",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "User ids are fine in marts as long as they're the hashed ids from the identity service.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "User ids are fine in marts as long as they're the hashed ids from the identity service.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 265,
+   "inputTokens": 3030,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.82 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.13,
+   "tier1Contradicts": 0.13,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-quarry-003",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "Looker connects to BigQuery through a service account that can only read the marts dataset.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision",
+     "constraint",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Looker connects to BigQuery through a service account that can only read the marts dataset.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 245,
+   "inputTokens": 3029,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.96 importance=critical [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.08,
+   "tier1Contradicts": 0.08,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-quarry-004",
+   "tag": "near-miss",
+   "subtype": "restatement",
+   "user": "Mart tables don't get names, emails or phone numbers. That hasn't changed.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 699,
+   "inputTokens": 8901,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: duplicate of qy2 (restates it: 0.91 ≥ 0.7), content=0.43<0.5 [tier 2, escalated]",
+   "touches": "qy2",
+   "contradictionFamily": 0.15709546888545278,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": 0.04
+  },
+  {
+   "id": "sh-quarry-005",
+   "tag": "near-miss",
+   "subtype": "restatement",
+   "user": "Remember: every dbt model gets unique and not_null tests on its primary key.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 518,
+   "inputTokens": 8901,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: duplicate of qy6 (restates it: 0.97 ≥ 0.7), content=0.39<0.5 [tier 2, escalated]",
+   "touches": "qy6",
+   "contradictionFamily": 0.14124350744507488,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": 0.04
+  },
+  {
+   "id": "sh-quarry-006",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Snapshot models also get a freshness test on dbt_valid_from, on top of the primary key tests.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Snapshot models also get a freshness test on dbt_valid_from, on top of the primary key tests.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 235,
+   "inputTokens": 3032,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.75 importance=important [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.13,
+   "tier1Contradicts": 0.13,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-quarry-007",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Finance wants a few spreadsheets straight from BigQuery instead of Looker; connected sheets on the finance marts are fine for them.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "preference",
+    "line": "Finance wants a few spreadsheets straight from BigQuery instead of Looker; connected sheets on the finance marts are fine for them.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": false,
+   "ms": 537,
+   "inputTokens": 8923,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=preference content=0.83 importance=useful [tier 2, escalated]",
+   "touches": "qy5",
+   "contradictionFamily": 0.5535439031511182,
+   "tier1Contradicts": 0.11,
+   "tier2Reverses": 0.21
+  },
+  {
+   "id": "sh-quarry-008",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Fivetran also loads the Stripe tables now, into raw_stripe, on the same hourly schedule.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "Fivetran also loads the Stripe tables now, into raw_stripe, on the same hourly schedule.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 444,
+   "inputTokens": 3033,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.97 importance=useful [tier 1]",
+   "touches": "qy3",
+   "contradictionFamily": 0.11,
+   "tier1Contradicts": 0.11,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-quarry-009",
+   "tag": "near-miss",
+   "subtype": "question",
+   "user": "Is it okay to put the customer's email in the churn mart so CS can contact them?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 584,
+   "inputTokens": 10214,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: source=assistant_reply kind=constraint (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+   "touches": "qy2",
+   "contradictionFamily": 0.14368683275882915,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.05
+  },
+  {
+   "id": "sh-quarry-010",
+   "tag": "near-miss",
+   "subtype": "question",
+   "user": "What does our dbt style say about commas?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 279,
+   "inputTokens": 3553,
+   "escalated": false,
+   "source": "assistant_reply",
+   "reason": "skip: kind=none, content=0.13<0.5, source=assistant_reply kind=none (only bug, architecture and dead-end may come from the assistant) [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.04,
+   "tier1Contradicts": 0.04,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-quarry-011",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "We're moving off Looker; new dashboards go in Metabase and the Looker ones get migrated by December.",
+   "want": {
+    "contradicts": "qy5",
+    "accept": [
+     "decision",
+     "decision",
+     "constraint",
+     "architecture",
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "decision",
+    "line": "We're moving off Looker; new dashboards go in Metabase and the Looker ones get migrated by December.",
+    "superseded": "qy5"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 237,
+   "inputTokens": 3036,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=decision content=0.97 importance=important supersedes=qy5 [tier 1]",
+   "touches": "qy5",
+   "contradictionFamily": 0.95,
+   "tier1Contradicts": 0.95,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-quarry-012",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "Switch the dbt style to trailing commas; it matches the new formatter and the diffs are getting noisy.",
+   "want": {
+    "contradicts": "qy4",
+    "accept": [
+     "preference",
+     "decision",
+     "constraint"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "preference",
+    "line": "Switch the dbt style to trailing commas; it matches the new formatter and the diffs are getting noisy.",
+    "superseded": "qy4"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 280,
+   "inputTokens": 3567,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=preference content=0.86 importance=useful supersedes=qy4 [tier 1] [reply question: 0.02, the reply not read]",
+   "touches": "qy4",
+   "contradictionFamily": 0.93,
+   "tier1Contradicts": 0.93,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-quarry-013",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "Fivetran is too expensive at our event volume; raw events will be streamed into BigQuery through our own Pub/Sub pipeline instead of the hourly loads.",
+   "want": {
+    "contradicts": "qy3",
+    "accept": [
+     "architecture",
+     "decision",
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "decision",
+    "line": "Fivetran is too expensive at our event volume; raw events will be streamed into BigQuery through our own Pub/Sub pipeline instead of the hourly loads.",
+    "superseded": "qy3"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 596,
+   "inputTokens": 8931,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=decision content=0.93 importance=important supersedes=qy3 [tier 2, escalated]",
+   "touches": "qy3",
+   "contradictionFamily": 0.9632083915942198,
+   "tier1Contradicts": 0.95,
+   "tier2Reverses": 0.96
+  },
+  {
+   "id": "sh-lumen-001",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "Each operation in the edits table stores its parameters as JSON, plus the app version that wrote it.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "architecture",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "Each operation in the edits table stores its parameters as JSON, plus the app version that wrote it.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 231,
+   "inputTokens": 3019,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.96 importance=useful [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.12,
+   "tier1Contradicts": 0.12,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-lumen-002",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "EAS Build makes the store binaries; we're on Expo SDK 55.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 544,
+   "inputTokens": 8877,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: content=0.42<0.5 [tier 2, escalated]",
+   "touches": null,
+   "contradictionFamily": 0.10293782581717216,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": 0.05
+  },
+  {
+   "id": "sh-lumen-003",
+   "tag": "near-miss",
+   "subtype": "added-detail",
+   "user": "The Share sheet shows exactly which photos will be sent before anything uploads.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "decision",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 515,
+   "inputTokens": 8871,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: content=0.25<0.5 [tier 2, escalated]",
+   "touches": "lm2",
+   "contradictionFamily": 0.1388349935473072,
+   "tier1Contradicts": 0.08,
+   "tier2Reverses": 0.06
+  },
+  {
+   "id": "sh-lumen-004",
+   "tag": "near-miss",
+   "subtype": "restatement",
+   "user": "Keep in mind photos stay on the phone unless the user taps Share.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 524,
+   "inputTokens": 8871,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: duplicate of lm2 (restates it: 0.94 ≥ 0.7), content=0.42<0.5 [tier 2, escalated]",
+   "touches": "lm2",
+   "contradictionFamily": 0.13528690783826305,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.03
+  },
+  {
+   "id": "sh-lumen-005",
+   "tag": "near-miss",
+   "subtype": "restatement",
+   "user": "Filters are Skia shaders on the GPU, as we agreed.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 544,
+   "inputTokens": 8869,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "skip: duplicate of lm4 (restates it: 0.94 ≥ 0.7), importance=minor<useful [tier 2, escalated]",
+   "touches": "lm4",
+   "contradictionFamily": 0.13646102381271383,
+   "tier1Contradicts": 0.04,
+   "tier2Reverses": 0.03
+  },
+  {
+   "id": "sh-lumen-006",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Android 11 phones without Vulkan can't run the blur filter anymore; on those the blur option is hidden, everything else works.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "decision",
+     "constraint",
+     "bug",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "bug",
+    "line": "Android 11 phones without Vulkan can't run the blur filter anymore; on those the blur option is hidden, everything else works.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 227,
+   "inputTokens": 3026,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=bug content=0.93 importance=important [tier 1]",
+   "touches": "lm5",
+   "contradictionFamily": 0.34,
+   "tier1Contradicts": 0.34,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-lumen-007",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Crash reports go to Sentry with all image data stripped: only stack traces and the device model.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "constraint",
+     "decision",
+     "architecture",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Crash reports go to Sentry with all image data stripped: only stack traces and the device model.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 586,
+   "inputTokens": 10154,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.71 importance=important [tier 2, escalated]",
+   "touches": "lm2",
+   "contradictionFamily": 0.0779882351293664,
+   "tier1Contradicts": 0.07,
+   "tier2Reverses": 0.06
+  },
+  {
+   "id": "sh-lumen-008",
+   "tag": "near-miss",
+   "subtype": "compatible-addition",
+   "user": "Custom hooks live in src/hooks, one hook per file.",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "preference",
+     "architecture",
+     "constraint",
+     "decision",
+     "skip"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "architecture",
+    "line": "Custom hooks live in src/hooks, one hook per file.",
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 247,
+   "inputTokens": 3011,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=architecture content=0.97 importance=useful [tier 1]",
+   "touches": null,
+   "contradictionFamily": 0.05,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-lumen-009",
+   "tag": "near-miss",
+   "subtype": "question",
+   "user": "Could we let people back up their edits to iCloud?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 520,
+   "inputTokens": 10212,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: source=assistant_reply kind=constraint (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+   "touches": "lm2",
+   "contradictionFamily": 0.14003491562777276,
+   "tier1Contradicts": 0.06,
+   "tier2Reverses": 0.07
+  },
+  {
+   "id": "sh-lumen-010",
+   "tag": "near-miss",
+   "subtype": "question",
+   "user": "Why do edits live in SQLite instead of rewriting the image?",
+   "want": {
+    "contradicts": null,
+    "accept": [
+     "skip"
+    ]
+   },
+   "got": {
+    "save": false,
+    "kind": "none",
+    "line": null,
+    "superseded": null
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 517,
+   "inputTokens": 10172,
+   "escalated": true,
+   "source": "assistant_reply",
+   "reason": "skip: importance=minor<useful [tier 2, escalated]",
+   "touches": "lm3",
+   "contradictionFamily": 0.33737816282991756,
+   "tier1Contradicts": 0.05,
+   "tier2Reverses": 0.04
+  },
+  {
+   "id": "sh-lumen-011",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "We're leaving Expo for bare React Native; the camera module we need doesn't work in a managed build.",
+   "want": {
+    "contradicts": "lm1",
+    "accept": [
+     "decision",
+     "decision",
+     "constraint",
+     "architecture",
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "decision",
+    "line": "We're leaving Expo for bare React Native; the camera module we need doesn't work in a managed build.",
+    "superseded": null
+   },
+   "ok": false,
+   "kindOk": true,
+   "ms": 238,
+   "inputTokens": 3555,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=decision content=0.95 importance=important [tier 1]",
+   "touches": "lm1",
+   "contradictionFamily": 0.67,
+   "tier1Contradicts": 0.67,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-lumen-012",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "Filters move off Skia to native code, Metal on iOS and Vulkan compute on Android, because the Skia shaders drop frames on 4K photos.",
+   "want": {
+    "contradicts": "lm4",
+    "accept": [
+     "decision",
+     "decision",
+     "constraint",
+     "architecture",
+     "dead-end"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "dead-end",
+    "line": "Filters move off Skia to native code, Metal on iOS and Vulkan compute on Android, because the Skia shaders drop frames on 4K photos.",
+    "superseded": "lm4"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 289,
+   "inputTokens": 3031,
+   "escalated": false,
+   "source": "user_message",
+   "reason": "save kind=dead-end content=0.94 importance=important supersedes=lm4 [tier 1]",
+   "touches": "lm4",
+   "contradictionFamily": 0.93,
+   "tier1Contradicts": 0.93,
+   "tier2Reverses": null
+  },
+  {
+   "id": "sh-lumen-013",
+   "tag": "reversal",
+   "subtype": "reversal",
+   "user": "Raise the minimum to iOS 17; iOS 16 users are under 2% and the new photo picker needs 17.",
+   "want": {
+    "contradicts": "lm5",
+    "accept": [
+     "constraint",
+     "decision"
+    ]
+   },
+   "got": {
+    "save": true,
+    "kind": "constraint",
+    "line": "Raise the minimum to iOS 17; iOS 16 users are under 2% and the new photo picker needs 17.",
+    "superseded": "lm5"
+   },
+   "ok": true,
+   "kindOk": true,
+   "ms": 489,
+   "inputTokens": 9445,
+   "escalated": true,
+   "source": "user_message",
+   "reason": "save kind=constraint content=0.76 importance=critical supersedes=lm5 [tier 2, escalated] [reply question: 0.02, the reply not read]",
+   "touches": "lm5",
+   "contradictionFamily": 0.857539197784512,
+   "tier1Contradicts": 0.94,
+   "tier2Reverses": 0.94
+  }
+ ]
+}
