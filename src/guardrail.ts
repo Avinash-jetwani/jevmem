@@ -231,6 +231,8 @@ export function loadRules(root: string, cfg: JevmemConfig, memoryText: string): 
   const all = parseMemoryFile(memoryText).memories;
   const constraints = all.filter((m) => m.kind === "constraint" && !m.supersededBy);
   const skipped: SkippedRule[] = all.filter((m) => m.kind === "superseded" || m.supersededBy).map((m) => ({ id: m.id, text: m.text, reason: `superseded${m.supersededBy ? ` by ${m.supersededBy}` : ""}` }));
+  // A retired rule (0.7.0, `jevmem forget`) is listed as skipped, so `jevmem guard test` says why it is not enforced.
+  for (const m of all) if (m.kind === "retired" && m.was === "constraint") skipped.push({ id: m.id, text: m.text, reason: `retired${m.retiredAt ? ` on ${m.retiredAt.slice(0, 10)}` : ""}` });
   const plan = planGate(root, constraints, cfg.thresholds.injectionMax);
   for (const m of plan.check) skipped.push({ id: m.id, text: m.text, reason: "no gate verdict yet (an unverified line: checked on the next prompt or Stop, or by `jevmem audit --security`)" });
   for (const w of plan.withheld) skipped.push({ id: w.memory.id, text: w.memory.text, reason: `withheld by the poisoning gate: ${w.reason}` });
@@ -549,7 +551,8 @@ export function tamperCheck(root: string, cfg: JevmemConfig, action: GuardAction
     if (cmdWord === "jevmem") {
       if (sub === "disable" || args[0] === "disable") return "jevmem: this runs `jevmem disable`, which switches jevmem and its guard off in this project.";
       if (args[0] === "init" && args.includes("--remove-hooks")) return "jevmem: this runs `jevmem init --remove-hooks`, which removes the hooks the guard runs from.";
-      if (args[0] === "wrong" && hasRules && args.includes("none")) return `jevmem: this runs \`jevmem wrong … --should-be none\`, which can remove a saved rule from ${memoryName}.`;
+      if (args[0] === "wrong" && hasRules && args.includes("none")) return `jevmem: this runs \`jevmem wrong … --should-be none\`, which can retire a saved rule in ${memoryName}.`;
+      if (args[0] === "forget" && hasRules) return `jevmem: this runs \`jevmem forget\`, which can retire a saved rule in ${memoryName}.`;
       continue;
     }
     const t = touchesOf(c, e);

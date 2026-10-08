@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { footerMeta, formatFooter } from "./labels.js";
 import { FOOTER_RE, parseMemoryFile, type MemoryFile } from "./memfile.js";
+import { stripLeadingTags } from "./tags.js";
 import type { Kind, Memory } from "./types.js";
 
 export { parseLine, parseMemoryFile, type MemoryFile } from "./memfile.js";
@@ -50,8 +51,15 @@ export function formatLine(mem: Memory): string {
   const meta = [`id:${mem.id}`, `ts:${mem.ts}`, `conf:${mem.conf.toFixed(2)}`];
   if (mem.supersededBy) meta.push(`by:${mem.supersededBy}`);
   if (mem.stale !== undefined) meta.push(`stale:${mem.stale.toFixed(2)}`);
+  if (mem.kind === "retired") {
+    if (mem.was) meta.push(`was:${mem.was}`);
+    if (mem.retiredAt) meta.push(`retired:${mem.retiredAt}`);
+  }
   return `- [${mem.kind}] ${staleTag}${text}${arrow}  <!-- ${meta.join(" ")} -->`;
 }
+
+/** A line that is live: not superseded and not retired. The lines recall serves, the guard enforces, decide lists and `jevmem list` prints. */
+export const isLive = (m: Pick<Memory, "kind" | "supersededBy">): boolean => m.kind !== "superseded" && m.kind !== "retired" && !m.supersededBy;
 
 export function serializeMemoryFile(file: MemoryFile, footer?: string | null): string {
   const header = file.header.length ? file.header.join("\n").replace(/\s+$/, "") + "\n\n" : MEMORY_HEADER;
@@ -83,9 +91,9 @@ export class MemoryStore {
     return this.read().memories;
   }
 
-  /** Memories that are still live (not superseded). */
+  /** Memories that are still live (not superseded, not retired). */
   active(): Memory[] {
-    return this.list().filter((m) => m.kind !== "superseded" && !m.supersededBy);
+    return this.list().filter(isLive);
   }
 
   write(file: MemoryFile): void {
@@ -117,7 +125,8 @@ export class MemoryStore {
     const mem: Memory = {
       id,
       kind: input.kind,
-      text: input.text.replace(/\s+/g, " ").trim(),
+      // A kind or label tag typed in front of the text is not part of it (src/tags.ts): the line's own tag names the kind.
+      text: stripLeadingTags(input.text).replace(/\s+/g, " ").trim(),
       ts: input.ts ?? new Date().toISOString(),
       conf: input.conf ?? 1,
     };
@@ -135,6 +144,21 @@ export class MemoryStore {
     old.supersededBy = newId;
     this.write(file);
     return old;
+  }
+
+  /**
+   * Retire a line (0.7.0, `jevmem forget`): it stays in the file as `[retired]`, its text unchanged, with the kind it had
+   * in `was:` and the time in `retired:`. Null when there is no such line or it is retired already.
+   */
+  retire(id: string): Memory | null {
+    const file = this.read();
+    const mem = file.memories.find((m) => m.id === id);
+    if (!mem || mem.kind === "retired") return null;
+    mem.was = mem.kind;
+    mem.kind = "retired";
+    mem.retiredAt = new Date().toISOString();
+    this.write(file);
+    return mem;
   }
 
   update(id: string, patch: Partial<Memory>): Memory | null {

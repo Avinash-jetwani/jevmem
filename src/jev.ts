@@ -33,7 +33,7 @@ export interface JevLogEntry {
    * Set on entries that record an event rather than a Jev call (the poisoning gate withholding a line, the retry
    * queue, a guard decision). They carry no cost and are left out of every latency/cost summary.
    */
-  event?: "withheld" | "queued" | "retried" | "dequeued" | "dropped" | "plugin-standdown" | "guard" | "guard-config" | "writer-fallback" | "served";
+  event?: "withheld" | "queued" | "retried" | "dequeued" | "dropped" | "plugin-standdown" | "guard" | "guard-config" | "writer-fallback" | "served" | "retired" | "duplicate";
   memoryId?: string;
   injection?: number;
   detail?: string;

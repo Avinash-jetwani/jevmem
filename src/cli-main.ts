@@ -55,7 +55,8 @@ Usage: jevmem <command> [options]
   watch [--replay] [--once]               Capture turns from Codex's session log for this project (Cursor: use MCP)
   why <id|hash>                           Show every Jev answer behind a memory line or a skipped turn
   right <id|hash>                         Label the decision as correct
-  wrong <id|hash> [--should-be <kind|none>] Label the decision as wrong
+  wrong <id|hash> [--should-be <kind|none>] Label the decision as wrong (--should-be none retires the line)
+  forget <id> [<id>…]                     Retire a line: it stays in JEVMEM.md as [retired]; a rule asks for a yes on a terminal
   missed "<text>"  [--kind <kind>]        Label a turn that should have been saved
   fit [--dry-run] [--force]               Refit weights and thresholds from labels (needs ${MIN_LABELS}+ labels)
   stats                                   Writer, latency p50/p95, cost per day, cache hit rate, escalation rate, retry queue, labels, last fit
@@ -93,7 +94,7 @@ const stderrWrite = (s: string) => void process.stderr.write(s);
 const defaultIo: CliIo = { out: stdoutWrite, err: stderrWrite };
 let io: CliIo = defaultIo;
 
-export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "guard", "search", "list", "add", "import", "why", "right", "wrong", "missed", "fit", "stats", "doctor", "key", "log", "watch"] as const;
+export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "guard", "search", "list", "add", "import", "why", "right", "wrong", "forget", "missed", "fit", "stats", "doctor", "key", "log", "watch"] as const;
 
 export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
   enable: `jevmem enable
@@ -173,7 +174,7 @@ Rank memories by relevance to the query with one Jev call (choice over ids + a n
 `,
   list: `jevmem list [--all]
 
-Print live memories (id, kind, text). --all includes superseded lines and shows each line's provenance:
+Print live memories (id, kind, text). --all includes superseded and retired lines and shows each line's provenance:
 verified (jevmem wrote this exact text on this machine) or unverified (hand-written, from git, or jevmem add),
 and whether the poisoning gate withheld it.
 `,
@@ -209,7 +210,16 @@ Label the decision as correct. Appends to .jevmem/labels.jsonl for \`jevmem fit\
 `,
   wrong: `jevmem wrong <memory id | turn hash> [--should-be <kind|none>]
 
-Label the decision as wrong. Default: the opposite of what happened. --should-be none removes the saved line.
+Label the decision as wrong. Default: the opposite of what happened. --should-be none retires the saved line, as
+\`jevmem forget\` does (since 0.7.0; up to 0.6.6 it deleted the line).
+`,
+  forget: `jevmem forget <memory id> [<memory id>…]
+
+Retire a line: a done to-do, a fixed bug, an obsolete rule, a wrong or hand-added line. The line stays in JEVMEM.md as
+[retired] with its text unchanged (and the kind it had in the comment), so git history and \`jevmem list --all\` keep the
+record; recall no longer serves it, the guard no longer enforces it, search, the MCP tools and decide no longer see it.
+A [constraint] line is printed first and retired only after a yes on a terminal; there is no flag to skip that. A line
+said again later is saved anew. No Jev call and no key needed. Older jevmem versions keep a [retired] line as text.
 `,
   missed: `jevmem missed "<text>" [--kind <kind>]
 
@@ -580,7 +590,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const held = all ? new Map(planGate(root, mems, cfg.thresholds.injectionMax).withheld.map((w) => [w.memory.id, w])) : null;
       for (const m of mems) {
         const status = prov ? `${(isVerified(prov, m) ? "verified" : "unverified").padEnd(10)}${held!.has(m.id) ? " WITHHELD" : ""}  ` : "";
-        io.out(`${m.id}  ${status}[${m.kind}]${m.stale !== undefined ? " [stale?]" : ""} ${m.text}${m.supersededBy ? ` → ${m.supersededBy}` : ""}\n`);
+        io.out(`${m.id}  ${status}[${m.kind}]${m.stale !== undefined ? " [stale?]" : ""} ${m.text}${m.supersededBy ? ` → ${m.supersededBy}` : ""}${m.kind === "retired" ? ` (was ${m.was ?? "?"}${m.retiredAt ? `, retired ${m.retiredAt.slice(0, 10)}` : ""})` : ""}\n`);
       }
       if (mems.length === 0) io.out("no memories\n");
       if (all && mems.length) io.out(`\nverified: jevmem wrote this exact text on this machine. unverified lines go through the poisoning gate before any agent sees them.\n`);
@@ -730,12 +740,62 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         const { count, label } = labelWrong(root, rec, shouldBe);
         io.out(`labelled: should ${label.save ? `have been saved as ${label.kind}` : "not have been saved"}. ${count} label(s) total.\n`);
         if (rec.decision.save && !label.save && rec.memoryId) {
+          // Since 0.7.0 the line is retired, as `jevmem forget` does, not deleted: it stays in the file as [retired].
           const store = new MemoryStore(root, cfg.memoryFile);
-          if (store.remove(rec.memoryId)) io.out(`removed ${rec.memoryId} from ${cfg.memoryFile}\n`);
+          const r = store.retire(rec.memoryId);
+          if (r) io.out(`retired ${rec.memoryId} in ${cfg.memoryFile} (it stays in the file as [retired])\n`);
         }
       }
       new MemoryStore(root, cfg.memoryFile).touchFooter();
       return 0;
+    }
+    case "forget": {
+      const ids = args.filter((a) => !a.startsWith("--"));
+      if (!ids.length || ids.length !== args.length) return fail("usage: jevmem forget <memory id> [<memory id>…]");
+      const cfg = loadConfig(root);
+      const store = new MemoryStore(root, cfg.memoryFile);
+      const tty = opts.stdin === undefined && process.stdin.isTTY === true;
+      let code = 0;
+      for (const id of ids) {
+        const m = store.list().find((x) => x.id === id);
+        if (!m) {
+          io.err(`jevmem forget: no line with id ${id} in ${cfg.memoryFile}\n`);
+          code = 1;
+          continue;
+        }
+        if (m.kind === "retired") {
+          io.out(`${id} is already retired\n`);
+          continue;
+        }
+        if (m.kind === "superseded" || m.supersededBy) {
+          io.out(`${id} is superseded${m.supersededBy ? ` by ${m.supersededBy}` : ""}; nothing to retire\n`);
+          continue;
+        }
+        if (m.kind === "constraint") {
+          // A rule is retired only after a yes on a terminal: an agent's shell has none, and the guard's tamper check asks
+          // about the command before it runs.
+          io.out(`[constraint] ${m.text}  (${id})\n`);
+          if (!tty) {
+            io.err(`jevmem forget: ${id} is a rule, and retiring a rule needs a yes on a terminal; nothing was changed. Run jevmem forget ${id} in a terminal.\n`);
+            code = 1;
+            continue;
+          }
+          const answer = (await readLine("Retire this rule? [y/N] ")).trim().toLowerCase();
+          if (answer !== "y" && answer !== "yes") {
+            io.out(`kept ${id}\n`);
+            continue;
+          }
+        }
+        const r = store.retire(id);
+        if (!r) {
+          io.err(`jevmem forget: could not retire ${id}\n`);
+          code = 1;
+          continue;
+        }
+        appendLog(root, { ts: new Date().toISOString(), label: "forget", event: "retired", ok: true, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, memoryId: id, detail: `[${r.was}] ${r.text.slice(0, 160)}` });
+        io.out(`retired ${id}: [${r.was}] ${r.text}\n`);
+      }
+      return code;
     }
     case "missed": {
       const kind = opt(args, "--kind");

@@ -457,7 +457,7 @@ describe("tamper check (local, no Jev)", () => {
   it("Bash: writing to jevmem.config.json, JEVMEM.md or .jevmem/, or `jevmem disable`, is asked; reading is not", async () => {
     const { root } = project([ENV]);
     const jev = breaks(0);
-    const asked = ["cp /tmp/other.json jevmem.config.json", "rm jevmem.config.json", "mv jevmem.config.json /tmp/x", "echo '{}' > jevmem.config.json", "sed -i '' 's/ask/off/' jevmem.config.json", "jevmem disable", "npx jevmem init --remove-hooks", "sed -i '/env/d' JEVMEM.md", "git checkout -- JEVMEM.md", "rm -rf .jevmem", "echo '{}' > .jevmem/guard-cache.json", "cd sub && rm ../jevmem.config.json"];
+    const asked = ["cp /tmp/other.json jevmem.config.json", "rm jevmem.config.json", "mv jevmem.config.json /tmp/x", "echo '{}' > jevmem.config.json", "sed -i '' 's/ask/off/' jevmem.config.json", "jevmem disable", "npx jevmem init --remove-hooks", "jevmem wrong k3d9xq --should-be none", "jevmem forget k3d9xq", "sed -i '/env/d' JEVMEM.md", "git checkout -- JEVMEM.md", "rm -rf .jevmem", "echo '{}' > .jevmem/guard-cache.json", "cd sub && rm ../jevmem.config.json"];
     for (const c of asked) expect(parse((await evaluateGuard(bash(root, c), { jev })).stdout).permissionDecision, c).toBe("ask");
     const fine = ["cp jevmem.config.json /tmp/backup.json", "cat jevmem.config.json", "jq .guard jevmem.config.json", "git diff JEVMEM.md", "grep constraint JEVMEM.md", "git add JEVMEM.md jevmem.config.json", "echo '- [decision] x' >> JEVMEM.md", "ls .jevmem", "jevmem list", "sed -n 1,5p JEVMEM.md"];
     for (const c of fine) expect((await evaluateGuard(bash(root, c), { jev })).stdout, c).toBe("");

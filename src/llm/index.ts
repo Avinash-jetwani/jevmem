@@ -1,4 +1,5 @@
 import { scrubSecrets } from "../scrub.js";
+import { stripLeadingTags } from "../tags.js";
 
 export type WriterProvider = "openai" | "anthropic" | "none";
 
@@ -619,7 +620,8 @@ const SEP = /^\s*(?:[,:;]|[-–—])\s*/;
  * "Actually,", "So,", "OK,"); keep the rest verbatim, capitalised. The kind is already recorded in the line's tag.
  */
 export function stripFiller(line: string): string {
-  let t = line.trim();
+  // A kind or label tag in front (`[constraint] …`, `[rule] …`): the line's own tag names the kind (0.7.0, src/tags.ts).
+  let t = stripLeadingTags(line.trim());
   // Peel filler from the front: "Label:" prefixes, and filler words followed by punctuation or by another filler word.
   for (;;) {
     const label = FILLER_LABEL.exec(t) ?? REPORT_LABEL.exec(t) ?? FILLER_LEAD.exec(t);

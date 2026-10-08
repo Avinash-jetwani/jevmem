@@ -1,6 +1,8 @@
 /**
- * The eight memory kinds Jevmem tracks. `superseded` is only ever assigned by contradiction handling. `dead-end` is an
- * approach that was tried and failed or was dropped, with the reason (docs/dead-ends.md).
+ * The memory kinds Jevmem tracks. `superseded` is only ever assigned by contradiction handling. `dead-end` is an
+ * approach that was tried and failed or was dropped, with the reason (docs/dead-ends.md). `retired` (0.7.0) is a line
+ * taken out by `jevmem forget` (or `jevmem wrong … --should-be none`): it stays in the file, text unchanged, with the kind
+ * it had in `was:`, and no reader serves, enforces or lists it as live.
  */
 export const KINDS = [
   "decision",
@@ -11,11 +13,12 @@ export const KINDS = [
   "todo",
   "dead-end",
   "superseded",
+  "retired",
 ] as const;
 export type Kind = (typeof KINDS)[number];
 
-/** Kinds Jev may pick for a *new* memory (everything except `superseded`). */
-export const NEW_KINDS = KINDS.filter((k) => k !== "superseded") as Exclude<Kind, "superseded">[];
+/** Kinds Jev may pick for a *new* memory (everything except `superseded` and `retired`). */
+export const NEW_KINDS = KINDS.filter((k) => k !== "superseded" && k !== "retired") as Exclude<Kind, "superseded" | "retired">[];
 
 export const IMPORTANCE_LEVELS = ["trivial", "minor", "useful", "important", "critical"] as const;
 export type Importance = (typeof IMPORTANCE_LEVELS)[number];
@@ -30,6 +33,10 @@ export interface Memory {
   supersededBy?: string;
   /** Set by `jevmem audit` when the memory scored below the stale threshold. */
   stale?: number;
+  /** A retired line's kind before `jevmem forget` retired it (0.7.0). */
+  was?: Kind;
+  /** When the line was retired (0.7.0), ISO-8601. */
+  retiredAt?: string;
 }
 
 export interface Thresholds {

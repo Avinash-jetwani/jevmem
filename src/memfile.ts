@@ -1,6 +1,8 @@
 /**
  * Reading JEVMEM.md: one memory per line, `- [kind] text  <!-- id:… ts:… conf:… -->`. Kept apart from store.ts, which
- * writes the file, so that readers on a hot path (the PreToolUse guard) load no more than the parser.
+ * writes the file, so that readers on a hot path (the PreToolUse guard) load no more than the parser. A retired line
+ * (0.7.0) is `- [retired] text  <!-- id:… ts:… conf:… was:<kind> retired:<ts> -->`: a reader from before 0.7.0 reads
+ * `retired` as an unknown kind and keeps the line as text, as pre-0.6 readers kept `[dead-end]` lines.
  */
 import { KINDS, type Kind, type Memory } from "./types.js";
 
@@ -43,6 +45,8 @@ export function parseLine(line: string): Memory | null {
   };
   if (supersededBy) mem.supersededBy = supersededBy;
   if (stale !== undefined && !Number.isNaN(stale)) mem.stale = stale;
+  if (meta.was && KINDS.includes(meta.was as Kind)) mem.was = meta.was as Kind;
+  if (meta.retired) mem.retiredAt = meta.retired;
   return mem;
 }
 

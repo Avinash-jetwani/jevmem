@@ -12,7 +12,7 @@ import { noteFirstLine } from "./notice.js";
 import { formatInjection, recallGuarded, replacedTexts, type RecallPath } from "./recall.js";
 import { DEFAULT_CONFIG } from "./types.js";
 import { drainQueue, enqueueTurn, readQueue, type QueuedTurn } from "./queue.js";
-import { MemoryStore } from "./store.js";
+import { isLive, MemoryStore } from "./store.js";
 import { mergeTurn, readTranscriptTurns } from "./transcript.js";
 import { describePick, pickRecord } from "./pick.js";
 import { deferTurn, isDecided, markDecided, releaseDeferred, type ReleasedTurn } from "./turns.js";
@@ -160,7 +160,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
     if (event === "UserPromptSubmit") {
       const prompt = (input.user_prompt ?? input.prompt ?? input.user_prompt_raw ?? input.message ?? "").trim();
       const all = store.list();
-      const memories = all.filter((m) => m.kind !== "superseded" && !m.supersededBy);
+      const memories = all.filter(isLive);
       if (!prompt || memories.length === 0) return { event, action: "noop", detail: "no prompt or no memories" };
       // Unverified lines (not written here by jevmem) go through the poisoning gate in the same Jev call. When the call
       // fails or runs past its budget, the prompt gets the lines sharing the most words with it instead (src/recall.ts).

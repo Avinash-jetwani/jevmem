@@ -60,7 +60,7 @@ export function replacedTexts(all: readonly Memory[]): Map<string, string[]> {
     if (!m.supersededBy || hiddenTextReason(m.text)) continue;
     let at: Memory | undefined = m;
     for (let hops = 0; at?.supersededBy && hops < 10; hops++) at = byId.get(at.supersededBy);
-    if (!at || at.supersededBy || at.kind === "superseded") continue;
+    if (!at || at.supersededBy || at.kind === "superseded" || at.kind === "retired") continue;
     const list = out.get(at.id) ?? [];
     list.push(m.text);
     out.set(at.id, list);
