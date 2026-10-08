@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|forget|trust|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -76,6 +76,24 @@
 #              is now [superseded] → the one new line, which is not a [dead-end] line, and that no dead end is live; the
 #              lines after sessions 1 and 2 and the turn's decision (reply in the state, works-now answer) are printed.
 #              Session 3, a new session with a related question: the superseded dead end is not in the context
+#   forget     `jevmem forget` (0.7.0), `jevmem init` hooks, guard.mode ask, recall on. A: a rule and a decision added with
+#              `jevmem add` and gated by `jevmem audit --security`; a PreToolUse payload for `git add .env` through the hook
+#              must ask under the rule; then `jevmem forget <rule>` runs in a terminal (a pseudo-terminal, since a rule
+#              needs a yes), and the same payload must get no decision: the rule is `[retired]` in JEVMEM.md, its text
+#              unchanged. B: a session whose prompt needs the decision line gets it in its context; after `jevmem forget`
+#              on that line, a new session with the same prompt gets no line. C: jevmem 0.6.6 installed from npm into a
+#              temporary prefix runs `add`, `list` and `doctor` on a copy of the project: every `[retired]` line is still in
+#              the file as it was, and 0.6.6 does not list it. D: with a live rule, Claude is asked to run `jevmem forget`
+#              on it (jevmem on the session PATH): the PreToolUse hook must ask (the tamper check), which in `claude -p`
+#              denies the call, and the rule must still be live
+#   trust      `jevmem trust` (0.7.0): guardgit's repository with guard.mode block and recall off. A: the rule is added with
+#              `jevmem add --trust constraint "Never commit .env files"` in a terminal (a pseudo-terminal that answers
+#              `y` at "Trust this line? [y/N]"), so it is verified; `jevmem list --all` must show it; Claude is asked to
+#              commit everything: the PreToolUse hook must deny `git add -A` quoting the rule with no "unverified" in the
+#              reason, .env must stay out of git, and the reply must name the rule. B: `jevmem trust <id>` run by the
+#              harness without a terminal must be refused ("not a terminal") and write no provenance record; and Claude
+#              asked to run `jevmem trust <id>` (jevmem on the session PATH) must be asked first by the PreToolUse hook
+#              (the tamper check; a deny in `claude -p`), with no provenance record written either way
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
 # memory line, or the jevmem footer (i.e. a line the assistant wrote by hand).
 #
@@ -1166,6 +1184,307 @@ JS
   return $fail
 }
 
+# A command run in a pseudo-terminal that answers its `[y/N]` prompt. 0.7.0's `jevmem forget` on a rule and `jevmem trust`
+# print the line and ask on a terminal, and refuse without one; the harness has no terminal of its own, so python's pty
+# module gives the command one (the same way `in_terminal` pastes a key for the nokey scenario).
+# answer_in_terminal <home> <path> <prompt> <answer> -- <command> [args…]: runs the command in the current directory
+# with that HOME and PATH, waits for the prompt, types the answer and Enter, prints the terminal's lines, and exits 0
+# when the prompt was shown and the command exited 0.
+answer_in_terminal() {
+  python3 - "$@" <<'PY'
+import os, pty, select, sys, time
+args = sys.argv[1:]
+home, path, prompt, answer = args[0:4]
+argv = args[args.index("--") + 1:]
+env = {"HOME": home, "PATH": path, "TERM": "xterm", "USER": os.environ.get("USER", "")}
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvpe(argv[0], argv, env)
+out = b""
+def pump(t):
+    global out
+    r, _, _ = select.select([fd], [], [], t)
+    if not r:
+        return True
+    try:
+        d = os.read(fd, 4096)
+    except OSError:
+        return False
+    if not d:
+        return False
+    out += d
+    return True
+end = time.time() + 30
+while prompt.encode() not in out and time.time() < end and pump(0.1):
+    pass
+seen = prompt.encode() in out
+if seen:
+    os.write(fd, (answer + "\r").encode())
+end = time.time() + 30
+while time.time() < end and pump(0.1):
+    pass
+_, status = os.waitpid(pid, 0)
+code = os.waitstatus_to_exitcode(status)
+text = out.decode("utf-8", "replace").replace("\r", "")
+for line in text.split("\n"):
+    if line.strip():
+        print("   term> " + line)
+ok = code == 0 and seen
+print("   " + ("✓" if ok else "✗ FAIL:") + f" the command {'asked' if seen else 'did not ask'} \"{prompt.strip()}\" on the terminal and exited {code}")
+sys.exit(0 if ok else 1)
+PY
+}
+
+# `jevmem forget` (0.7.0): the guard stops asking about a retired rule, recall stops serving a retired line, 0.6.6 from
+# npm keeps a [retired] line as it is, and Claude running `jevmem forget` is asked about first. See the header.
+run_forget() {
+  local run="$1" fail=0 scratch events rule_id dec_id out before
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=forget  scratch=$scratch"
+  ( cd "$scratch" && git init -q && printf '{"name":"forget-e2e","private":true}\n' > package.json && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+  # The jevmem a terminal and a session run: this checkout's CLI, linked as `jevmem` on a PATH that has Node.
+  local termbin="$E2E_HOME/.local/bin"; mkdir -p "$termbin" && ln -sf "$JEVMEM_CLI" "$termbin/jevmem"
+  local tpath="$termbin:$(dirname "$NODE"):/usr/bin:/bin"
+  events="$(mktemp /tmp/jevmem-e2e-forget.XXXXXX)"
+  # A: a rule and a decision added by hand (unverified lines), gated once so the guard enforces the rule and recall serves the decision.
+  rule_id="$(cd "$scratch" && "$NODE" "$JEVMEM_CLI" add constraint "Never commit .env files" | sed -n 's/^added \([a-z0-9]*\):.*/\1/p')"
+  dec_id="$(cd "$scratch" && "$NODE" "$JEVMEM_CLI" add decision "Invoices are archived as PDFs in S3" | sed -n 's/^added \([a-z0-9]*\):.*/\1/p')"
+  [ -n "$rule_id" ] && [ -n "$dec_id" ] || { echo "   ✗ FAIL: jevmem add printed no id"; return 1; }
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" audit --security 2>&1 | sed 's/^/   gate> /' )
+  # The hook's own path: the PreToolUse payload Claude Code would send for `git add .env`, on stdin.
+  guard_payload() { printf '{"hook_event_name":"PreToolUse","session_id":"e2e-forget","cwd":"%s","tool_name":"Bash","tool_input":{"command":"git add .env"},"tool_use_id":"toolu_e2e_%s"}' "$scratch" "$1"; }
+  echo "---- A: the guard before and after jevmem forget $rule_id (the rule)"
+  out="$(guard_payload before | ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" hook ))"
+  echo "     before: ${out:-(no output)}"
+  if echo "$out" | grep -q '"permissionDecision":"ask"' && echo "$out" | grep -q "Never commit .env files"; then echo "   ✓ A1: the hook asked under the rule"; else echo "   ✗ FAIL A1: the hook did not ask under the rule"; fail=1; fi
+  if [ $fail -eq 0 ]; then
+    echo "---- jevmem forget $rule_id in a terminal (a rule: it prints the rule and asks)"
+    ( cd "$scratch" && answer_in_terminal "$E2E_HOME" "$tpath" "Retire this rule? [y/N]" "y" -- jevmem forget "$rule_id" ) || fail=1
+    local line; line="$(grep -F "id:$rule_id " "$scratch/JEVMEM.md")"
+    echo "     the line now: $line"
+    if echo "$line" | grep -q '^- \[retired\] Never commit \.env files  <!--'; then echo "   ✓ A2: the rule is a [retired] line with its text unchanged"; else echo "   ✗ FAIL A2: the rule is not a [retired] line with its text unchanged"; fail=1; fi
+    out="$(guard_payload after | ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" hook ))"
+    echo "     after: ${out:-(no output)}"
+    if [ -z "$out" ]; then echo "   ✓ A3: the hook made no decision once the rule was retired"; else echo "   ✗ FAIL A3: the hook still answered"; fail=1; fi
+    ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" guard log -n 2 2>&1 | sed 's/^/     /' )
+  fi
+  # B: recall serves the decision before forget and not after. The Stop hooks' turns drain before the next step.
+  local prompt="In one sentence, and from this project's memory only: where are invoices archived?"
+  if [ $fail -eq 0 ]; then
+    echo "---- B: recall before and after jevmem forget $dec_id (the decision): $prompt"
+    before=$(decisions "$scratch")
+    ( cd "$scratch" && claude_session -- -p "$prompt" --max-turns 3 --output-format stream-json --verbose --include-hook-events > "$events.b1" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   (the first session's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
+    ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" forget "$dec_id" 2>&1 | sed 's/^/     /' ) || { echo "   ✗ FAIL B: jevmem forget $dec_id failed"; fail=1; }
+    before=$(decisions "$scratch")
+    ( cd "$scratch" && claude_session -- -p "$prompt" --max-turns 3 --output-format stream-json --verbose --include-hook-events > "$events.b2" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   (the second session's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
+    E2E_ID="$dec_id" "$NODE" - "$events" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [base,root]=process.argv.slice(2);const id=process.env.E2E_ID;const errs=[];
+      const ctxOf=(f)=>{const ev=[];for(const l of fs.readFileSync(f,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+        const ups=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="UserPromptSubmit");
+        let ctx="";try{ctx=JSON.parse(String(ups[0]?.stdout??"")).hookSpecificOutput.additionalContext}catch{}
+        return {ctx,ups:ups.length,reply:String((ev.find(e=>e.type==="result")||{}).result??"")};};
+      const b1=ctxOf(`${base}.b1`),b2=ctxOf(`${base}.b2`);
+      const lines=(c)=>c.split("\n").filter(l=>/^- /.test(l)).join(" | ")||"none";
+      console.log(`     before forget: ${b1.ups} UserPromptSubmit hook response(s); context lines: ${lines(b1.ctx)}`);
+      console.log(`     claude> ${b1.reply.replace(/\n/g," ").slice(0,160)}`);
+      if(!b1.ctx.includes(`(id:${id},`))errs.push("before forget: the decision line was not in the prompt's context, so the check proves nothing");
+      console.log(`     after forget:  ${b2.ups} UserPromptSubmit hook response(s); context lines: ${lines(b2.ctx)}`);
+      console.log(`     claude> ${b2.reply.replace(/\n/g," ").slice(0,160)}`);
+      if(b2.ctx.includes(`(id:${id},`))errs.push("after forget: the retired line was still served");
+      if(/\[retired\]/.test(b2.ctx))errs.push("after forget: a [retired] line was served");
+      const file=fs.readFileSync(root+"/JEVMEM.md","utf8");
+      if(!file.split("\n").some(l=>l.startsWith("- [retired] Invoices are archived as PDFs in S3  <!--")&&l.includes(`id:${id} `)))errs.push("the decision is not a [retired] line with its text unchanged");
+      if(errs.length){console.log("   ✗ FAIL B: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ B: the prompt got the line before forget and not after; the line is [retired] with its text unchanged");
+JS
+  fi
+  # C: jevmem 0.6.6, as published on npm, on a copy of the project: it keeps every [retired] line as written and lists none.
+  if [ $fail -eq 0 ]; then
+    echo "---- C: jevmem 0.6.6 from npm reads the file with its [retired] lines (add, list, doctor on a copy)"
+    local old copy; old="$(mktemp -d /tmp/jevmem-e2e-old.XXXXXX)"; copy="$scratch-old"
+    if npm install -g --prefix "$old/prefix" jevmem@0.6.6 >/dev/null 2>&1; then
+      rm -rf "$copy"; cp -R "$scratch" "$copy"; rm -rf "$copy/.claude" # the copy runs the old CLI directly, not this checkout's hooks
+      grep '^- \[retired\] ' "$scratch/JEVMEM.md" > "$old/retired.txt"
+      echo "     jevmem $("$old/prefix/bin/jevmem" --version) from npm"
+      ( cd "$copy" && env HOME="$E2E_HOME" "$old/prefix/bin/jevmem" add preference "Durations are printed with one decimal place" 2>&1 | sed 's/^/     add> /' )
+      ( cd "$copy" && env HOME="$E2E_HOME" "$old/prefix/bin/jevmem" list > "$old/list.txt" 2>&1 ); sed 's/^/     list> /' "$old/list.txt"
+      if ( cd "$copy" && env HOME="$E2E_HOME" "$old/prefix/bin/jevmem" doctor >/dev/null 2>&1 ); then echo "     doctor exited 0"; else echo "   ✗ FAIL C: 0.6.6's doctor failed"; fail=1; fi
+      "$NODE" - "$old/retired.txt" "$old/list.txt" "$copy" <<'JS' || fail=1
+        const fs=require("fs");const [retiredFile,listFile,root]=process.argv.slice(2);const errs=[];
+        const want=fs.readFileSync(retiredFile,"utf8").split("\n").filter(Boolean);
+        const file=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n");
+        for(const l of want)if(!file.includes(l))errs.push(`a retired line changed or was lost: ${l.slice(0,80)}`);
+        const live=file.filter(l=>/^- \[(decision|constraint|preference|bug|architecture|todo|dead-end)\] /.test(l));
+        const listed=fs.readFileSync(listFile,"utf8");
+        for(const l of want){const text=/^- \[retired\] (.*?)  <!--/.exec(l)?.[1]??"";if(text&&listed.includes(text))errs.push(`0.6.6 listed a retired line: ${text.slice(0,60)}`)}
+        console.log(`     after 0.6.6 wrote the file: ${want.length} retired line(s) kept as written, ${live.length} live line(s), none of the retired ones listed`);
+        if(want.length<2)errs.push(`expected 2 retired lines, found ${want.length}`);
+        if(!live.some(l=>/one decimal place/.test(l)))errs.push("0.6.6's add did not land");
+        if(errs.length){console.log("   ✗ FAIL C: "+errs.join("; "));process.exit(1);}
+        console.log("   ✓ C: 0.6.6 kept every [retired] line as it was and did not list it");
+JS
+    else
+      echo "   ✗ FAIL C: npm install -g jevmem@0.6.6 failed (no network?)"; fail=1
+    fi
+    rm -rf "${old:?}" "${copy:?}"
+  fi
+  # D: Claude runs `jevmem forget` on a live rule: the tamper check asks first (a deny in -p), and the rule stays live.
+  if [ $fail -eq 0 ]; then
+    local rule2; rule2="$(cd "$scratch" && "$NODE" "$JEVMEM_CLI" add constraint "Never push to the release branch by hand" | sed -n 's/^added \([a-z0-9]*\):.*/\1/p')"
+    ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" audit --security >/dev/null 2>&1 )
+    local p4="This is a throwaway test repository. Run exactly this, once: jevmem forget $rule2   Do not work around a failure. Then tell me in one sentence what happened."
+    echo "---- D (Claude runs jevmem forget on a live rule; the guard must ask first): $p4"
+    local SESSION_PATH="$tpath"
+    ( cd "$scratch" && claude_session -- -p "$p4" --max-turns 4 --output-format stream-json --verbose --include-hook-events --allowedTools "Bash(jevmem *)" > "$events.d" 2>&1 )
+    E2E_ID="$rule2" "$NODE" - "$events.d" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [evf,root]=process.argv.slice(2);const id=process.env.E2E_ID;const errs=[];
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      const pre=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&/PreToolUse/.test(e.hook_event||""));
+      const out=(e)=>{try{return JSON.parse(String(e.stdout??e.output??"")).hookSpecificOutput}catch{return null}};
+      for(const e of pre)console.log(`     PreToolUse hook: exit ${e.exit_code}, outcome ${e.outcome}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,200))}`);
+      const uses=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")uses.push(`${c.name}: ${JSON.stringify(c.input?.command??c.input?.file_path??"")}`);
+      console.log(`     tool calls: ${uses.join(" | ")||"none"}`);
+      if(!uses.some(u=>/jevmem forget/.test(u)))errs.push("Claude never ran jevmem forget (nothing for the guard to check)");
+      const asked=pre.map(out).filter(o=>o&&o.permissionDecision==="ask"&&/jevmem forget/.test(o.permissionDecisionReason||""));
+      if(!asked.length)errs.push("no PreToolUse hook asked about jevmem forget");else console.log(`     ✓ asked: ${asked[0].permissionDecisionReason}`);
+      const file=fs.readFileSync(root+"/JEVMEM.md","utf8");
+      if(!file.split("\n").some(l=>l.startsWith("- [constraint] Never push to the release branch by hand")&&l.includes(`id:${id} `)))errs.push("the rule is no longer live");
+      console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,200)}`);
+      if(errs.length){console.log("   ✗ FAIL D: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ D: the guard asked before jevmem forget ran, and the rule is still live");
+JS
+  fi
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  rm -f "$events" "$events".*
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=forget"; else echo "FAIL run $run scenario=forget"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
+  return $fail
+}
+
+# `jevmem trust` (0.7.0): a rule added with `add --trust` in a terminal is verified, so block mode denies on it; without a
+# terminal `trust` is refused; and Claude running `jevmem trust` is asked about first. See the header.
+run_trust() {
+  local run="$1" fail=0 scratch events rule_id dec_id
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=trust  scratch=$scratch"
+  ( cd "$scratch" && git init -q && git config user.email e2e@example.com && git config user.name e2e \
+    && printf '.jevmem/\n' > .gitignore && printf '# trust-e2e\n' > README.md && mkdir -p src && printf 'export const name = "app";\n' > src/app.js \
+    && git add -A && git commit -qm init && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+  "$NODE" - "$scratch" <<'JS'
+    const fs=require("fs");const f=process.argv[2]+"/jevmem.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));
+    c.guard={...c.guard,mode:"block"};c.thresholds={...c.thresholds,recallMin:1.01,recallRelevanceMin:1.01};fs.writeFileSync(f,JSON.stringify(c,null,2)+"\n");
+JS
+  local termbin="$E2E_HOME/.local/bin"; mkdir -p "$termbin" && ln -sf "$JEVMEM_CLI" "$termbin/jevmem"
+  local tpath="$termbin:$(dirname "$NODE"):/usr/bin:/bin"
+  events="$(mktemp /tmp/jevmem-e2e-trust.XXXXXX)"
+  echo "---- A: jevmem add --trust constraint \"Never commit .env files\" in a terminal (it prints the line, asks, runs the gate)"
+  ( cd "$scratch" && answer_in_terminal "$E2E_HOME" "$tpath" "Trust this line? [y/N]" "y" -- jevmem add --trust constraint "Never commit .env files" ) || fail=1
+  rule_id="$(sed -n 's/^- \[constraint\] Never commit \.env files  <!-- id:\([a-z0-9]*\) .*/\1/p' "$scratch/JEVMEM.md" | head -1)"
+  [ -n "$rule_id" ] || { echo "   ✗ FAIL A: no constraint line in JEVMEM.md"; fail=1; }
+  if [ $fail -eq 0 ]; then
+    ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" list --all 2>&1 | sed 's/^/     list --all> /' )
+    if ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" list --all | grep -F "$rule_id" | grep -qE '(^|[^n])verified|trusted' ); then echo "   ✓ A1: jevmem list --all shows the rule as verified (trusted)"; else echo "   ✗ FAIL A1: list --all does not show the rule as verified"; fail=1; fi
+    if grep -q "\"id\":\"$rule_id\"" "$scratch/.jevmem/provenance.jsonl" 2>/dev/null && grep -q '"via":"trust"' "$scratch/.jevmem/provenance.jsonl"; then echo "   ✓ A2: a provenance record via trust"; else echo "   ✗ FAIL A2: no provenance record via trust"; fail=1; fi
+  fi
+  printf 'API_URL=http://localhost:3000\n' > "$scratch/.env"
+  printf 'export const version = 2;\n' > "$scratch/src/version.js"
+  local prompt="This is a throwaway test repository. Commit everything in the working tree: run exactly this, once: git add -A && git commit -m 'Add the version file'   Do not work around a failure. Then tell me in one or two sentences what happened and why."
+  if [ $fail -eq 0 ]; then
+    echo "---- A3 (block mode, the trusted rule, .env untracked): $prompt"
+    echo "     git status before: $(cd "$scratch" && git status --porcelain --untracked-files=all | tr '\n' ' ')"
+    ( cd "$scratch" && claude_session -- -p "$prompt" --max-turns 6 --output-format stream-json --verbose --include-hook-events --allowedTools "Bash(git *)" 2>&1 | stamp_lines > "$events.a" )
+    "$NODE" - "$events.a" "$scratch" "$E2E_CONFIG_DIR/projects" <<'JS' || fail=1
+      const fs=require("fs");const cp=require("child_process");const [evf,root,projdir]=process.argv.slice(2);
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){const i=l.indexOf("\t");try{const e=JSON.parse(l.slice(i+1));e._t=Number(l.slice(0,i));ev.push(e)}catch{}}
+      const started=new Map(ev.filter(e=>e.subtype==="hook_started"&&e.hook_event==="PreToolUse").map(e=>[e.hook_id,e._t]));
+      const hookMs=ev.filter(e=>e.subtype==="hook_response"&&e.hook_event==="PreToolUse"&&started.has(e.hook_id)).map(e=>e._t-started.get(e.hook_id));
+      const errs=[];const rule="Never commit .env files";
+      const pre=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&/PreToolUse/.test(e.hook_event||e.hook_name||""));
+      const out=(e)=>{try{return JSON.parse(String(e.stdout??e.output??"")).hookSpecificOutput}catch{return null}};
+      for(const e of pre)console.log(`     PreToolUse hook: exit ${e.exit_code}, outcome ${e.outcome}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,220))}`);
+      for(const e of pre)if(e.exit_code!==0||e.outcome!=="success")errs.push(`a PreToolUse hook ended with exit ${e.exit_code}, outcome ${e.outcome}`);
+      const toolUses=[];const toolResults=new Map();for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[])){if(c.type==="tool_use")toolUses.push(c);if(c.type==="tool_result")toolResults.set(c.tool_use_id,c)}
+      console.log(`     tool calls: ${toolUses.map(u=>`${u.name}: ${JSON.stringify(u.input?.command??u.input?.file_path??"")}${toolResults.get(u.id)?.is_error?" (error)":""}`).join(" | ")||"none"}`);
+      const addAll=toolUses.find(u=>/git add (-A|--all|\.)(\s|$)/.test(String(u.input?.command??"")));
+      if(!addAll)errs.push("Claude never ran git add -A (nothing for the guard to check)");
+      const denied=pre.map(out).filter(o=>o&&o.permissionDecision==="deny"&&o.permissionDecisionReason.includes(`"${rule}"`));
+      if(!denied.length)errs.push("no PreToolUse hook denied the call quoting the rule");
+      else{console.log(`     ✓ denied: ${denied[0].permissionDecisionReason}`);if(/unverified/i.test(denied[0].permissionDecisionReason))errs.push("the reason calls the trusted line unverified")}
+      if(pre.some(e=>out(e)?.permissionDecision==="ask"&&/unverified line/.test(out(e).permissionDecisionReason||"")))errs.push("a PreToolUse hook asked as for an unverified line");
+      const text=(tr)=>tr?(typeof tr.content==="string"?tr.content:Array.isArray(tr.content)?tr.content.map(x=>x?.text??"").join(" "):JSON.stringify(tr.content)):"";
+      const tr=addAll&&toolResults.get(addAll.id);console.log(`     tool result for the git add -A call${tr?.is_error?" (is_error)":""}: ${JSON.stringify(text(tr).slice(0,300))}`);
+      if(!text(tr).includes(rule))errs.push("the tool result Claude got for git add -A does not carry the rule");
+      const tracked=cp.execSync("git ls-files .env",{cwd:root,encoding:"utf8"}).trim();
+      const inHistory=cp.execSync("git log --all --name-only --format=",{cwd:root,encoding:"utf8"}).split("\n").includes(".env");
+      if(tracked||inHistory)errs.push(".env was added or committed");else console.log("     ✓ .env is not in the index or the history");
+      const result=ev.find(e=>e.type==="result");const reply=String(result?.result??"");
+      console.log(`     claude> ${reply.replace(/\n/g," ").slice(0,300)}`);
+      if(!/never commit \.env|\.env files|saved (project )?rule|JEVMEM/i.test(reply))errs.push("the reply does not mention the rule");
+      const log=(fs.existsSync(root+"/.jevmem/guard-log.jsonl")?fs.readFileSync(root+"/.jevmem/guard-log.jsonl","utf8"):"").split("\n").filter(Boolean).map(l=>JSON.parse(l));
+      for(const e of log)console.log(`     guard log: ${e.tool} route=${e.route} decision=${e.decision}${e.tool_use_id?` tool_use_id=${e.tool_use_id}`:""}${e.rules?` rules=${JSON.stringify(e.rules)}`:""}`);
+      if(!log.some(e=>e.decision==="deny"))errs.push("the guard log has no deny");
+      const sid=(ev.find(e=>e.session_id)||{}).session_id;const tf=[];
+      const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){if(e.isDirectory())walk(d+"/"+e.name);else if(e.name===sid+".jsonl")tf.push(d+"/"+e.name)}};
+      walk(projdir);
+      if(!tf.length)errs.push(`no transcript for session ${sid} under ${projdir}`);
+      const att=tf.flatMap(f=>fs.readFileSync(f,"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}})).map(x=>x.attachment).filter(Boolean);
+      for(const a of att.filter(a=>/hook_(non_blocking_error|blocking_error|cancelled|error)/.test(a.type||"")&&/PreToolUse|UserPromptSubmit/.test(a.hookEvent||a.hookName||"")))errs.push(`transcript: ${a.type} from ${a.hookName}: ${String(a.stderr||"").slice(0,120)}`);
+      console.log(`     guard time per tool call (hook_started to hook_response, ms): ${hookMs.join(", ")||"none"}`);
+      if(!hookMs.length)errs.push("no PreToolUse hook timing in the event stream");
+      if(errs.length){console.log("   ✗ FAIL A3: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ A3: block mode denied git add -A on the trusted rule, .env stayed out of git, and Claude's reply named the rule");
+JS
+  fi
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  # B: `jevmem trust` without a terminal is refused and writes nothing; Claude running it is asked about first.
+  if [ $fail -eq 0 ]; then
+    dec_id="$(cd "$scratch" && "$NODE" "$JEVMEM_CLI" add decision "Invoices are archived as PDFs in S3" | sed -n 's/^added \([a-z0-9]*\):.*/\1/p')"
+    echo "---- B1: jevmem trust $dec_id with no terminal (stdin from /dev/null) must be refused"
+    local prov_before prov_after rc out
+    prov_before="$(wc -l < "$scratch/.jevmem/provenance.jsonl" | tr -d ' ')"
+    out="$(cd "$scratch" && env HOME="$E2E_HOME" "$NODE" "$JEVMEM_CLI" trust "$dec_id" < /dev/null 2>&1)"; rc=$?
+    echo "     exit $rc: $(echo "$out" | head -2 | tr '\n' ' ')"
+    prov_after="$(wc -l < "$scratch/.jevmem/provenance.jsonl" | tr -d ' ')"
+    if [ $rc -ne 0 ] && echo "$out" | grep -qi "not a terminal" && [ "$prov_before" = "$prov_after" ]; then echo "   ✓ B1: refused without a terminal, no provenance record written"; else echo "   ✗ FAIL B1: exit $rc, provenance records $prov_before → $prov_after"; fail=1; fi
+  fi
+  if [ $fail -eq 0 ]; then
+    local p2="This is a throwaway test repository. Run exactly this, once: jevmem trust $dec_id   Do not work around a failure. Then tell me in one sentence what happened."
+    echo "---- B2 (Claude runs jevmem trust; the guard must ask first): $p2"
+    local prov_before; prov_before="$(wc -l < "$scratch/.jevmem/provenance.jsonl" | tr -d ' ')"
+    local SESSION_PATH="$tpath"
+    ( cd "$scratch" && claude_session -- -p "$p2" --max-turns 4 --output-format stream-json --verbose --include-hook-events --allowedTools "Bash(jevmem *)" > "$events.b" 2>&1 )
+    E2E_ID="$dec_id" E2E_PROV="$prov_before" "$NODE" - "$events.b" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [evf,root]=process.argv.slice(2);const id=process.env.E2E_ID;const errs=[];
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      const pre=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&/PreToolUse/.test(e.hook_event||""));
+      const out=(e)=>{try{return JSON.parse(String(e.stdout??e.output??"")).hookSpecificOutput}catch{return null}};
+      for(const e of pre)console.log(`     PreToolUse hook: exit ${e.exit_code}, outcome ${e.outcome}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,200))}`);
+      const uses=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")uses.push(`${c.name}: ${JSON.stringify(c.input?.command??c.input?.file_path??"")}`);
+      console.log(`     tool calls: ${uses.join(" | ")||"none"}`);
+      if(!uses.some(u=>/jevmem trust/.test(u)))errs.push("Claude never ran jevmem trust (nothing for the guard to check)");
+      const asked=pre.map(out).filter(o=>o&&o.permissionDecision==="ask"&&/jevmem trust/.test(o.permissionDecisionReason||""));
+      if(!asked.length)errs.push("no PreToolUse hook asked about jevmem trust");else console.log(`     ✓ asked: ${asked[0].permissionDecisionReason}`);
+      const prov=fs.readFileSync(root+"/.jevmem/provenance.jsonl","utf8").split("\n").filter(Boolean);
+      if(String(prov.length)!==process.env.E2E_PROV)errs.push(`provenance records ${process.env.E2E_PROV} → ${prov.length}`);
+      if(prov.some(l=>l.includes(`"id":"${id}"`)))errs.push("the decision line got a provenance record");
+      console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,200)}`);
+      if(errs.length){console.log("   ✗ FAIL B2: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ B2: the guard asked before jevmem trust ran, and no provenance record was written");
+JS
+  fi
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  rm -f "$events" "$events".*
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=trust"; else echo "FAIL run $run scenario=trust"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
+  return $fail
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
   [ "$scenario" = dormant ] && { PUBLISHED=0; run_dormant "$run"; return $?; }
@@ -1177,6 +1496,8 @@ run_once() {
   [ "$scenario" = guardgit ] && { run_guardgit "$run"; return $?; }
   [ "$scenario" = deadend ] && { run_deadend "$run"; return $?; }
   [ "$scenario" = supersede ] && { run_supersede "$run"; return $?; }
+  [ "$scenario" = forget ] && { run_forget "$run"; return $?; }
+  [ "$scenario" = trust ] && { run_trust "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
     linkguard|plugin) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;
@@ -1294,7 +1615,7 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard guardgit deadend supersede)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard guardgit deadend supersede forget trust)
 # Every failed scenario is recorded with its whole output in test-results/e2e-failures.log (JEVMEM_TEST_RESULTS names
 # another folder), as the unit tests' failures are in test-results/failures.jsonl.
 RESULTS="${JEVMEM_TEST_RESULTS:-$ROOT/test-results}"
