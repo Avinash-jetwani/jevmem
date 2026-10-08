@@ -102,6 +102,26 @@ export function debugLogPayload(root: string, input: HookInput, env: NodeJS.Proc
   }
 }
 
+/**
+ * The two local files 0.7.1's side pane reads (docs/hooks.md, "Local files for the pane"): `.jevmem/last-recall.json`,
+ * what the last prompt got, and `.jevmem/last-decision.json`, what the last turn's decision was. Written whole through a
+ * temporary file and a rename, so a reader never sees half of one; best effort, never a reason for a hook to fail.
+ * Both stay on the machine: `.jevmem/` is gitignored and `.jevmem/.gitignore` holds `*`.
+ */
+export const LAST_RECALL_FILE = "last-recall.json";
+export const LAST_DECISION_FILE = "last-decision.json";
+export function writeLocalJson(root: string, name: string, value: unknown): void {
+  try {
+    const dir = path.join(root, ".jevmem");
+    fs.mkdirSync(dir, { recursive: true });
+    const tmp = path.join(dir, `${name}.${process.pid}.${crypto.randomBytes(3).toString("hex")}.tmp`);
+    fs.writeFileSync(tmp, JSON.stringify(value, null, 2));
+    fs.renameSync(tmp, path.join(dir, name));
+  } catch {
+    /* best effort */
+  }
+}
+
 /** Record a hook problem in `.jevmem/log.jsonl` so nothing fails silently. */
 export function logHookProblem(root: string, event: string, error: string): void {
   appendLog(root, { ts: new Date().toISOString(), label: "hook", ok: false, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, error: `${event}: ${error}` });
@@ -176,7 +196,20 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
         maxIds: cfg.jev.maxRecallLines,
         replaced: replacedTexts(all),
       });
-      logRecallPath(store.root, served, ranked.length, Math.round(performance.now() - t0), error);
+      const ms = Math.round(performance.now() - t0);
+      logRecallPath(store.root, served, ranked.length, ms, error);
+      writeLocalJson(store.root, LAST_RECALL_FILE, {
+        ts: new Date().toISOString(),
+        session_id: input.session_id ?? null,
+        prompt_hash: hashOf(prompt),
+        path: served,
+        served: ranked.map((r) => ({ id: r.memory.id, kind: r.memory.kind, text: r.memory.text, p: Number((r.relevance ?? r.choiceProbability).toFixed(3)), ...(r.sharedWords !== undefined ? { shared_words: r.sharedWords } : {}) })),
+        withheld: withheld.map((w) => ({ id: w.memory.id, reason: w.reason })),
+        gated,
+        deferred,
+        ms,
+        ...(error ? { error } : {}),
+      });
       const how = served === "word-match" ? `; by word match, Jev: ${error}` : "";
       const gate = `${gated} gated${deferred ? `, ${deferred} left for a later prompt` : ""}${withheld.length ? `, withheld ${withheld.map((w) => w.memory.id).join(",")}` : ""}`;
       if (ranked.length === 0) return { event, action: "noop", detail: `no relevant memories (${gate}${how})` };
@@ -315,6 +348,29 @@ export function captureTurn(input: HookInput, root: string, event: string, deps:
  * The text was scrubbed when it was queued; decide and the writer scrub again.
  */
 export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, turn: Pick<QueuedTurn, "hash" | "user" | "assistant" | "previous">, deps: HookDeps = {}): Promise<HookOutcome> {
+  const t0 = performance.now();
+  const outcome = await evaluateTurnInner(store, cfg, jev, turn, deps);
+  const d = outcome.decision as Decision | undefined;
+  const saved = /^\[([a-z-]+)\] (.*) id:([a-z0-9]+)(?: \(supersedes ([a-z0-9]+)\))?/.exec(outcome.action === "saved" ? outcome.detail : "");
+  writeLocalJson(store.root, LAST_DECISION_FILE, {
+    ts: new Date().toISOString(),
+    hash: turn.hash,
+    action: outcome.action,
+    detail: outcome.detail,
+    kind: saved?.[1] ?? null,
+    line: saved?.[2] ?? null,
+    id: saved?.[3] ?? null,
+    superseded: saved?.[4] ?? null,
+    duplicate_of: d?.duplicateOf ?? null,
+    reason: d?.reason ?? null,
+    source: d?.source ?? null,
+    tier: d?.tier ?? null,
+    ms: Math.round(performance.now() - t0),
+  });
+  return outcome;
+}
+
+async function evaluateTurnInner(store: MemoryStore, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, turn: Pick<QueuedTurn, "hash" | "user" | "assistant" | "previous">, deps: HookDeps = {}): Promise<HookOutcome> {
   const env = deps.env ?? process.env;
   const event = "Stop";
   const { hash, user, assistant, previous } = turn;

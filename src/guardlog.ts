@@ -22,6 +22,8 @@ export type GuardRoute = "no-rules" | "no-candidate" | "cache" | "jev" | "jev-fa
 export interface GuardLogEntry {
   ts: string;
   tool: string;
+  /** Claude Code's id for the call (the PreToolUse payload's `tool_use_id`), since 0.7.0, so a reader can match an ask to its call. */
+  tool_use_id?: string;
   route: GuardRoute;
   decision: "none" | "ask" | "deny" | "warn";
   /** Asks, denials and warnings only. */

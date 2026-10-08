@@ -790,7 +790,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
   // A call the guard checked but could not decide on (bad config, malformed input) still counts as seen.
   const failedCall = () => {
     trace.route = "error";
-    if (log && guarded) recordGuardCall(root, { ts: startedAt, tool: input.tool_name!, route: "error", decision: "none" });
+    if (log && guarded) recordGuardCall(root, { ts: startedAt, tool: input.tool_name!, ...(input.tool_use_id ? { tool_use_id: input.tool_use_id } : {}), route: "error", decision: "none" });
     return done();
   };
   if (!fs.existsSync(path.join(root, CONFIG_FILE))) {
@@ -858,7 +858,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     const hits = checks.filter((c) => c.p !== null && c.p >= cfg.guard.askMin).sort((a, b) => b.p! - a.p!);
     if (d.decision !== "none") logGuard(root, log, { ok: true, latencyMs: Math.round(performance.now() - t0), detail: `${d.decision} ${action.tool}${trace.tamper ? " (tamper)" : ""}${hits.length ? `: ${hits.map((c) => `${c.id} p=${c.p!.toFixed(2)}${c.cached ? " (cached)" : ""}`).join(", ")}` : ""}` });
     if (log) {
-      const entry: GuardLogEntry = { ts: startedAt, tool: action.tool, route: trace.route ?? "error", decision: d.decision };
+      const entry: GuardLogEntry = { ts: startedAt, tool: action.tool, ...(input.tool_use_id ? { tool_use_id: input.tool_use_id } : {}), route: trace.route ?? "error", decision: d.decision };
       if (trace.errors.length) entry.error = shorten(scrubSecrets(trace.errors.join("; ")), 200);
       if (d.decision !== "none") {
         entry.mode = cfg.guard.mode;
