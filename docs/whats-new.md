@@ -2,7 +2,7 @@
 
 # What's new
 
-**What's new in 0.7** (0.7.0, 2026-10-08; [CHANGELOG](../CHANGELOG.md#070---2026-10-08)): memory you can see and fix.
+**What's new in 0.7** (0.7.0, 2026-10-09; [CHANGELOG](../CHANGELOG.md#070---2026-10-09)): memory you can see and fix.
 
 - **`jevmem forget <id>` retires a line in place.** A done to-do, a fixed bug, an obsolete rule, a wrong or hand-added line: the line stays in `JEVMEM.md` as `[retired]`, its text unchanged and its old kind in the comment, and recall, the guard, search, the MCP tools and decide treat it as gone. A rule asks for a yes on a terminal, with no flag to skip that, and the guard's tamper check asks before an agent runs the command. `jevmem wrong … --should-be none` now retires instead of deleting. Older versions keep a retired line as text ([How it works](how-it-works.md#memory-file-format)).
 - **`jevmem trust <id>` marks a line you wrote as verified**, so `block` mode can deny on your own rules instead of only asking, and recall serves the line without the poisoning gate's question. It needs a terminal, prints the line and asks, runs the poisoning gate and refuses a flagged line, and writes a local, gitignored record that an edit to the line ends ([Guardrails](guardrails.md), [SECURITY.md](../SECURITY.md#memory-poisoning)). `jevmem add --trust` does both at once.

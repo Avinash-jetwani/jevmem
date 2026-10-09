@@ -2,7 +2,7 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [0.7.0] - 2026-10-08
+## [0.7.0] - 2026-10-09
 
 Memory you can see and fix: `jevmem forget <id>` retires a line in place, `jevmem trust <id>` marks a line you wrote as verified so the guard can block on your own rules, a line that says the same as a live one is not saved again, and a leading `[constraint]` or `[rule]` tag is no longer part of a line. One more question rides on the request each turn already sends; no new text leaves the machine ([PRIVACY.md](PRIVACY.md)). Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI, and the 0.7.0 plugin warns once about an older one).
 
