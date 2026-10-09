@@ -19,7 +19,21 @@ https://github.com/user-attachments/assets/65e48f03-8e1c-49d9-baad-6f217911e861
 Each Claude Code session starts with a fresh context, so what you decided last week lives in last week's chat.
 A `CLAUDE.md` file helps if you keep it up to date. jevmem keeps a file like it up to date for you, as you work.
 
+## In numbers
+
+In real Claude Code sessions on three small test projects, with jevmem and without it:
+
+- **Claude followed the project's earlier decisions:** in 66 of 72 sessions with jevmem, 28 of 72 without (about 9 in 10, against 4 in 10).
+- **Tried a change the project forbids:** in 0 of 18 sessions with jevmem, against 10 of 18 without.
+- **Repeated an approach that had already failed:** in 0 of 15, against 3 of 15.
+- **Cheap and fast:** deciding what to save costs about 17 cents per 1,000 messages and takes about a quarter of a second, in the background: Claude doesn't wait for it. Bringing lines back is one more request on each prompt, which Claude does wait for, about a third to half a second, and it costs more as the file grows.
+- **To be fair:** a `CLAUDE.md` you keep up to date by hand did about as well (67 of 72), and better on one convention (3 of 3 against 0 of 3). jevmem keeps a file like it up to date for you.
+
+My own test sets, each number from one run; none is an independent benchmark. [Method and results](https://avinash-jetwani.github.io/jevmem/results/)
+
 ## How it works
+
+You chat as usual. When you decide something, jevmem writes it as one line in a file in your repo, and brings the right lines back next session.
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-works-dark.svg"><img alt="You say it, Jev decides, jevmem writes one line to JEVMEM.md, and next session Claude gets the lines that matter." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-works-light.svg"></picture>
 
@@ -54,6 +68,8 @@ Real lines from 0.5.7's default writer, which 0.5.8 to 0.5.10 did not change ([t
 
 ## Does it work?
 
+In 72 real Claude Code sessions for each setup, Claude acted on the saved line about as often with jevmem as with the same lines in a hand-written `CLAUDE.md`, and in fewer than half the sessions with neither.
+
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/results-dark.svg"><img alt="A/B results: followed the project's decision 28 of 72 with no project memory, 66 of 72 with jevmem, 67 of 72 with a hand-written CLAUDE.md." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/results-light.svg"></picture>
 
 | | No project memory | jevmem | Same lines in `CLAUDE.md` |
@@ -62,9 +78,9 @@ Real lines from 0.5.7's default writer, which 0.5.8 to 0.5.10 did not change ([t
 | Tried a change the project forbids | 10 of 18 | **0 of 18** | — |
 | Repeated an approach that had already failed | 3 of 15 | **0 of 15** | 0 of 15 |
 
-So jevmem does about as well as a hand-written `CLAUDE.md`, without you writing it.
+So jevmem did about as well as a hand-written `CLAUDE.md`, without you writing it.
 `CLAUDE.md` did better on a convention nothing in the prompt points at (3 of 3 against 0 of 3), so rules every task must follow still belong there.
-Method, dates and builds: [What's new](docs/whats-new.md).
+How the sessions were run, and every row: [the benchmark page](docs/benchmark.md#outcome-ab-does-claude-act-on-the-memory).
 
 ## The guard (new in 0.6)
 
@@ -76,12 +92,12 @@ Before Claude runs a command or edits a file, jevmem checks it against your save
 jevmem: this may break a saved rule: "Never commit .env files" (JEVMEM.md)
 ```
 
-On a held-out test of 274 tool calls, it caught 66 of 68 rule breaks, with 3–4 false asks in 206 fine calls.
+On a test of 274 tool calls, a set the guard was not tuned on, it caught 66 of 68 rule breaks and asked about 3 or 4 of the 206 calls that broke no rule (one run each on 0.6.0 and 0.6.1).
 It's a backstop, not a sandbox: it looks at the words a rule and a call share. [How the guard works](docs/guardrails.md).
 
 ## Install
 
-You need a [TypeSafe API key](https://console.typesafe.ai/keys) and Claude Code 2.1.273 or later.
+You need a [TypeSafe API key](https://console.typesafe.ai/keys), which jevmem's requests are billed to, and Claude Code 2.1.273 or later.
 
 1. In the Claude app: **Plugins → Discover → jevmem → Add**.
 2. Install the CLI the plugin runs:
@@ -126,6 +142,8 @@ Every step, and what to do if the plugin can't find the CLI: [docs/install.md](d
 
 ## Works with
 
+Saving is automatic in Claude Code, and in Codex while `jevmem watch` runs. Cursor, Codex and Claude Desktop reach jevmem over MCP, a standard way for an AI tool to call another program, when the agent asks for it.
+
 | | Saving | Bringing it back |
 |---|---|---|
 | **Claude Code** | Automatic, every turn | Automatic, every prompt |
@@ -140,9 +158,11 @@ The MCP server is on the [MCP Registry](https://registry.modelcontextprotocol.io
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-dark.svg"><img alt="Median time to decide one message on 66 held-out turns: jevmem 0.28 s, six current LLMs 2.78 to 4.29 s." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-light.svg"></picture>
 
 Deciding what to save takes 0.27 s and costs $0.00017 per message, in the background: Claude doesn't wait for it.
-jevmem tied the best LLM on save or skip (98.5%); two LLMs were better at picking the kind of line.
+On whether to save a message at all, jevmem was right as often as the best of six LLMs (98.5%); two of them were better at naming the kind of line.
 
 <details><summary>The full benchmark: accuracy, cost and how it was run</summary>
+
+The terms: *held-out* turns were written before the code and never used to tune it; *save/skip* is whether to save the message at all; *save+kind* is that, plus the kind of line; *p50* is the median time.
 
 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](docs/benchmark.md)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is 0.7.0's run of the same set on 2026-10-08 ([results](results/eval-heldout-2026-10-08-v070.json); [every mode, five builds](docs/benchmark.md#every-mode-five-builds)), where the earlier builds score the same and cost a little less:
 
@@ -185,6 +205,8 @@ Tiers, questions, policy, contradictions, recall and audit: [docs/how-it-works.m
 
 ## Privacy
 
+Your messages go to TypeSafe's API to be scored, with common secrets removed first, and nowhere else unless you set a `writer`.
+
 - jevmem only runs in projects you turn on (`jevmem enable` or `jevmem init`). Elsewhere, nothing is sent.
 - Your message, the previous two turns and your memory lines go to TypeSafe's API to be scored (for the guard, the command or the file being changed), with common secrets scrubbed first.
 - No telemetry. Nothing goes to OpenAI or Anthropic unless you set `writer` in `jevmem.config.json`.
@@ -205,6 +227,8 @@ In plain terms, with the third parties' privacy policies and how to delete your 
 
 ## Limits
 
+jevmem is young, and these are the limits to know before you rely on it:
+
 - **Early:** 0.7.0, and every test set was written by the author or captured from Claude Code sessions on scratch projects built for it. None is an independent benchmark.
 - **Not the most accurate:** two LLMs scored higher at picking the kind of line. jevmem's edge is speed and cost.
 - **Answer quality isn't measured:** the tests check that the right lines reach Claude, not that its answers get better.
@@ -215,17 +239,14 @@ Every limit, with the numbers: [docs/limits.md](docs/limits.md).
 
 ## What's new
 
-- **0.7.0: memory you can see and fix.** `jevmem forget <id>` retires a line in place (a done to-do, an obsolete rule: it stays in `JEVMEM.md` as `[retired]` and nothing serves or enforces it; a rule asks for a yes on a terminal). `jevmem trust <id>` marks a line you wrote as verified, after the poisoning gate, so the guard can block on your own rules. A line that says the same as a live one is not saved again (on a held-out set of 25 restatements, 0.6.6 saved 15 as new lines and 0.7.0 saves 1, with reversals and details unchanged), and a leading `[constraint]` or `[rule]` tag is no longer part of a line. One more question rides on each turn's request ([PRIVACY.md](PRIVACY.md)). [Details](docs/whats-new.md).
-- **0.6:** the guard, dead ends, better recall, a slow Jev call no longer meaning no memory, and turns with background subagents saved once, when they are over.
-- **The guard:** Claude Code asks you before a command or edit that may break a saved rule.
-- **Dead ends:** an approach that failed is saved with its reason, and shown as "Already tried: …" when it comes up again.
-- **Better recall:** more of the lines a prompt needs, and fewer lines for prompts that need none.
-- **A slow Jev call no longer means no memory:** past one second, the prompt gets the lines that share the most words with it.
-- **Background subagents:** a turn is saved once, when it is over, and a subagent's report isn't read as your message.
-- **0.6.1 to 0.6.3:** a guard fix for `if [ … ]` in a command, and a clearer `jevmem doctor`.
-- **0.6.4:** this README, shorter and with graphics; the details moved to pages in `docs/`. Docs only.
-- **0.6.6:** a failed attempt is saved as a dead end, not as a decision: when you ask Claude to try or change something and its reply says that failed and why, jevmem reads the reply and saves the dead end instead of the request (40 written held-out failed attempts: 0.6.5 saved 12 as dead ends and the request as a decision or to-do in 21; 0.6.6 saves 37 and 2). The reply is sent on more turns ([PRIVACY.md](PRIVACY.md)). [Details](docs/whats-new.md).
-- **0.6.5:** a dead end keeps its reason when Claude's reply gives the verdict first and the cause last. `jevmem init --tool claude-desktop` prints `<your TypeSafe API key>` where your key goes, and the descriptions and links point at the docs site.
+What changed, newest first; the measurements behind each line are on the what's new page.
+
+- **0.7.0: fix what it saved.** `jevmem forget` takes an old or wrong line out of use, and `jevmem trust` lets a rule you added by hand block a command, not only ask about it, in the guard's block mode. A line that says the same as a saved one is not saved again: on a test of 25 restatements, 0.6.6 saved 15 as new lines and 0.7.0 saved 1. [Details](docs/whats-new.md).
+- **0.6.6: a failed attempt is saved as a dead end, not as a decision.** When you ask Claude to try something and its reply says that failed, jevmem reads the reply: on 40 test turns, 0.6.5 saved 12 as dead ends and 0.6.6 saved 37. The reply is sent on more turns ([PRIVACY.md](PRIVACY.md)). [Details](docs/whats-new.md).
+- **0.6.5: a dead end keeps its reason** when Claude's reply gives the verdict first and the cause last. On 13 test turns written that way and handed to the line writer as dead ends, the line kept the reason in 12 (0.6.4: 2 of 13). [Details](docs/whats-new.md).
+- **0.6.4: this README, shorter and with graphics;** the details moved to pages in `docs/`. Docs only.
+- **0.6.1 to 0.6.3: the guard checks a command with `if [ … ]` in it,** which 0.6.0 let through unchecked, and `jevmem doctor` is clearer. [Details](docs/whats-new.md).
+- **0.6: the guard, and dead ends.** Claude Code asks you before a command or edit that may break a saved rule, and an approach that failed is saved with its reason and shown as "Already tried: …" when it comes up again. More of the lines a prompt needs come back, and a turn that hands work to a background subagent is saved once, when it is over. [Details](docs/whats-new.md).
 
 Details and measurements: [docs/whats-new.md](docs/whats-new.md) · Upgrading: [docs/upgrading.md](docs/upgrading.md) · [CHANGELOG](CHANGELOG.md)
 
