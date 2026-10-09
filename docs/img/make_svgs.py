@@ -118,7 +118,7 @@ groups = [
     ("Followed the project's decision", "of 72 sessions · higher is better", 72,
      [("No project memory", 28, "gray1"), ("jevmem", 66, "orange"), ("Hand-written CLAUDE.md", 67, "gray2")]),
     ("Tried a change the project forbids", "of 18 sessions · lower is better", 18,
-     [("No project memory", 10, "gray1"), ("jevmem", 0, "orange")]),
+     [("No project memory", 10, "gray1"), ("jevmem", 0, "orange"), ("Hand-written CLAUDE.md", 0, "gray2")]),
     ("Repeated an approach that had already failed", "of 15 sessions · lower is better", 15,
      [("No project memory", 3, "gray1"), ("jevmem", 0, "orange"), ("Hand-written CLAUDE.md", 0, "gray2")]),
 ]
@@ -139,7 +139,7 @@ for title, sub, n, rows in groups:
     y += 22
 b.append(text(10, y + 6, "24 tasks in three small projects, 3 runs each: real Claude Code sessions with claude-sonnet-5.", 14, 400, "muted"))
 H = y + 20
-write("results", W, H, "".join(b), "A/B results: followed the project's decision 28 of 72 with no project memory, 66 of 72 with jevmem, 67 of 72 with a hand-written CLAUDE.md; tried a forbidden change 10 of 18 without, 0 of 18 with jevmem; repeated a failed approach 3 of 15 without, 0 of 15 with jevmem and with CLAUDE.md.")
+write("results", W, H, "".join(b), "A/B results: followed the project's decision 28 of 72 with no project memory, 66 of 72 with jevmem, 67 of 72 with a hand-written CLAUDE.md; tried a forbidden change 10 of 18 without, 0 of 18 with jevmem and with CLAUDE.md; repeated a failed approach 3 of 15 without, 0 of 15 with jevmem and with CLAUDE.md.")
 print("ok", sorted(os.listdir(OUT)))
 
 # ------------------------------------------------------------------ 4. how it decides

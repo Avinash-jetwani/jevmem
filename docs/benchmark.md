@@ -75,7 +75,28 @@ The 66-turn held-out set through `scripts/eval.mjs` (`decide` in-process with a 
 | 0.7.0 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000169 (+line $0.000171) | 265 ms |
 | 0.7.0 | `full` | 92.4% (61/66) | 90.9% (60/66) | 5/5 | $0.000245 (+line $0.000246) | 266 ms |
 
-The three builds miss the same turns in each mode (the debatable preference label, "no, leave it as is" saved as a decision, and in `full` two bugs and a constraint skipped). 0.6.0 costs more per decision than 0.5.9 in every mode because each tier asks one more noul (the dead-end noul) and tier 1's injection question is longer; `auto` escalated 18.2% of turns against 16.7% for 0.5.9 and 13.6% for v0.4.2. The README's jevmem row is 0.6.0's `auto` row here.
+The three builds miss the same turns in each mode (the debatable preference label, "no, leave it as is" saved as a decision, and in `full` two bugs and a constraint skipped). 0.6.0 costs more per decision than 0.5.9 in every mode because each tier asks one more noul (the dead-end noul) and tier 1's injection question is longer; `auto` escalated 18.2% of turns against 16.7% for 0.5.9 and 13.6% for v0.4.2. The README's figures, 0.27 s and $0.00017 per message, are 0.7.0's `auto` row here.
+
+### 0.7.0 beside the six LLMs
+
+The table the README showed until 2026-10-09. 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](#benchmark)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is 0.7.0's run of the same set on 2026-10-08 ([results](../results/eval-heldout-2026-10-08-v070.json); [every mode, five builds](#every-mode-five-builds)), where the earlier builds score the same and cost a little less:
+
+| Decider | save/skip | save+kind | contradictions | p50 | $/decision |
+|---|---|---|---|---|---|
+| GPT-6 Astra | 98.5% | 98.5% | 5/5 | 3,469 ms | $0.007489 |
+| GPT-6 Luna | 93.9% | 93.9% | 5/5 | 2,927 ms | $0.000089 |
+| Claude Fable 5.1 | 95.5% | 95.5% | 5/5 | 4,290 ms | $0.013256 |
+| Claude Opus 5.5 | 97.0% | 97.0% | 5/5 | 2,784 ms | $0.005186 |
+| Gemini 3.8 Flash | 92.4% | 92.4% | 5/5 | 2,850 ms | $0.001174 |
+| Grok 4.7 | 90.9% | 90.9% | 4/5 | 3,320 ms | $0.004602 |
+| **jevmem 0.7.0 `auto`** | **98.5%** | **95.5%** | **5/5** | **265 ms** | $0.000169 |
+
+The 0.27 s is the Jev API decision (p95 534 ms; a saved turn's line costs one more request, $0.000171 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](../results/ops-2026-09-26-v056.json), [cost and latency](cost.md)).
+
+On 66 held-out turns, jevmem 0.7.0's median decision took 0.27 s (one run, 2026-10-08; the README's graphic shows 0.6.0's run of 2026-09-30, 0.28 s, with the same counts), against 2.8–4.3 s for six current LLMs.
+Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 95.5% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%) and Claude Opus 5.5 (97.0%) were more accurate on save+kind; Claude Fable 5.1 tied; GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
+GPT-6 Luna was cheaper ($0.000089 against $0.000169) but less accurate (93.9%) and about 11× slower.
+Each row is a single run, and differences of one or two turns are within run-to-run noise; the LLM rows and jevmem's are two weeks apart. If the most accurate decision matters most, GPT-6 Astra or Claude Opus 5.5 are better, at about 31–44× the cost per decision and 10–13× the latency. jevmem is for when you want a fast, cheap decision on every message.
 
 ### Regression set (the original 50 turns; contaminated, see above)
 
