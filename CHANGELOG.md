@@ -2,6 +2,11 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **`runHook` for integrations other than Claude Code**, in the library entry. `runHook(input, { root })` reads the project from `root` before `CLAUDE_PROJECT_DIR` and the payload's `cwd`, and an `injected` outcome carries the recall text as `additionalContext` as well as in Claude Code's JSON on `stdout`. `isEnabled` (the opt-in check) and the `HookDeps` type are exported too. Nothing changes for the hooks, the plugin or the CLI.
+
 ## [0.7.0] - 2026-10-09
 
 Memory you can see and fix: `jevmem forget <id>` retires a line in place, `jevmem trust <id>` marks a line you wrote as verified so the guard can block on your own rules, a line that says the same as a live one is not saved again, and a leading `[constraint]` or `[rule]` tag is no longer part of a line. One more question rides on the request each turn already sends; no new text leaves the machine ([PRIVACY.md](PRIVACY.md)). Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI, and the 0.7.0 plugin warns once about an older one).

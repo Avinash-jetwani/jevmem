@@ -25,11 +25,11 @@ export { enqueueTurn, drainQueue, readQueue, isRetryable, queueStats, nextDue, b
 export type { QueuedTurn, DrainResult, QueueStats } from "./queue.js";
 export { loadEnvFallbacks, parseEnvFile, envFileCandidates, KEY_VARS } from "./env.js";
 export { firstLineMessage, MISSING_KEY_NOTICE_INIT, MISSING_KEY_NOTICE_MARKETPLACE, MISSING_KEY_NOTICE_PLUGIN, MISSING_KEY_NOTICE_SYNCED } from "./notice.js";
-export type { HookInput, HookOutcome } from "./hook.js";
+export type { HookInput, HookOutcome, HookDeps } from "./hook.js";
 export { init, registerClaudeHooks, resolveHookCommand } from "./init.js";
 export { buildMcpServer, serveMcp } from "./mcp.js";
 export { serveDaemon, daemonRequest, spawnDaemon, socketPath, daemonEnabled, DAEMON_VERSION } from "./daemon.js";
-export { loadConfig, writeDefaultConfig, CONFIG_FILE } from "./config.js";
+export { loadConfig, writeDefaultConfig, isEnabled, CONFIG_FILE } from "./config.js";
 export { scrubSecrets, looksLikeSecret } from "./scrub.js";
 export { lastTurnFromTranscript, mergeTurn, readTranscriptTurns } from "./transcript.js";
 export { KINDS, NEW_KINDS, IMPORTANCE_LEVELS, DEFAULT_CONFIG } from "./types.js";
