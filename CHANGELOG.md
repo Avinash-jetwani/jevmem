@@ -2,6 +2,11 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- **Two drains in one process no longer run the queue at the same time.** The drain lock was taken over whenever it named the current process, so a second drain in the same process (the daemon's timer while a hook request was draining, or an integration that captures turns in-process) removed the first one's lock and could evaluate the same queued turn twice. A live lock is now respected whatever process holds it; a lock older than its stale time is still taken over.
+
 ## [0.7.0] - 2026-10-09
 
 Memory you can see and fix: `jevmem forget <id>` retires a line in place, `jevmem trust <id>` marks a line you wrote as verified so the guard can block on your own rules, a line that says the same as a live one is not saved again, and a leading `[constraint]` or `[rule]` tag is no longer part of a line. One more question rides on the request each turn already sends; no new text leaves the machine ([PRIVACY.md](PRIVACY.md)). Upgrade with `npm install -g jevmem@latest` (plugin users too: the plugin runs this CLI, and the 0.7.0 plugin warns once about an older one).

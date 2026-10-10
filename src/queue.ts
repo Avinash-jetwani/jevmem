@@ -97,7 +97,7 @@ function tryLock(lock: string, staleMs: number): boolean {
   }
   try {
     const cur = JSON.parse(fs.readFileSync(lock, "utf8")) as { pid: number; ts: number };
-    if (cur.pid !== process.pid && pidAlive(cur.pid) && Date.now() - cur.ts < staleMs) return false;
+    if (pidAlive(cur.pid) && Date.now() - cur.ts < staleMs) return false;
     fs.unlinkSync(lock);
   } catch {
     try {
