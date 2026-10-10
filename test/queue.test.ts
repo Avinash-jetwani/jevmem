@@ -154,6 +154,29 @@ describe("retry queue", () => {
     expect(r2.remaining).toBe(0);
   });
 
+  it("does not steal an active drain lock held by another capture in this process", async () => {
+    const root = tmp();
+    enqueueTurn(root, { hash: "d".repeat(16), user: "Use Vite.", assistant: "", previous: "", source: "payload" });
+    let release!: () => void;
+    let entered!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const evaluating = new Promise<void>((resolve) => { entered = resolve; });
+    const first = drainQueue(root, async () => {
+      entered();
+      await gate;
+      return { action: "saved" };
+    });
+    await evaluating;
+    try {
+      const second = await drainQueue(root, async () => ({ action: "saved" }));
+      expect(second.ran).toBe(false);
+      expect(readQueue(root)).toHaveLength(1);
+    } finally {
+      release();
+      await first;
+    }
+  });
+
   it("classifies failures: timeouts, network errors, 408, 429 and 5xx retry; 4xx does not", () => {
     for (const e of [{ status: 529 }, { status: 503 }, { status: 500 }, { status: 429 }, { status: 408 }, { name: "APITimeoutError", message: "x" }, { name: "APIConnectionError", message: "x" }, new Error("fetch failed"), new Error("connect ECONNREFUSED 127.0.0.1:9")]) expect(isRetryable(e), JSON.stringify(e)).toBe(true);
     for (const e of [{ status: 400 }, { status: 401 }, { status: 403 }, { status: 422 }, new Error("boom"), null]) expect(isRetryable(e), JSON.stringify(e)).toBe(false);
