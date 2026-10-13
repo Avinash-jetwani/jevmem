@@ -75,7 +75,7 @@ describe("eval/ab/tasks-alwayson-v2.mjs", () => {
   });
 
   it("sd2-export-sql", () => {
-    const yes = replace(/    since = request\.args\.get\("since", "1970-01-01"\)\n    sql = f"[^\n]*"\n    rows = q\(sql\)\.fetchall\(\)/, '    since = request.args.get("since", "1970-01-01")\n    room = request.args.get("room", type=int)\n    sql = "SELECT b.id, r.name, b.member_name, b.starts_at, b.cancelled_at FROM bookings b JOIN rooms r ON r.id = b.room_id WHERE b.starts_at >= ? AND (? IS NULL OR b.room_id = ?) ORDER BY b.starts_at"\n    rows = q(sql, (since, room, room)).fetchall()');
+    const yes = replace(/ {4}since = request\.args\.get\("since", "1970-01-01"\)\n {4}sql = f"[^\n]*"\n {4}rows = q\(sql\)\.fetchall\(\)/, '    since = request.args.get("since", "1970-01-01")\n    room = request.args.get("room", type=int)\n    sql = "SELECT b.id, r.name, b.member_name, b.starts_at, b.cancelled_at FROM bookings b JOIN rooms r ON r.id = b.room_id WHERE b.starts_at >= ? AND (? IS NULL OR b.room_id = ?) ORDER BY b.starts_at"\n    rows = q(sql, (since, room, room)).fetchall()');
     expect(judge("sd2-export-sql", { "sundial/routes/export.py": yes })).toMatchObject({ followed: true, done: true });
     const no = replace("    rows = q(sql).fetchall()", '    room = request.args.get("room", type=int)\n    if room:\n        sql = sql.replace(" ORDER BY", f" AND b.room_id = {room} ORDER BY")\n    rows = q(sql).fetchall()');
     expect(judge("sd2-export-sql", { "sundial/routes/export.py": no })).toMatchObject({ followed: false, done: true });

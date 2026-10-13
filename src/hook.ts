@@ -11,8 +11,8 @@ import { gatePendingRules } from "./guardrail.js";
 import { recordDecision } from "./labels.js";
 import { recordProvenance, savedBefore } from "./provenance.js";
 import { noteFirstLine } from "./notice.js";
-import { formatInjection, recallGuarded, replacedTexts, type RecallPath } from "./recall.js";
-import { DEFAULT_CONFIG } from "./types.js";
+import { alwaysOnLines, formatInjection, formatSessionStart, recallGuarded, replacedTexts, type RecallPath } from "./recall.js";
+import { DEFAULT_CONFIG, type Memory } from "./types.js";
 import { drainQueue, enqueueTurn, readQueue, type QueuedTurn } from "./queue.js";
 import { isLive, MemoryStore } from "./store.js";
 import { mergeTurn, readTranscriptTurns } from "./transcript.js";
@@ -87,6 +87,55 @@ export function hookEvent(input: HookInput): string {
   return input.hook_event_name ?? (input.user_prompt !== undefined || input.prompt !== undefined ? "UserPromptSubmit" : "Stop");
 }
 
+/**
+ * The sessions a session-start hook served, in `.jevmem/sessions-served.json` (the last 200), so that the prompt hook
+ * can tell a session whose SessionStart hook never ran (0.7.1, the first-prompt fallback). Best effort, local.
+ */
+export const SERVED_FILE = "sessions-served.json";
+function readServed(root: string): string[] {
+  try {
+    const v = JSON.parse(fs.readFileSync(path.join(root, ".jevmem", SERVED_FILE), "utf8"));
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+export function rememberServed(root: string, sessionId: string): void {
+  const list = readServed(root);
+  if (!list.includes(sessionId)) list.push(sessionId);
+  writeLocalJson(root, SERVED_FILE, list.slice(-200));
+}
+export function wasServed(root: string, sessionId: string | null | undefined): boolean {
+  return Boolean(sessionId) && readServed(root).includes(sessionId!);
+}
+
+/**
+ * The always-on lines a prompt carries (0.7.1): on a session's first prompt when no session-start hook served it
+ * (Claude Code cancelled the hook before the first prompt in 3 of 216 sessions in the design runs, or the hook is not
+ * registered); the session is then recorded as served, so later prompts carry nothing. Nothing without a session id.
+ */
+export function firstPromptLines(store: MemoryStore, cfg: ReturnType<typeof loadConfig>, sessionId: string | null | undefined): Memory[] {
+  const mode = cfg.alwaysOn?.mode ?? DEFAULT_CONFIG.alwaysOn.mode;
+  if (mode === "off" || !sessionId || wasServed(store.root, sessionId)) return [];
+  rememberServed(store.root, sessionId);
+  return alwaysOnLines(store.list(), mode, cfg.alwaysOn?.maxLines ?? DEFAULT_CONFIG.alwaysOn.maxLines).lines;
+}
+
+/**
+ * The SessionStart hook (0.7.1): the always-on lines, from the file alone, no Jev call and no key needed. Claude Code
+ * puts the context before the first prompt; on resume, clear and compact it runs again with the file as it is then.
+ */
+export function sessionStartOutcome(store: MemoryStore, cfg: ReturnType<typeof loadConfig>, sessionId?: string | null): HookOutcome {
+  const event = "SessionStart";
+  if (sessionId) rememberServed(store.root, sessionId);
+  const mode = cfg.alwaysOn?.mode ?? DEFAULT_CONFIG.alwaysOn.mode;
+  if (mode === "off") return { event, action: "noop", detail: "always-on mode off: nothing at session start" };
+  const { lines, more } = alwaysOnLines(store.list(), mode, cfg.alwaysOn?.maxLines ?? DEFAULT_CONFIG.alwaysOn.maxLines);
+  if (!lines.length) return { event, action: "noop", detail: `no ${mode === "always" ? "always-on" : "constraint"} lines` };
+  const additionalContext = formatSessionStart(lines, more);
+  return { event, action: "injected", detail: `${lines.length} always-on line(s)${more ? ` (${more} more not shown)` : ""}: ${lines.map((m) => m.id).join(",")}`, stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext } }) };
+}
+
 /** Append the raw payload to `.jevmem/hook-debug.log` (opt-in with JEVMEM_DEBUG=1). Keeps the last 200 entries. */
 export function debugLogPayload(root: string, input: HookInput, env: NodeJS.ProcessEnv = process.env): void {
   if (env.JEVMEM_DEBUG !== "1") return;
@@ -156,6 +205,8 @@ export async function runHook(input: HookInput, deps: HookDeps = {}): Promise<Ho
   const store = new MemoryStore(root, cfg.memoryFile);
   const event = hookEvent(input);
   if (cfg.enabled === false) return { event, action: "noop", detail: "jevmem is switched off for this project (jevmem.config.json: enabled false)" };
+  // SessionStart (0.7.1) reads the file and nothing else: no key, no request.
+  if (event === "SessionStart") return { ...sessionStartOutcome(store, cfg, input.session_id), via: "inline" };
   // Desktop-app hooks get no shell environment: pull the key from .jevmem/.env or ~/.jevmem/env.
   if (!deps.jev && !hasJevKey()) loadEnvFallbacks(root, process.env, deps.env?.HOME);
   const jev =
@@ -212,10 +263,13 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       });
       const how = served === "word-match" ? `; by word match, Jev: ${error}` : "";
       const gate = `${gated} gated${deferred ? `, ${deferred} left for a later prompt` : ""}${withheld.length ? `, withheld ${withheld.map((w) => w.memory.id).join(",")}` : ""}`;
-      if (ranked.length === 0) return { event, action: "noop", detail: `no relevant memories (${gate}${how})` };
-      const additionalContext = formatInjection(ranked);
+      // The first-prompt fallback (0.7.1): the always-on lines go with this prompt when no session-start hook served
+      // this session, once per session.
+      const withPrompt = firstPromptLines(store, cfg, input.session_id);
+      if (ranked.length === 0 && withPrompt.length === 0) return { event, action: "noop", detail: `no relevant memories (${gate}${how})` };
+      const additionalContext = formatInjection(ranked, withPrompt);
       const stdout = JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } });
-      return { event, action: "injected", detail: `${ranked.length} memories${served === "word-match" ? " by word match" : ""}: ${ranked.map((r) => r.memory.id).join(",")} (${gate}${how})`, stdout };
+      return { event, action: "injected", detail: `${ranked.length} memories${served === "word-match" ? " by word match" : ""}: ${ranked.map((r) => r.memory.id).join(",")}${withPrompt.length ? `; ${withPrompt.length} always-on with the first prompt` : ""} (${gate}${how})`, stdout };
     }
 
     // Stop (and anything else): capture the turns that are over (the latest, unless it is still running), queue them,

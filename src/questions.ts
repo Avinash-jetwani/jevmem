@@ -351,9 +351,27 @@ const DUP_NO = {
   examples: ["Uploads go through the virus scanner, and from now on anything over 50 MB is scanned asynchronously (the memory says nothing about size).", "We're allowing direct pushes to main for hotfixes after all."],
 };
 
+/**
+ * The always-on question (0.7.1), asked in both tiers on every turn: is the message a standing rule for how any work in
+ * this project is done? A line saved with it at `thresholds.alwaysMin` is marked always-on and reaches Claude at the
+ * start of every session. The fourth wording tried on the dev labels (docs/benchmark.md); its examples share no text
+ * with eval/ab/*.
+ */
+export const ALWAYS_NOUL = "applies_to_every_change";
+const ALWAYS_QUESTION = "Is the user message a standing rule for how any work in this project is done, one that someone changing any part of the code would need to know?";
+const ALWAYS_YES = {
+  what: "A convention or prohibition about the codebase as a whole rather than one feature: how strings, errors, responses, logs, dates, money, ids, images, tests, commits, branches, styles or dependencies are handled everywhere; a helper that all code of one kind goes through (fetching data, calling out, making ids, formatting); a file or folder that every change must leave alone; something never added, shown or logged; a platform, compatibility, size or speed limit every change must keep.",
+  examples: ["All copy that users read is pulled from the locale files through the translation helper; nothing is typed into a component.", "Generated client code is never edited by hand: change the schema and run the generator."],
+};
+const ALWAYS_NO = {
+  what: "A fact or choice about one feature, module, table, endpoint, setting or plan: which database or framework is used, a page size, a status list, a deploy target, where a job runs, what a field means; a bug and its cause; work for later; an approach that failed.",
+  examples: ["Parcel status is one of created, in transit or delivered.", "Monthly invoices are a link to the dashboard, not an attachment."],
+};
+
 function sharedQuestions(memoryIds: { id: string; kind: string; text: string }[], examplesPerSide: number, compact = false, withAssistant = false): Questions {
   const q: Questions = {};
   if (memoryIds.length) q[DUP_NOUL] = noul(DUP_QUESTION, { true: trim(DUP_YES, examplesPerSide), false: trim(DUP_NO, examplesPerSide) });
+  q[ALWAYS_NOUL] = noul(ALWAYS_QUESTION, { true: trim(ALWAYS_YES, examplesPerSide), false: trim(ALWAYS_NO, examplesPerSide) });
   if (withAssistant) {
     const src: ChoiceCriteria = {};
     for (const o of SOURCE_OPTIONS) src[o] = trimAny(SOURCE_CRITERIA[o], examplesPerSide);
@@ -389,7 +407,7 @@ export function buildDecideQuestions(memoryIds: { id: string; kind: string; text
 }
 
 /** Question count without the assistant reply (31 nouls + kind + touches + importance). */
-export const DECIDE_QUESTION_COUNT = atomicNoulsFor(false).length + 3;
+export const DECIDE_QUESTION_COUNT = atomicNoulsFor(false).length + 4;
 
 // ---------------------------------------------------------------------------------------------
 // Tier 1: ten broad nouls, one positive and one negative example each. Runs on every turn. (The tenth, the dead-end
@@ -453,8 +471,8 @@ export function buildTier1Questions(memoryIds: { id: string; kind: string; text:
   return { ...q, ...sharedQuestions(memoryIds, 1, true, opts.withAssistant ?? false) };
 }
 
-/** Question count without the assistant reply (10 nouls + kind + touches + importance). */
-export const TIER1_QUESTION_COUNT = tier1NoulsFor(false).length + 3;
+/** Question count without the assistant reply (10 nouls + kind + touches + importance + the always-on question). */
+export const TIER1_QUESTION_COUNT = tier1NoulsFor(false).length + 4;
 
 /** The tier-1 injection nouls (one: the broad noul). */
 export const TIER1_INJECTION_NOULS = TIER1_NOULS.filter((n) => n.family === "injection").map((n) => n.name);

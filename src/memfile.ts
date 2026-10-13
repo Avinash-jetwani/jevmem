@@ -47,6 +47,9 @@ export function parseLine(line: string): Memory | null {
   if (stale !== undefined && !Number.isNaN(stale)) mem.stale = stale;
   if (meta.was && KINDS.includes(meta.was as Kind)) mem.was = meta.was as Kind;
   if (meta.retired) mem.retiredAt = meta.retired;
+  // `always:1` (0.7.1): a line that reaches Claude in every session. A jevmem before 0.7.1 reads the line as usual and
+  // drops the token when it rewrites the file.
+  if (meta.always === "1") mem.always = true;
   return mem;
 }
 

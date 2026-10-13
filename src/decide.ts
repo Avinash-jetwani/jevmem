@@ -1,6 +1,6 @@
 import type { JevCaller } from "./jev.js";
 import { combine, defaultWeights, evaluatePolicy, mergeWeights, resolveKind, supersedeTarget, type PolicyInput, type Weights } from "./combine.js";
-import { ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildReplyQuestions, buildTier1Questions, DUP_NOUL, NEW_REASON_NOUL, REPLY_NOUL, RETEST_CHOICE, RETEST_NOUL, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, WORKS_NOW_CHOICE, WORKS_NOW_NOUL, type Family } from "./questions.js";
+import { ALWAYS_NOUL, ATOMIC_NOULS, atomicNoulsFor, buildDecideQuestions, buildReplyQuestions, buildTier1Questions, DUP_NOUL, NEW_REASON_NOUL, REPLY_NOUL, RETEST_CHOICE, RETEST_NOUL, TIER1_INJECTION_NOULS, TIER1_KIND_NOULS, tier1Families, tier1NoulsFor, WORKS_NOW_CHOICE, WORKS_NOW_NOUL, type Family } from "./questions.js";
 import { scrubSecrets } from "./scrub.js";
 import { mergeTurn } from "./transcript.js";
 import { DEFAULT_CONFIG, type BorderlineRule, type Importance, type Kind, type Memory, type Thresholds, type TiersConfig } from "./types.js";
@@ -57,6 +57,8 @@ export interface TierAnswers {
   retest: Retest | null;
   /** The restatement question (0.7.0), asked when the state lists memories: its answer and the listed line picked, else null. */
   duplicate: { noul: number; id: string | null } | null;
+  /** The always-on question (0.7.1): is the message a standing rule for how any work in this project is done? */
+  always: number;
   /** The policy outcome using this tier's answers alone. */
   save: boolean;
   reason: string;
@@ -109,6 +111,9 @@ export interface Decision {
   duplicate?: { noul: number; id: string | null; applied: boolean };
   /** The live line the turn restates, when it was skipped as its duplicate (docs/how-it-works.md). */
   duplicateOf: string | null;
+  /** The always-on question's answer (0.7.1), and whether the saved line is marked always-on (at `alwaysMin`, on a kind that can be a rule). */
+  alwaysNoul: number;
+  always: boolean;
   /** The nouls of the tier that produced the final answer. */
   nouls: Record<string, number>;
   /** Family scores of the tier that produced the final answer. */
@@ -322,6 +327,7 @@ function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families
   const retest = worksNow?.id ? null : retestOf(a, deadEndIds, thresholds);
   const dupAnswer = a[DUP_NOUL];
   const duplicate = dupAnswer ? { noul: typeof dupAnswer.noul === "number" ? dupAnswer.noul : 0, id: touches !== "none" && candidates.some((m) => m.id === touches) ? touches : null } : null;
+  const always = typeof a[ALWAYS_NOUL]?.noul === "number" ? a[ALWAYS_NOUL].noul : 0;
   const policy = evaluatePolicy({ kindChoice: kind, importanceScore: a.importance.score, families, touchesMemoryId: touches, touchesKind: candidates.find((m) => m.id === touches)?.kind, source, worksNowId: worksNow?.id ?? undefined, retestId: retest?.id ?? undefined, retestSame: retest?.same, duplicateNoul: duplicate?.noul, duplicateId: duplicate?.id ?? undefined }, thresholds);
   return {
     tier,
@@ -337,6 +343,7 @@ function answersToTier(tier: 1 | 2, res: any, names: readonly string[], families
     worksNow,
     retest,
     duplicate,
+    always,
     save: policy.save,
     reason: policy.reason,
     usage: { inputTokens: res.usage.input_tokens, outputTokens: res.usage.output_tokens },
@@ -489,6 +496,8 @@ async function decideOnce(jev: JevCaller, input: DecideInput, opts: DecideOption
     retest,
     ...(final.duplicate ? { duplicate: { ...final.duplicate, applied: policy.duplicateOf !== null } } : {}),
     duplicateOf: policy.duplicateOf,
+    alwaysNoul: final.always,
+    always: policy.save && final.always >= t.alwaysMin && (ALWAYS_KINDS as readonly string[]).includes(kind),
     nouls: final.nouls,
     families: final.families,
     content: policy.content,
@@ -514,12 +523,15 @@ async function decideOnce(jev: JevCaller, input: DecideInput, opts: DecideOption
 
 export const FAMILY_OF: Record<string, Family> = Object.fromEntries(ATOMIC_NOULS.map((n) => [n.name, n.family]));
 
+/** Kinds a saved line can be marked always-on as (0.7.1): the ones that state how the project is worked on. */
+export const ALWAYS_KINDS = ["constraint", "preference", "decision", "architecture"] as const;
+
 /** The decision recorded for a text that restates a live line word for word: skipped before any request (src/dupe.ts). */
 export function localDuplicateDecision(id: string, thresholds: Thresholds): Decision {
   const families = Object.fromEntries(["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end", "chit_chat", "injection", "contradiction", "meta"].map((f) => [f, 0])) as Record<Family, number>;
   return {
     save: false, kind: "none", importance: "trivial", importanceScore: 0, contradiction: false, touchesMemoryId: id, worksNow: null, retest: null,
-    duplicate: { noul: 1, id, applied: true }, duplicateOf: id, nouls: {}, families, content: 0, kindProbabilities: {}, confidence: 1,
+    duplicate: { noul: 1, id, applied: true }, duplicateOf: id, alwaysNoul: 0, always: false, nouls: {}, families, content: 0, kindProbabilities: {}, confidence: 1,
     reason: `skip: duplicate of ${id} (the text restates it word for word; nothing was sent)`, usage: { inputTokens: 0, outputTokens: 0 }, cacheHit: false,
     thresholds, source: "user_message", assistantIncluded: false, sourceText: "", tier: 1, mode: "auto", escalated: false, escalationReasons: [],
   };

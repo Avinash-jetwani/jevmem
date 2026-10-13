@@ -129,7 +129,8 @@ export async function writeMemory(store: MemoryStore, message: string, decision:
   const retestOf = retestId ? store.list().find((m) => m.id === retestId)?.text : undefined;
   // The text is the assistant reply alone when the content came from it (decide's `sourceText`).
   const { line, writerUsed, note, pick } = await composeLine(message, kind, opts, { worksNow: Boolean(worksNow), deadEnd, retestOf, fromReply: decision.source === "assistant_reply" });
-  const saved = store.add({ kind, text: line, conf: decision.confidence });
+  // Always-on (0.7.1): Jev's answer at save time marks a rule every change must follow.
+  const saved = store.add({ kind, text: line, conf: decision.confidence, ...(decision.always ? { always: true } : {}) });
   const superseded = decision.contradiction && decision.touchesMemoryId ? store.supersede(decision.touchesMemoryId, saved.id) : null;
   return { saved, superseded, writerUsed, line, ...(note ? { writerNote: note } : {}), ...(pick ? { pick } : {}) };
 }

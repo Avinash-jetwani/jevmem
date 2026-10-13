@@ -37,6 +37,13 @@ export interface Memory {
   was?: Kind;
   /** When the line was retired (0.7.0), ISO-8601. */
   retiredAt?: string;
+  /**
+   * An always-on line (0.7.1): a rule or convention that applies to every change in the project, whatever the task
+   * (how code is written, logged, tested, committed; a helper every call goes through; a file never edited by hand).
+   * Sent to Claude at the start of every session, so a task that nothing in the prompt connects to the rule still
+   * follows it. Set by Jev at save time, by `jevmem add --always`, or by `jevmem always <id>`.
+   */
+  always?: boolean;
 }
 
 export interface Thresholds {
@@ -66,6 +73,13 @@ export interface Thresholds {
    * and dead-end questions use.
    */
   duplicateMin: number;
+  /**
+   * Always-on marking (0.7.1): the question "is the user message a standing rule for how any work in this project is
+   * done?" at or above this, on a constraint, preference, decision or architecture line, marks the saved line always-on.
+   * 0.5, chosen on the first A/B's three projects' lines labelled by hand (eval/ab/always-dev.mjs): 27 of 28 marks
+   * right and 27 of 41 labelled lines found, with no unlabelled line above 0.23 (docs/benchmark.md).
+   */
+  alwaysMin: number;
   /** How many memories to inject on UserPromptSubmit, at most. */
   recallTopK: number;
   /**
@@ -146,6 +160,24 @@ export interface JevmemConfig {
   tiers: TiersConfig;
   /** The PreToolUse guard: checks Bash, Edit and Write calls against the project's saved `[constraint]` lines. */
   guard: GuardConfig;
+  /** Always-on rules (0.7.1): which lines reach Claude in every session. */
+  alwaysOn: AlwaysOnConfig;
+}
+
+export const ALWAYS_ON_MODES = ["always", "constraints", "off"] as const;
+export type AlwaysOnMode = (typeof ALWAYS_ON_MODES)[number];
+
+export interface AlwaysOnConfig {
+  /**
+   * `always` (the default): the lines marked always-on (any kind) go into Claude's context at session start (a
+   * SessionStart hook, no Jev call), and with a session's first prompt when the session-start hook did not run.
+   * `constraints`: every live `[constraint]` line instead of the marked ones. `off`: nothing beyond recall. (A fourth
+   * way, the lines with every prompt, was measured for 0.7.1 and not shipped: it costs newly created tokens on every
+   * prompt for the same result, docs/benchmark.md.)
+   */
+  mode: AlwaysOnMode;
+  /** At most this many lines in the session-start context (file order; the rest are counted, not sent). */
+  maxLines: number;
 }
 
 export const GUARD_MODES = ["ask", "block", "warn", "off"] as const;
@@ -219,6 +251,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     contradictionMin: 0.7,
     staleBelow: 0.4,
     duplicateMin: 0.7,
+    alwaysMin: 0.5,
     recallTopK: 5,
     recallMin: 0.05,
     recallChoiceMin: 0.03,
@@ -268,5 +301,9 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     blockMin: 0.9,
     budgetMs: 2000,
     maxCandidates: 3,
+  },
+  alwaysOn: {
+    mode: "always",
+    maxLines: 40,
   },
 };

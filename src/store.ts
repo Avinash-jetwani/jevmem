@@ -55,6 +55,7 @@ export function formatLine(mem: Memory): string {
     if (mem.was) meta.push(`was:${mem.was}`);
     if (mem.retiredAt) meta.push(`retired:${mem.retiredAt}`);
   }
+  if (mem.always) meta.push("always:1");
   return `- [${mem.kind}] ${staleTag}${text}${arrow}  <!-- ${meta.join(" ")} -->`;
 }
 
@@ -117,7 +118,7 @@ export class MemoryStore {
     this.write(this.read());
   }
 
-  add(input: { kind: Kind; text: string; conf?: number; ts?: string; id?: string }): Memory {
+  add(input: { kind: Kind; text: string; conf?: number; ts?: string; id?: string; always?: boolean }): Memory {
     const file = this.read();
     const ids = new Set(file.memories.map((m) => m.id));
     let id = input.id ?? newId();
@@ -129,8 +130,20 @@ export class MemoryStore {
       text: stripLeadingTags(input.text).replace(/\s+/g, " ").trim(),
       ts: input.ts ?? new Date().toISOString(),
       conf: input.conf ?? 1,
+      ...(input.always ? { always: true } : {}),
     };
     file.memories.push(mem);
+    this.write(file);
+    return mem;
+  }
+
+  /** Mark a line always-on, or take the mark off (0.7.1, `jevmem always`). Null when there is no such live line. */
+  setAlways(id: string, on: boolean): Memory | null {
+    const file = this.read();
+    const mem = file.memories.find((m) => m.id === id);
+    if (!mem || !isLive(mem)) return null;
+    if (on) mem.always = true;
+    else delete mem.always;
     this.write(file);
     return mem;
   }

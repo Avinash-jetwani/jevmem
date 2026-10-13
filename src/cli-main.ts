@@ -12,7 +12,9 @@ import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./
 import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { deferredTurns } from "./turns.js";
-import { captureTurns, drainTurns, recallPathStats, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, type HookInput, type HookOutcome } from "./hook.js";
+import { captureTurns, drainTurns, recallPathStats, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, sessionStartOutcome, type HookInput, type HookOutcome } from "./hook.js";
+import { findSessionFiles, formatSessionImport, importSessions, parseSince } from "./sessions.js";
+import { ALWAYS_KINDS, decide } from "./decide.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, missingKeyHelp, PLUGIN_CONFIGURE_HINT, resolveJevKey, saveJevKey } from "./env.js";
 import { canConfigure, describeInstall, hasActivePlugin, pluginInstalls, runningPlugin } from "./install.js";
@@ -30,7 +32,7 @@ import { enqueueTurn, queueStats } from "./queue.js";
 import { rankGuarded } from "./recall.js";
 import { scrubSecrets } from "./scrub.js";
 import { MemoryStore } from "./store.js";
-import { NEW_KINDS, type Kind } from "./types.js";
+import { DEFAULT_CONFIG, NEW_KINDS, type Kind } from "./types.js";
 
 const HELP = `jevmem — Automatic project memory for Claude Code. Also works with Cursor and Codex.
 
@@ -51,9 +53,11 @@ Usage: jevmem <command> [options]
   guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
   search <query> [--limit N]              Rank memories by relevance to a query (one Jev call)
   list [--all]                            Print memories (live by default; --all adds superseded lines and provenance)
-  add [--trust] <kind> <text>             Append a memory line by hand (kinds: ${NEW_KINDS.join(", ")}); --trust marks it verified (asks on a terminal)
+  add [--trust] [--always] <kind> <text>  Append a memory line by hand (kinds: ${NEW_KINDS.join(", ")}); --trust marks it verified (asks on a terminal); --always sends it to Claude in every session
+  always [--off] <id> [<id>…]             Mark a line always-on (sent to Claude at the start of every session), or take the mark off
+  always --suggest [--apply]              Ask Jev which live lines are rules for every change and propose the marks (--apply sets them)
   trust <id> [<id>…]                      Mark a line you wrote as verified, after the poisoning gate (asks on a terminal); the guard can then block on it
-  import [--from <sources>] [--apply]     Import CLAUDE.md, AGENTS.md, .cursor/rules/* (dry run unless --apply)
+  import [--from <sources>] [--apply]     Import CLAUDE.md, AGENTS.md, .cursor/rules/* (dry run unless --apply); --from sessions reads this project's past Claude Code sessions (asks before anything is sent)
   watch [--replay] [--once]               Capture turns from Codex's session log for this project (Cursor: use MCP)
   why <id|hash>                           Show every Jev answer behind a memory line or a skipped turn
   right <id|hash>                         Label the decision as correct
@@ -96,7 +100,7 @@ const stderrWrite = (s: string) => void process.stderr.write(s);
 const defaultIo: CliIo = { out: stdoutWrite, err: stderrWrite };
 let io: CliIo = defaultIo;
 
-export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "guard", "search", "list", "add", "import", "why", "right", "wrong", "forget", "trust", "missed", "fit", "stats", "doctor", "key", "log", "watch"] as const;
+export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "guard", "search", "list", "add", "always", "import", "why", "right", "wrong", "forget", "trust", "missed", "fit", "stats", "doctor", "key", "log", "watch"] as const;
 
 export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
   enable: `jevmem enable
@@ -198,7 +202,20 @@ poisoning gate about the line (one Jev call) and refuses one that reads as instr
 The record is local (.jevmem/provenance.jsonl, not in git), so a clone trusts nothing by it; a line whose text changes
 afterwards is unverified again. The guard's tamper check asks about an agent running this command.
 `,
-  import: `jevmem import [--from claude-md,agents-md,cursor-rules,claude-auto-memory] [--apply] [--memory-dir <dir>]
+  always: `jevmem always [--off] <memory id> [<memory id>…]
+jevmem always --suggest [--apply]
+
+Mark a line always-on: it goes into Claude's context at the start of every session in this project (a SessionStart
+hook, read from JEVMEM.md with no request; with a session's first prompt when that hook did not run), so a change that
+nothing in the prompt connects to the rule still follows it. For rules and conventions every change must follow (how
+code is logged, tested, named, committed; a helper every call goes through; a file never edited by hand), not for
+facts about one part of the system, which recall brings back when a task touches them. jevmem marks such lines on its
+own when it saves them (thresholds.alwaysMin); this is the hand switch. --off takes the mark off. The line's text and
+kind do not change. --suggest asks Jev the same question about every live constraint, preference, decision and
+architecture line not yet marked (one request per line, the line's text sent as recall sends it) and prints the ones
+at the threshold; --apply marks them. For a file from before 0.7.1.
+`,
+  import: `jevmem import [--from claude-md,agents-md,cursor-rules,claude-auto-memory,sessions] [--since 30d] [--apply] [--memory-dir <dir>]
 
 Read existing instruction and memory files, split them into statements (list items and prose sentences; headings,
 code, tables and jevmem's own sections are skipped), and put each through the same gate as a turn: scrub, Jev decide,
@@ -211,6 +228,13 @@ the kind; nothing is written without --apply. The source files are only read, ne
   --memory-dir <dir>  Read auto memory from this directory instead.
   --apply             Write the accepted lines (verified: jevmem wrote them here).
 Costs one Jev call per statement (two on borderline ones), plus one gate call per 60 accepted statements.
+
+--from sessions (0.7.1) reads this project's past Claude Code sessions, so memory starts full: the session files Claude
+Code keeps under ~/.claude/projects/<project>/ (CLAUDE_CONFIG_DIR when set), read with the same reader the Stop hook uses
+(a prompt you typed and the main agent's reply; subagent transcripts, task notifications, tool results and commands are
+skipped), oldest first, so a later change supersedes an earlier line. It needs a terminal: first it counts the sessions
+and turns and estimates the cost, with nothing sent, and asks [y/N]; only then is each turn decided as a finished turn
+is. --since 30d (or 12h, 2w, or a date) reads only sessions written since then.
 `,
   why: `jevmem why <memory id | turn hash>
 
@@ -417,8 +441,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
           if (out) io.out(out + "\n");
           return 0;
         }
-        // Only Stop and UserPromptSubmit do anything; any other event a hook entry sends is ignored.
-        if (event !== "Stop" && event !== "UserPromptSubmit") return 0;
+        // Only Stop, UserPromptSubmit and (0.7.1) SessionStart do anything; any other event a hook entry sends is ignored.
+        if (event !== "Stop" && event !== "UserPromptSubmit" && event !== "SessionStart") return 0;
         // Plugin and `jevmem init` hooks in the same project would both fire on every event: the plugin's stand down.
         if (viaPlugin && projectHasInitHooks(projectRoot)) {
           const warning = standDown(projectRoot, input, event);
@@ -428,6 +452,13 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         loadEnvFallbacks(projectRoot); // desktop-app hooks get no shell environment: .jevmem/.env, ~/.jevmem/env
         const cfg = loadConfig(projectRoot);
         if (cfg.enabled === false) return 0; // switched off for this project in jevmem.config.json
+        // SessionStart (0.7.1): the always-on lines from the file, no key and no daemon needed.
+        if (event === "SessionStart") {
+          const ss = sessionStartOutcome(new MemoryStore(projectRoot, cfg.memoryFile), cfg, input.session_id);
+          if (ss.stdout) io.out(ss.stdout + "\n");
+          if (process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1") io.err(`jevmem: ${ss.event}: ${ss.action}: ${ss.detail}\n`);
+          return 0;
+        }
         // No key: the hooks do nothing, so say so, once per project until a key is found. Notices are shown to the user
         // on a prompt only (the Stop hook's output is not shown).
         if (hasJevKey()) keyFound(projectRoot);
@@ -605,14 +636,65 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         // A line trusted by hand (0.7.0) is verified; both listings say so.
         const trusted = verifiedVia(root, m) === "trust";
         const status = prov ? `${(trusted ? "trusted" : isVerified(prov, m) ? "verified" : "unverified").padEnd(10)}${held!.has(m.id) ? " WITHHELD" : ""}  ` : trusted ? "trusted  " : "";
-        io.out(`${m.id}  ${status}[${m.kind}]${m.stale !== undefined ? " [stale?]" : ""} ${m.text}${m.supersededBy ? ` → ${m.supersededBy}` : ""}${m.kind === "retired" ? ` (was ${m.was ?? "?"}${m.retiredAt ? `, retired ${m.retiredAt.slice(0, 10)}` : ""})` : ""}\n`);
+        io.out(`${m.id}  ${status}[${m.kind}]${m.always ? " always-on" : ""}${m.stale !== undefined ? " [stale?]" : ""} ${m.text}${m.supersededBy ? ` → ${m.supersededBy}` : ""}${m.kind === "retired" ? ` (was ${m.was ?? "?"}${m.retiredAt ? `, retired ${m.retiredAt.slice(0, 10)}` : ""})` : ""}\n`);
       }
       if (mems.length === 0) io.out("no memories\n");
       if (all && mems.length) io.out(`\nverified: jevmem wrote this exact text on this machine; trusted: you marked it verified with jevmem trust. unverified lines go through the poisoning gate before any agent sees them.\n`);
       return 0;
     }
+    case "always": {
+      const off = flag(args, "--off");
+      const suggest = flag(args, "--suggest");
+      const apply = flag(args, "--apply");
+      const ids = args.filter((a) => !a.startsWith("--"));
+      const cfg = loadConfig(root);
+      const store = new MemoryStore(root, cfg.memoryFile);
+      if (suggest) {
+        if (ids.length) return fail("usage: jevmem always --suggest [--apply]");
+        requireKey();
+        const candidates = store.active().filter((m) => !m.always && (ALWAYS_KINDS as readonly string[]).includes(m.kind));
+        if (!candidates.length) {
+          io.out("jevmem always --suggest: no live constraint, preference, decision or architecture line without the mark.\n");
+          return 0;
+        }
+        const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+        const min = cfg.thresholds.alwaysMin ?? DEFAULT_CONFIG.thresholds.alwaysMin;
+        const marks: { m: (typeof candidates)[number]; p: number }[] = [];
+        for (const [i, m] of candidates.entries()) {
+          io.err(`\rjevmem always --suggest: ${i}/${candidates.length} lines asked`);
+          const d = await decide(jev, { userMessage: m.text, existingMemories: [] }, { thresholds: cfg.thresholds, tiers: { mode: "fast" }, timeoutMs: cfg.jev.timeoutMs });
+          if (d.alwaysNoul >= min) marks.push({ m, p: d.alwaysNoul });
+        }
+        io.err(`\rjevmem always --suggest: ${candidates.length}/${candidates.length} lines asked\n`);
+        io.out(`jevmem always --suggest${apply ? "" : " (dry run)"}: ${candidates.length} line(s) asked, ${marks.length} read as a rule for every change (${min} or more):\n`);
+        for (const { m, p } of marks) io.out(`  + ${m.id}  [${m.kind}] ${m.text}  (${p.toFixed(2)})\n`);
+        if (apply) {
+          for (const { m } of marks) {
+            store.setAlways(m.id, true);
+            appendLog(root, { ts: new Date().toISOString(), label: "always", event: "always", ok: true, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, memoryId: m.id, detail: "marked always-on by --suggest --apply" });
+          }
+          io.out(`Marked ${marks.length} line(s) always-on.\n`);
+        } else io.out(marks.length ? "Run with --apply to mark them, or jevmem always <id> for some of them.\n" : "Nothing to mark.\n");
+        printJevSummary(jev.log);
+        return 0;
+      }
+      if (!ids.length) return fail("usage: jevmem always [--off] <memory id> [<memory id>…] | jevmem always --suggest [--apply]");
+      let code = 0;
+      for (const id of ids) {
+        const m = store.setAlways(id, !off);
+        if (!m) {
+          io.err(`jevmem always: no live line with id ${id}\n`);
+          code = 1;
+          continue;
+        }
+        appendLog(root, { ts: new Date().toISOString(), label: "always", event: "always", ok: true, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, memoryId: id, detail: off ? "always-on mark removed" : "marked always-on" });
+        io.out(`${off ? "no longer always-on" : "always-on"} ${m.id}: [${m.kind}] ${m.text}\n`);
+      }
+      return code;
+    }
     case "add": {
       const trust = flag(args, "--trust");
+      const always = flag(args, "--always");
       const kind = args.shift() as Kind | undefined;
       const text = args.join(" ").trim();
       if (!kind || !(NEW_KINDS as readonly string[]).includes(kind) || !text) return fail(`usage: jevmem add [--trust] <${NEW_KINDS.join("|")}> <text>`);
@@ -622,8 +704,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const store = new MemoryStore(root, cfg.memoryFile);
       // Typed by a person, so no Jev call, for every kind (a dead end too, since v0.6 part 2c); secrets are still scrubbed
       // because JEVMEM.md is committed. The line is unverified, so the poisoning gate checks it before recall serves it.
-      const m = store.add({ kind, text: clampLine(scrubSecrets(text), cfg.writer.maxChars), conf: 1 });
-      io.out(`added ${m.id}: [${m.kind}] ${m.text}\n`);
+      const m = store.add({ kind, text: clampLine(scrubSecrets(text), cfg.writer.maxChars), conf: 1, ...(always ? { always: true } : {}) });
+      io.out(`added ${m.id}: [${m.kind}] ${m.text}${always ? " (always-on)" : ""}\n`);
       if (!trust) return 0;
       requireKey();
       const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
@@ -646,13 +728,47 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const apply = flag(args, "--apply");
       const memoryDir = opt(args, "--memory-dir");
       const fromArg = opt(args, "--from");
-      const sources = (fromArg ? fromArg.split(",").map((x) => x.trim()) : DEFAULT_IMPORT_SOURCES) as ImportSource[];
-      const bad = sources.filter((x) => !(IMPORT_SOURCES as readonly string[]).includes(x));
-      if (bad.length) return fail(`unknown source(s): ${bad.join(", ")}. Choose from ${IMPORT_SOURCES.join(", ")}`);
+      const sinceArg = opt(args, "--since");
+      const sources: string[] = fromArg ? fromArg.split(",").map((x) => x.trim()) : [...DEFAULT_IMPORT_SOURCES];
+      const bad = sources.filter((x) => !(IMPORT_SOURCES as readonly string[]).includes(x) && x !== "sessions");
+      if (bad.length) return fail(`unknown source(s): ${bad.join(", ")}. Choose from ${IMPORT_SOURCES.join(", ")}, sessions`);
       requireKey();
       const cfg = loadConfig(root);
       const store = new MemoryStore(root, cfg.memoryFile);
-      const { candidates, files, notFound } = collectCandidates(root, sources, { memoryDir, maxChars: cfg.writer.maxChars });
+      // --from sessions (0.7.1): past Claude Code sessions, after a yes on a terminal. On its own; the file sources stay as they are.
+      if (sources.includes("sessions")) {
+        if (sources.length > 1) return fail("jevmem import --from sessions runs on its own: name it alone");
+        if (!isTerminal(opts)) return fail("jevmem import --from sessions: not a terminal, so nothing was read or sent. Run it in a terminal: it counts the sessions and turns first and asks before anything is sent.");
+        let since: Date | null = null;
+        if (sinceArg) {
+          since = parseSince(sinceArg);
+          if (!since) return fail(`--since: use a span such as 30d, 12h or 2w, or a date such as 2026-09-01 (got ${sinceArg})`);
+        }
+        const found = findSessionFiles(root, { since });
+        const turns = found.files.reduce((a, f) => a + f.turns.length, 0);
+        io.out(`jevmem import --from sessions: ${found.dir}\n`);
+        io.out(`Found ${found.files.length} session${found.files.length === 1 ? "" : "s"} with ${turns} turn${turns === 1 ? "" : "s"}${since ? ` since ${since.toISOString().slice(0, 10)}` : ""}` + (found.skipped.length ? ` (skipped: ${found.skipped.join("; ")})` : "") + `; nothing has been sent.\n`);
+        if (found.suspect) io.out(`${found.suspect}\n`);
+        if (!turns) {
+          io.out("Nothing to import.\n");
+          return 0;
+        }
+        const chars = found.files.reduce((a, f) => a + f.turns.reduce((b, t) => b + Math.min(6000, t.user.length) + Math.min(2000, t.assistant.length), 0), 0);
+        const est = { usd: turns * 0.00017, s: turns * 0.3 };
+        io.out(`Each turn would be sent to TypeSafe (scrubbed) and decided as a finished turn is: about ${chars.toLocaleString("en-US")} characters, an estimated $${est.usd.toFixed(3)} and ${Math.round(est.s)} s${apply ? "; accepted lines are then written to JEVMEM.md" : "; nothing is written without --apply"}.\n`);
+        const yes = await confirmOnTerminal(`Send ${turns} turn${turns === 1 ? "" : "s"} from ${found.files.length} session${found.files.length === 1 ? "" : "s"} to TypeSafe? [y/N] `);
+        if (!yes) {
+          io.out("Nothing sent.\n");
+          return 0;
+        }
+        const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+        const rows = await importSessions(jev, store, cfg, found.files, { apply, onProgress: (d, t) => io.err(`\rjevmem import: ${d}/${t} turns decided`) });
+        io.err("\n");
+        io.out(formatSessionImport(rows, { apply, files: found.files }) + "\n");
+        printJevSummary(jev.log);
+        return 0;
+      }
+      const { candidates, files, notFound } = collectCandidates(root, sources as ImportSource[], { memoryDir, maxChars: cfg.writer.maxChars });
       if (candidates.length === 0) {
         io.out(`jevmem import: nothing to import${notFound.length ? ` (not found: ${notFound.join(", ")})` : ""}\n`);
         return 0;

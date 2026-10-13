@@ -105,7 +105,8 @@ function readSettings(file: string): any {
   }
 }
 
-const HOOK_EVENTS: Record<string, number> = { Stop: 20, UserPromptSubmit: 5, PreToolUse: GUARD_HOOK_TIMEOUT_S };
+// SessionStart (0.7.1): the always-on lines, from the file alone; the same plain command as UserPromptSubmit.
+const HOOK_EVENTS: Record<string, number> = { Stop: 20, UserPromptSubmit: 5, PreToolUse: GUARD_HOOK_TIMEOUT_S, SessionStart: 5 };
 
 export const isJevmemHook = isJevmemHookCommand;
 
@@ -247,7 +248,7 @@ export function init(opts: InitOptions): InitResult {
   ensureGitignore(root, opts.hooks !== false ? [".jevmem/", `.claude/${HOOK_SETTINGS_FILE}`] : [".jevmem/"], created);
   if (opts.hooks !== false) {
     const r = registerClaudeHooks(root, command, stopCommand, guardCommand);
-    (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop (async), UserPromptSubmit and PreToolUse hooks${r === "updated" ? ", updated" : ""})`);
+    (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop (async), UserPromptSubmit, PreToolUse and SessionStart hooks${r === "updated" ? ", updated" : ""})`);
     if (projectEnablesPlugin(root))
       warnings.push("The jevmem Claude Code plugin is also enabled in this project. Its hooks stand down while these init hooks exist, so nothing runs twice. To use only the plugin, run `jevmem init --remove-hooks`.");
   }

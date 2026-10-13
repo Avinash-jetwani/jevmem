@@ -14,16 +14,16 @@ describe("question set", () => {
   it("has 31 atomic nouls in ten families (+3 meta nouls with the assistant reply), two choices, one score, each choice with a none option", () => {
     expect(atomicNoulsFor(false)).toHaveLength(31);
     expect(ATOMIC_NOULS).toHaveLength(34);
-    expect(DECIDE_QUESTION_COUNT).toBe(34);
+    expect(DECIDE_QUESTION_COUNT).toBe(35); // with the always-on question (0.7.1)
     // Every family has three or more atomic nouls, except dead-end: one noul, the same question as tier 1's (the brief:
     // "a new noul in the decide step", in the request each tier already makes).
     for (const f of FAMILIES) expect(ATOMIC_NOULS.filter((n) => n.family === f).length).toBeGreaterThanOrEqual(f === "dead-end" ? 1 : 3);
     const deadEnd = ATOMIC_NOULS.filter((n) => n.family === "dead-end");
     expect(deadEnd.map((n) => n.question)).toEqual([TIER1_NOULS.find((n) => n.family === "dead-end")!.question]);
     const q = buildDecideQuestions([{ id: "m1", kind: "decision", text: "Use Postgres" }]);
-    expect(Object.keys(q)).toHaveLength(35); // 34, plus the restatement question when a memory is listed (0.7.0)
+    expect(Object.keys(q)).toHaveLength(36); // 35, plus the restatement question when a memory is listed (0.7.0)
     const qa = buildDecideQuestions([{ id: "m1", kind: "decision", text: "Use Postgres" }], { withAssistant: true });
-    expect(Object.keys(qa)).toHaveLength(39); // 38, plus the restatement question (0.7.0)
+    expect(Object.keys(qa)).toHaveLength(40); // with the always-on question (0.7.1) // 38, plus the restatement question (0.7.0)
     expect(Object.keys((qa.content_source as any).criteria)).toEqual(["user_message", "assistant_reply", "both", "none"]);
     expect(Object.keys((q.kind as any).criteria)).toEqual(["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end", "none"]);
     expect(Object.keys((q.touches_memory_id as any).criteria)).toEqual(["m1", "none"]);
@@ -176,7 +176,7 @@ describe("decide() with a mocked Jev (tier 2, mode=full)", () => {
     const existing = Array.from({ length: 250 }, (_, i) => ({ id: `id${i}`, kind: "todo" as const, text: `memory number ${i}` }));
     const d = await decide(jev, { message: "USER: let's use Postgres", existingMemories: existing }, { maxIds: 200, ...FULL });
     expect(jev.calls).toHaveLength(1);
-    expect(Object.keys(jev.calls[0]!.questions)).toHaveLength(35); // with the restatement question (0.7.0)
+    expect(Object.keys(jev.calls[0]!.questions)).toHaveLength(36); // with the restatement (0.7.0) and always-on (0.7.1) questions
     expect(Object.keys((jev.calls[0]!.questions.touches_memory_id as any).criteria)).toHaveLength(201);
     expect(d.save).toBe(true);
     expect(d.kind).toBe("decision");

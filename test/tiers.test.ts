@@ -20,12 +20,12 @@ const T1_SURE: AnswerOverrides = { contains_decision: 0.95, contains_constraint:
 const T1_UNSURE: AnswerOverrides = { ...T1_SURE, contains_decision: 0.55 };
 
 describe("tier 1 question set", () => {
-  it("has ten broad nouls (+1 meta noul with the assistant reply), one example per side, plus kind/touches/importance", () => {
+  it("has ten broad nouls (+1 meta noul with the assistant reply), one example per side, plus kind/touches/importance and the always-on question (0.7.1)", () => {
     expect(TIER1_NOULS).toHaveLength(11);
     expect(TIER1_NOULS.filter((n) => n.family !== "meta")).toHaveLength(10);
     expect(TIER1_NOULS.filter((n) => n.family === "injection").map((n) => n.name)).toEqual(["contains_instructions_aimed_at_an_automated_system"]);
-    expect(TIER1_QUESTION_COUNT).toBe(13);
-    expect(Object.keys(buildTier1Questions([], { withAssistant: true }))).toHaveLength(15);
+    expect(TIER1_QUESTION_COUNT).toBe(14);
+    expect(Object.keys(buildTier1Questions([], { withAssistant: true }))).toHaveLength(16); // with the always-on question (0.7.1)
     for (const n of TIER1_NOULS) {
       expect(n.yes.examples).toHaveLength(1);
       expect(n.no.examples).toHaveLength(1);
@@ -33,7 +33,7 @@ describe("tier 1 question set", () => {
     }
     const q = buildTier1Questions([{ id: "m1", kind: "decision", text: "x" }]) as any;
     // With a memory listed, the restatement question (0.7.0, dedupe on save) joins the set.
-    expect(Object.keys(q)).toHaveLength(14);
+    expect(Object.keys(q)).toHaveLength(15); // and the always-on question (0.7.1)
     for (const c of Object.values(q.kind.criteria) as any[]) expect(c.examples).toHaveLength(1);
     expect(Object.keys(q.touches_memory_id.criteria)).toEqual(["m1", "none"]);
     // Tier 1 is small: well under half of tier 2 (2 examples per side) serialized.
@@ -119,7 +119,7 @@ describe("two-tier decide", () => {
     expect(jev2.calls[0]!.opts.tier).toBe(2);
     expect(g.tier).toBe(2);
     expect(g.tier1).toBeUndefined();
-    expect(Object.keys(jev2.calls[0]!.questions)).toHaveLength(34);
+    expect(Object.keys(jev2.calls[0]!.questions)).toHaveLength(35); // with the always-on question (0.7.1)
   });
 
   it("uses tier-1 threshold overrides only for tier-1 finals", async () => {

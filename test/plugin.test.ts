@@ -79,7 +79,7 @@ describe("plugin files", () => {
     // The guard: Bash, Edit and Write (Claude Code 2.1.274 and 2.1.281 have no MultiEdit), a 3 s timeout, and --guard so
     // the launcher runs only a CLI that has the guard.
     expect(h.PreToolUse).toEqual([{ matcher: "Bash|Edit|Write", hooks: [{ type: "command", command: '"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" --guard hook --plugin', timeout: 3 }] }]);
-    expect(Object.keys(h).sort()).toEqual(["PreToolUse", "Stop", "UserPromptSubmit"]);
+    expect(Object.keys(h).sort()).toEqual(["PreToolUse", "SessionStart", "Stop", "UserPromptSubmit"]);
     expect(stop).toMatchObject({ type: "command", async: true, command: '"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" --detach hook --plugin' });
     expect(ups.async).toBeUndefined();
     expect(ups.command).toBe('"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" hook --plugin');
@@ -93,7 +93,7 @@ describe("plugin files", () => {
     const commands: string[] = Object.values(h).flatMap((groups: any) => groups.flatMap((g: any) => g.hooks.map((x: any) => [x.command, ...(x.args ?? [])].join(" "))));
     const m = json("plugin/.claude-plugin/plugin.json");
     for (const s of Object.values(m.mcpServers) as any[]) commands.push([s.command, ...(s.args ?? [])].join(" "));
-    expect(commands).toHaveLength(4);
+    expect(commands).toHaveLength(5); // the three hooks of 0.6, SessionStart (0.7.1) and the MCP server
     for (const c of commands) {
       const rest = c.replace(/"\$\{CLAUDE_PLUGIN_ROOT\}\/[A-Za-z0-9._/-]+"/g, "");
       expect(rest, c).toMatch(/^[A-Za-z0-9 ._-]*$/); // no other variable, $( ), backtick, wildcard, quote or -c
