@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|forget|trust|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|forget|trust|alwayson|import|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -94,6 +94,24 @@
 #              harness without a terminal must be refused ("not a terminal") and write no provenance record; and Claude
 #              asked to run `jevmem trust <id>` (jevmem on the session PATH) must be asked first by the PreToolUse hook
 #              (the tamper check; a deny in `claude -p`), with no provenance record written either way
+#   alwayson   always-on rules (0.7.1), `jevmem init` hooks, a small React project with a t() convention. Session 1: the user
+#              states a convention every change must follow (every string shown to people goes through t(), with the
+#              English in src/locales/en.json); the turn must save exactly one line that says so. Session 2, a new session
+#              whose prompt does not mention strings or translation ("add a Reset button to Toolbar.tsx that calls
+#              onReset"): the saved line must reach Claude through a jevmem hook's context (a SessionStart hook's or the
+#              prompt hook's, whichever the build uses), the button's label must come from t() with a new en.json key, and
+#              no English copy may be hard-coded. Session 3, a new session with a prompt the rule has nothing to do with
+#              (a .gitignore): the task must be done and no component or locale file touched (the rule did not get in the way)
+#   import     `jevmem import --from sessions` (0.7.1): a scratch project where two real Claude Code sessions ran before
+#              jevmem was set up (their transcripts in the temporary config dir, as ~/.claude/projects/<slug>/ holds a
+#              real project's), one with a decision and a question, one with a dead end and thanks. Then `jevmem init`,
+#              and `jevmem import --from sessions` in a terminal (a pseudo-terminal): answered `n` at its [y/N] it must
+#              say how many sessions and turns it found and send nothing (no decide call in the log, JEVMEM.md unchanged);
+#              answered `y`, the dry run must propose a line for the decision and one for the dead end and none for the
+#              question or the thanks, and still write nothing; `--apply` answered `y` must write them (a [decision] naming
+#              SQLite, a [dead-end] naming pino, each with a provenance record). Then a new session with the hooks on,
+#              asked where the data lives from the project's memory only: the prompt's context must carry the decision
+#              line and the reply must name SQLite
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
 # memory line, or the jevmem footer (i.e. a line the assistant wrote by hand).
 #
@@ -1195,8 +1213,12 @@ answer_in_terminal() {
 import os, pty, select, sys, time
 args = sys.argv[1:]
 home, path, prompt, answer = args[0:4]
-argv = args[args.index("--") + 1:]
+# NAME=value arguments after the answer and before `--` go into the command's environment (0.7.1: CLAUDE_CONFIG_DIR for import).
+sep = args.index("--")
+extra = dict(a.split("=", 1) for a in args[4:sep])
+argv = args[sep + 1:]
 env = {"HOME": home, "PATH": path, "TERM": "xterm", "USER": os.environ.get("USER", "")}
+env.update(extra)
 pid, fd = pty.fork()
 if pid == 0:
     os.execvpe(argv[0], argv, env)
@@ -1485,6 +1507,216 @@ JS
   return $fail
 }
 
+# A small React project whose components use t() and src/locales/en.json, for the always-on scenario.
+toolbar_project() {
+  local scratch="$1"
+  mkdir -p "$scratch/src/components" "$scratch/src/locales"
+  printf '{"name":"toolbar-e2e","private":true,"type":"module","dependencies":{"react":"^19.0.0","react-i18next":"^15.4.0","i18next":"^24.2.0"},"devDependencies":{"typescript":"^5.9.3"}}\n' > "$scratch/package.json"
+  printf '{"compilerOptions":{"jsx":"react-jsx","strict":true,"module":"esnext","moduleResolution":"bundler","target":"es2022"},"include":["src"]}\n' > "$scratch/tsconfig.json"
+  printf '# toolbar-e2e\n\nA small React app. Strings shown to people come from src/locales/en.json through t() (react-i18next).\n' > "$scratch/README.md"
+  printf '{\n  "toolbar.search": "Search",\n  "toolbar.filter": "Filter",\n  "toolbar.sort": "Sort by name"\n}\n' > "$scratch/src/locales/en.json"
+  cat > "$scratch/src/i18n.ts" <<'TS'
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+import en from "./locales/en.json";
+
+i18n.use(initReactI18next).init({ resources: { en: { translation: en } }, lng: "en", fallbackLng: "en" });
+export default i18n;
+TS
+  cat > "$scratch/src/components/Toolbar.tsx" <<'TSX'
+import { useTranslation } from "react-i18next";
+
+export function Toolbar({ onSearch, onFilter, onReset }: { onSearch: (q: string) => void; onFilter: () => void; onReset: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="toolbar">
+      <input placeholder={t("toolbar.search")} onChange={(e) => onSearch(e.target.value)} />
+      <button onClick={onFilter}>{t("toolbar.filter")}</button>
+    </div>
+  );
+}
+TSX
+  ( cd "$scratch" && git init -q && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+}
+
+# Always-on rules (0.7.1): a convention stated in one session reaches a later session whose prompt does not mention it,
+# and does not get in the way of a task it has nothing to do with. See the header.
+run_alwayson() {
+  local run="$1" fail=0 scratch events before rule_id
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=alwayson  scratch=$scratch"
+  toolbar_project "$scratch" || return 1
+  events="$(mktemp /tmp/jevmem-e2e-alwayson.XXXXXX)"
+  local p1="Every string shown to people in this app goes through t() from useTranslation(), with the English text in src/locales/en.json; never hard-code copy in a component. Check that src/components/Toolbar.tsx follows that and tell me in one sentence."
+  local p2="Add a Reset button to src/components/Toolbar.tsx that calls the onReset prop. Reply in one sentence when it is done."
+  local p3="Add a .gitignore that ignores node_modules and dist. Reply in one sentence."
+  echo "---- session 1 (the convention, stated): $p1"
+  before=$(decisions "$scratch")
+  ( cd "$scratch" && claude_session -- -p "$p1" --max-turns 4 --output-format stream-json --verbose --include-hook-events > "$events.1" 2>&1 )
+  wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; tail -c 1200 "$events.1" | sed 's/^/     session> /'; fail=1; }
+  if [ $fail -eq 0 ]; then
+    rule_id="$("$NODE" - "$scratch" <<'JS'
+      const fs=require("fs");const root=process.argv[2];const errs=[];
+      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
+      console.error("     JEVMEM.md after session 1:");for(const l of lines)console.error("       "+l.replace(/\s*<!--.*-->/,"  <!-- "+(/<!-- (id:\w+)/.exec(l)||[])[1]+(/always:\S+/.exec(l)?" "+/always:\S+/.exec(l)[0]:"")+" -->"));
+      if(lines.length!==1)errs.push(`expected exactly 1 line, got ${lines.length}`);
+      const m=lines[0]&&/^- \[([a-z-]+)\] (.*?)\s*<!-- id:(\w+)/.exec(lines[0]);
+      if(m&&!["constraint","preference","decision"].includes(m[1]))errs.push(`the line is [${m[1]}], not a rule`);
+      if(m&&!/t\(\)|locales|translat|hard-?cod/i.test(m[2]))errs.push("the line does not state the t() convention");
+      if(errs.length){console.error("   ✗ FAIL session 1: "+errs.join("; "));process.exit(1);}
+      console.error("   ✓ session 1: exactly one line, a rule that states the convention");
+      console.log(m[3]);
+JS
+)" || fail=1
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- session 2 (new session; the prompt does not mention strings or translation): $p2"
+    before=$(decisions "$scratch")
+    ( cd "$scratch" && claude_session -- -p "$p2" --max-turns 8 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits > "$events.2" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   (session 2's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
+    E2E_ID="$rule_id" "$NODE" - "$events.2" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [evf,root]=process.argv.slice(2);const id=process.env.E2E_ID;const errs=[];
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      const hooks=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response");
+      const ctx=(name)=>hooks.filter(e=>(e.hook_event??e.hook_event_name)===name).map(e=>{try{return JSON.parse(String(e.stdout??e.output??"")).hookSpecificOutput?.additionalContext??""}catch{return ""}}).join("\n");
+      const start=ctx("SessionStart"),prompt=ctx("UserPromptSubmit");
+      const where=[start.includes(`id:${id}`)?"SessionStart":null,prompt.includes(`id:${id}`)?"UserPromptSubmit":null].filter(Boolean);
+      console.log(`     session-start context: ${start.split("\n").filter(l=>/^- /.test(l)).length} line(s), ${start.length} chars; prompt context: ${prompt.split("\n").filter(l=>/^- /.test(l)).length} line(s)`);
+      for(const l of (start+"\n"+prompt).split("\n").filter(l=>/^- /.test(l)))console.log("       "+l.slice(0,160));
+      if(!where.length)errs.push("the rule (id:"+id+") reached no jevmem hook context in this session");else console.log(`     the rule reached Claude through: ${where.join(" and ")}`);
+      const card=fs.readFileSync(root+"/src/components/Toolbar.tsx","utf8").replace(/\/\*[\s\S]*?\*\//g,"").replace(/(^|[^:"'`])\/\/.*$/gm,"$1");
+      const button=/onReset/.test(card)&&/<button/.test(card)&&(card.match(/<button/g)||[]).length>=2;
+      const hardcoded=/>\s*Reset\s*</i.test(card)||/["']Reset["']/.test(card);
+      const usesT=/\bt\(\s*["'`][\w.:-]*reset[\w.:-]*["'`]/i.test(card);
+      let newKey=false;try{const en=JSON.parse(fs.readFileSync(root+"/src/locales/en.json","utf8"));newKey=Object.entries(en).some(([k,v])=>!/^toolbar\.(search|filter|sort)$/.test(k)&&/reset/i.test(String(v)))}catch{}
+      const uses=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use")uses.push(`${c.name}: ${JSON.stringify(c.input?.file_path??c.input?.command??"")}`);
+      console.log(`     tool calls: ${uses.join(" | ")||"none"}`);
+      console.log(`     Reset button: ${button}; label through t(): ${usesT}; new en.json key: ${newKey}; hard-coded English: ${hardcoded}`);
+      console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,200)}`);
+      if(!button)errs.push("no Reset button that calls onReset was added");
+      if(button&&!(usesT&&newKey&&!hardcoded))errs.push("the button does not follow the convention (t() with a new en.json key, no hard-coded copy)");
+      if(errs.length){console.log("   ✗ FAIL session 2: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ session 2: the rule reached Claude and the button follows it");
+JS
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- session 3 (new session; a task the rule has nothing to do with): $p3"
+    before=$(decisions "$scratch")
+    ( cd "$scratch" && claude_session -- -p "$p3" --max-turns 6 --output-format stream-json --verbose --include-hook-events --permission-mode acceptEdits > "$events.3" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   (session 3's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
+    "$NODE" - "$events.3" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [evf,root]=process.argv.slice(2);const errs=[];
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      let gi="";try{gi=fs.readFileSync(root+"/.gitignore","utf8")}catch{}
+      const done=/node_modules/.test(gi)&&/\bdist\b/.test(gi);
+      const edits=[];for(const e of ev)for(const c of (Array.isArray(e.message?.content)?e.message.content:[]))if(c.type==="tool_use"&&["Edit","Write","MultiEdit"].includes(c.name))edits.push(String(c.input?.file_path??""));
+      const detour=edits.filter(f=>/src\/(components|locales)\//.test(f));
+      console.log(`     .gitignore has node_modules and dist: ${done}; files edited: ${edits.map(f=>f.replace(root+"/","")).join(", ")||"none"}`);
+      console.log(`     claude> ${String((ev.find(e=>e.type==="result")||{}).result??"").replace(/\n/g," ").slice(0,200)}`);
+      if(!done)errs.push("the .gitignore was not written as asked");
+      if(detour.length)errs.push("a component or locale file was edited for a task that has nothing to do with the rule");
+      if(errs.length){console.log("   ✗ FAIL session 3: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ session 3: the unrelated task was done and the rule did not get in the way");
+JS
+  fi
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  rm -f "$events" "$events".*
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=alwayson"; else echo "FAIL run $run scenario=alwayson"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
+  return $fail
+}
+
+# `jevmem import --from sessions` (0.7.1): past sessions of a project become its memory, after a yes. See the header.
+run_import() {
+  local run="$1" fail=0 scratch events before out
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=import  scratch=$scratch"
+  ( cd "$scratch" && git init -q && printf '{"name":"ledger-e2e","private":true,"type":"module"}\n' > package.json && printf '# ledger-e2e\n\nA small service that keeps a ledger of payments.\n' > README.md && mkdir -p src && printf 'export function add(a, b) { return a + b; }\n' > src/ledger.mjs && git add -A && git commit -q -m "initial import" ) || { echo "setup failed"; return 1; }
+  events="$(mktemp /tmp/jevmem-e2e-import.XXXXXX)"
+  # Two sessions before jevmem exists in the project: Claude Code writes their transcripts under the temporary config dir.
+  local a1="Decision: this service stores its data in SQLite, not Postgres; one file, no server. Add one line to the README saying so."
+  local a2="What does package.json name this project? One word."
+  local b1="We tried pino for logging and dropped it: its JSON lines broke the ops team's grep scripts. We keep console.log. Add one line to the README saying so."
+  local b2="thanks"
+  echo "---- past session A (no jevmem yet): $a1 / $a2"
+  ( cd "$scratch" && claude_session -- -p "$a1" --max-turns 4 --permission-mode acceptEdits --output-format stream-json --verbose > "$events.a1" 2>&1 && claude_session -- -p "$a2" --continue --max-turns 2 --output-format stream-json --verbose > "$events.a2" 2>&1 )
+  echo "---- past session B (no jevmem yet): $b1 / $b2"
+  ( cd "$scratch" && claude_session -- -p "$b1" --max-turns 4 --permission-mode acceptEdits --output-format stream-json --verbose > "$events.b1" 2>&1 && claude_session -- -p "$b2" --continue --max-turns 2 --output-format stream-json --verbose > "$events.b2" 2>&1 )
+  local sdir="$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")"
+  local nfiles; nfiles="$(ls "$sdir"/*.jsonl 2>/dev/null | wc -l | tr -d ' ')"
+  echo "     transcripts on disk: $nfiles session file(s) in $sdir"
+  if [ "$nfiles" -ne 2 ]; then echo "   ✗ FAIL: expected 2 session files"; fail=1; fi
+  if [ $fail -eq 0 ]; then
+    ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
+    local termbin="$E2E_HOME/.local/bin"; mkdir -p "$termbin" && ln -sf "$JEVMEM_CLI" "$termbin/jevmem"
+    local tpath="$termbin:$(dirname "$NODE"):/usr/bin:/bin"
+    local decide_before; decide_before="$(grep -c '"label":"decide"' "$scratch/.jevmem/log.jsonl" 2>/dev/null || echo 0)"
+    echo "---- jevmem import --from sessions, answered n: counts, nothing sent"
+    out="$(cd "$scratch" && answer_in_terminal "$E2E_HOME" "$tpath" "[y/N]" "n" "CLAUDE_CONFIG_DIR=$E2E_CONFIG_DIR" -- jevmem import --from sessions 2>&1)"; local rc=$?
+    echo "$out"
+    local decide_after; decide_after="$(grep -c '"label":"decide"' "$scratch/.jevmem/log.jsonl" 2>/dev/null || echo 0)"
+    if echo "$out" | grep -qi '2 session' && echo "$out" | grep -qiE '4 turn'; then echo "   ✓ A1: it counted 2 sessions and 4 turns before asking"; else echo "   ✗ FAIL A1: the count of sessions and turns is not shown"; fail=1; fi
+    if [ "$decide_after" = "$decide_before" ] && ! grep -q '^- \[' "$scratch/JEVMEM.md"; then echo "   ✓ A2: answered n, nothing was sent and nothing written"; else echo "   ✗ FAIL A2: a decide call was made or a line written after n"; fail=1; fi
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- jevmem import --from sessions, answered y: the dry run"
+    out="$(cd "$scratch" && answer_in_terminal "$E2E_HOME" "$tpath" "[y/N]" "y" "CLAUDE_CONFIG_DIR=$E2E_CONFIG_DIR" -- jevmem import --from sessions 2>&1)"
+    echo "$out"
+    if echo "$out" | grep -qiE '\+ \[decision\].*sqlite' && echo "$out" | grep -qiE '\+ \[dead-end\].*pino'; then echo "   ✓ B1: a [decision] for SQLite and a [dead-end] for pino are proposed"; else echo "   ✗ FAIL B1: the two lines are not proposed as such"; fail=1; fi
+    if echo "$out" | grep -E '^\s*\+ ' | grep -qiE 'package\.json|^\s*\+ .*\bthanks\b'; then echo "   ✗ FAIL B2: a line was proposed for the question or the thanks"; fail=1; else echo "   ✓ B2: nothing proposed for the question or the thanks"; fi
+    if grep -q '^- \[' "$scratch/JEVMEM.md"; then echo "   ✗ FAIL B3: the dry run wrote to JEVMEM.md"; fail=1; else echo "   ✓ B3: the dry run wrote nothing"; fi
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- jevmem import --from sessions --apply, answered y"
+    out="$(cd "$scratch" && answer_in_terminal "$E2E_HOME" "$tpath" "[y/N]" "y" "CLAUDE_CONFIG_DIR=$E2E_CONFIG_DIR" -- jevmem import --from sessions --apply 2>&1)"
+    echo "$out" | tail -8
+    "$NODE" - "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const root=process.argv[2];const errs=[];
+      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
+      console.log("     JEVMEM.md after --apply:");for(const l of lines)console.log("       "+l.replace(/\s*<!--.*-->/,""));
+      const FORMAT=/^- \[(decision|constraint|preference|bug|architecture|todo|dead-end|superseded)\] .+  <!-- id:[a-z0-9]+ ts:\S+ conf:\d\.\d\d( by:[a-z0-9]+)?( stale:[\d.]+)?( always:\S+)? -->$/;
+      for(const l of lines)if(!FORMAT.test(l))errs.push(`not a jevmem line: ${l.slice(0,100)}`);
+      const dec=lines.find(l=>/^- \[decision\] .*sqlite/i.test(l)),de=lines.find(l=>/^- \[dead-end\] .*pino/i.test(l));
+      if(!dec)errs.push("no [decision] line naming SQLite");if(!de)errs.push("no [dead-end] line naming pino");
+      if(lines.some(l=>/package\.json|\bthanks\b/i.test(l)))errs.push("a line from the question or the thanks was written");
+      let prov=[];try{prov=fs.readFileSync(root+"/.jevmem/provenance.jsonl","utf8").split("\n").filter(Boolean).map(l=>JSON.parse(l))}catch{}
+      const ids=lines.map(l=>/<!-- id:(\w+)/.exec(l)[1]);
+      for(const id of ids)if(!prov.some(p=>p.id===id))errs.push(`no provenance record for ${id} (the line is not verified)`);
+      if(errs.length){console.log("   ✗ FAIL C: "+errs.join("; "));process.exit(1);}
+      console.log(`   ✓ C: ${lines.length} line(s) written, the SQLite decision and the pino dead end among them, each with a provenance record`);
+JS
+  fi
+  if [ $fail -eq 0 ]; then
+    local p="In one sentence, and from this project's memory only: where does this service store its data?"
+    echo "---- a new session with the hooks on: $p"
+    before=$(decisions "$scratch")
+    ( cd "$scratch" && claude_session -- -p "$p" --max-turns 3 --output-format stream-json --verbose --include-hook-events > "$events.d" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   (the session's turn did not drain within 60 s; not part of the check)"; queue_state "$scratch"; }
+    "$NODE" - "$events.d" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [evf,root]=process.argv.slice(2);const errs=[];
+      const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      const dec=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").find(l=>/^- \[decision\] .*sqlite/i.test(l));const id=/<!-- id:(\w+)/.exec(dec||"")?.[1];
+      const ups=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&(e.hook_event??e.hook_event_name)==="UserPromptSubmit");
+      let ctx="";try{ctx=JSON.parse(String(ups[0]?.stdout??"")).hookSpecificOutput.additionalContext}catch{}
+      console.log(`     context lines: ${ctx.split("\n").filter(l=>/^- /.test(l)).join(" | ")||"none"}`);
+      const reply=String((ev.find(e=>e.type==="result")||{}).result??"");console.log(`     claude> ${reply.replace(/\n/g," ").slice(0,200)}`);
+      if(!id||!ctx.includes(`(id:${id},`))errs.push("the imported decision line was not in the prompt's context");
+      if(!/sqlite/i.test(reply))errs.push("the reply does not name SQLite");
+      if(errs.length){console.log("   ✗ FAIL D: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ D: the next session recalled the imported line");
+JS
+  fi
+  ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" daemon stop >/dev/null 2>&1 )
+  rm -f "$events" "$events".*
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=import"; else echo "FAIL run $run scenario=import"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
+  return $fail
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
   [ "$scenario" = dormant ] && { PUBLISHED=0; run_dormant "$run"; return $?; }
@@ -1498,6 +1730,8 @@ run_once() {
   [ "$scenario" = supersede ] && { run_supersede "$run"; return $?; }
   [ "$scenario" = forget ] && { run_forget "$run"; return $?; }
   [ "$scenario" = trust ] && { run_trust "$run"; return $?; }
+  [ "$scenario" = alwayson ] && { run_alwayson "$run"; return $?; }
+  [ "$scenario" = import ] && { run_import "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
     linkguard|plugin) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;
@@ -1615,7 +1849,7 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard guardgit deadend supersede forget trust)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard guardgit deadend supersede forget trust alwayson import)
 # Every failed scenario is recorded with its whole output in test-results/e2e-failures.log (JEVMEM_TEST_RESULTS names
 # another folder), as the unit tests' failures are in test-results/failures.jsonl.
 RESULTS="${JEVMEM_TEST_RESULTS:-$ROOT/test-results}"
