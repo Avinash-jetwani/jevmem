@@ -73,7 +73,7 @@ export const CASES = [
     mode: "none",
     prompts: [
       "How does the carrier webhook update a parcel's status?",
-      "Carrier events can arrive out of order; the webhook must ignore an event older than the parcel's status_at. Make sure the code does that.",
+      "Carrier events sometimes come in the wrong order; the webhook must ignore an event older than the parcel's status_at. Make sure the code does that.",
       "Note for later: rate limiting on /v1 before the second marketplace goes live. Don't build it now.",
     ],
     labels: [{ save: false }, { save: true, kind: "constraint", has: ["older", "status_at", "out of order"] }, { save: true, kind: "todo", has: ["rate limit"] }],
