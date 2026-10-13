@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ t('bookings.new') }}</h1>
+<form method="post" action="{{ url_for('bookings.create_booking') }}">
+  <label>{{ t('bookings.field_room') }}
+    <select name="room_id">{% for r in rooms %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}</select>
+  </label>
+  <label>{{ t('bookings.field_when') }} <input type="datetime-local" name="starts_at" required></label>
+  <label>{{ t('bookings.field_member') }} <input name="member_name" required></label>
+  <label>{{ t('bookings.field_email') }} <input type="email" name="member_email"></label>
+  <button type="submit">{{ t('bookings.submit') }}</button>
+</form>
+{% endblock %}

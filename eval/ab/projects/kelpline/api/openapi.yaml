@@ -1,0 +1,82 @@
+openapi: 3.1.0
+info:
+  title: kelpline
+  version: 0.9.3
+paths:
+  /v1/stations:
+    get:
+      summary: List stations
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 100, maximum: 500 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0 } }
+      responses:
+        "200": { description: Stations, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Station" } } } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /v1/stations/{id}:
+    get:
+      summary: One station
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: The station, content: { application/json: { schema: { $ref: "#/components/schemas/Station" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/stations/{id}/readings:
+    get:
+      summary: Readings for a station, newest first
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+        - { name: limit, in: query, schema: { type: integer, default: 100, maximum: 500 } }
+      responses:
+        "200": { description: Readings, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Reading" } } } } }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/alerts:
+    post:
+      summary: Create an alert
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/NewAlert" } } }
+      responses:
+        "201": { description: The alert, content: { application/json: { schema: { $ref: "#/components/schemas/Alert" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/alerts/{id}:
+    get:
+      summary: One alert
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: The alert, content: { application/json: { schema: { $ref: "#/components/schemas/Alert" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      summary: Delete an alert
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/Error" }
+components:
+  responses:
+    Error:
+      description: "An error, as { error: { code, message } }"
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  schemas:
+    Station:
+      type: object
+      properties: { id: { type: string }, name: { type: string }, lat: { type: number }, lon: { type: number } }
+    Reading:
+      type: object
+      properties: { id: { type: string }, stationId: { type: string }, heightMm: { type: integer }, at: { type: string, format: date-time } }
+    NewAlert:
+      type: object
+      required: [stationId, thresholdMm, email]
+      properties: { stationId: { type: string }, thresholdMm: { type: integer }, email: { type: string } }
+    Alert:
+      type: object
+      properties: { id: { type: string }, stationId: { type: string }, thresholdMm: { type: integer }, email: { type: string }, armed: { type: boolean }, createdAt: { type: string, format: date-time } }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties: { code: { type: string, enum: [station_not_found, alert_not_found, invalid_station_id, invalid_email, limit_too_large] }, message: { type: string } }

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ t('rooms.title') }}</h1>
+<table>
+  <thead>
+    <tr>
+      <th>{{ t('rooms.col_name') }}</th>
+      <th>{{ t('rooms.col_capacity') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for room in rooms %}
+    <tr>
+      <td>{{ room.name }}</td>
+      <td>{{ room.capacity }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

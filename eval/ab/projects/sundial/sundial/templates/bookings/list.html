@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ t('bookings.title') }}</h1>
+<a class="button" href="{{ url_for('bookings.new_booking') }}">{{ t('bookings.new') }}</a>
+<table>
+  <thead>
+    <tr>
+      <th>{{ t('bookings.col_when') }}</th>
+      <th>{{ t('bookings.col_room') }}</th>
+      <th>{{ t('bookings.col_member') }}</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for b in bookings %}
+    <tr class="{{ 'cancelled' if b.cancelled_at else '' }}">
+      <td>{{ fmt_date(b.starts_at) }} {{ fmt_time(b.starts_at) }}</td>
+      <td>{{ b.room }}</td>
+      <td>{{ b.member_name }}</td>
+      <td></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4">{{ t('bookings.empty') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

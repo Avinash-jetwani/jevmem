@@ -3,6 +3,15 @@
 //
 //   node scripts/ab.mjs [--arms none,jevmem,guard,claudemd] [--tasks all|id,id] [--runs 3] [--concurrency 4]
 //                       [--subagent] [--model <id>] [--out results/ab-<date>.json] [--transcripts <dir>] [--keep]
+//                       [--tasks-file eval/ab/tasks.mjs] [--pkg <package dir>] [--always-labels eval/ab/always-dev.mjs]
+//
+// 0.7.1 (the always-on A/B): --pkg runs another jevmem package's dist/ (an npm package unpacked under node_modules/.cache,
+// or a prototype build) instead of this checkout's, for a before-run or a design arm; --tasks-file names another task
+// set (eval/ab/tasks-alwayson.mjs); a memory line labelled always-on, in the task file's fifth tuple element
+// ({ always: true }) or in an --always-labels file (its ALWAYS map of project → keys), is written with that label when
+// the package's formatLine knows it (a package that does not writes the plain line). Each record also keeps the
+// session's token usage from the result event (cache_creation_input_tokens, cache_read_input_tokens) and what a
+// SessionStart hook injected, beside what the prompt hook injected.
 //
 // Every session: a fresh copy of the task's project (eval/ab/projects/<project>, plus the task's own files) in a new
 // temporary folder, committed as the first commit of a new git repository on `main`; a new, empty CLAUDE_CONFIG_DIR (so
@@ -50,9 +59,12 @@ const MAX_TURNS = Number(opt("--max-turns", "25"));
 const TIMEOUT_MS = Number(opt("--timeout-ms", String(10 * 60_000)));
 
 const TASKS_FILE = path.resolve(opt("--tasks-file", path.join(ROOT, "eval/ab/tasks.mjs")));
-const { PROJECTS, TASKS, SUBAGENT_TASKS } = await import(pathToFileURL(TASKS_FILE).href);
-const lib = await import(pathToFileURL(path.join(ROOT, "dist/index.js")).href);
-const CLI = path.join(ROOT, "dist/cli.js");
+const { PROJECTS, TASKS, SUBAGENT_TASKS = [] } = await import(pathToFileURL(TASKS_FILE).href);
+const PKG = path.resolve(opt("--pkg", ROOT));
+const lib = await import(pathToFileURL(path.join(PKG, "dist/index.js")).href);
+const CLI = path.join(PKG, "dist/cli.js");
+const PKG_VERSION = JSON.parse(fs.readFileSync(path.join(PKG, "package.json"), "utf8")).version;
+const ALWAYS_LABELS = opt("--always-labels", null) ? (await import(pathToFileURL(path.resolve(opt("--always-labels"))).href)).ALWAYS : {};
 const NODE = process.execPath;
 
 function claudeBin() {
@@ -77,6 +89,7 @@ if (!TOKEN && !process.env.ANTHROPIC_API_KEY) throw new Error("set CLAUDE_CODE_O
 if (!process.env.TYPESAFE_API_KEY) throw new Error("TYPESAFE_API_KEY is required (the jevmem arms)");
 const CLAUDE_VERSION = execFileSync(CLAUDE, ["--version"], { encoding: "utf8", env: { ...process.env, DISABLE_AUTOUPDATER: "1" } }).trim();
 let COMMIT = opt("--build-commit", null); // the commit dist/ was built from, when HEAD has moved since
+if (!COMMIT && PKG !== ROOT) COMMIT = `package ${PKG.replace(os.homedir(), "~")} (jevmem ${PKG_VERSION})`;
 if (!COMMIT) try {
   COMMIT = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim() + (execFileSync("git", ["status", "--porcelain", "src", "dist"], { cwd: ROOT, encoding: "utf8" }).trim() ? "+dirty" : "");
 } catch {
@@ -95,7 +108,8 @@ const idOf = (project, key) => {
 function memoriesOf(projectName) {
   const p = PROJECTS[projectName];
   const start = Date.parse("2026-01-12T09:00:00Z");
-  return p.memory.map(([key, kind, text, by], i) => ({
+  const labelled = new Set(ALWAYS_LABELS[projectName] ?? []);
+  return p.memory.map(([key, kind, text, by, extra], i) => ({
     key,
     id: idOf(projectName, key),
     kind,
@@ -103,6 +117,8 @@ function memoriesOf(projectName) {
     ts: new Date(start + i * 3.7 * 86_400_000).toISOString(),
     conf: 0.9,
     ...(by ? { supersededBy: idOf(projectName, by) } : {}),
+    // The always-on label (0.7.1): written into the line by a formatLine that knows the field, ignored by one that does not.
+    ...(extra?.always || labelled.has(key) ? { always: true } : {}),
   }));
 }
 
@@ -229,12 +245,15 @@ async function session(job) {
   } catch {
     /* no jevmem in this arm */
   }
+  const usage = result.usage ?? {};
   const record = {
     id: kind === "subagent" ? job.id : task.id,
     task: task.id,
     kind: kind ?? "task",
     project: task.project,
     category: task.category,
+    ...(task.points !== undefined ? { points: task.points } : {}),
+    ...(task.kind !== undefined ? { lineKind: task.kind } : {}),
     arm,
     run,
     model: init.model ?? null,
@@ -245,12 +264,19 @@ async function session(job) {
     turns: result.num_turns ?? null,
     end: result.subtype ?? null,
     costUsd: result.total_cost_usd ?? null,
+    usage: { input_tokens: usage.input_tokens ?? null, cache_creation_input_tokens: usage.cache_creation_input_tokens ?? null, cache_read_input_tokens: usage.cache_read_input_tokens ?? null, output_tokens: usage.output_tokens ?? null },
     resultText: String(result.result ?? "").slice(0, 600),
     check,
-    lineInjected: hooks.injected.some((x) => keyOf.get(x.id) === task.line),
-    staleInjected: task.stale ? hooks.injected.some((x) => keyOf.get(x.id) === task.stale) : null,
+    // The task's line reached Claude: through the prompt hook's context, or (0.7.1) a SessionStart hook's.
+    lineInjected: hooks.injected.some((x) => keyOf.get(x.id) === task.line) || hooks.startInjected.some((x) => keyOf.get(x.id) === task.line),
+    lineInPromptContext: hooks.injected.some((x) => keyOf.get(x.id) === task.line),
+    lineInStartContext: hooks.startInjected.some((x) => keyOf.get(x.id) === task.line),
+    staleInjected: task.stale ? hooks.injected.some((x) => keyOf.get(x.id) === task.stale) || hooks.startInjected.some((x) => keyOf.get(x.id) === task.stale) : null,
     injected: hooks.injected.map((x) => ({ key: keyOf.get(x.id) ?? x.id, p: x.p })),
+    startInjected: hooks.startInjected.map((x) => ({ key: keyOf.get(x.id) ?? x.id })),
     contextChars: hooks.contextChars,
+    startContextChars: hooks.startContextChars,
+    startContextLines: hooks.startContextLines,
     guard: hooks.guard,
     guardLog: guardLog.map((g) => ({ tool: g.tool, route: g.route, decision: g.decision, action: String(g.action ?? "").slice(0, 160), rules: (g.rules ?? []).map((x) => ({ key: keyOf.get(x.id) ?? x.id, p: x.p })) })),
     recall: recallLog,
@@ -317,6 +343,10 @@ const out = {
   date: today,
   claude_code: CLAUDE_VERSION,
   jevmem_commit: COMMIT,
+  jevmem_version: PKG_VERSION,
+  package: PKG === ROOT ? "this checkout (dist/)" : PKG.replace(os.homedir(), "~"),
+  tasks_file: path.relative(ROOT, TASKS_FILE),
+  ...(opt("--always-labels", null) ? { always_labels: path.relative(ROOT, path.resolve(opt("--always-labels"))) } : {}),
   model: [...new Set(records.map((r) => r.model))].join(", "),
   sessions: records.length,
   max_turns: MAX_TURNS,

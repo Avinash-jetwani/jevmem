@@ -46,7 +46,9 @@ if (args.includes("--transcripts")) {
 }
 const recs = data.records.filter((r) => r.kind === "task");
 const ARMS = ["none", "jevmem", "guard", "claudemd"].filter((a) => recs.some((r) => r.arm === a));
-const CATS = ["convention", "decision", "constraint", "dead-end", "superseded"];
+const CATS = ["convention", "decision", "constraint", "dead-end", "superseded", "control"];
+/** A session that did not do the task and ended on a question: it stopped to ask instead (0.7.1's control tasks). */
+const askedInstead = (r) => r.check?.done !== true && /\?\s*$/.test(String(r.resultText ?? "").trim());
 
 const frac = (rs, f) => `${rs.filter(f).length}/${rs.length}`;
 const rate = (rs, f) => (rs.length ? rs.filter(f).length / rs.length : null);
@@ -76,7 +78,11 @@ function armSummary(arm) {
     const cr = ok.filter((r) => r.category === c);
     if (!cr.length) continue;
     out.by_category[c] = { followed: frac(cr, (r) => r.check.followed === true), followed_rate: rate(cr, (r) => r.check.followed === true), followed_and_done: frac(cr, (r) => r.check.followed === true && r.check.done === true) };
+    if (c === "control") out.by_category[c].asked_instead = frac(cr, askedInstead);
   }
+  // 0.7.1's convention tasks: the ones whose prompt does not point at the line, apart.
+  const notPointing = ok.filter((r) => r.category === "convention" && r.points === false);
+  if (notPointing.length) out.conventions_not_pointed_at = { followed: frac(notPointing, (r) => r.check.followed === true), followed_and_done: frac(notPointing, (r) => r.check.followed === true && r.check.done === true), line_in_context: frac(notPointing, (r) => r.lineInjected === true) };
   const sup = ok.filter((r) => r.category === "superseded");
   if (sup.length) out.superseded_tasks = { stale: frac(sup, (r) => r.check.stale === true), stale_rate: rate(sup, (r) => r.check.stale === true) };
   const wrong = ok.filter((r) => "wrong" in (r.check ?? {}));
@@ -101,6 +107,12 @@ function armSummary(arm) {
     out.opened_jevmem_md = frac(ok, openedFile);
     out.followed_when_opened_jevmem_md = frac(ok.filter(openedFile), (r) => r.check.followed === true);
     out.line_injected = frac(ok, (r) => r.lineInjected);
+    if (ok.some((r) => r.lineInStartContext !== undefined)) {
+      out.line_in_prompt_context = frac(ok, (r) => r.lineInPromptContext === true);
+      out.line_in_start_context = frac(ok, (r) => r.lineInStartContext === true);
+      out.median_start_context_chars = median(ok.map((r) => r.startContextChars).filter((x) => typeof x === "number"));
+      out.median_start_context_lines = median(ok.map((r) => r.startContextLines).filter((x) => typeof x === "number"));
+    }
     out.stale_line_injected = frac(ok.filter((r) => r.staleInjected !== null), (r) => r.staleInjected === true);
     out.recall_failed = frac(ok, (r) => (r.recall ?? []).some((x) => !x.ok));
     out.followed_when_injected = frac(ok.filter((r) => r.lineInjected), (r) => r.check.followed === true);
@@ -108,6 +120,9 @@ function armSummary(arm) {
   }
   out.median_cost_usd = median(rs.map((r) => r.costUsd).filter((x) => typeof x === "number"));
   out.median_turns = median(rs.map((r) => r.turns).filter((x) => typeof x === "number"));
+  // The sessions' token usage from the result event (0.7.1): medians per session.
+  const used = (k) => rs.map((r) => r.usage?.[k]).filter((x) => typeof x === "number");
+  if (used("cache_read_input_tokens").length) out.median_usage = { cache_creation_input_tokens: median(used("cache_creation_input_tokens")), cache_read_input_tokens: median(used("cache_read_input_tokens")), input_tokens: median(used("input_tokens")), output_tokens: median(used("output_tokens")) };
   return out;
 }
 function median(xs) {
@@ -175,7 +190,10 @@ else {
     if (s.dead_end_tasks) console.log(`   repeated a dead end: ${s.dead_end_tasks.repeated}`);
     if (s.constraint_tasks) console.log(`   constraint: attempted ${s.constraint_tasks.attempted}, landed ${s.constraint_tasks.landed}, kept in the end ${s.constraint_tasks.kept_in_the_end}, guard asks ${s.constraint_tasks.guard_asks}, denials ${s.constraint_tasks.guard_denials}`);
     if (s.line_injected) console.log(`   line injected ${s.line_injected}; stale line injected ${s.stale_line_injected}; recall failed ${s.recall_failed}; followed when injected ${s.followed_when_injected}, when not ${s.followed_when_not_injected}; opened JEVMEM.md ${s.opened_jevmem_md} (followed ${s.followed_when_opened_jevmem_md})`);
-    console.log(`   median cost $${s.median_cost_usd}, median turns ${s.median_turns}`);
+    if (s.line_in_start_context) console.log(`   line in the prompt's context ${s.line_in_prompt_context}, in the session-start context ${s.line_in_start_context}; session-start context: median ${s.median_start_context_chars} chars, ${s.median_start_context_lines} lines`);
+    if (s.conventions_not_pointed_at) console.log(`   conventions the prompt does not point at: followed ${s.conventions_not_pointed_at.followed} (and done ${s.conventions_not_pointed_at.followed_and_done}); the line in context ${s.conventions_not_pointed_at.line_in_context}`);
+    if (s.by_category.control?.asked_instead) console.log(`   control tasks: stopped to ask instead of doing the task ${s.by_category.control.asked_instead}`);
+    console.log(`   median cost $${s.median_cost_usd}, median turns ${s.median_turns}${s.median_usage ? `; median tokens: cache creation ${s.median_usage.cache_creation_input_tokens}, cache read ${s.median_usage.cache_read_input_tokens}` : ""}`);
   }
   if (summary.subagent) {
     console.log("\nsubagent check:");

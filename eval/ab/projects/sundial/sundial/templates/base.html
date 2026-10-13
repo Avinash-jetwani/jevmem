@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ t('app.title') }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <nav>
+    <a href="{{ url_for('bookings.list_bookings') }}">{{ t('nav.bookings') }}</a>
+    <a href="{{ url_for('rooms.list_rooms') }}">{{ t('nav.rooms') }}</a>
+  </nav>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}<p class="flash {{ category }}">{{ message }}</p>{% endfor %}
+  {% endwith %}
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>
