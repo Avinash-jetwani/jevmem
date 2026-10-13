@@ -4,6 +4,9 @@ All notable changes to Jevmem are documented here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+### Added
+- **`runHook` for integrations other than Claude Code**, in the library entry. `runHook(input, { root })` reads the project from `root` before `CLAUDE_PROJECT_DIR` and the payload's `cwd`, and an `injected` outcome carries the recall text as `additionalContext` as well as in Claude Code's JSON on `stdout`. `isEnabled` (the opt-in check) and the `HookDeps` type are exported too. Nothing changes for the hooks, the plugin or the CLI.
+
 ### Fixed
 - **Two drains in one process no longer run the queue at the same time.** The drain lock was taken over whenever it named the current process, so a second drain in the same process (the daemon's timer while a hook request was draining, or an integration that captures turns in-process) removed the first one's lock and could evaluate the same queued turn twice. A live lock is now respected whatever process holds it; a lock older than its stale time is still taken over.
 

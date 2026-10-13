@@ -133,8 +133,22 @@ describe("UserPromptSubmit hook", () => {
     expect(ctx).toContain(`Flaky test caused by shared temp dir (id:${c.id}, p=0.85)`);
     expect(ctx).not.toContain("named exports"); // under the choice's recallChoiceMin, and not sure
     expect(ctx.indexOf("Use Postgres")).toBeLessThan(ctx.indexOf("Flaky test"));
+    expect(r.additionalContext).toBe(ctx); // the same text, for integrations that do not parse Claude Code's JSON
     expect(jev.calls).toHaveLength(1);
     expect(jev.calls[0]!.opts.label).toBe("recall");
+  });
+
+  it("reads the project from deps.root over CLAUDE_PROJECT_DIR and the payload's cwd", async () => {
+    const root = tmp();
+    const other = tmp();
+    const a = new MemoryStore(root).add({ kind: "decision", text: "Use Postgres for the primary store" });
+    const jev = mockJev(() => ({ most_relevant: { choice: a.id, probabilities: { [a.id]: 0.97, none: 0.03 } }, [`rel_${a.id}`]: 0.98 }));
+    const input = { hook_event_name: "UserPromptSubmit", cwd: other, prompt: "How do I add a migration?" };
+    const elsewhere = await runHook(input, { jev, env: { ...env, CLAUDE_PROJECT_DIR: other } });
+    expect(elsewhere.action).toBe("noop");
+    const r = await runHook(input, { jev, env: { ...env, CLAUDE_PROJECT_DIR: other }, root });
+    expect(r.action).toBe("injected");
+    expect(r.additionalContext).toContain(`Use Postgres for the primary store (id:${a.id}`);
   });
 
   it("no-ops with no memories", async () => {
