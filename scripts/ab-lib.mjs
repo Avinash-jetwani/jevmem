@@ -47,7 +47,7 @@ export function toolCallsOf(events) {
           byHook.set(e.hook_id, pending);
         }
       } else if (e.subtype === "hook_response" && byHook.has(e.hook_id)) {
-        const out = String(e.stdout ?? e.output ?? "").trim();
+        const out = String(e.stdout || e.output || "").trim();
         if (out) {
           try {
             const h = JSON.parse(out).hookSpecificOutput ?? {};
@@ -166,11 +166,12 @@ export function makeContext(root, base, events) {
  */
 export function hookSummary(events) {
   const responses = events.filter((e) => e.type === "system" && e.subtype === "hook_response");
+  // A hook response carries its JSON in `stdout`, or (a SessionStart hook on 2.1.296) in `output` with `stdout` empty.
   const contextOf = (list) => {
     let context = "";
     for (const r of list) {
       try {
-        context += JSON.parse(String(r.stdout ?? r.output ?? "")).hookSpecificOutput?.additionalContext ?? "";
+        context += JSON.parse(String(r.stdout || r.output || "")).hookSpecificOutput?.additionalContext ?? "";
       } catch {
         /* no output */
       }
@@ -182,12 +183,13 @@ export function hookSummary(events) {
   const start = responses.filter((e) => (e.hook_event ?? e.hook_event_name) === "SessionStart");
   const startContext = contextOf(start);
   // `p=0.97` when Jev picked the line, `word match` when the Jev call failed or ran late (since v0.6 part 3b).
-  const injected = [...context.matchAll(/\(id:([a-z0-9]+), (?:p=([\d.]+)|word match)\)/g)].map((m) => ({ id: m[1], p: m[2] === undefined ? null : Number(m[2]) }));
+  // `always` (0.7.1): a constraint sent with every prompt, whatever Jev said (the `prompt` mode).
+  const injected = [...context.matchAll(/\(id:([a-z0-9]+), (?:p=([\d.]+)|word match|always)\)/g)].map((m) => ({ id: m[1], p: m[2] === undefined ? null : Number(m[2]) }));
   // A line in the session-start context names its id as `(id:xxxxxx…)`, whatever else the bracket says.
   const startInjected = [...startContext.matchAll(/\(id:([a-z0-9]+)[,)]/g)].map((m) => ({ id: m[1] }));
   const guard = [];
   for (const r of responses.filter((e) => (e.hook_event ?? e.hook_event_name) === "PreToolUse")) {
-    const out = String(r.stdout ?? r.output ?? "").trim();
+    const out = String(r.stdout || r.output || "").trim();
     if (!out) continue;
     try {
       const h = JSON.parse(out).hookSpecificOutput ?? {};

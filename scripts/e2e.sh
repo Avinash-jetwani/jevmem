@@ -1580,7 +1580,7 @@ JS
       const fs=require("fs");const [evf,root]=process.argv.slice(2);const id=process.env.E2E_ID;const errs=[];
       const ev=[];for(const l of fs.readFileSync(evf,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
       const hooks=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response");
-      const ctx=(name)=>hooks.filter(e=>(e.hook_event??e.hook_event_name)===name).map(e=>{try{return JSON.parse(String(e.stdout??e.output??"")).hookSpecificOutput?.additionalContext??""}catch{return ""}}).join("\n");
+      const ctx=(name)=>hooks.filter(e=>(e.hook_event??e.hook_event_name)===name).map(e=>{try{return JSON.parse(String(e.stdout||e.output||"")).hookSpecificOutput?.additionalContext??""}catch{return ""}}).join("\n");
       const start=ctx("SessionStart"),prompt=ctx("UserPromptSubmit");
       const where=[start.includes(`id:${id}`)?"SessionStart":null,prompt.includes(`id:${id}`)?"UserPromptSubmit":null].filter(Boolean);
       console.log(`     session-start context: ${start.split("\n").filter(l=>/^- /.test(l)).length} line(s), ${start.length} chars; prompt context: ${prompt.split("\n").filter(l=>/^- /.test(l)).length} line(s)`);

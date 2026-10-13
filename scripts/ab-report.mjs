@@ -6,7 +6,7 @@
 //   (--write adds a `summary` block to the file, and with --transcripts the re-read turns and end states)
 import fs from "node:fs";
 import path from "node:path";
-import { readEvents, toolCallsOf } from "./ab-lib.mjs";
+import { hookSummary, readEvents, toolCallsOf } from "./ab-lib.mjs";
 
 const args = process.argv.slice(2);
 const file = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--transcripts");
@@ -33,7 +33,21 @@ if (args.includes("--transcripts")) {
     if (r.turns !== (last.num_turns ?? null)) changed++;
     Object.assign(r, { turns: last.num_turns ?? null, end: last.subtype ?? null, resultText: String(last.result ?? "").slice(0, 600), result_events: results.length });
     // Which calls a PreToolUse hook ran on, paired again with scripts/ab-lib.mjs (the record keeps the calls in order).
-    const calls = toolCallsOf(readEvents(f));
+    const events = readEvents(f);
+    const calls = toolCallsOf(events);
+    // What the hooks injected, read again (0.7.1: a SessionStart response keeps its JSON in `output`, which the first
+    // reading of the design runs missed): the start context and whether the task's line was in it.
+    if (r.startInjected !== undefined && Array.isArray(data.records)) {
+      const hooks = hookSummary(events);
+      const keys = new Map((r.injected ?? []).map((x) => [x.key, x.key]));
+      const task = data.records.find((x) => x.id === r.id) ?? r;
+      void keys;
+      void task;
+      r.startContextChars = hooks.startContextChars;
+      r.startContextLines = hooks.startContextLines;
+      r.startHooks = hooks.startHooks;
+      r.startInjectedIds = hooks.startInjected.map((x) => x.id);
+    }
     if (calls.length === r.toolCalls.length)
       r.toolCalls.forEach((c, i) => {
         if (calls[i].hooked) {

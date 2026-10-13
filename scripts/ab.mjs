@@ -4,6 +4,7 @@
 //   node scripts/ab.mjs [--arms none,jevmem,guard,claudemd] [--tasks all|id,id] [--runs 3] [--concurrency 4]
 //                       [--subagent] [--model <id>] [--out results/ab-<date>.json] [--transcripts <dir>] [--keep]
 //                       [--tasks-file eval/ab/tasks.mjs] [--pkg <package dir>] [--always-labels eval/ab/always-dev.mjs]
+//                       [--config-json '{"alwaysOn":{"mode":"always"}}']
 //
 // 0.7.1 (the always-on A/B): --pkg runs another jevmem package's dist/ (an npm package unpacked under node_modules/.cache,
 // or a prototype build) instead of this checkout's, for a before-run or a design arm; --tasks-file names another task
@@ -65,6 +66,8 @@ const lib = await import(pathToFileURL(path.join(PKG, "dist/index.js")).href);
 const CLI = path.join(PKG, "dist/cli.js");
 const PKG_VERSION = JSON.parse(fs.readFileSync(path.join(PKG, "package.json"), "utf8")).version;
 const ALWAYS_LABELS = opt("--always-labels", null) ? (await import(pathToFileURL(path.resolve(opt("--always-labels"))).href)).ALWAYS : {};
+// --config-json: merged into each jevmem arm's jevmem.config.json (a design arm of 0.7.1: alwaysOn.mode).
+const CONFIG_PATCH = opt("--config-json", null) ? JSON.parse(opt("--config-json")) : null;
 const NODE = process.execPath;
 
 function claudeBin() {
@@ -142,6 +145,7 @@ function setupProject(task, arm, home) {
     const cfgFile = path.join(root, "jevmem.config.json");
     const cfg = JSON.parse(fs.readFileSync(cfgFile, "utf8"));
     cfg.guard = { ...cfg.guard, mode: arm === "guard" ? "ask" : "off" };
+    if (CONFIG_PATCH) for (const [k, v] of Object.entries(CONFIG_PATCH)) cfg[k] = v && typeof v === "object" && !Array.isArray(v) ? { ...(cfg[k] ?? {}), ...v } : v;
     fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 2) + "\n");
     fs.writeFileSync(path.join(root, "JEVMEM.md"), lib.MEMORY_HEADER + mems.map((m) => lib.formatLine(m)).join("\n") + "\n");
     for (const m of mems) if (m.kind !== "superseded") lib.recordProvenance(root, m, "hook");
@@ -347,6 +351,7 @@ const out = {
   package: PKG === ROOT ? "this checkout (dist/)" : PKG.replace(os.homedir(), "~"),
   tasks_file: path.relative(ROOT, TASKS_FILE),
   ...(opt("--always-labels", null) ? { always_labels: path.relative(ROOT, path.resolve(opt("--always-labels"))) } : {}),
+  ...(CONFIG_PATCH ? { config_patch: CONFIG_PATCH } : {}),
   model: [...new Set(records.map((r) => r.model))].join(", "),
   sessions: records.length,
   max_turns: MAX_TURNS,
