@@ -15,6 +15,7 @@
     "contradictionMin": 0.7,
     "staleBelow": 0.4,
     "duplicateMin": 0.7,
+    "alwaysMin": 0.5,
     "recallTopK": 5,
     "recallMin": 0.05,
     "recallChoiceMin": 0.03,
@@ -34,9 +35,12 @@
     "tier1Thresholds": { "...": "written by `jevmem fit` from tier-1 labels; omit to use `thresholds`" }
   },
   "weights": { "...": "written by `jevmem fit`; omit to use the hand-set defaults" },
-  "guard": { "mode": "ask", "askMin": 0.5, "blockMin": 0.9, "budgetMs": 2000, "maxCandidates": 3 }
+  "guard": { "mode": "ask", "askMin": 0.5, "blockMin": 0.9, "budgetMs": 2000, "maxCandidates": 3 },
+  "alwaysOn": { "mode": "always", "maxLines": 40 }
 }
 ```
+
+`thresholds.alwaysMin` and `alwaysOn` are new in 0.7.1 ([How it works](how-it-works.md#always-on-rules-071)): a saved rule whose always-on question is at `alwaysMin` is marked always-on and goes into Claude's context at the start of every session; `alwaysOn.mode` is `always` (the marked lines), `constraints` (every live `[constraint]` line instead) or `off`, and `maxLines` caps the session-start context. A `jevmem.config.json` from before 0.7.1 has neither key and gets these defaults.
 
 `thresholds.deadEndMin`, `thresholds.recallRelevanceMin`, `thresholds.recallChoiceMin`, `jev.maxRecallLines`, `jev.recallTimeoutMs` and `guard` are new in 0.6.0; 0.5.10 accepts them in the file and does nothing with them, and a file written by an earlier version has none of them and gets the defaults. `thresholds.duplicateMin` is new in 0.7.0: the restatement question's answer at or above which a turn that says the same as a listed live line is not saved ([How it works](how-it-works.md#duplicates-070)); a file written by an earlier version has no such key and gets 0.7. `jev.askAboutReply` is new in 0.6.6: with `true`, a turn whose message reads as a request to try or change something gets one small extra request that asks whether Claude's reply reports a failed attempt and why, and is decided with the reply when it does ([How it works](how-it-works.md#the-decider-two-tiers-srcdecidets-srcquestionsts-srccombinets), [PRIVACY.md](../PRIVACY.md)); `false` reads the reply only as 0.6.5 did. A file written by an earlier version has no such key and gets `true`.
 

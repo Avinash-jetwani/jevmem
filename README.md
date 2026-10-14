@@ -26,9 +26,9 @@ In real Claude Code sessions on three small test projects, with jevmem and witho
 - **Claude followed the project's earlier decisions:** in 66 of 72 sessions with jevmem, 28 of 72 without (about 9 in 10, against 4 in 10).
 - **Tried a change the project forbids:** in 0 of 18 sessions with jevmem, against 10 of 18 without.
 - **Repeated an approach that had already failed:** in 0 of 15, against 3 of 15.
-- **Saving:** about 17 cents per 1,000 messages and about a quarter of a second to decide, in the background: Claude doesn't wait for it.
+- **Saving:** about 18 cents per 1,000 messages and about a fifth of a second to decide, in the background: Claude doesn't wait for it.
 - **Bringing lines back:** about a third to half a second on each prompt, which Claude waits for; the time and the cost grow with the file.
-- **To be fair:** a `CLAUDE.md` you keep up to date by hand did about as well (67 of 72), and better on one convention (3 of 3 against 0 of 3). jevmem keeps a file like it up to date for you.
+- **To be fair:** a `CLAUDE.md` you keep up to date by hand did about as well (67 of 72), and better on one convention (3 of 3 against 0 of 3). jevmem keeps a file like it up to date for you, and since 0.7.1 a rule marked always-on reaches Claude in every session: with that project's rules marked, the same 72 sessions on 0.7.1 followed the earlier decisions in 68 of 72 and that convention in 3 of 3 (one run, 2026-10-14; a later Claude Code than the runs above).
 
 My own test sets, each number from one run; none is an independent benchmark. [Method and results](https://avinash-jetwani.github.io/jevmem/results/)
 
@@ -158,10 +158,10 @@ The MCP server is on the [MCP Registry](https://registry.modelcontextprotocol.io
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-dark.svg"><img alt="Median time to decide one message on 66 held-out turns: jevmem 0.28 s, six current LLMs 2.78 to 4.29 s." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-light.svg"></picture>
 
-Deciding what to save takes 0.27 s and costs $0.00017 per message, in the background: Claude doesn't wait for it.
+Deciding what to save takes 0.22 s and costs $0.00018 per message, in the background: Claude doesn't wait for it.
 On whether to save a message at all, jevmem was right as often as the best of six LLMs (98.5%); two of them were better at naming the kind of line.
 
-Measured on 66 turns written before the code and not tuned on, one run of 0.7.0 on 2026-10-08 ([results](results/eval-heldout-2026-10-08-v070.json)); the six LLMs ran on 2026-09-23. All seven in one table, with the cost of each and how it was run: [benchmark](docs/benchmark.md#070-beside-the-six-llms).
+Measured on 66 turns written before the code and not tuned on, one run of 0.7.1 on 2026-10-13 ([results](results/eval-heldout-2026-10-13-v071.json)); the six LLMs ran on 2026-09-23. All seven in one table, with the cost of each and how it was run: [benchmark](docs/benchmark.md#071-beside-the-six-llms).
 
 ## How it decides
 
@@ -196,7 +196,7 @@ Exactly what is sent, scrubbed and checked, with the third parties' privacy poli
 
 jevmem is young, and these are the limits to know before you rely on it:
 
-- **Early:** 0.7.0, and every test set was written by the author or captured from Claude Code sessions on scratch projects built for it. None is an independent benchmark.
+- **Early:** 0.7.1, and every test set was written by the author or captured from Claude Code sessions on scratch projects built for it. None is an independent benchmark.
 - **Not the most accurate:** two LLMs scored higher at picking the kind of line. jevmem's edge is speed and cost.
 - **Answer quality isn't measured:** the tests check that the right lines reach Claude, not that its answers get better.
 - **Automatic saving is Claude Code only** (and Codex while `jevmem watch` runs).
@@ -208,6 +208,7 @@ Every limit, with the numbers: [docs/limits.md](docs/limits.md).
 
 What changed, newest first; the measurements behind each line are on the what's new page.
 
+- **0.7.1: rules for every change, and memory from past sessions.** A line marked always-on reaches Claude at the start of every session, whatever the prompt: on six test tasks in files written before their conventions, Claude followed the convention in 14 of 18 sessions with 0.7.0 and 18 of 18 with 0.7.1, as with the same lines in a hand-kept `CLAUDE.md`. `jevmem import --from sessions` reads a project's past Claude Code sessions and proposes the decisions, rules and dead ends in them, after showing the count and the cost and asking. [Details](docs/whats-new.md).
 - **0.7.0: fix what it saved.** `jevmem forget` takes an old or wrong line out of use, and `jevmem trust` lets a rule you added by hand block a command, not only ask about it, in the guard's block mode. A line that says the same as a saved one is not saved again: on a test of 25 restatements, 0.6.6 saved 15 as new lines and 0.7.0 saved 1. [Details](docs/whats-new.md).
 - **0.6.6: a failed attempt is saved as a dead end, not as a decision.** When you ask Claude to try something and its reply says that failed, jevmem reads the reply: on 40 test turns, 0.6.5 saved 12 as dead ends and 0.6.6 saved 37. The reply is sent on more turns ([PRIVACY.md](PRIVACY.md)). [Details](docs/whats-new.md).
 - **0.6.5: a dead end keeps its reason** when Claude's reply gives the verdict first and the cause last. On 13 test turns written that way and handed to the line writer as dead ends, the line kept the reason in 12 (0.6.4: 2 of 13). [Details](docs/whats-new.md).
@@ -232,10 +233,13 @@ jevmem audit [--dry-run]                       Re-score every memory against the
 jevmem audit --security [--ci]                 List lines that read as instructions to an AI (--ci: exit 1 if any)
 jevmem search <query> [--limit N]              Rank memories by relevance
 jevmem list [--all]                            Print memories (--all: with superseded and retired lines, and provenance)
-jevmem add [--trust] <kind> <text>             Add a line by hand (secrets scrubbed, a leading tag dropped; no Jev check); --trust marks it verified (asks on a terminal)
+jevmem add [--trust] [--always] <kind> <text>  Add a line by hand (secrets scrubbed, a leading tag dropped; no Jev check); --trust marks it verified (asks on a terminal); --always sends it to Claude in every session
+jevmem always [--off] <id> [<id>…]             Mark a line always-on (in Claude's context at the start of every session), or take the mark off
+jevmem always --suggest [--apply]              Ask Jev which live lines are rules for every change and propose the marks; --apply sets them
 jevmem forget <id> [<id>…]                     Retire a line in place: it stays in JEVMEM.md as [retired]; a rule asks for a yes on a terminal
 jevmem trust <id> [<id>…]                      Mark a line you wrote as verified, after the poisoning gate (asks on a terminal); the guard can then block on it
 jevmem import [--from <sources>] [--apply]     Import CLAUDE.md, AGENTS.md, .cursor/rules/* (claude-auto-memory on request); dry run by default
+jevmem import --from sessions [--since 30d] [--apply]   Read this project's past Claude Code sessions; counts and asks before anything is sent
 jevmem why <id|hash>                           Every Jev answer behind a line or a skipped turn
 jevmem right <id|hash>                         Label a decision as correct
 jevmem wrong <id|hash> [--should-be <kind|none>]   Label a decision as wrong (--should-be none retires the line)
@@ -249,7 +253,7 @@ jevmem guard test "<command>" | --edit <path>  Dry run of the PreToolUse guard o
 jevmem guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
 ```
 
-These are 0.7.0's commands: 0.5.10's, `jevmem guard` (0.6.0), and `forget`, `trust` and `add --trust` (0.7.0). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
+These are 0.7.1's commands: 0.5.10's, `jevmem guard` (0.6.0), `forget`, `trust` and `add --trust` (0.7.0), and `always`, `add --always` and `import --from sessions` (0.7.1). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
 
 </details>
 
