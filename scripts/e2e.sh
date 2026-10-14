@@ -436,8 +436,8 @@ run_nocli() {
   done
   sleep 3
   ( cd "$scratch" && eval "$listing" ) > "$scratch.after"
-  "$NODE" - "$events" <<'JS' || fail=1
-    const fs=require("fs");const base=process.argv[2];
+  "$NODE" - "$events" "$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")" "${prompts[0]}" "${prompts[1]}" "${prompts[2]}" <<'JS' || fail=1
+    const fs=require("fs");const base=process.argv[2];const sdir=process.argv[3];const prompts=process.argv.slice(4);
     const MESSAGE="jevmem: CLI not found, so memory is off in this project. See the jevmem README to set it up: https://github.com/Avinash-jetwani/jevmem#readme";
     const errs=[];const sessions=[];const shown=[];
     for(const t of [0,1,2]){
@@ -463,9 +463,16 @@ run_nocli() {
       // Where Claude Code surfaced it outside the hook event (informational only).
       for(const e of ev)if(!(e.type==="system"&&e.subtype==="hook_response")&&JSON.stringify(e).includes("CLI not found"))console.log(`     turn ${t+1} also in a ${e.type}/${e.subtype??"-"} event`);
     }
-    console.log(`     sessions: ${sessions.map(s=>String(s).slice(0,8)).join(", ")}; message shown: ${shown.join(", ")}`);
-    if(sessions[0]!==sessions[1])errs.push("turn 2 (--continue) ran in a different session from turn 1");
-    if(sessions[2]===sessions[0])errs.push("turn 3 ran in the same session as turn 1");
+    // With a SessionStart hook registered (jevmem's since 0.7.1), Claude Code 2.1.296 reports a new session id for a
+    // --continue turn (SessionStart:resume) and appends the turn to the first turn's transcript, so the conversation goes
+    // on (measured 2026-10-14 with a hook that prints nothing: the continued turn knew a word from the first, and the
+    // project folder held one transcript). Which turns share a session is read from the transcripts, not from the ids.
+    const files=fs.existsSync(sdir)?fs.readdirSync(sdir).filter(f=>f.endsWith(".jsonl")).map(f=>fs.readFileSync(`${sdir}/${f}`,"utf8")):[];
+    const fileOf=prompts.map(p=>files.findIndex(t=>t.includes(p)));
+    console.log(`     sessions as the stream reported them: ${sessions.map(s=>String(s).slice(0,8)).join(", ")}; transcript holding each turn: ${fileOf.map(i=>i<0?"none":i+1).join(", ")} of ${files.length}; message shown: ${shown.join(", ")}`);
+    for(const t of [0,1,2])if(fileOf[t]<0)errs.push(`turn ${t+1}'s prompt is in no transcript under ${sdir}`);
+    if(fileOf[0]>=0&&fileOf[0]!==fileOf[1])errs.push("turn 2 (--continue) is not in turn 1's transcript");
+    if(fileOf[0]>=0&&fileOf[2]===fileOf[0])errs.push("turn 3 is in turn 1's transcript");
     if(shown.join()!=="true,false,true")errs.push(`message shown ${shown.join(",")}, expected true,false,true (once per session)`);
     if(errs.length){console.log("   ✗ FAIL: "+errs.join("; "));process.exit(1);}
     console.log("   ✓ every hook exited 0 (the async Stop hook shows Claude Code's usual -p \"cancelled\"); the CLI-not-found message was shown on each session's first prompt only; Stop printed nothing");
@@ -557,8 +564,8 @@ run_nokey_variant() {
     ( cd "$scratch" && claude_session -- -p $flag --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[$t]}" > "$events.$t" 2>&1 )
   done
   sleep 3 # any detached Stop hook has finished by now
-  "$NODE" - "$events" "$scratch" "$variant" "$ROOT/dist/index.js" <<'JS' || fail=1
-    const fs=require("fs");const [base,root,variant,lib]=process.argv.slice(2);
+  "$NODE" - "$events" "$scratch" "$variant" "$ROOT/dist/index.js" "$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")" "${prompts[0]}" "${prompts[1]}" <<'JS' || fail=1
+    const fs=require("fs");const [base,root,variant,lib,sdir,...prompts]=process.argv.slice(2);
     const errs=[];const shown=[];const sessions=[];
     const built=require(lib);const expected=variant==="plugin"?built.MISSING_KEY_NOTICE_MARKETPLACE:built.MISSING_KEY_NOTICE_INIT; // the plugin is installed from a marketplace here
     for(const t of [0,1]){
@@ -584,7 +591,13 @@ run_nokey_variant() {
       }
       for(const e of ev)if(!(e.type==="system"&&e.subtype==="hook_response")&&JSON.stringify(e).includes("no TypeSafe API key found"))console.log(`     turn ${t+1}: also in a ${e.type}/${e.subtype??"-"} event`);
     }
-    if(sessions[0]!==sessions[1])errs.push("turn 2 (--continue) ran in a different session from turn 1");
+    // See nocli: with a SessionStart hook registered, Claude Code 2.1.296 gives a --continue turn a new id and appends it
+    // to the first turn's transcript; the transcript says whether turn 2 continued turn 1.
+    const files=fs.existsSync(sdir)?fs.readdirSync(sdir).filter(f=>f.endsWith(".jsonl")).map(f=>fs.readFileSync(`${sdir}/${f}`,"utf8")):[];
+    const fileOf=prompts.map(p=>files.findIndex(t=>t.includes(p)));
+    console.log(`     sessions as the stream reported them: ${sessions.map(s=>String(s).slice(0,8)).join(", ")}; transcript holding each turn: ${fileOf.map(i=>i<0?"none":i+1).join(", ")} of ${files.length}`);
+    for(const t of [0,1])if(fileOf[t]<0)errs.push(`turn ${t+1}'s prompt is in no transcript under ${sdir}`);
+    if(fileOf[0]>=0&&fileOf[0]!==fileOf[1])errs.push("turn 2 (--continue) is not in turn 1's transcript");
     if(shown.join()!=="true,false")errs.push(`message shown ${shown.join(",")}, expected true,false (once)`);
     const lines=(fs.existsSync(root+"/JEVMEM.md")?fs.readFileSync(root+"/JEVMEM.md","utf8"):"").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
     if(lines.length)errs.push(`${lines.length} line(s) saved without a key`);
@@ -1005,7 +1018,7 @@ deadend_session1() {
       const errs=[];
       const raw=fs.readFileSync(root+"/JEVMEM.md","utf8");
       const lines=raw.split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
-      const FORMAT=/^- \[(decision|constraint|preference|bug|architecture|todo|dead-end|superseded)\] .+  <!-- id:[a-z0-9]+ ts:\S+ conf:\d\.\d\d( by:[a-z0-9]+)?( stale:[\d.]+)? -->$/;
+      const FORMAT=/^- \[(decision|constraint|preference|bug|architecture|todo|dead-end|superseded)\] .+  <!-- id:[a-z0-9]+ ts:\S+ conf:\d\.\d\d( by:[a-z0-9]+)?( stale:[\d.]+)?( always:1)? -->$/;
       for(const l of lines)if(!FORMAT.test(l))errs.push(`not a jevmem line: ${l.slice(0,100)}`);
       const added=lines.slice(2);
       console.log("     JEVMEM.md after session 1:");for(const l of lines)console.log("       "+l.replace(/\s*<!--.*-->/,""));
@@ -1554,7 +1567,9 @@ run_alwayson() {
   local p3="Add a .gitignore that ignores node_modules and dist. Reply in one sentence."
   echo "---- session 1 (the convention, stated): $p1"
   before=$(decisions "$scratch")
-  ( cd "$scratch" && claude_session -- -p "$p1" --max-turns 4 --output-format stream-json --verbose --include-hook-events > "$events.1" 2>&1 )
+  # --max-turns 8: in one gate run (2026-10-14) Claude spent the 4-turn budget on Bash calls to write the rule into its own
+  # auto-memory file, which -p denies, and ended error_max_turns with no Stop hook fired, so nothing was ever decided.
+  ( cd "$scratch" && claude_session -- -p "$p1" --max-turns 8 --output-format stream-json --verbose --include-hook-events > "$events.1" 2>&1 )
   wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; tail -c 1200 "$events.1" | sed 's/^/     session> /'; fail=1; }
   if [ $fail -eq 0 ]; then
     rule_id="$("$NODE" - "$scratch" <<'JS'
@@ -1643,12 +1658,17 @@ run_import() {
   local b1="We tried pino for logging and dropped it: its JSON lines broke the ops team's grep scripts. We keep console.log. Add one line to the README saying so."
   local b2="thanks"
   echo "---- past session A (no jevmem yet): $a1 / $a2"
-  ( cd "$scratch" && claude_session -- -p "$a1" --max-turns 4 --permission-mode acceptEdits --output-format stream-json --verbose > "$events.a1" 2>&1 && claude_session -- -p "$a2" --continue --max-turns 2 --output-format stream-json --verbose > "$events.a2" 2>&1 )
+  # --max-turns 8 for the editing prompts: a session cut off inside its tool calls leaves no assistant text, and the reader
+  # then joins the next prompt onto that turn (two prompts with nothing from the assistant between them are one turn), so
+  # the count below came out as 3 in 2 of the gate's 3 runs at --max-turns 4 (2026-10-13).
+  ( cd "$scratch" && claude_session -- -p "$a1" --max-turns 8 --permission-mode acceptEdits --output-format stream-json --verbose > "$events.a1" 2>&1 && claude_session -- -p "$a2" --continue --max-turns 2 --output-format stream-json --verbose > "$events.a2" 2>&1 )
   echo "---- past session B (no jevmem yet): $b1 / $b2"
-  ( cd "$scratch" && claude_session -- -p "$b1" --max-turns 4 --permission-mode acceptEdits --output-format stream-json --verbose > "$events.b1" 2>&1 && claude_session -- -p "$b2" --continue --max-turns 2 --output-format stream-json --verbose > "$events.b2" 2>&1 )
+  ( cd "$scratch" && claude_session -- -p "$b1" --max-turns 8 --permission-mode acceptEdits --output-format stream-json --verbose > "$events.b1" 2>&1 && claude_session -- -p "$b2" --continue --max-turns 2 --output-format stream-json --verbose > "$events.b2" 2>&1 )
   local sdir="$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")"
   local nfiles; nfiles="$(ls "$sdir"/*.jsonl 2>/dev/null | wc -l | tr -d ' ')"
   echo "     transcripts on disk: $nfiles session file(s) in $sdir"
+  # What the reader will see: prompts and assistant texts per file (a file whose first prompt has no assistant text after it reads as one turn).
+  for f in "$sdir"/*.jsonl; do [ -f "$f" ] && echo "       $(basename "$f" | cut -c1-8): $("$NODE" -e 'const fs=require("fs");let u=0,a=0;for(const l of fs.readFileSync(process.argv[1],"utf8").split("\n")){let e;try{e=JSON.parse(l)}catch{continue}if(e.isSidechain)continue;const c=e.message&&e.message.content;const text=typeof c==="string"?c:Array.isArray(c)?c.filter(x=>x&&x.type==="text").map(x=>x.text).join(""):"";if(!text.trim())continue;if(e.type==="user"&&!e.isMeta&&!/^<(?:command|local-command|system-reminder)/.test(text))u++;if(e.type==="assistant")a++;}console.log(`${u} prompt(s), ${a} assistant text(s)`)' "$f")"; done
   if [ "$nfiles" -ne 2 ]; then echo "   ✗ FAIL: expected 2 session files"; fail=1; fi
   if [ $fail -eq 0 ]; then
     ( cd "$scratch" && "$NODE" "$JEVMEM_CLI" init --tool claude >/dev/null ) || { echo "init failed"; return 1; }
@@ -1792,7 +1812,7 @@ run_once() {
       const errs=[];
       // Hand-written lines: anything that is not the init header, a jevmem-format memory line, or the footer.
       const header=new Set(JSON.parse(fs.readFileSync(root+"/.jevmem/e2e-header.json","utf8")));
-      const FORMAT=/^- \[(decision|constraint|preference|bug|architecture|todo|dead-end|superseded)\] .+  <!-- id:[a-z0-9]+ ts:\S+ conf:\d\.\d\d( by:[a-z0-9]+)?( stale:[\d.]+)? -->$/;
+      const FORMAT=/^- \[(decision|constraint|preference|bug|architecture|todo|dead-end|superseded)\] .+  <!-- id:[a-z0-9]+ ts:\S+ conf:\d\.\d\d( by:[a-z0-9]+)?( stale:[\d.]+)?( always:1)? -->$/;
       const FOOTER=/^<!--\s*jevmem:.*-->\s*$/;
       const handWritten=raw.split("\n").filter(l=>l.trim()!==""&&!header.has(l)&&!FORMAT.test(l)&&!FOOTER.test(l));
       if(handWritten.length)errs.push(`hand-written line(s) in JEVMEM.md: ${handWritten.map(l=>JSON.stringify(l.slice(0,90))).join(" | ")}`);
