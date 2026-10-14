@@ -28,7 +28,7 @@ In real Claude Code sessions on three small test projects, with jevmem and witho
 - **Repeated an approach that had already failed:** in 0 of 15, against 3 of 15.
 - **Saving:** about 18 cents per 1,000 messages and about a fifth of a second to decide, in the background: Claude doesn't wait for it.
 - **Bringing lines back:** about a third to half a second on each prompt, which Claude waits for; the time and the cost grow with the file.
-- **To be fair:** a `CLAUDE.md` you keep up to date by hand did about as well (67 of 72), and better on one convention (3 of 3 against 0 of 3). jevmem keeps a file like it up to date for you, and since 0.7.1 a rule marked always-on reaches Claude in every session: with that project's rules marked, the same 72 sessions on 0.7.1 followed the earlier decisions in 68 of 72 and that convention in 3 of 3 (one run, 2026-10-14; a later Claude Code than the runs above).
+- **To be fair:** a `CLAUDE.md` you keep up to date by hand did about as well (67 of 72), and better on one convention (3 of 3 against 0 of 3). jevmem keeps a file like it up to date for you.
 
 My own test sets, each number from one run; none is an independent benchmark. [Method and results](https://avinash-jetwani.github.io/jevmem/results/)
 
