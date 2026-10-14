@@ -1,6 +1,6 @@
 # Privacy
 
-Last updated: 2026-10-13
+Last updated: 2026-10-14
 
 This page describes jevmem 0.7.1, the release on npm.
 

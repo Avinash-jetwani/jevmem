@@ -1,6 +1,8 @@
 # Contributing
 
-Thanks for helping. jevmem is small and young; issues, bug reports and pull requests are all welcome.
+jevmem isn't accepting code pull requests for now. Bug reports, ideas and feedback are welcome as issues.
+
+Thanks for helping. jevmem is small and young; issues, bug reports and feedback are all welcome.
 
 **Please don't post API keys in issues or pull requests.** That includes `TYPESAFE_API_KEY`, OpenAI, Anthropic and OpenRouter keys, and lines from `.jevmem/log.jsonl` or `.jevmem/hook-debug.log` that contain them. Security problems go through [SECURITY.md](SECURITY.md), not a public issue.
 

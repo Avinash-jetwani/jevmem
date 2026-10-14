@@ -2,7 +2,7 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [0.7.1] - 2026-10-13
+## [0.7.1] - 2026-10-14
 
 Always-on rules, and memory from day one: a rule every change must follow reaches Claude at the start of every session, whatever the prompt (a line marked always-on, by Jev when it is saved or by `jevmem always`, through a new `SessionStart` hook that reads `JEVMEM.md` and nothing else), and `jevmem import --from sessions` reads a project's past Claude Code sessions and proposes the decisions, rules and dead ends in them, after showing the count and the cost and asking. One more question rides on the request each turn already sends; the import sends past turns only when you run it and say yes ([PRIVACY.md](PRIVACY.md)). Upgrade with `npm install -g jevmem@latest`; the plugin gains its fourth hook with the update, and `jevmem init` hooks need `jevmem init --tool claude` once more ([docs/upgrading.md](docs/upgrading.md)).
 
