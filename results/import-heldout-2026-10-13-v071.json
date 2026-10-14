@@ -1,0 +1,1089 @@
+{
+ "kind": "import-sessions",
+ "set": "heldout",
+ "file": "eval/import-heldout-sessions.jsonl",
+ "date": "2026-10-13",
+ "commit": "468015a",
+ "jevmem_version": "0.7.0",
+ "dist": "dist/index.js",
+ "sessions": 12,
+ "claude_code": "2.1.296 (Claude Code)",
+ "served_by": "claude-sonnet-5-5",
+ "cost_method": "input tokens × $0.042/M",
+ "summary": {
+  "sessions": 12,
+  "sessions_read_whole": "12/12",
+  "turns": 27,
+  "turns_read": "27/27",
+  "save_skip_right": "23/27",
+  "save_kind_right": "18/27",
+  "lines_with_labelled_words": "17/17",
+  "reversals_superseded": "2/2",
+  "precision": "17/21",
+  "recall": "17/17",
+  "skip_turns_given_a_line": "4/10",
+  "lines_marked_always_on": 5,
+  "by_mode": {
+   "none": {
+    "sessions": 8,
+    "turns_read": "19/19",
+    "save_skip_right": "15/19"
+   },
+   "background": {
+    "sessions": 2,
+    "turns_read": "4/4",
+    "save_skip_right": "4/4"
+   },
+   "foreground": {
+    "sessions": 2,
+    "turns_read": "4/4",
+    "save_skip_right": "4/4"
+   }
+  },
+  "sidechain_entries_skipped": 0,
+  "entry_types_seen": {
+   "queue-operation": 58,
+   "user": 104,
+   "assistant": 133,
+   "system": 17
+  },
+  "jev_calls_per_turn": 2.4814814814814814,
+  "cost_per_turn_usd": 0.00024810488888888895,
+  "ms_per_turn": 501.3703703703704,
+  "errors": 0
+ },
+ "results": [
+  {
+   "id": "ih-ss-esm",
+   "project": "shelfscan",
+   "mode": "none",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 3,
+    "entries": {
+     "queue-operation": 6,
+     "user": 7,
+     "assistant": 8,
+     "system": 2
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 3,
+   "turns_labelled": 3,
+   "rows": 3,
+   "lines_added": 2,
+   "jev_calls": 7,
+   "jev_input_tokens": 18754,
+   "cost_usd": 0.000787668,
+   "ms": 1560,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "This package is ESM-only from now on; nothing may use require() or module.exports. Check the repo and fix any file that does.",
+     "label": {
+      "save": true,
+      "kind": "constraint",
+      "has": [
+       "ESM",
+       "require",
+       "module.exports"
+      ]
+     },
+     "read": true,
+     "user_chars": 125,
+     "assistant_chars": 507,
+     "outcome": "add",
+     "kind": "constraint",
+     "line": "This package is ESM-only from now on; nothing may use require() or module.exports.",
+     "always": true,
+     "supersedes": null,
+     "reason": "save kind=constraint content=0.98 importance=critical [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "What does normalise() strip from an ISBN?",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 41,
+     "assistant_chars": 489,
+     "outcome": "add",
+     "kind": "architecture",
+     "line": "`normalise()` (`src/isbn.mjs:3`) removes all whitespace and all hyphens, wherever they appear. Those stay in the string, and the validators then reject it.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=architecture content=0.77 importance=useful source=assistant_reply [tier 2, escalated]",
+     "save_right": false,
+     "kind_right": false,
+     "has_word": null,
+     "supersedes_right": null
+    },
+    {
+     "n": 3,
+     "prompt": "Cheers.",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 7,
+     "assistant_chars": 11,
+     "outcome": "skip",
+     "kind": null,
+     "line": "",
+     "always": null,
+     "supersedes": null,
+     "reason": "skip: kind=none, importance=trivial<useful, chit_chat=0.96 [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": null,
+     "supersedes_right": null
+    }
+   ]
+  },
+  {
+   "id": "ih-ss-exitcodes-reverse",
+   "project": "shelfscan",
+   "mode": "none",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 2,
+    "entries": {
+     "queue-operation": 4,
+     "user": 9,
+     "assistant": 12,
+     "system": 1
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 2,
+   "turns_labelled": 2,
+   "rows": 2,
+   "lines_added": 2,
+   "jev_calls": 6,
+   "jev_input_tokens": 15290,
+   "cost_usd": 0.00064218,
+   "ms": 1249,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "The CLI exits 3 for a bad ISBN and 2 for a usage error. Make src/cli.mjs do that.",
+     "label": {
+      "save": true,
+      "kind": "decision",
+      "has": [
+       "3",
+       "exit"
+      ]
+     },
+     "read": true,
+     "user_chars": 81,
+     "assistant_chars": 362,
+     "outcome": "add",
+     "kind": "bug",
+     "line": "The CLI exits 3 for a bad ISBN and 2 for a usage error.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=bug content=0.93 importance=useful source=both [tier 2, escalated]",
+     "save_right": true,
+     "kind_right": false,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "Scrap that: a bad ISBN exits 1, the same as a usage error; the wrapper script only checks for non-zero. Update src/cli.mjs.",
+     "label": {
+      "save": true,
+      "kind": "decision",
+      "has": [
+       "1",
+       "exit",
+       "non-zero"
+      ],
+      "supersedes": 0
+     },
+     "read": true,
+     "user_chars": 123,
+     "assistant_chars": 263,
+     "outcome": "add",
+     "kind": "bug",
+     "line": "Scrap that: a bad ISBN exits 1, the same as a usage error; the wrapper script only checks for non-zero.",
+     "always": false,
+     "supersedes": "row0",
+     "reason": "save kind=bug content=0.94 importance=important source=both supersedes=row0 (kind dead-end, but dead-end=0.34<0.7: no reason given; a reversal, judged as bug) [",
+     "save_right": true,
+     "kind_right": false,
+     "has_word": true,
+     "supersedes_right": true
+    }
+   ]
+  },
+  {
+   "id": "ih-ss-bg-tests",
+   "project": "shelfscan",
+   "mode": "background",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 2,
+    "entries": {
+     "queue-operation": 6,
+     "user": 5,
+     "assistant": 6,
+     "system": 2
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 2,
+   "turns_labelled": 2,
+   "rows": 2,
+   "lines_added": 1,
+   "jev_calls": 5,
+   "jev_input_tokens": 12113,
+   "cost_usd": 0.000508746,
+   "ms": 1138,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "Get a subagent to count the tests in test/ and say what each one checks.",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 72,
+     "assistant_chars": 789,
+     "outcome": "skip",
+     "kind": null,
+     "line": "",
+     "always": null,
+     "supersedes": null,
+     "reason": "skip: kind=none, importance=minor<useful [tier 2, escalated]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": null,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "I like each test file to cover exactly one source file and to be named after it. Tell me whether test/ already works that way.",
+     "label": {
+      "save": true,
+      "kind": "preference",
+      "has": [
+       "test file",
+       "named after",
+       "one source file"
+      ]
+     },
+     "read": true,
+     "user_chars": 126,
+     "assistant_chars": 434,
+     "outcome": "add",
+     "kind": "preference",
+     "line": "I like each test file to cover exactly one source file and to be named after it.",
+     "always": true,
+     "supersedes": null,
+     "reason": "save kind=preference content=0.93 importance=useful [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    }
+   ]
+  },
+  {
+   "id": "ih-ss-isbnx",
+   "project": "shelfscan",
+   "mode": "none",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 2,
+    "entries": {
+     "queue-operation": 4,
+     "user": 10,
+     "assistant": 12,
+     "system": 1
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 2,
+   "turns_labelled": 2,
+   "rows": 2,
+   "lines_added": 2,
+   "jev_calls": 4,
+   "jev_input_tokens": 7288,
+   "cost_usd": 0.000306096,
+   "ms": 860,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "ISBN-10s that end in X come back invalid, for example 0-8044-2957-X. Find the cause and fix it.",
+     "label": {
+      "save": true,
+      "kind": "bug",
+      "has": [
+       "X",
+       "check digit"
+      ]
+     },
+     "read": true,
+     "user_chars": 95,
+     "assistant_chars": 785,
+     "outcome": "add",
+     "kind": "bug",
+     "line": "ISBN-10s that end in X come back invalid, for example 0-8044-2957-X.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=bug content=0.91 importance=important [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "Converting an ISBN-13 back to ISBN-10 is for later, not now.",
+     "label": {
+      "save": true,
+      "kind": "todo",
+      "has": [
+       "ISBN-10",
+       "later"
+      ]
+     },
+     "read": true,
+     "user_chars": 60,
+     "assistant_chars": 324,
+     "outcome": "add",
+     "kind": "todo",
+     "line": "Converting an ISBN-13 back to ISBN-10 is for later, not now.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    }
+   ]
+  },
+  {
+   "id": "ih-ss-deadend",
+   "project": "shelfscan",
+   "mode": "none",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 2,
+    "entries": {
+     "queue-operation": 4,
+     "user": 7,
+     "assistant": 9,
+     "system": 1
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 2,
+   "turns_labelled": 2,
+   "rows": 2,
+   "lines_added": 2,
+   "jev_calls": 5,
+   "jev_input_tokens": 8958,
+   "cost_usd": 0.00037623600000000006,
+   "ms": 806,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "We tried validating ISBNs with the isbn3 package and dropped it: it pulled in 40 dependencies and misread hyphenated ISBN-10s. The hand-written check stays.",
+     "label": {
+      "save": true,
+      "kind": "dead-end",
+      "has": [
+       "isbn3",
+       "dependencies",
+       "hyphen"
+      ]
+     },
+     "read": true,
+     "user_chars": 156,
+     "assistant_chars": 284,
+     "outcome": "add",
+     "kind": "dead-end",
+     "line": "Validating ISBNs with the isbn3 package and dropped it: it pulled in 40 dependencies and misread hyphenated ISBN-10s.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=dead-end content=0.98 importance=important [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "Add a JSDoc comment to toIsbn13.",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 32,
+     "assistant_chars": 267,
+     "outcome": "add",
+     "kind": "todo",
+     "line": "Add a JSDoc comment to toIsbn13.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=todo content=0.96 importance=useful [tier 1] [reply question: 0.06, the reply not read]",
+     "save_right": false,
+     "kind_right": false,
+     "has_word": null,
+     "supersedes_right": null
+    }
+   ]
+  },
+  {
+   "id": "ih-ss-json",
+   "project": "shelfscan",
+   "mode": "foreground",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 2,
+    "entries": {
+     "queue-operation": 4,
+     "user": 4,
+     "assistant": 4,
+     "system": 1
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 2,
+   "turns_labelled": 2,
+   "rows": 2,
+   "lines_added": 1,
+   "jev_calls": 5,
+   "jev_input_tokens": 13045,
+   "cost_usd": 0.00054789,
+   "ms": 1011,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "Going forward the check command prints JSON, one object per ISBN. Use a subagent to change src/cli.mjs.",
+     "label": {
+      "save": true,
+      "kind": "decision",
+      "has": [
+       "JSON"
+      ]
+     },
+     "read": true,
+     "user_chars": 103,
+     "assistant_chars": 1071,
+     "outcome": "add",
+     "kind": "todo",
+     "line": "Going forward the check command prints JSON, one object per ISBN.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=todo content=0.86 importance=important [tier 2, escalated]",
+     "save_right": true,
+     "kind_right": false,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "Which flags does the CLI take?",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 30,
+     "assistant_chars": 582,
+     "outcome": "skip",
+     "kind": null,
+     "line": "",
+     "always": null,
+     "supersedes": null,
+     "reason": "skip: kind=none, source=assistant_reply kind=none (only bug, architecture and dead-end may come from the assistant) [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": null,
+     "supersedes_right": null
+    }
+   ]
+  },
+  {
+   "id": "ih-wl-emails",
+   "project": "waterlog",
+   "mode": "none",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 2,
+    "entries": {
+     "queue-operation": 4,
+     "user": 10,
+     "assistant": 14,
+     "system": 1
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 2,
+   "turns_labelled": 2,
+   "rows": 2,
+   "lines_added": 2,
+   "jev_calls": 6,
+   "jev_input_tokens": 15702,
+   "cost_usd": 0.0006594840000000001,
+   "ms": 1332,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "Plant owners' email addresses must never appear in the server logs. Check src/ and remove any logging that prints them.",
+     "label": {
+      "save": true,
+      "kind": "constraint",
+      "has": [
+       "email",
+       "log"
+      ]
+     },
+     "read": true,
+     "user_chars": 119,
+     "assistant_chars": 1166,
+     "outcome": "add",
+     "kind": "constraint",
+     "line": "Plant owners' email addresses must never appear in the server logs.",
+     "always": true,
+     "supersedes": null,
+     "reason": "save kind=constraint content=0.98 importance=critical [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "How does the server find a plant by name?",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 41,
+     "assistant_chars": 749,
+     "outcome": "add",
+     "kind": "architecture",
+     "line": "Storage: `recordWatering(name, by)` in `src/store.mjs` loads `data/waterings.json` and sets `db.plants[entry.name] = { lastWatered, by }`.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=architecture content=0.94 importance=useful source=assistant_reply [tier 2, escalated]",
+     "save_right": false,
+     "kind_right": false,
+     "has_word": null,
+     "supersedes_right": null
+    }
+   ]
+  },
+  {
+   "id": "ih-wl-storage-reverse",
+   "project": "waterlog",
+   "mode": "none",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 3,
+    "entries": {
+     "queue-operation": 6,
+     "user": 19,
+     "assistant": 26,
+     "system": 2
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 3,
+   "turns_labelled": 3,
+   "rows": 3,
+   "lines_added": 3,
+   "jev_calls": 9,
+   "jev_input_tokens": 18138,
+   "cost_usd": 0.0007617960000000001,
+   "ms": 1434,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "We'll keep the data in data/waterings.json; no SQLite. Make sure store.mjs only ever writes that one file.",
+     "label": {
+      "save": true,
+      "kind": "decision",
+      "has": [
+       "json",
+       "waterings"
+      ]
+     },
+     "read": true,
+     "user_chars": 106,
+     "assistant_chars": 1077,
+     "outcome": "add",
+     "kind": "constraint",
+     "line": "We'll keep the data in data/waterings.json; no SQLite.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=constraint content=0.94 importance=important [tier 2, escalated] [reply question: 0.07, the reply not read]",
+     "save_right": true,
+     "kind_right": false,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "Add a GET /plants/<name> route that returns one plant.",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 54,
+     "assistant_chars": 538,
+     "outcome": "add",
+     "kind": "todo",
+     "line": "Add a GET /plants/<name> route that returns one plant.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=todo content=0.92 importance=useful [tier 1] [reply question: 0.12, the reply not read]",
+     "save_right": false,
+     "kind_right": false,
+     "has_word": null,
+     "supersedes_right": null
+    },
+    {
+     "n": 3,
+     "prompt": "New decision: the data moves to SQLite with better-sqlite3; the JSON file got corrupted twice last week. Change store.mjs to use it.",
+     "label": {
+      "save": true,
+      "kind": "decision",
+      "has": [
+       "SQLite",
+       "sqlite"
+      ],
+      "supersedes": 0
+     },
+     "read": true,
+     "user_chars": 132,
+     "assistant_chars": 1468,
+     "outcome": "add",
+     "kind": "decision",
+     "line": "New decision: the data moves to SQLite with better-sqlite3; the JSON file got corrupted twice last week.",
+     "always": false,
+     "supersedes": "row0",
+     "reason": "save kind=decision content=0.98 importance=important supersedes=row0 [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": true
+    }
+   ]
+  },
+  {
+   "id": "ih-wl-bg-quote",
+   "project": "waterlog",
+   "mode": "background",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 2,
+    "entries": {
+     "queue-operation": 6,
+     "user": 6,
+     "assistant": 6,
+     "system": 2
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 2,
+   "turns_labelled": 2,
+   "rows": 2,
+   "lines_added": 2,
+   "jev_calls": 5,
+   "jev_input_tokens": 7693,
+   "cost_usd": 0.00032310600000000003,
+   "ms": 1004,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "Watering a plant whose name has a double quote in it gives a 500. Send a subagent to find out why and fix it.",
+     "label": {
+      "save": true,
+      "kind": "bug",
+      "has": [
+       "quote",
+       "JSON",
+       "escap",
+       "encod"
+      ]
+     },
+     "read": true,
+     "user_chars": 109,
+     "assistant_chars": 1246,
+     "outcome": "add",
+     "kind": "bug",
+     "line": "Watering a plant whose name has a double quote in it gives a 500.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=bug content=0.93 importance=useful [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "Thanks. Also: the server must only listen on loopback, never on all interfaces.",
+     "label": {
+      "save": true,
+      "kind": "constraint",
+      "has": [
+       "loopback",
+       "127.0.0.1",
+       "localhost",
+       "interfaces"
+      ]
+     },
+     "read": true,
+     "user_chars": 79,
+     "assistant_chars": 390,
+     "outcome": "add",
+     "kind": "constraint",
+     "line": "The server must only listen on loopback, never on all interfaces.",
+     "always": true,
+     "supersedes": null,
+     "reason": "save kind=constraint content=0.98 importance=critical [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    }
+   ]
+  },
+  {
+   "id": "ih-wl-pref",
+   "project": "waterlog",
+   "mode": "none",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 3,
+    "entries": {
+     "queue-operation": 6,
+     "user": 9,
+     "assistant": 12,
+     "system": 2
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 3,
+   "turns_labelled": 3,
+   "rows": 3,
+   "lines_added": 2,
+   "jev_calls": 5,
+   "jev_input_tokens": 17053,
+   "cost_usd": 0.000716226,
+   "ms": 1077,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "In this repo I want plain node:http, no Express or any other framework, even as the routes grow.",
+     "label": {
+      "save": true,
+      "kind": "preference",
+      "has": [
+       "node:http",
+       "Express",
+       "framework"
+      ]
+     },
+     "read": true,
+     "user_chars": 96,
+     "assistant_chars": 292,
+     "outcome": "add",
+     "kind": "constraint",
+     "line": "In this repo I want plain node:http, no Express or any other framework, even as the routes grow.",
+     "always": true,
+     "supersedes": null,
+     "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+     "save_right": true,
+     "kind_right": false,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "Where is the HTTP port set?",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 27,
+     "assistant_chars": 278,
+     "outcome": "skip",
+     "kind": null,
+     "line": "",
+     "always": null,
+     "supersedes": null,
+     "reason": "skip: importance=minor<useful [tier 2, escalated]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": null,
+     "supersedes_right": null
+    },
+    {
+     "n": 3,
+     "prompt": "Reminder for later: a DELETE /plants/<name> route once we have auth.",
+     "label": {
+      "save": true,
+      "kind": "todo",
+      "has": [
+       "DELETE",
+       "auth"
+      ]
+     },
+     "read": true,
+     "user_chars": 68,
+     "assistant_chars": 125,
+     "outcome": "add",
+     "kind": "todo",
+     "line": "Reminder for later: a DELETE /plants/<name> route once we have auth.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=todo content=0.98 importance=useful [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    }
+   ]
+  },
+  {
+   "id": "ih-wl-deadend",
+   "project": "waterlog",
+   "mode": "none",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 2,
+    "entries": {
+     "queue-operation": 4,
+     "user": 12,
+     "assistant": 16,
+     "system": 1
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 2,
+   "turns_labelled": 2,
+   "rows": 2,
+   "lines_added": 1,
+   "jev_calls": 5,
+   "jev_input_tokens": 18154,
+   "cost_usd": 0.0007624680000000001,
+   "ms": 1131,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "We tried keeping the waterings in memory and flushing them to the file every minute; a crash lost a day of entries, so every watering is written to the file at once now.",
+     "label": {
+      "save": true,
+      "kind": "dead-end",
+      "has": [
+       "memory",
+       "flush",
+       "crash"
+      ]
+     },
+     "read": true,
+     "user_chars": 169,
+     "assistant_chars": 1016,
+     "outcome": "add",
+     "kind": "dead-end",
+     "line": "Keeping the waterings in memory and flushing them to the file every minute; a crash lost a day of entries, so every watering is written to the file at once now.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=dead-end content=0.97 importance=important source=both [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "Rename the data folder to store/ and update the paths.",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 54,
+     "assistant_chars": 766,
+     "outcome": "skip",
+     "kind": null,
+     "line": "",
+     "always": null,
+     "supersedes": null,
+     "reason": "skip: source=assistant_reply kind=todo (only bug, architecture and dead-end may come from the assistant) [tier 2, escalated]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": null,
+     "supersedes_right": null
+    }
+   ]
+  },
+  {
+   "id": "ih-wl-dates",
+   "project": "waterlog",
+   "mode": "foreground",
+   "served_by": [
+    "claude-sonnet-5-5"
+   ],
+   "error": null,
+   "file": {
+    "turns": 2,
+    "entries": {
+     "queue-operation": 4,
+     "user": 6,
+     "assistant": 8,
+     "system": 1
+    },
+    "sidechain_entries": 0,
+    "bad_lines": 0,
+    "versions": []
+   },
+   "skipped": [],
+   "suspect": null,
+   "turns_read": 2,
+   "turns_labelled": 2,
+   "rows": 2,
+   "lines_added": 1,
+   "jev_calls": 5,
+   "jev_input_tokens": 7308,
+   "cost_usd": 0.000306936,
+   "ms": 935,
+   "turns": [
+    {
+     "n": 1,
+     "prompt": "Use a subagent to list the files the tests touch.",
+     "label": {
+      "save": false
+     },
+     "read": true,
+     "user_chars": 49,
+     "assistant_chars": 844,
+     "outcome": "skip",
+     "kind": null,
+     "line": "",
+     "always": null,
+     "supersedes": null,
+     "reason": "skip: kind=none, importance=minor<useful [tier 1] [reply question: 0.04, the reply not read]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": null,
+     "supersedes_right": null
+    },
+    {
+     "n": 2,
+     "prompt": "Decision: dates in the API are ISO 8601 UTC strings, never epoch numbers. Make server.mjs follow it.",
+     "label": {
+      "save": true,
+      "kind": "decision",
+      "has": [
+       "ISO",
+       "UTC"
+      ]
+     },
+     "read": true,
+     "user_chars": 100,
+     "assistant_chars": 812,
+     "outcome": "add",
+     "kind": "decision",
+     "line": "Dates in the API are ISO 8601 UTC strings, never epoch numbers.",
+     "always": false,
+     "supersedes": null,
+     "reason": "save kind=decision content=0.98 importance=important [tier 1]",
+     "save_right": true,
+     "kind_right": true,
+     "has_word": true,
+     "supersedes_right": null
+    }
+   ]
+  }
+ ]
+}
