@@ -105,16 +105,12 @@ You need a [TypeSafe API key](https://console.typesafe.ai/keys), which jevmem's 
    ```bash
    npm install -g jevmem
    ```
-3. Save your key (paste it when asked; it isn't shown):
+3. In your project's folder, finish the setup in one go (it asks for your key without showing it, turns jevmem on in that folder, and checks the setup):
    ```bash
-   jevmem key
-   ```
-4. In your project's folder, turn jevmem on:
-   ```bash
-   jevmem enable
+   jevmem setup
    ```
 
-Start Claude Code in that project. `jevmem doctor` checks the setup.
+Start Claude Code in that project. If you start it before the setup is done, the plugin says once what is left; `jevmem doctor` checks the setup any time.
 
 <details><summary>Other ways to install: the jevmem marketplace, npm, Cursor, Codex</summary>
 
@@ -124,7 +120,7 @@ From the jevmem marketplace:
 npm install -g jevmem
 claude plugin marketplace add Avinash-jetwani/jevmem
 claude plugin install jevmem@jevmem
-cd your-project && jevmem enable
+cd your-project && jevmem setup
 ```
 
 With npm only (also sets up Cursor and Codex):
@@ -161,7 +157,7 @@ The MCP server is on the [MCP Registry](https://registry.modelcontextprotocol.io
 Deciding what to save takes 0.22 s and costs $0.00018 per message, in the background: Claude doesn't wait for it.
 On whether to save a message at all, jevmem was right as often as the best of six LLMs (98.5%); two of them were better at naming the kind of line.
 
-Measured on 66 turns written before the code and not tuned on, one run of 0.7.1 on 2026-10-13 ([results](results/eval-heldout-2026-10-13-v071.json)); the six LLMs ran on 2026-09-23. All seven in one table, with the cost of each and how it was run: [benchmark](docs/benchmark.md#071-beside-the-six-llms).
+Measured on 66 turns written before the code and not tuned on, one run of 0.7.2 on 2026-10-15 ([results](results/eval-heldout-2026-10-15-v072.json)); the six LLMs ran on 2026-09-23. All seven in one table, with the cost of each and how it was run: [benchmark](docs/benchmark.md#072-beside-the-six-llms).
 
 ## How it decides
 
@@ -226,6 +222,7 @@ Details and measurements: [docs/whats-new.md](docs/whats-new.md) · Upgrading: [
 jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
 jevmem init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (plugin users)
 jevmem enable                                  Opt this project in (plugin users): jevmem.config.json, JEVMEM.md, .jevmem/
+jevmem setup                                   Finish the setup here: the CLI and the plugin, your TypeSafe key (asked for, not shown), jevmem turned on in this folder, doctor; terminal only
 jevmem disable                                 Opt this project out: jevmem does nothing here (JEVMEM.md is kept)
 jevmem hook                                    Hook entrypoint; reads the Claude Code hook JSON on stdin
 jevmem daemon [status|start|stop]              Warm Jev client used by the hook (auto-started, exits when idle)

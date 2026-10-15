@@ -35,7 +35,7 @@ const USD_PER_M_INPUT = 0.042;
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-eval-"));
 async function runMode(mode) {
-  const jev = lib.createJev({ noLogFile: true, cache: false });
+  const jev = lib.createJev({ noLogFile: true, cache: false, model: process.env.TYPESAFE_DEFAULT_MODEL ?? lib.DEFAULT_CONFIG.jev.model });
   // Warm the connection once so the p50 reflects the daemon path, not the first TLS handshake.
   try { await lib.decide(jev, { userMessage: "warm-up", existingMemories: [] }, { tiers: { mode } }); } catch {}
   const rows = [];
@@ -140,7 +140,7 @@ const report = {
   jevmem_version: pj.version,
   commit,
   dist: path.relative(process.cwd(), path.resolve(distArg)),
-  model: process.env.TYPESAFE_DEFAULT_MODEL ?? "jev-latest",
+  model: process.env.TYPESAFE_DEFAULT_MODEL ?? lib.DEFAULT_CONFIG.jev.model,
   eval_set: SET_FILE,
   turns: turns.length,
   machine: `${process.platform} ${process.arch}, node ${process.version}, ${os.cpus()[0]?.model ?? "cpu"}`,

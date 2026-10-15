@@ -17,15 +17,17 @@ This needs Claude Code 2.1.273 or later: earlier versions don't sync the plugins
    npm install -g jevmem
    ```
 
-3. Add your TypeSafe key (from [console.typesafe.ai/keys](https://console.typesafe.ai/keys)): run this, then paste the key when it asks. It doesn't show the key as you paste, and saves it in `~/.jevmem/env`, readable only by you.
+3. In a terminal, in your project's folder, finish the setup in one go:
 
    ```bash
-   jevmem key
+   jevmem setup
    ```
 
-4. In a terminal, in your project's folder, run `jevmem enable`. The plugin does nothing in a project until you do.
-5. Start Claude Code in that project, signed in with the same Claude account as the app. The plugin shows as `jevmem@synced` (run `/reload-plugins` if Claude Code asks).
-6. `jevmem doctor` checks the setup. If Claude Code shows "jevmem: CLI not found", see [if the plugin can't find the CLI](install.md#if-the-plugin-cant-find-the-cli).
+   It says which `jevmem` and which plugin it found; asks for your TypeSafe key (from [console.typesafe.ai/keys](https://console.typesafe.ai/keys)) without showing it as you paste, and saves it in `~/.jevmem/env`, readable only by you (a key already saved is kept); turns jevmem on in that folder, where the plugin does nothing until then; checks the key with one request to TypeSafe (the fixed words "jevmem setup: key check", nothing from your project: [PRIVACY.md](../PRIVACY.md)); runs `jevmem doctor`; and, when the project has past Claude Code sessions, offers to import them: the count and the cost first, then the lines it would add, and nothing is sent or written before you say yes to each. By hand instead: `jevmem key`, then `jevmem enable` in the folder.
+4. Start Claude Code in that project, signed in with the same Claude account as the app. The plugin shows as `jevmem@synced` (run `/reload-plugins` if Claude Code asks).
+5. `jevmem doctor` checks the setup any time. If Claude Code shows "jevmem: CLI not found", see [if the plugin can't find the CLI](install.md#if-the-plugin-cant-find-the-cli).
+
+**If you start Claude Code before the setup is done** (since 0.7.2), the plugin says so once, at the start of a session, and names what is left: the `jevmem` command, your key, or this project not turned on yet, with `jevmem setup` as the one command. It is shown once per machine, and never again after it has been shown, after the setup is done, or after you opt out; it sends nothing and writes nothing inside the project ([the one-time setup message](hooks.md#the-claude-code-plugin)). A terminal shows it as a line from the `SessionStart` hook; in the Claude desktop app's Code tab, which does not draw such lines, Claude passes it on at the start of its first reply.
 
 Claude Code's own memory may also say it saved something; `JEVMEM.md` shows what jevmem saved.
 
@@ -35,10 +37,10 @@ Claude Code's own memory may also say it saved something; `JEVMEM.md` shows what
 npm install -g jevmem
 claude plugin marketplace add Avinash-jetwani/jevmem
 claude plugin install jevmem@jevmem
-cd your-project && jevmem enable
+cd your-project && jevmem setup
 ```
 
-Add your key with `jevmem key` as in step 3 above, or enter it in Claude Code with `/plugin configure jevmem`, which Claude Code keeps in your system's secure credential store (the `claude plugin install` shell command doesn't ask for it). That setting exists only for a plugin installed from a marketplace: the directory's `jevmem@synced` has no Configure options.
+`jevmem setup` asks for your key (or run `jevmem key`); for a plugin installed from a marketplace you can instead enter it in Claude Code with `/plugin configure jevmem`, which Claude Code keeps in your system's secure credential store (the `claude plugin install` shell command doesn't ask for it). That setting exists only for a plugin installed from a marketplace: the directory's `jevmem@synced` has no Configure options.
 
 ## If the plugin can't find the CLI
 

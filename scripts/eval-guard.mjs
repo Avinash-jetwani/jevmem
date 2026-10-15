@@ -92,7 +92,7 @@ const projects = recs.filter((r) => r.type === "rules");
 const calls = recs.filter((r) => r.type === "call");
 const G = lib.DEFAULT_CONFIG.guard;
 const MATCH = { ...lib.DEFAULT_MATCH, max: G.maxCandidates, ...(TUNING ? { minScore: 1 } : {}) };
-const jev = lib.createJev({ noLogFile: true, cache: false, timeoutMs: G.budgetMs });
+const jev = lib.createJev({ noLogFile: true, cache: false, timeoutMs: G.budgetMs, model: process.env.TYPESAFE_DEFAULT_MODEL ?? lib.DEFAULT_CONFIG.jev.model });
 // The same HOME for every call, so `~/.jevmem/env` and `cd ~/other` resolve to a folder that is never a scratch project.
 const HOME = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-guard-eval-home-")));
 fs.mkdirSync(path.join(HOME, ".jevmem"), { recursive: true });

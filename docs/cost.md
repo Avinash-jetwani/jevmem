@@ -11,6 +11,7 @@ Every Jev call is logged to `.jevmem/log.jsonl` (question count, tier, tokens, l
 | `decide` tier 2 (`full`) | 4,915–5,040 | 276–322 ms | – | $0.000206–$0.000212 |
 | `decide` tier 1 (`fast`), 0.7.1 | 3,236 | 214 ms | – | $0.000136 |
 | `decide` in `auto`, 0.7.1 | 4,369 | 215 ms | – | $0.000184 |
+| `decide` in `auto`, 0.7.2 | 4,256 | 218 ms | – | $0.000179 |
 | `decide` tier 2 (`full`), 0.7.1 | 6,108 | 235 ms | – | $0.000257 |
 | `decide`, cache hit | 0 | 1 ms | – | $0 |
 | `recall` (choice over 19 memories) | 1,668 | 278 ms | `UserPromptSubmit` hook: 629–642 ms cold, 302–325 ms via the warm daemon (2026-09-25) | $0.000070 |

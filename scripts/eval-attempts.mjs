@@ -93,7 +93,7 @@ async function withRetry(fn) {
   }
 }
 
-const jev = lib.createJev({ noLogFile: true, cache: false });
+const jev = lib.createJev({ noLogFile: true, cache: false, model: process.env.TYPESAFE_DEFAULT_MODEL ?? lib.DEFAULT_CONFIG.jev.model });
 // Every request's state, as sent: is Claude's reply in it, and how long. The reply is any text of the state other than
 // the user's message, the previous turns and the memory lines (`assistant_reply` in every build so far).
 const requests = [];
@@ -251,7 +251,7 @@ const report = {
   jevmem_version: version,
   commit,
   dist: path.relative(process.cwd(), path.resolve(distArg)),
-  model: process.env.TYPESAFE_DEFAULT_MODEL ?? "jev-latest",
+  model: process.env.TYPESAFE_DEFAULT_MODEL ?? lib.DEFAULT_CONFIG.jev.model,
   baseline: BASELINE,
   turns: rows.length,
   machine: `${process.platform} ${process.arch}, node ${process.version}, ${os.cpus()[0]?.model ?? "cpu"}`,

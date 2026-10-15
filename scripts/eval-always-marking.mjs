@@ -23,7 +23,7 @@ if (SET === "dev") {
   const { PROJECTS } = await import(pathToFileURL(path.join(ROOT, "eval/ab/tasks-alwayson.mjs")).href);
   for (const [p, v] of Object.entries(PROJECTS)) for (const m of v.memory) if (m[1] !== "superseded") items.push({ project: p, key: m[0], kind: m[1], text: m[2], always: Boolean(m[4]?.always) });
 }
-const jev = lib.createJev({ noLogFile: true, cache: false });
+const jev = lib.createJev({ noLogFile: true, cache: false, model: process.env.TYPESAFE_DEFAULT_MODEL ?? lib.DEFAULT_CONFIG.jev.model });
 const rows = [];
 for (const it of items) {
   const d = await lib.decide(jev, { userMessage: it.text, existingMemories: [] }, { tiers: { mode: "fast" } });
@@ -38,7 +38,7 @@ for (const th of [0.5, 0.6, 0.7, 0.8, 0.9]) {
   const tp = rows.filter((r, i) => pred[i] && r.always).length, fp = rows.filter((r, i) => pred[i] && !r.always).length, fn = rows.filter((r, i) => !pred[i] && r.always).length;
   sweep[th] = { marked: `${tp + fp}/${rows.length}`, precision: `${tp}/${tp + fp}`, recall: `${tp}/${tp + fn}`, false_marks: rows.filter((r, i) => pred[i] && !r.always).map((r) => r.key), missed: rows.filter((r, i) => !pred[i] && r.always).map((r) => r.key) };
 }
-const out = { kind: "alwayson-marking", set: SET, date: new Date().toISOString().slice(0, 10), dist: distArg, model: process.env.TYPESAFE_DEFAULT_MODEL ?? "jev-latest", lines: rows.length, labelled_always: rows.filter((r) => r.always).length, note: "each line's text sent as a user message through decide (tier 1, no existing memories); a line is marked when the question is at the threshold and its kind is one of constraint, preference, decision, architecture", sweep, rows };
+const out = { kind: "alwayson-marking", set: SET, date: new Date().toISOString().slice(0, 10), dist: distArg, model: process.env.TYPESAFE_DEFAULT_MODEL ?? lib.DEFAULT_CONFIG.jev.model, lines: rows.length, labelled_always: rows.filter((r) => r.always).length, note: "each line's text sent as a user message through decide (tier 1, no existing memories); a line is marked when the question is at the threshold and its kind is one of constraint, preference, decision, architecture", sweep, rows };
 console.log(`${SET}: ${rows.length} lines, ${out.labelled_always} labelled always-on`);
 for (const [th, s] of Object.entries(sweep)) console.log(`  at ${th}: marked ${s.marked}, precision ${s.precision}, recall ${s.recall}; false marks: ${s.false_marks.join(",") || "none"}; missed: ${s.missed.join(",") || "none"}`);
 console.log("  answers, labelled always:", rows.filter((r) => r.always).map((r) => r.noul.toFixed(2)).sort().join(" "));

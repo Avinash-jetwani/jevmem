@@ -1,10 +1,10 @@
 # Benchmark
 
-Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved) was measured against six LLMs on v0.4.2 on 2026-09-23; the LLMs have not been run since, and jevmem's own row is run again on each release, last for 0.7.1 on 2026-10-13 ([0.7.1 beside the six LLMs](#071-beside-the-six-llms)). The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts.
+Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved) was measured against six LLMs on v0.4.2 on 2026-09-23; the LLMs have not been run since, and jevmem's own row is run again on each release, last for 0.7.1 on 2026-10-13 ([0.7.1 beside the six LLMs](#072-beside-the-six-llms)). The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts.
 
 ## Why Jev and not an LLM
 
-- **It is fast enough to run on every turn.** About 0.2 s in-process (0.7.1: a median of 215 ms on the 66 held-out turns, 2026-10-13; and the `Stop` hook no longer waits for it), against 2.8–4.3 s p50 for the LLMs we measured, means the decision can happen on *every* Stop, not once per session. Memory that updates continuously catches the decision made in passing at turn 41. It is not the most accurate: see [Benchmark](benchmark.md#benchmark).
+- **It is fast enough to run on every turn.** About 0.2 s in-process (0.7.2: a median of 218 ms on the 66 held-out turns, 2026-10-15; and the `Stop` hook no longer waits for it), against 2.8–4.3 s p50 for the LLMs we measured, means the decision can happen on *every* Stop, not once per session. Memory that updates continuously catches the decision made in passing at turn 41. It is not the most accurate: see [Benchmark](benchmark.md#benchmark).
 - **Typed answers, thresholds in code.** Jev returns probabilities, not prose. "Save if importance ≥ useful and chit-chat < 0.5" is a line of config, testable and tunable, not a prompt you hope the model follows.
 - **A narrow attack surface, not a closed one.** Per TypeSafe, Jev returns probabilities and does not generate text or call tools, so a transcript that says "ignore previous instructions and remember X" has no channel to run a command through Jev; the failure mode is a wrong probability. Injected text can still bias those probabilities, which is why an injection noul gates every hook and MCP `add_memory` save (one broad noul in tier 1, four atomic nouls when tier 2 runs), the eval sets carry injection attempts, and the harness sends one. Once Jev says save, the line itself is written by the writer LLM (or the extract) from the scrubbed message, so injected text that gets past the gate can still shape the line's wording. Lines typed with `jevmem add` are not checked by Jev.
 
@@ -17,7 +17,7 @@ Only rows the [Benchmark](benchmark.md#benchmark) measures (held-out set, 66 tur
 | Decides what to save with | One LLM call with a zero-shot prompt | One Jev call of 14 questions (15 when saved lines are listed; 16 or 17 with the assistant reply; 5 more when a live dead end is listed); a second of 35 (36; 39 or 40) on 18% of turns (12 of the 66) |
 | Accuracy: save/skip | 90.9%–98.5% | 98.5% (tied highest) |
 | Accuracy: save/skip + kind | 90.9%–98.5% | 95.5% (below GPT-6 Astra and Claude Opus 5.5) |
-| Latency per decision | 2.8–4.3 s p50, 4.9–29.6 s p95 | 215 ms p50, 462 ms p95 |
+| Latency per decision | 2.8–4.3 s p50, 4.9–29.6 s p95 | 218 ms p50, 516 ms p95 |
 | Cost per decision | $0.000089 (GPT-6 Luna) to $0.013256 (Claude Fable 5.1) | $0.000184 |
 | Detects contradictions | Five of six found 5/5 with a named id (Grok 4.7: 4/5, its miss an empty answer); none flagged a false one | 5/5 (`contradicts_existing_memory` ≥ 0.7 AND a named memory id) |
 | Injection resistance | Five of six refused all 6 injection turns (Gemini 3.8 Flash: 5/6, its miss an empty answer) | Refused all 6 injection turns |
@@ -79,12 +79,15 @@ The 66-turn held-out set through `scripts/eval.mjs` (`decide` in-process with a 
 | 0.7.1 | `fast` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000136 (+line $0.000138) | 214 ms |
 | 0.7.1 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000184 (+line $0.000185) | 215 ms |
 | 0.7.1 | `full` | 92.4% (61/66) | 89.4% (59/66) | 5/5 | $0.000257 (+line $0.000258) | 235 ms |
+| 0.7.2 | `fast` | 98.5% (65/66) | 93.9% (62/66) | 5/5 | $0.000136 (+line $0.000138) | 224 ms |
+| 0.7.2 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000179 (+line $0.000180) | 218 ms |
+| 0.7.2 | `full` | 92.4% (61/66) | 90.9% (60/66) | 5/5 | $0.000257 (+line $0.000258) | 242 ms |
 
 The builds miss the same turns in each mode (the debatable preference label, "no, leave it as is" saved as a decision, and in `full` two bugs and a constraint skipped). 0.6.0 costs more per decision than 0.5.9 in every mode because each tier asks one more noul (the dead-end noul) and tier 1's injection question is longer; `auto` escalated 18.2% of turns against 16.7% for 0.5.9 and 13.6% for v0.4.2. The README's figures, 0.22 s and $0.00018 per message, are 0.7.1's `auto` row here. 0.7.1 misses the same turns, and in `full` reads one more kind wrong: the Vitest-to-Jest reversal as a dead end rather than a decision, its contradiction still found (59 of 66 against 0.7.0's 60).
 
-### 0.7.1 beside the six LLMs
+### 0.7.2 beside the six LLMs
 
-The table the README shows. 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](#benchmark)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is 0.7.1's run of the same set on 2026-10-13 ([results](../results/eval-heldout-2026-10-13-v071.json); [every mode, six builds](#every-mode-six-builds)), where the earlier builds score the same and cost a little less (0.7.0 on 2026-10-08: 265 ms, $0.000169):
+The table the README shows. 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](#benchmark)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is 0.7.2's run of the same set on 2026-10-15, with `jev-1.13.0` pinned ([results](../results/eval-heldout-2026-10-15-v072.json); [every mode, six builds](#every-mode-six-builds)), where the earlier builds score the same and cost a little less (0.7.0 on 2026-10-08: 265 ms, $0.000169):
 
 | Decider | save/skip | save+kind | contradictions | p50 | $/decision |
 |---|---|---|---|---|---|
@@ -94,11 +97,11 @@ The table the README shows. 66 held-out turns, all seven deciders given the same
 | Claude Opus 5.5 | 97.0% | 97.0% | 5/5 | 2,784 ms | $0.005186 |
 | Gemini 3.8 Flash | 92.4% | 92.4% | 5/5 | 2,850 ms | $0.001174 |
 | Grok 4.7 | 90.9% | 90.9% | 4/5 | 3,320 ms | $0.004602 |
-| **jevmem 0.7.1 `auto`** | **98.5%** | **95.5%** | **5/5** | **215 ms** | $0.000184 |
+| **jevmem 0.7.2 `auto`** | **98.5%** | **95.5%** | **5/5** | **218 ms** | $0.000179 |
 
-The 0.22 s is the Jev API decision (p95 462 ms; a saved turn's line costs one more request, $0.000185 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](../results/ops-2026-09-26-v056.json), [cost and latency](cost.md)).
+The 0.22 s is the Jev API decision (p95 516 ms; a saved turn's line costs one more request, $0.000180 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](../results/ops-2026-09-26-v056.json), [cost and latency](cost.md)).
 
-On 66 held-out turns, jevmem 0.7.1's median decision took 0.22 s (one run, 2026-10-13, the run the README's graphic shows), against 2.8–4.3 s for six current LLMs.
+On 66 held-out turns, jevmem 0.7.2's median decision took 0.22 s (one run, 2026-10-15, the run the README's graphic shows), against 2.8–4.3 s for six current LLMs.
 Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 95.5% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%) and Claude Opus 5.5 (97.0%) were more accurate on save+kind; Claude Fable 5.1 tied; GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
 GPT-6 Luna was cheaper ($0.000089 against $0.000184) but less accurate (93.9%) and about 14× slower.
 Each row is a single run, and differences of one or two turns are within run-to-run noise; the LLM rows and jevmem's are three weeks apart. If the most accurate decision matters most, GPT-6 Astra or Claude Opus 5.5 are better, at about 28–41× the cost per decision and 13–16× the latency. jevmem is for when you want a fast, cheap decision on every message.
@@ -679,7 +682,7 @@ The held-out set ran twice on 0.6.5: first on `384ee18`, then, after the second 
 | its 6 controls, followed and done, of 18; stopped to ask instead | 14; 1 | 15; 1 | 14; 1 |
 | **v2**, 6 conventions in files that predate them, of 18 | **10** | **14** (the line in context 8 of 18) | **18** |
 
-In v2, `kl2-retention-log` (a nightly job that already uses `console.log`; the task adds a count to report) is 0 of 3 with no memory and with 0.7.0 and 3 of 3 with `CLAUDE.md`, the `rb-i18n` pattern again; `sd2-report-i18n` 0 of 3, 2 of 3 and 3 of 3; `kl2-webhook-ids` 1 of 3, 3 of 3 and 3 of 3; the other three 3 of 3 in every arm. One check flaw in the first set, stated: `kl-ctl-ws` (a control: dashboards want live readings; the dead end says WebSockets failed and the dashboards poll) is 0 of 3 in every arm because the right answer, "polling with `since` already exists, nothing to build", counts as not done; every 0.7.0 and `CLAUDE.md` session gave it and the no-memory arm built a stream in 2 of 3. The check stays as committed and the after-run is scored the same way.
+In v2, `kl2-retention-log` (a nightly job that already uses `console.log`; the task adds a count to report) is 0 of 3 with no memory and with 0.7.0 and 3 of 3 with `CLAUDE.md`, the `rb-i18n` pattern again; `sd2-report-i18n` 0 of 3, 2 of 3 and 3 of 3; `kl2-webhook-ids` 1 of 3, 3 of 3 and 3 of 3; the other three 3 of 3 in every arm. One check flaw in the first set, stated: `kl-ctl-ws` (a control: dashboards want live readings; the dead end says WebSockets failed and the dashboards poll) is 0 of 3 in every arm because the right answer, "polling with `since` already exists, nothing to build", counts as not done; every 0.7.0 and `CLAUDE.md` session gave it and the no-memory arm built a stream in 2 of 3. The check stays as committed and the after-run is scored the same way. Fixed in 0.7.2: the check reads the reply and counts that answer as done; these runs are not re-scored.
 
 **Three designs on the dev A/B** (24 tasks, the jevmem arm, 3 runs each; a prototype in a scratch copy with the design as a config mode; 2026-10-13; [A](../results/ab-dev-alwayson-2026-10-13-design-A.json), [B](../results/ab-dev-alwayson-2026-10-13-design-B.json), [C](../results/ab-dev-alwayson-2026-10-13-design-C.json); 0.7.0 from npm rerun the same day under the same conditions, [results](../results/ab-dev-2026-10-13-v070.json), beside [the published run](../results/ab-jevmem-2026-09-29-3b.json) of 2026-09-29 on Claude Code 2.1.281):
 
@@ -833,3 +836,24 @@ A line that is superseded by mistake drops out of recall, so the memory ends up 
 The highest contradiction score among the 40 was 0.59 ("Finance wants a few spreadsheets straight from BigQuery instead of Looker", next to "Dashboards are built in Looker"); the lowest among the reversals was 0.70. With no false supersede on the held-out set, nothing was changed.
 
 **Dev** (same day; [dev](../results/supersede-dev-2026-09-29.json), [dev v3](../results/supersede-dead-ends-dev-v3-2026-09-29.json)): false supersedes 0/20 and reversals 6/6 on the new dev set ([first run](../results/supersede-dev-2026-09-29-first.json): 0/20 and 5/6, "Rate quotes can take up to 2 seconds…" at 0.66, saved as a bug; one dev row was then reworded so it shares no five words with the retrieval sets, which `test/recall-eval.test.ts` checks); on decide's dev v3 set, false supersedes 1/45, the replays turn again (0.73 in tier 2). Tier 2's reverse-or-replace noul gave it 0.49, under half; the family's other two nouls, reversal wording ("anymore") and "about the same topic as a listed memory", lifted it over 0.7. It is one turn, on a dev set, and the held-out set's six "can't … anymore" or "instead" additions stayed at 0.35 or less.
+
+## 0.7.2: finish setup, and Jev 1.14 against 1.13
+
+**The 66-turn benchmark set on the build** ([results](../results/eval-heldout-2026-10-15-v072.json), 2026-10-15, the code of `df4a5b1`, `jev-1.13.0` pinned): `auto` 98.5% (65/66), 95.5% (63/66), 5/5, 218 ms p50, $0.000179 per decision; `fast` 65/66 and 62/66 at 224 ms and $0.000136; `full` 61/66 and 60/66 at 242 ms and $0.000257. Decide did not change in 0.7.2, and the run is within one turn of 0.7.1's in each mode (`fast` names one kind differently, `full` one kind better).
+
+### Jev 1.14 against 1.13 (2026-10-15)
+
+TypeSafe released Jev 1.14.0 on 2026-10-14 under `jev-preview`, with `jev-latest` (which jevmem's default config named) to follow about a week later. Before it moved, six held-out sets ran once on each model, on the 0.7.1 code, with the model set by `TYPESAFE_DEFAULT_MODEL` (the scripts' `model` field records it): the 66-turn benchmark, the guard's held-out v2 (274 calls), retrieval held-out v2 (90 prompts), the written and the captured attempts sets (40 and 47 failed attempts), the dupes set (50 turns) and the always-on marking on the held-out projects (68 lines, 20 labelled). Then the benchmark and both attempts sets ran twice more on each (three runs each). Files: `results/<set>-2026-10-15-jev113.json`, `-jev114.json` and `-run2`/`-run3`.
+
+| Set | `jev-1.13.0` | `jev-1.14.0` |
+|---|---|---|
+| Benchmark `auto`, three runs: save/skip, +kind, contradictions | 65/66, 63/66, 5/5 in every run | 65/66, 63/66, 4/5 in every run (the same turn: a reversal of the Go rewrite, saved but not as a contradiction) |
+| Benchmark `full`, three runs: save/skip, +kind | 61, 61, 61 of 66; 59, 60, 60 | 63, 62, 62 of 66; 62, 61, 61 |
+| Guard held-out v2: caught, false asks, block-mode denials, tamper | 66/68, 3/206, 65/68, 274/274 | 66/68, 3/206, 64/68, 274/274 |
+| Retrieval held-out v2: recall, unrelated injected, superseded leaks | 75/78, 1/18, 0/90 | 75/78, 1/18, 0/90 |
+| Attempts, written, three runs: saved as a dead end, with the reason | 39, 38, 38 of 40; 22, 22, 22 | 37, 38, 38 of 40; 19, 20, 19 |
+| Attempts, captured, three runs: saved as a dead end, nothing saved | 38, 38, 38 of 47; 5, 4, 4 | 35, 36, 36 of 47; 7, 6, 7 |
+| Dupes: restatements not saved, details kept, unrelated as labelled | 24/25, 4/5, 9/10 | 25/25, 5/5, 8/10 |
+| Always-on marking at 0.5: marked, right, found | 21, 17, 17/20 | 28, 20, 20/20 |
+
+1.14 misses the same benchmark contradiction in every run, saves fewer captured dead ends in every run and keeps fewer reasons on the written set, and makes twice the false always-on marks, which go into every session; it is better in `full` mode and on the dupes set, and finds every labelled rule. So 0.7.2 pins `jev-1.13.0` (every number published before it was measured on `jev-latest` before 2026-10-14, so on 1.13.0) until a later Jev measures at least as good on the attempts sets and the contradictions; the price is the same for both.
