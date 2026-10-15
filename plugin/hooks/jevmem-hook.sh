@@ -21,11 +21,19 @@
 #    and this project's jevmem.config.json), says so in one message and writes the marker; when the CLI is there and
 #    the project is on it writes the marker and says nothing, since the CLI then runs and says itself when no key is
 #    saved. The launcher reads no key and no credential: a project that is not on gets no CLI run, as before. The
-#    message is a systemMessage, which Claude Code's terminal shows, and, unless Claude Code's entrypoint is that
-#    terminal (CLAUDE_CODE_ENTRYPOINT=cli), additionalContext as well, asking Claude to pass it on, since the desktop
-#    app's Code tab does not draw a hook's systemMessage (2.1.295). Nothing is sent and nothing is written inside the
-#    project, and after the marker exists a SessionStart costs one `[ -f ]` more than before. Creating the marker by
-#    hand is the opt-out.
+#    message is a systemMessage, which Claude Code's terminal shows, and, outside a terminal, additionalContext as well,
+#    asking Claude to pass it on, since the desktop app's Code tab does not draw a hook's systemMessage (2.1.295).
+#    Nothing is sent and nothing is written inside the project, and after the marker exists a SessionStart costs one
+#    `[ -f ]` more than before. Creating the marker by hand is the opt-out. Since 0.7.3 the message and the marker only
+#    where 8 says the marker persists; elsewhere this hook says nothing and writes nothing.
+# 8. Where Claude Code runs (0.7.3), from two variables it gives its hooks. A cloud session (CLAUDE_CODE_REMOTE=true, as
+#    Claude Code's docs say; or CLAUDE_CODE_ENTRYPOINT starting with remote, as a claude.ai chat's cloud workspace has
+#    remote_cowork), Cowork on the desktop (local-agent, or CLAUDE_CODE_IS_COWORK), Claude Tag (Slack, Teams) and GitHub
+#    Actions get no one-time message and no marker: each chat's workspace is new, so 0.7.2's message showed at the start
+#    of every chat and its advice fits no workspace; the per-session line of 3 stays silent there too. A terminal (cli)
+#    gets the message as a systemMessage alone; the desktop app's Code tab (claude-desktop), the VS Code extension
+#    (claude-vscode) and the desktop app's SSH sessions (ssh-remote) get it with additionalContext too. Any other
+#    entrypoint, or none (a `claude -p` run is sdk-cli), gets no message and no marker either, and the line of 3 as before.
 # --guard marks the PreToolUse hook (the guard). A jevmem CLI from before the guard would read that event as a finished
 # turn, so the launcher runs it only when the CLI has the `guard` command (checked once per CLI file and cached);
 # otherwise it reads the input and exits 0 without output. It prints no warning for this hook.
@@ -49,6 +57,18 @@ if [ "$1" = "--detach" ]; then detach=1; shift; fi
 guard=0
 if [ "$1" = "--guard" ]; then guard=1; shift; fi
 if [ "$1" = "--start" ]; then shift; fi
+
+# 8. Where Claude Code runs: remote (a cloud session, Cowork, Claude Tag, GitHub Actions), terminal, app (the Code tab,
+# the VS Code extension, an SSH session) or other. Shell tests on two variables; no process is started.
+place="other"
+if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] || [ -n "${CLAUDE_CODE_IS_COWORK:-}" ]; then place="remote"
+else
+  case "${CLAUDE_CODE_ENTRYPOINT:-}" in
+    remote*|local-agent|local_agent|claude_in_slack|claude-in-slack|claude-in-teams|claude-code-github-action) place="remote" ;;
+    cli) place="terminal" ;;
+    claude-desktop|claude-vscode|ssh-remote) place="app" ;;
+  esac
+fi
 
 # Node versions under ~/.nvm, newest first (numeric major, minor, patch).
 nvm_versions() {
@@ -114,13 +134,13 @@ setup_notice() {
 }
 # The message as the hook's JSON output, when the CLI is not run for this event.
 print_notice() {
-  if [ "${CLAUDE_CODE_ENTRYPOINT:-}" = "cli" ]; then
+  if [ "$place" = "terminal" ]; then
     printf '{"systemMessage":"%s"}\n' "$notice"
   else
     printf '{"systemMessage":"%s","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s%s%s"}}\n' "$notice" "$RELAY_HEAD" "$notice" "$RELAY_TAIL"
   fi
 }
-if [ "$start" -eq 1 ] && [ "$is_hook" -eq 1 ] && [ ! -f "$HOME/.jevmem/setup-notice" ]; then setup_notice; fi
+if [ "$start" -eq 1 ] && [ "$is_hook" -eq 1 ] && { [ "$place" = "terminal" ] || [ "$place" = "app" ]; } && [ ! -f "$HOME/.jevmem/setup-notice" ]; then setup_notice; fi
 
 # 2. A hook in a project that is not turned on: read the input, say the one-time message if this is its moment, exit.
 if [ "$enabled" -eq 0 ] && [ "$is_hook" -eq 1 ]; then
@@ -131,8 +151,8 @@ fi
 
 # No CLI, or no Node to run it: a hook reads its input and exits 0. The UserPromptSubmit hook (not --detach) prints
 # $1 as a systemMessage, which Claude Code shows the user, once per session: the session ids already told are listed
-# in CLAUDE_PLUGIN_DATA/notified. The SessionStart hook prints the one-time message when this is its moment. The Stop
-# hook stays silent. Outside a hook, $1 goes to stderr.
+# in CLAUDE_PLUGIN_DATA/notified; not in a cloud or Cowork session (8), where it stays silent. The SessionStart hook
+# prints the one-time message when this is its moment. The Stop hook stays silent. Outside a hook, $1 goes to stderr.
 not_found() {
   msg="$1"; shift
   if [ "$is_hook" -eq 1 ]; then
@@ -142,6 +162,7 @@ not_found() {
       exit 0
     fi
     [ "$detach" -eq 0 ] || exit 0
+    [ "$place" != "remote" ] || exit 0
     printf '%s\n' "$input" | grep -q '"hook_event_name" *: *"UserPromptSubmit"' || exit 0
     sid="$(printf '%s\n' "$input" | sed -n 's/.*"session_id" *: *"\([A-Za-z0-9_-]*\)".*/\1/p' | head -n 1)"
     [ -n "$sid" ] || sid=unknown
