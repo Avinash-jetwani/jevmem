@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|forget|trust|alwayson|import|setup|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|forget|trust|alwayson|import|setup|remote|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -118,11 +118,25 @@
 #              to any [y/N]): the project is turned on, ~/.jevmem/env holds the key (600) and the key appears nowhere on the
 #              terminal or in the project, one key-check request was made, and the marker says done. Session 2 saves a
 #              line and session 3 recalls it; neither shows a session-start message
+#   remote     a cloud chat (0.7.3): the plugin installed, no jevmem CLI anywhere, an empty session HOME, and the two
+#              variables a claude.ai chat's cloud workspace gives its hooks, CLAUDE_CODE_REMOTE=true and
+#              CLAUDE_CODE_ENTRYPOINT=remote_cowork, with a counting proxy in front of Jev. Session 1 in a project not
+#              turned on (where 0.7.2 showed the no-CLI text), session 2 in the same project turned on (the per-session
+#              "CLI not found" line's case): every hook response must be empty, nothing may appear under the session HOME
+#              (no ~/.jevmem at all) or in the project, no list of sessions told in the plugin's data, and 0 requests may
+#              reach the proxy. Then a control, session 3 with a new HOME and the Code tab's entrypoint (claude-desktop)
+#              in the project turned off again: the no-CLI text once and the marker, so a silent run cannot pass because
+#              the plugin did not load
 # Since 0.7.2 the plugin's launcher shows a one-time setup message at session start (once per machine: the marker
 # ~/.jevmem/setup-notice in the session HOME): nocli checks the no-CLI text in session 1 and none in sessions 2 and 3,
 # nokey no session-start message at all (the project is on, so the CLI's own notice names the key step at the first
 # prompt; the plugin's marker says done), dormant and setup the not-turned-on text and then no message again. The texts
-# are the NOTICE_* variables below, word for word as the launcher prints them.
+# are the NOTICE_* variables below, word for word as the launcher prints them. Since 0.7.3 the launcher shows it only
+# where Claude Code's entrypoint says the marker persists (a terminal, the desktop app's Code tab, the VS Code extension,
+# an SSH session), and a `claude -p` session is `sdk-cli`, where it stays silent; so the sessions of these four scenarios
+# (nocli, nokey, dormant and published, setup) run with CLAUDE_CODE_ENTRYPOINT=claude-desktop, the Code tab's value, and
+# every other scenario's sessions keep the plain `-p` environment they had, so their results stay comparable with earlier
+# releases.
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
 # memory line, or the jevmem footer (i.e. a line the assistant wrote by hand).
 #
@@ -447,8 +461,8 @@ run_nocli() {
   local prompts=("Decision: invoices are archived as PDFs in S3." "Constraint: invoice numbers are never reused." "Decision: refunds go back to the original payment method.")
   local flags=("" "--continue" "")
   for t in 0 1 2; do
-    echo "---- turn $((t+1)) with the plugin installed and no jevmem CLI (PATH=$STRIP_PATH, empty HOME${flags[$t]:+, ${flags[$t]}})"
-    ( cd "$scratch" && SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" claude_session -- -p ${flags[$t]} --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[$t]}" > "$events.$t" 2>&1 )
+    echo "---- turn $((t+1)) with the plugin installed and no jevmem CLI (PATH=$STRIP_PATH, empty HOME, the Code tab's entrypoint${flags[$t]:+, ${flags[$t]}})"
+    ( cd "$scratch" && SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" claude_session CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p ${flags[$t]} --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[$t]}" > "$events.$t" 2>&1 )
   done
   sleep 3
   ( cd "$scratch" && eval "$listing" ) > "$scratch.after"
@@ -586,7 +600,7 @@ run_nokey_variant() {
   for t in 0 1; do
     local flag=""; [ "$t" -gt 0 ] && flag="--continue"
     echo "---- turn $((t+1)), no key anywhere${flag:+ ($flag)}: ${prompts[$t]}"
-    ( cd "$scratch" && claude_session -- -p $flag --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[$t]}" > "$events.$t" 2>&1 )
+    ( cd "$scratch" && claude_session CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p $flag --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[$t]}" > "$events.$t" 2>&1 )
   done
   sleep 3 # any detached Stop hook has finished by now
   "$NODE" - "$events" "$scratch" "$variant" "$ROOT/dist/index.js" "$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")" "${prompts[0]}" "${prompts[1]}" <<'JS' || fail=1
@@ -652,12 +666,12 @@ JS
   if [ $fail -eq 0 ]; then
     before=$(decisions "$scratch")
     echo "---- turn 3 (--continue): ${prompts[2]}"
-    ( cd "$scratch" && claude_session -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[2]}" > "$events.2" 2>&1 )
+    ( cd "$scratch" && claude_session CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[2]}" > "$events.2" 2>&1 )
     wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; fail=1; }
   fi
   if [ $fail -eq 0 ]; then
     echo "---- turn 4 (--continue, recall): ${prompts[3]}"
-    ( cd "$scratch" && claude_session -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[3]}" > "$events.3" 2>&1 )
+    ( cd "$scratch" && claude_session CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[3]}" > "$events.3" 2>&1 )
     "$NODE" - "$events" "$scratch" "$ROOT/dist/index.js" <<'JS' || fail=1
       const fs=require("fs");const [base,root,lib]=process.argv.slice(2);
       const errs=[];
@@ -729,7 +743,7 @@ run_dormant() {
   local p2="Decision: refunds go back to the original payment method only."
   local p1b="Decision: the invoice archive keeps one PDF per invoice, nothing else."
   echo "---- turn 1 (project not enabled): $p1"
-  ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --max-turns 15 --output-format stream-json --verbose --include-hook-events "$p1" > "$plog.t1" 2>&1 )
+  ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p --max-turns 15 --output-format stream-json --verbose --include-hook-events "$p1" > "$plog.t1" 2>&1 )
   "$NODE" -e 'const fs=require("fs");const ev=fs.readFileSync(process.argv[1],"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});const r=ev.find(e=>e.type==="result")||{};console.log("   claude> "+String(r.result??"").replace(/\n/g," ").slice(0,160))' "$plog.t1"
   sleep 5 # any detached hook process would have finished by now
   ( cd "$scratch" && eval "$listing" ) > "$plog.after"
@@ -753,7 +767,7 @@ JS
   if head -n 1 "$E2E_HOME/.jevmem/setup-notice" 2>/dev/null | grep -q '^shown not-on '; then echo "   ✓ the marker ~/.jevmem/setup-notice in the session HOME says shown not-on"; else echo "   ✗ FAIL: no marker 'shown not-on' in the session HOME (first line: $(head -n 1 "$E2E_HOME/.jevmem/setup-notice" 2>/dev/null))"; fail=1; fi
   if [ $fail -eq 0 ]; then
     echo "---- turn 1b (a new session, the project still not enabled): $p1b"
-    ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --max-turns 15 --output-format stream-json --verbose --include-hook-events "$p1b" > "$plog.t1b" 2>&1 )
+    ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p --max-turns 15 --output-format stream-json --verbose --include-hook-events "$p1b" > "$plog.t1b" 2>&1 )
     sleep 5
     ( cd "$scratch" && eval "$listing" ) > "$plog.after1b"
     n=$(wc -l < "$plog" | tr -d ' ')
@@ -771,7 +785,7 @@ JS
     echo "---- jevmem enable (the installed CLI)"
     ( cd "$scratch" && cli enable | sed 's/^/   /' )
     echo "---- turn 2 (project enabled): $p2"
-    ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --continue --max-turns 15 "$p2" 2>&1 | tail -2 | sed 's/^/   claude> /' )
+    ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p --continue --max-turns 15 "$p2" 2>&1 | tail -2 | sed 's/^/   claude> /' )
     wait_queue "$scratch" 0 || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; fail=1; }
   fi
   if [ $fail -eq 0 ]; then
@@ -795,7 +809,7 @@ JS
     # Recall on the next prompt: the UserPromptSubmit hook asks Jev for the relevant lines and injects them.
     local p3="In one sentence, and from this project's memory only: where do refunds go?" reply
     echo "---- turn 3 (recall): $p3"
-    reply="$(cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --continue --max-turns 5 "$p3" 2>&1)"
+    reply="$(cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p --continue --max-turns 5 "$p3" 2>&1)"
     printf '%s\n' "$reply" | tail -2 | sed 's/^/   claude> /'
     "$NODE" - "$scratch" "$reply" <<'JS' || fail=1
       const fs=require("fs");const [root,reply]=process.argv.slice(2);
@@ -1876,7 +1890,7 @@ run_setup() {
   events="$(mktemp /tmp/jevmem-e2e-events.XXXXXX)"
   local p1="Decision: invoices are archived as PDFs in S3." p2="Decision: refunds go back to the original payment method only." p3="In one sentence, and from this project's memory only: where do refunds go?"
   echo "---- session 1 (project not turned on, no key in HOME, jevmem on PATH; the not-turned-on text, since the launcher reads no key): $p1"
-  ( cd "$scratch" && claude_session -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p1" > "$events.1" 2>&1 )
+  ( cd "$scratch" && claude_session CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p1" > "$events.1" 2>&1 )
   sleep 3
   ( cd "$scratch" && eval "$listing" ) > "$scratch.after"
   E2E_NOTICE="$NOTICE_NOTON" "$NODE" - "$events.1" <<'JS' || fail=1
@@ -1914,12 +1928,12 @@ JS
   if [ $fail -eq 0 ]; then
     before=$(decisions "$scratch")
     echo "---- session 2 (a new session, the project turned on): $p2"
-    ( cd "$scratch" && claude_session -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p2" > "$events.2" 2>&1 )
+    ( cd "$scratch" && claude_session CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p2" > "$events.2" 2>&1 )
     wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; fail=1; }
   fi
   if [ $fail -eq 0 ]; then
     echo "---- session 3 (--continue, recall): $p3"
-    ( cd "$scratch" && claude_session -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p3" > "$events.3" 2>&1 )
+    ( cd "$scratch" && claude_session CLAUDE_CODE_ENTRYPOINT=claude-desktop -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p3" > "$events.3" 2>&1 )
     "$NODE" - "$events" "$scratch" <<'JS' || fail=1
       const fs=require("fs");const [base,root]=process.argv.slice(2);const errs=[];
       for(const t of [2,3]){
@@ -1946,6 +1960,102 @@ JS
   return $fail
 }
 
+# 0.7.3: a cloud chat. Claude Code in a claude.ai chat's cloud workspace gives its hooks CLAUDE_CODE_REMOTE=true and
+# CLAUDE_CODE_ENTRYPOINT=remote_cowork, a fresh HOME per chat, the plugin synced from the account and no jevmem CLI; 0.7.2
+# showed the no-CLI text at the start of every such chat and wrote its marker where the next chat could not see it. The
+# launcher must now say nothing and write nothing there. Two sessions with those two variables, an empty HOME, no CLI on
+# the PATH and a counting proxy in front of Jev: session 1 in a project not turned on, session 2 in the same project
+# turned on (as a committed jevmem.config.json is in a cloned repository; there is no CLI to run enable). Every hook
+# response must be empty, nothing may appear under the session HOME (no ~/.jevmem at all) or in the project, the plugin's
+# data must hold no list of sessions told, and 0 requests may reach the proxy. Then the control: session 3 with a new
+# HOME and the Code tab's entrypoint (claude-desktop) in the project turned off again must show the no-CLI text once, with
+# the context for Claude, and write the marker, so a silent run cannot pass because the plugin did not load.
+run_remote() {
+  local run="$1" scratch home home2 events proxy_pid proxy_url plog fail=0 n
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=remote  scratch=$scratch"
+  ( cd "$scratch" && git init -q && printf '{"name":"client-app","private":true}\n' > package.json && printf '# client-app\n' > README.md )
+  install_plugin "$scratch" || { uninstall_plugin "$scratch"; return 1; }
+  home="$(mktemp -d /tmp/jevmem-e2e-home.XXXXXX)"  # empty: no key, no CLI, no version manager
+  home2="$(mktemp -d /tmp/jevmem-e2e-home.XXXXXX)"
+  plog="$(mktemp /tmp/jevmem-e2e-proxy.XXXXXX)"
+  "$NODE" "$ROOT/scripts/jev-outage-proxy.mjs" --flag "$plog.never" > "$plog.url" 2> "$plog" &
+  proxy_pid=$!
+  for _ in $(seq 1 50); do [ -s "$plog.url" ] && break; sleep 0.1; done
+  proxy_url="$(cat "$plog.url")"
+  local listing='find . -path ./.git -prune -o -print | sort'
+  local remote_env=(CLAUDE_CODE_REMOTE=true CLAUDE_CODE_ENTRYPOINT=remote_cowork TYPESAFE_BASE_URL="$proxy_url")
+  events="$(mktemp /tmp/jevmem-e2e-events.XXXXXX)"
+  local p1="Decision: invoices are archived as PDFs in S3." p2="Constraint: invoice numbers are never reused." p3="Decision: refunds go back to the original payment method only."
+  echo "---- session 1 (a cloud chat: CLAUDE_CODE_REMOTE=true, CLAUDE_CODE_ENTRYPOINT=remote_cowork, no CLI, empty HOME; the project not turned on): $p1"
+  ( cd "$scratch" && eval "$listing" ) > "$plog.before1"
+  ( cd "$scratch" && SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" claude_session "${remote_env[@]}" -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p1" > "$events.1" 2>&1 )
+  sleep 3
+  ( cd "$scratch" && eval "$listing" ) > "$plog.after1"
+  echo "---- session 2 (the same chat's variables and HOME; the project turned on, no CLI): $p2"
+  ( cd "$scratch" && echo '{}' > jevmem.config.json )
+  ( cd "$scratch" && eval "$listing" ) > "$plog.before2"
+  ( cd "$scratch" && SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" claude_session "${remote_env[@]}" -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p2" > "$events.2" 2>&1 )
+  sleep 3
+  ( cd "$scratch" && eval "$listing" ) > "$plog.after2"
+  "$NODE" - "$events" <<'JS' || fail=1
+    const fs=require("fs");const base=process.argv[2];const errs=[];let total=0;
+    for(const t of [1,2]){
+      const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
+      const hooks=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response");
+      if(!hooks.some(e=>e.hook_event==="SessionStart"))errs.push(`session ${t}: no SessionStart hook response in the stream (did the plugin load?)`);
+      if(t===2&&!hooks.some(e=>e.hook_event==="UserPromptSubmit"))errs.push("session 2: no UserPromptSubmit hook response in the stream");
+      for(const e of hooks){
+        total++;
+        // Claude Code reports every async Stop hook in a -p session as exit 1, "cancelled" (see nocli); only its output counts.
+        const asyncStop=e.hook_event==="Stop"&&e.exit_code===1&&e.outcome==="cancelled";
+        if(!asyncStop&&((e.exit_code!==undefined&&e.exit_code!==0)||(e.outcome&&e.outcome!=="success")))errs.push(`session ${t}: ${e.hook_event} exit ${e.exit_code} outcome ${e.outcome}`);
+        const out=String(e.stdout??e.output??"").trim();
+        if(out)errs.push(`session ${t}: the ${e.hook_event} hook printed ${JSON.stringify(out).slice(0,140)}`);
+        if(String(e.stderr??"").trim())errs.push(`session ${t}: the ${e.hook_event} hook wrote to stderr`);
+      }
+      for(const e of ev)if(!(e.type==="system"&&e.subtype==="hook_response")&&/jevmem:/.test(JSON.stringify(e)))errs.push(`session ${t}: a jevmem message in a ${e.type}/${e.subtype??"-"} event`);
+      const r=ev.find(e=>e.type==="result")||{};
+      console.log(`     session ${t}: ${hooks.length} hook response(s) (${hooks.map(e=>e.hook_event).join(", ")}); claude> ${String(r.result??"").replace(/\n/g," ").slice(0,100)}`);
+    }
+    if(errs.length){console.log("   ✗ FAIL: "+errs.join("; "));process.exit(1);}
+    console.log(`   ✓ sessions 1 and 2: ${total} hook responses, none with output (the async Stop's usual "cancelled" aside), no jevmem text anywhere in the stream`);
+JS
+  for t in 1 2; do
+    if ! diff -q "$plog.before$t" "$plog.after$t" >/dev/null; then echo "   ✗ FAIL session $t: files appeared in the project:"; diff "$plog.before$t" "$plog.after$t" | sed 's/^/     /'; fail=1; else echo "   ✓ session $t: no file created in the project"; fi
+  done
+  if [ -e "$home/.jevmem" ]; then echo "   ✗ FAIL: ~/.jevmem appeared in the session HOME: $(ls -A "$home/.jevmem" | tr '\n' ' ')"; fail=1; else echo "   ✓ no ~/.jevmem under the session HOME (no marker, no folder)"; fi
+  if ls "$E2E_CONFIG_DIR"/plugins/data/*/notified >/dev/null 2>&1; then echo "   ✗ FAIL: the plugin's data holds a list of sessions told"; fail=1; else echo "   ✓ no list of sessions told in the plugin's data"; fi
+  n=$(wc -l < "$plog" | tr -d ' ')
+  if [ "$n" -ne 0 ]; then echo "   ✗ FAIL: $n request(s) reached Jev"; fail=1; else echo "   ✓ 0 requests to Jev"; fi
+  if [ $fail -eq 0 ]; then
+    echo "---- session 3 (the control: the Code tab's entrypoint, a new HOME, the project turned off again): $p3"
+    ( cd "$scratch" && rm -f jevmem.config.json )
+    ( cd "$scratch" && SESSION_HOME="$home2" SESSION_PATH="$STRIP_PATH" claude_session CLAUDE_CODE_ENTRYPOINT=claude-desktop TYPESAFE_BASE_URL="$proxy_url" -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p3" > "$events.3" 2>&1 )
+    E2E_NOTICE="$NOTICE_NOCLI" "$NODE" - "$events.3" <<'JS' || fail=1
+      const fs=require("fs");const ev=fs.readFileSync(process.argv[2],"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
+      const starts=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="SessionStart");
+      const outs=starts.map(e=>{try{return JSON.parse(String(e.stdout??e.output??"").trim())}catch{return undefined}}).filter(Boolean);
+      const errs=[];
+      if(!starts.length)errs.push("no SessionStart hook response in the stream");
+      if(outs.length!==1||outs[0].systemMessage!==process.env.E2E_NOTICE)errs.push(`SessionStart messages ${JSON.stringify(outs.map(o=>o.systemMessage)).slice(0,200)}, expected the no-CLI text once`);
+      else if(!String(outs[0].hookSpecificOutput?.additionalContext??"").includes(process.env.E2E_NOTICE))errs.push("the Code tab's session has no context for Claude beside the message");
+      if(errs.length){console.log("   ✗ FAIL session 3: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ session 3 (control): the session-start message, as the hook printed it, with the context for Claude: "+outs[0].systemMessage);
+JS
+    if head -n 1 "$home2/.jevmem/setup-notice" 2>/dev/null | grep -q '^shown no-cli '; then echo "   ✓ the control's marker ~/.jevmem/setup-notice says shown no-cli"; else echo "   ✗ FAIL: no marker 'shown no-cli' in the control's HOME (first line: $(head -n 1 "$home2/.jevmem/setup-notice" 2>/dev/null))"; fail=1; fi
+  fi
+  { kill "$proxy_pid"; wait "$proxy_pid"; } 2>/dev/null
+  uninstall_plugin "$scratch"
+  rm -f "$events" "$events".* "$plog" "$plog".*
+  rm -rf "${home:?}" "${home2:?}"
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=remote"; else echo "FAIL run $run scenario=remote"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
+  return $fail
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
   [ "$scenario" = dormant ] && { PUBLISHED=0; run_dormant "$run"; return $?; }
@@ -1962,6 +2072,7 @@ run_once() {
   [ "$scenario" = alwayson ] && { run_alwayson "$run"; return $?; }
   [ "$scenario" = import ] && { run_import "$run"; return $?; }
   [ "$scenario" = setup ] && { PUBLISHED=0; run_setup "$run"; return $?; }
+  [ "$scenario" = remote ] && { PUBLISHED=0; run_remote "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
     linkguard|plugin) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;
@@ -2079,14 +2190,14 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard guardgit deadend supersede forget trust alwayson import setup)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard guardgit deadend supersede forget trust alwayson import setup remote)
 # Every failed scenario is recorded with its whole output in test-results/e2e-failures.log (JEVMEM_TEST_RESULTS names
 # another folder), as the unit tests' failures are in test-results/failures.jsonl.
 RESULTS="${JEVMEM_TEST_RESULTS:-$ROOT/test-results}"
 mkdir -p "$RESULTS"
 # Each scenario's output also goes through tee, so it runs in a subshell: the packed CLI the plugin scenarios share is
 # installed here, once, instead of by the first of them.
-case " ${scenarios[*]} " in *" plugin "*|*" dormant "*|*" published "*|*" nocli "*|*" nokey "*|*" setup "*) install_cli || exit 1;; esac
+case " ${scenarios[*]} " in *" plugin "*|*" dormant "*|*" published "*|*" nocli "*|*" nokey "*|*" setup "*|*" remote "*) install_cli || exit 1;; esac
 status=0
 for m in "${modes[@]}"; do
   for r in $(seq 1 "$RUNS"); do

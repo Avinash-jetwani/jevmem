@@ -279,10 +279,11 @@ describe("the API key", () => {
 
 // 0.7.2: the one-time setup message on the SessionStart hook (--start), once per machine (~/.jevmem/setup-notice). The
 // launcher reads no key: its two states are no CLI, and the CLI there but this project not turned on; a project that
-// is on gets the CLI, which says itself when no key is saved.
+// is on gets the CLI, which says itself when no key is saved. Since 0.7.3 the message shows only where Claude Code's
+// entrypoint says the marker persists (the describe below), so these tests run as the desktop app's Code tab.
 describe.skipIf(process.platform === "win32")("the one-time setup message (0.7.2)", () => {
   const start = (root: string, session = "s1") => JSON.stringify({ hook_event_name: "SessionStart", session_id: session, cwd: root, source: "startup", transcript_path: "/x.jsonl" });
-  const baseEnv = (root: string, home: string, PATH = "/usr/bin:/bin") => ({ PATH, HOME: home, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: tmp(), TMPDIR: tmp() });
+  const baseEnv = (root: string, home: string, PATH = "/usr/bin:/bin") => ({ PATH, HOME: home, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: tmp(), TMPDIR: tmp(), CLAUDE_CODE_ENTRYPOINT: "claude-desktop" });
   const run = (root: string, env: Record<string, string>, input = start(root), args = ["--start", "hook", "--plugin"]) => spawnSync("sh", [LAUNCHER, ...args], { cwd: root, env, input, encoding: "utf8" });
   const marker = (home: string) => {
     try {
@@ -372,6 +373,131 @@ describe.skipIf(process.platform === "win32")("the one-time setup message (0.7.2
       expect(marker(home)).toMatch(/^done /);
       const again = await runAsync("sh", [LAUNCHER, "--start", "hook", "--plugin"], { cwd: root, env: { ...baseEnv(root, home, PATH), CLAUDE_PLUGIN_DATA: data, JEVMEM_DAEMON: "0" }, input: start(root, "s2"), encoding: "utf8" });
       expect([again.status, again.stdout, again.stderr]).toEqual([0, "", ""]);
+    }
+  });
+});
+
+// 0.7.3: the message and its marker only where the marker persists and the advice fits: a terminal (`cli`), the desktop
+// app's Code tab (`claude-desktop`), the VS Code extension (`claude-vscode`) and the desktop app's SSH sessions
+// (`ssh-remote`). A cloud session (CLAUDE_CODE_REMOTE=true, or an entrypoint that starts with `remote`, as a claude.ai
+// chat's `remote_cowork` does), Cowork on the desktop (`local-agent`, CLAUDE_CODE_IS_COWORK) and every other entrypoint,
+// unset included (`sdk-cli` is every `claude -p`), get no message and no marker: nothing is written anywhere. 0.7.2 showed
+// the message at the start of every cloud chat, since each chat's workspace is new and its marker went with it. The
+// per-session "CLI not found" line in a project that is on stays silent in a cloud or Cowork session and as it was elsewhere.
+describe.skipIf(process.platform === "win32")("where the one-time message shows (0.7.3)", () => {
+  const start = (root: string, session = "s1") => JSON.stringify({ hook_event_name: "SessionStart", session_id: session, cwd: root, source: "startup", transcript_path: "/x.jsonl" });
+  const upsIn = (root: string, session: string) => JSON.stringify({ hook_event_name: "UserPromptSubmit", session_id: session, cwd: root, transcript_path: "/x.jsonl", prompt: "add a table" });
+  const env = (root: string, home: string, extra: Record<string, string>, PATH = "/usr/bin:/bin") => ({ PATH, HOME: home, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: tmp(), TMPDIR: tmp(), ...extra });
+  const run = (root: string, e: Record<string, string>, input: string, args = ["--start", "hook", "--plugin"]) => spawnSync("sh", [LAUNCHER, ...args], { cwd: root, env: e, input, encoding: "utf8" });
+  const marker = (home: string) => {
+    try {
+      return fs.readFileSync(path.join(home, ".jevmem", "setup-notice"), "utf8").trim();
+    } catch {
+      return null;
+    }
+  };
+  const MESSAGE = "jevmem: CLI not found, so memory is off in this project. See the jevmem README to set it up: https://github.com/Avinash-jetwani/jevmem#readme";
+  // A cloud session, Cowork on the desktop, Claude Tag, GitHub Actions: Claude Code's own values, and its two variables.
+  const REMOTE: Record<string, string>[] = [
+    { CLAUDE_CODE_REMOTE: "true" },
+    { CLAUDE_CODE_REMOTE: "true", CLAUDE_CODE_ENTRYPOINT: "cli" }, // the variable wins over the entrypoint
+    { CLAUDE_CODE_IS_COWORK: "1" },
+    { CLAUDE_CODE_ENTRYPOINT: "remote_cowork" },
+    { CLAUDE_CODE_ENTRYPOINT: "remote_desktop" },
+    { CLAUDE_CODE_ENTRYPOINT: "remote" },
+    { CLAUDE_CODE_ENTRYPOINT: "local-agent" },
+    { CLAUDE_CODE_ENTRYPOINT: "local_agent" },
+    { CLAUDE_CODE_ENTRYPOINT: "claude-in-teams" },
+    { CLAUDE_CODE_ENTRYPOINT: "claude_in_slack" },
+    { CLAUDE_CODE_ENTRYPOINT: "claude-code-github-action" },
+  ];
+  // Not placed: a `claude -p` run (sdk-cli), SDK apps, an MCP launch, a value not known, and no value at all.
+  const OTHER: Record<string, string>[] = [{ CLAUDE_CODE_ENTRYPOINT: "sdk-cli" }, { CLAUDE_CODE_ENTRYPOINT: "sdk-ts" }, { CLAUDE_CODE_ENTRYPOINT: "mcp" }, { CLAUDE_CODE_ENTRYPOINT: "something-new" }, {}];
+
+  it("a cloud or Cowork session, and any entrypoint not placed: no message, no marker, no ~/.jevmem, nothing in the project or the plugin data", () => {
+    for (const extra of [...REMOTE, ...OTHER]) {
+      const root = tmp();
+      const home = tmp();
+      const before = files(root);
+      const e = env(root, home, extra);
+      for (const input of [start(root, "s1"), start(root, "s2")]) {
+        const r = run(root, e, input);
+        expect([r.status, r.stdout, r.stderr], JSON.stringify(extra)).toEqual([0, "", ""]);
+      }
+      expect(fs.existsSync(path.join(home, ".jevmem")), JSON.stringify(extra)).toBe(false);
+      expect(files(home), JSON.stringify(extra)).toEqual([]);
+      expect(files(root)).toEqual(before);
+      expect(files(e.CLAUDE_PLUGIN_DATA)).toEqual([]);
+    }
+  });
+
+  it("a terminal gets the message alone; the Code tab, the VS Code extension and the desktop app's SSH sessions get it with the context for Claude; once per computer, whichever showed it", () => {
+    for (const [entry, relay] of [
+      ["cli", false],
+      ["claude-desktop", true],
+      ["claude-vscode", true],
+      ["ssh-remote", true],
+    ] as const) {
+      const root = tmp();
+      const home = tmp();
+      const e = env(root, home, { CLAUDE_CODE_ENTRYPOINT: entry });
+      const first = run(root, e, start(root));
+      expect([first.status, first.stderr], entry).toEqual([0, ""]);
+      const out = JSON.parse(first.stdout);
+      expect(out.systemMessage, entry).toBe(SETUP_NOTICE_TEXTS["no-cli"]);
+      if (relay) expect(out.hookSpecificOutput, entry).toEqual({ hookEventName: "SessionStart", additionalContext: setupNoticeRelay(SETUP_NOTICE_TEXTS["no-cli"]) });
+      else expect(out.hookSpecificOutput, entry).toBeUndefined();
+      expect(marker(home), entry).toMatch(/^shown no-cli 20\d\d-/);
+      // The same computer, a new session, and the other local entrypoints: nothing more.
+      for (const next of ["cli", "claude-desktop", "claude-vscode", "ssh-remote"]) {
+        const again = run(root, env(root, home, { CLAUDE_CODE_ENTRYPOINT: next }), start(root, "s2"));
+        expect([again.status, again.stdout, again.stderr], `${entry} then ${next}`).toEqual([0, "", ""]);
+      }
+    }
+  });
+
+  it("the CLI there and the project on: in a cloud session the CLI runs as today and no marker is written; in the Code tab the marker says done", async () => {
+    const bin = npmBin();
+    const PATH = `${bin}:/usr/bin:/bin`;
+    const root = enabledProject();
+    const home = tmp();
+    const remote = await runAsync("sh", [LAUNCHER, "--start", "hook", "--plugin"], { cwd: root, env: { ...env(root, home, { CLAUDE_CODE_REMOTE: "true", CLAUDE_CODE_ENTRYPOINT: "remote_cowork" }, PATH), JEVMEM_DAEMON: "0" }, input: start(root), encoding: "utf8" });
+    expect([remote.status, remote.stdout, remote.stderr]).toEqual([0, "", ""]); // the CLI ran: no always-on lines, no message
+    expect(marker(home)).toBeNull();
+    expect(files(home)).toEqual([]);
+    const home2 = tmp();
+    const local = await runAsync("sh", [LAUNCHER, "--start", "hook", "--plugin"], { cwd: root, env: { ...env(root, home2, { CLAUDE_CODE_ENTRYPOINT: "claude-desktop" }, PATH), JEVMEM_DAEMON: "0" }, input: start(root), encoding: "utf8" });
+    expect([local.status, local.stdout, local.stderr]).toEqual([0, "", ""]);
+    expect(marker(home2)).toMatch(/^done /);
+  });
+
+  it("the per-session CLI-not-found line in a project that is on: silent in a cloud or Cowork session, once per session elsewhere; Stop silent throughout", () => {
+    const silent: Record<string, string>[] = [{ CLAUDE_CODE_REMOTE: "true" }, { CLAUDE_CODE_ENTRYPOINT: "remote_cowork" }, { CLAUDE_CODE_ENTRYPOINT: "local-agent" }, { CLAUDE_CODE_IS_COWORK: "1" }];
+    for (const extra of silent) {
+      const root = enabledProject();
+      const home = tmp();
+      const e = env(root, home, extra);
+      const before = files(root);
+      for (const [args, input] of [
+        [["hook", "--plugin"], upsIn(root, "s1")],
+        [["--detach", "hook", "--plugin"], stop(root)],
+        [["hook", "--plugin"], upsIn(root, "s2")],
+      ] as const) {
+        const r = run(root, e, input, [...args]);
+        expect([r.status, r.stdout, r.stderr], JSON.stringify(extra)).toEqual([0, "", ""]);
+      }
+      expect(files(e.CLAUDE_PLUGIN_DATA), JSON.stringify(extra)).toEqual([]); // no list of sessions told
+      expect(files(home)).toEqual([]);
+      expect(files(root)).toEqual(before);
+    }
+    const told: Record<string, string>[] = [{ CLAUDE_CODE_ENTRYPOINT: "sdk-cli" }, { CLAUDE_CODE_ENTRYPOINT: "cli" }, { CLAUDE_CODE_ENTRYPOINT: "claude-desktop" }, {}];
+    for (const extra of told) {
+      const root = enabledProject();
+      const e = env(root, tmp(), extra);
+      const a = run(root, e, upsIn(root, "s1"), ["hook", "--plugin"]);
+      expect([a.status, JSON.parse(a.stdout), a.stderr], JSON.stringify(extra)).toEqual([0, { systemMessage: MESSAGE }, ""]);
+      const b = run(root, e, upsIn(root, "s1"), ["hook", "--plugin"]);
+      expect([b.status, b.stdout, b.stderr], JSON.stringify(extra)).toEqual([0, "", ""]);
     }
   });
 });
