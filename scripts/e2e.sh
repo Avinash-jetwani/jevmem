@@ -2000,8 +2000,9 @@ run_remote() {
   ( cd "$scratch" && SESSION_HOME="$home" SESSION_PATH="$STRIP_PATH" claude_session "${remote_env[@]}" -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p2" > "$events.2" 2>&1 )
   sleep 3
   ( cd "$scratch" && eval "$listing" ) > "$plog.after2"
-  "$NODE" - "$events" <<'JS' || fail=1
+  E2E_NOTICE_NOCLI="$NOTICE_NOCLI" E2E_NOTICE_NOTON="$NOTICE_NOTON" "$NODE" - "$events" <<'JS' || fail=1
     const fs=require("fs");const base=process.argv[2];const errs=[];let total=0;
+    const TEXTS=[process.env.E2E_NOTICE_NOCLI,process.env.E2E_NOTICE_NOTON,"CLI not found, so memory is off","Node.js 20 or newer not found"];
     for(const t of [1,2]){
       const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
       const hooks=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response");
@@ -2016,7 +2017,8 @@ run_remote() {
         if(out)errs.push(`session ${t}: the ${e.hook_event} hook printed ${JSON.stringify(out).slice(0,140)}`);
         if(String(e.stderr??"").trim())errs.push(`session ${t}: the ${e.hook_event} hook wrote to stderr`);
       }
-      for(const e of ev)if(!(e.type==="system"&&e.subtype==="hook_response")&&/jevmem:/.test(JSON.stringify(e)))errs.push(`session ${t}: a jevmem message in a ${e.type}/${e.subtype??"-"} event`);
+      // The message texts must be nowhere else in the stream either (the init event names the plugin, which is fine).
+      for(const e of ev)if(!(e.type==="system"&&e.subtype==="hook_response"))for(const text of TEXTS)if(JSON.stringify(e).includes(text))errs.push(`session ${t}: "${text.slice(0,40)}…" in a ${e.type}/${e.subtype??"-"} event`);
       const r=ev.find(e=>e.type==="result")||{};
       console.log(`     session ${t}: ${hooks.length} hook response(s) (${hooks.map(e=>e.hook_event).join(", ")}); claude> ${String(r.result??"").replace(/\n/g," ").slice(0,100)}`);
     }
