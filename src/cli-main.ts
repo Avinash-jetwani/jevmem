@@ -7,7 +7,7 @@ import { formatFailures, isNoKey, recentFailures } from "./failures.js";
 import { formatGuardLog, formatGuardStats, guardLogStats, readGuardLog } from "./guardlog.js";
 import { checkCli, initHookClis, pluginLauncherCli } from "./hookcli.js";
 import { isVerified, readProvenance, verifiedVia } from "./provenance.js";
-import { trustLines } from "./trust.js";
+import { gateForAlways, trustLines } from "./trust.js";
 import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./config.js";
 import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
@@ -30,7 +30,7 @@ import { mergeTurn } from "./transcript.js";
 import { appendLog, createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
 import { serveMcp } from "./mcp.js";
 import { enqueueTurn, queueStats } from "./queue.js";
-import { rankGuarded } from "./recall.js";
+import { alwaysOnServed, rankGuarded } from "./recall.js";
 import { scrubSecrets } from "./scrub.js";
 import { MemoryStore } from "./store.js";
 import { DEFAULT_CONFIG, NEW_KINDS, type Kind } from "./types.js";
@@ -780,13 +780,28 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       }
       if (!ids.length) return fail("usage: jevmem always [--off] <memory id> [<memory id>…] | jevmem always --suggest [--apply]");
       let code = 0;
+      const makeJev = () => {
+        requireKey();
+        return createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
+      };
       for (const id of ids) {
-        const m = store.setAlways(id, !off);
-        if (!m) {
+        const live = store.active().find((x) => x.id === id);
+        if (!live) {
           io.err(`jevmem always: no live line with id ${id}\n`);
           code = 1;
           continue;
         }
+        // 0.7.2: a line is marked only when the poisoning gate lets it through (verified, a clean cached verdict, or one
+        // request with the line now, as trust makes): an always-on line reaches every session from the file alone.
+        if (!off) {
+          const g = await gateForAlways(root, cfg, live, makeJev, "jevmem always");
+          if (!g.ok) {
+            io.err(`jevmem always: not marked ${id}: ${g.reason}\n`);
+            code = 1;
+            continue;
+          }
+        }
+        const m = store.setAlways(id, !off)!;
         appendLog(root, { ts: new Date().toISOString(), label: "always", event: "always", ok: true, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, memoryId: id, detail: off ? "always-on mark removed" : "marked always-on" });
         io.out(`${off ? "no longer always-on" : "always-on"} ${m.id}: [${m.kind}] ${m.text}\n`);
       }
@@ -806,10 +821,27 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       // because JEVMEM.md is committed. The line is unverified, so the poisoning gate checks it before recall serves it.
       const m = store.add({ kind, text: clampLine(scrubSecrets(text), cfg.writer.maxChars), conf: 1, ...(always ? { always: true } : {}) });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}${always ? " (always-on)" : ""}\n`);
-      if (!trust) return 0;
+      if (!trust && !always) return 0;
       requireKey();
       const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
-      return trustLines(root, cfg, store, [m.id], io, { jev, confirm: confirmOnTerminal });
+      if (trust) {
+        const code = await trustLines(root, cfg, store, [m.id], io, { jev, confirm: confirmOnTerminal });
+        // Not trusted: the line stays, unverified, and the always-on mark goes with the verification it needed.
+        if (code !== 0 && always) {
+          store.setAlways(m.id, false);
+          io.err(`jevmem add: ${m.id} is not marked always-on either\n`);
+        }
+        return code;
+      }
+      // 0.7.2: --always without --trust asks the poisoning gate once (one request with the line, as trust makes); a
+      // line it withholds is added without the mark.
+      const g = await gateForAlways(root, cfg, m, () => jev, "jevmem add --always");
+      if (!g.ok) {
+        store.setAlways(m.id, false);
+        io.err(`jevmem add: ${m.id} is added but not marked always-on: ${g.reason}\n`);
+        return 1;
+      }
+      return 0;
     }
     case "trust": {
       const ids = args.filter((a) => !a.startsWith("--"));
@@ -948,6 +980,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const hooks = [...installs.map(describeInstall), projectHasInitHooks(root) ? `\`jevmem init\` hooks in .claude/settings.local.json${projectHasInitGuardHook(root) ? " (with the PreToolUse guard)" : " (no PreToolUse guard: `jevmem init` with a jevmem that has the guard adds it)"}` : null].filter(Boolean);
       io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no jevmem plugin found (checked the plugins synced from claude.ai and the user and project settings), and no init hooks in this project: run `jevmem init --tool claude`, or add the plugin"}\n`);
       if (enabled) io.out(`guard    ${guardStatus(root)}\n`);
+      if (enabled) io.out(`always   ${alwaysOnStatus(root)}\n`);
       for (const line of hookCliLines(root, plugin)) io.out(line + "\n");
       for (const line of formatFailures(recentFailures(readLog(root)), "failures ", "         ")) io.out(line + "\n");
       return 0;
@@ -1147,6 +1180,16 @@ function enableNextStep(root: string): string {
   if (!resolveJevKey(root)) return "Next: run jevmem key in a terminal and paste your TypeSafe API key (get one at https://console.typesafe.ai/keys).";
   if (!hasActivePlugin(pluginInstalls(root)) && !projectHasInitHooks(root)) return "Next: run jevmem init --tool claude to register the Claude Code hooks (no jevmem plugin or init hooks found).";
   return "Memory starts with your next prompt in Claude Code.";
+}
+
+/** `jevmem doctor`'s always-on line (0.7.2): the mode, the lines served at session start, the ones awaiting a gate verdict or withheld. */
+function alwaysOnStatus(root: string): string {
+  const cfg = loadConfig(root);
+  const mode = cfg.alwaysOn?.mode ?? DEFAULT_CONFIG.alwaysOn.mode;
+  if (mode === "off") return "mode off (alwaysOn.mode): nothing at session start";
+  const a = alwaysOnServed(root, new MemoryStore(root, cfg.memoryFile).list(), mode, cfg.alwaysOn?.maxLines ?? DEFAULT_CONFIG.alwaysOn.maxLines, cfg.thresholds.injectionMax);
+  const served = a.lines.length + a.more;
+  return `mode ${mode}: ${served} line(s) at the start of every session${a.more ? ` (${a.lines.length} shown, alwaysOn.maxLines)` : ""}${a.pending.length ? `, ${a.pending.length} not yet (no gate verdict: the next prompt asks, or \`jevmem audit --security\` now)` : ""}${a.withheld.length ? `, ${a.withheld.length} withheld by the poisoning gate` : ""}`;
 }
 
 /** `jevmem doctor`'s guard line: the mode and how many [constraint] lines are enforced. */

@@ -12,7 +12,7 @@ import { hiddenTextReason, planGate, settleGate, gateLines } from "./guard.js";
 import type { JevCaller } from "./jev.js";
 import { isVerified, readProvenance, recordProvenance } from "./provenance.js";
 import type { MemoryStore } from "./store.js";
-import type { JevmemConfig } from "./types.js";
+import type { JevmemConfig, Memory } from "./types.js";
 
 export interface TrustDeps {
   jev: JevCaller;
@@ -21,6 +21,28 @@ export interface TrustDeps {
 }
 
 export const TRUST_PROMPT = "Trust this line? [y/N] ";
+
+/**
+ * The poisoning gate for a line being marked always-on (0.7.2): a verified line or one with a clean cached verdict
+ * passes without a request; otherwise one request with the line, as `trust` makes, and the verdict is cached like
+ * recall's. A line the gate withholds is not marked (the caller says why). Needs a key only when a request is made.
+ */
+export async function gateForAlways(root: string, cfg: JevmemConfig, m: Memory, makeJev: () => JevCaller, source: string): Promise<{ ok: true; asked: boolean } | { ok: false; reason: string }> {
+  const hidden = hiddenTextReason(m.text);
+  if (hidden) return { ok: false, reason: hidden };
+  if (isVerified(readProvenance(root), m)) return { ok: true, asked: false };
+  const plan = planGate(root, [m], cfg.thresholds.injectionMax);
+  if (plan.withheld.length) return { ok: false, reason: plan.withheld[0]!.reason };
+  if (!plan.check.length) return { ok: true, asked: false };
+  let withheld;
+  try {
+    const { scores, model } = await gateLines(makeJev(), [m], { timeoutMs: cfg.jev.timeoutMs, label: "gate" });
+    withheld = settleGate(root, [m], scores, cfg.thresholds.injectionMax, model, source).withheld;
+  } catch (err) {
+    return { ok: false, reason: `the poisoning gate could not check it (${err instanceof Error ? err.message : String(err)})` };
+  }
+  return withheld.length ? { ok: false, reason: withheld[0]!.reason } : { ok: true, asked: true };
+}
 
 /** Trust the lines with these ids, one at a time. Returns the exit code: 1 when any id was refused or not found. */
 export async function trustLines(root: string, cfg: JevmemConfig, store: MemoryStore, ids: string[], io: CliIo, deps: TrustDeps): Promise<number> {

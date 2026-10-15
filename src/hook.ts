@@ -245,7 +245,12 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       // Unverified lines (not written here by jevmem) go through the poisoning gate in the same Jev call. When the call
       // fails or runs past its budget, the prompt gets the lines sharing the most words with it instead (src/recall.ts).
       const t0 = performance.now();
+      // 0.7.2: the always-on lines still awaiting a gate verdict are gated in this call ahead of the others, so that a
+      // rule from a pull request gets its verdict on the first prompt after it lands (the fallback below then serves it).
+      const alwaysMode = cfg.alwaysOn?.mode ?? DEFAULT_CONFIG.alwaysOn.mode;
+      const pendingAlways = new Set(alwaysMode === "off" ? [] : alwaysOnServed(store.root, all, alwaysMode, cfg.alwaysOn?.maxLines ?? DEFAULT_CONFIG.alwaysOn.maxLines, cfg.thresholds.injectionMax).pending.map((m) => m.id));
       const { ranked, withheld, gated, deferred, path: served, error } = await recallGuarded(jev, store.root, prompt, memories, {
+        gateFirst: pendingAlways,
         topK: cfg.thresholds.recallTopK,
         min: cfg.thresholds.recallChoiceMin ?? DEFAULT_CONFIG.thresholds.recallChoiceMin,
         relevanceMin: cfg.thresholds.recallRelevanceMin,

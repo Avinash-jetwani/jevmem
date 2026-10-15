@@ -179,10 +179,16 @@ export const GATE_MAX_PER_CALL = 60;
  * Rank with the poisoning gate. Lines already known to be withheld are not sent; unverified lines with no cached
  * verdict get a gate noul in the same call and are dropped from the result when it reads as instructions.
  */
-export async function rankGuarded(jev: JevCaller, root: string, query: string, memories: Memory[], opts: RankOptions & { injectionMax: number; source: string }): Promise<GuardedRank> {
+export async function rankGuarded(jev: JevCaller, root: string, query: string, memories: Memory[], opts: RankOptions & { injectionMax: number; source: string; gateFirst?: ReadonlySet<string> }): Promise<GuardedRank> {
   const plan = planGate(root, memories, opts.injectionMax);
-  // The unchecked lines sharing the most words with the query are gated first; the others wait for a later call.
-  const check = plan.check.length > GATE_MAX_PER_CALL ? prefilterByOverlap(query, plan.check, GATE_MAX_PER_CALL) : plan.check;
+  // The unchecked lines sharing the most words with the query are gated first; the others wait for a later call. Lines
+  // the caller names (0.7.2: the always-on lines awaiting a verdict, which every session would carry) go before them.
+  let check = plan.check;
+  if (plan.check.length > GATE_MAX_PER_CALL) {
+    const first = plan.check.filter((m) => opts.gateFirst?.has(m.id)).slice(0, GATE_MAX_PER_CALL);
+    const rest = plan.check.filter((m) => !opts.gateFirst?.has(m.id));
+    check = [...first, ...prefilterByOverlap(query, rest, GATE_MAX_PER_CALL - first.length)];
+  }
   const deferred = plan.check.length - check.length;
   const allowed = [...plan.serve, ...check];
   const order = new Map(memories.map((m, i) => [m.id, i]));
@@ -229,9 +235,9 @@ export function wordMatch(prompt: string, lines: Memory[], opts: { topK: number;
  * cap, from the lines the gate serves without asking: a line the gate withholds, or has not checked yet, is never
  * served that way.
  */
-export async function recallGuarded(jev: JevCaller, root: string, prompt: string, memories: Memory[], opts: { topK: number; min: number; relevanceMin: number; injectionMax: number; timeoutMs?: number; maxIds?: number; replaced?: ReadonlyMap<string, readonly string[]> }): Promise<GuardedRank & { path: RecallPath; error?: string }> {
+export async function recallGuarded(jev: JevCaller, root: string, prompt: string, memories: Memory[], opts: { topK: number; min: number; relevanceMin: number; injectionMax: number; timeoutMs?: number; maxIds?: number; replaced?: ReadonlyMap<string, readonly string[]>; gateFirst?: ReadonlySet<string> }): Promise<GuardedRank & { path: RecallPath; error?: string }> {
   try {
-    const r = await rankGuarded(jev, root, prompt, memories, { maxIds: opts.maxIds, timeoutMs: opts.timeoutMs, label: "recall", injectionMax: opts.injectionMax, source: "recall", forPrompt: true, replaced: opts.replaced });
+    const r = await rankGuarded(jev, root, prompt, memories, { maxIds: opts.maxIds, timeoutMs: opts.timeoutMs, label: "recall", injectionMax: opts.injectionMax, source: "recall", forPrompt: true, replaced: opts.replaced, gateFirst: opts.gateFirst });
     return { ...r, ranked: selectForPrompt(r.ranked, opts), path: "jev" };
   } catch (err) {
     const plan = planGate(root, memories, opts.injectionMax);
