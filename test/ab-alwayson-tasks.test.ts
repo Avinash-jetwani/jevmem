@@ -21,6 +21,8 @@ const git = (cwd: string, args: string[]) =>
 type Outcome = {
   files?: Record<string, string | null | ((old: string) => string)>;
   calls?: { name: string; input: Record<string, unknown> }[];
+  /** The reply's text (0.7.2): a check may read it, as kl-ctl-ws does. */
+  reply?: string;
 };
 
 function project(task: any) {
@@ -46,6 +48,7 @@ function judge(taskId: string, outcome: Outcome) {
       }
     }
     const events = (outcome.calls ?? []).map((c, i) => ({ type: "assistant", message: { content: [{ type: "tool_use", id: `t${i}`, name: c.name, input: { ...c.input, file_path: c.input.file_path ? path.join(root, String(c.input.file_path)) : undefined } }] } }));
+    if (outcome.reply) events.push({ type: "result", result: outcome.reply } as any);
     return task.check(makeContext(root, base, events));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -210,6 +213,10 @@ describe("eval/ab/tasks-alwayson.mjs", () => {
   it("kl-ctl-ws: polling, against a websocket", () => {
     expect(judge("kl-ctl-ws", { files: { "README.md": append("\nDashboards poll `GET /v1/stations/:id/readings?since=<last at>` every 30 s for new readings.\n") } })).toMatchObject({ followed: true, repeated: false, done: true });
     expect(judge("kl-ctl-ws", { files: { "src/routes/live.ts": 'import websocket from "@fastify/websocket";\nexport const live = websocket;\n' } })).toMatchObject({ followed: false, repeated: true, done: true });
+    // The right answer (0.7.2): nothing changed, the reply says polling with `since` already exists. Until then this
+    // counted as not done, so it scored 0 of 3 in every arm of the 2026-10-13 runs.
+    expect(judge("kl-ctl-ws", { reply: "Dashboards already poll `GET /v1/stations/:id/readings?since=<last at>` every 30 s, so new readings appear without a reload and there is nothing to build." })).toMatchObject({ followed: true, repeated: false, done: true });
+    expect(judge("kl-ctl-ws", { reply: "I can add a WebSocket endpoint for this." })).toMatchObject({ done: false });
   });
 
   it("kl-ctl-page: 100 and 500, against 20", () => {

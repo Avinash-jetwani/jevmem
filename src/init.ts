@@ -16,6 +16,8 @@ export interface InitOptions {
 export interface InitResult {
   created: string[];
   skipped: string[];
+  /** Files that existed and gained lines (0.7.2: `.gitignore (+ …)` was listed under created until 0.7.1). */
+  updated: string[];
   /** Warnings to print (for example: the jevmem plugin is also enabled here). */
   warnings: string[];
   /** The UserPromptSubmit command. */
@@ -83,15 +85,16 @@ export function resolveGuardCommand(root: string, cliPath?: string, nodePath: st
  * registered, `.claude/settings.local.json` (it holds absolute paths to this machine's node and CLI). A missing
  * `.gitignore` is created only when the folder is a git repository.
  */
-export function ensureGitignore(root: string, entries: string[], created: string[]): void {
+export function ensureGitignore(root: string, entries: string[], created: string[], updated: string[] = created): void {
   const gi = path.join(root, ".gitignore");
   if (!fs.existsSync(gi) && !fs.existsSync(path.join(root, ".git"))) return; // not a git repo; `.jevmem/.gitignore` covers .jevmem/
   const cur = fs.existsSync(gi) ? fs.readFileSync(gi, "utf8") : "";
   const have = new Set(cur.split(/\r?\n/).map((l) => l.trim().replace(/^\//, "").replace(/\/$/, "")));
   const missing = entries.filter((e) => !have.has(e.replace(/\/$/, "")));
   if (missing.length === 0) return;
+  const existed = fs.existsSync(gi);
   fs.writeFileSync(gi, cur + (cur.endsWith("\n") || cur === "" ? "" : "\n") + missing.join("\n") + "\n");
-  created.push(`.gitignore (+ ${missing.join(", ")})`);
+  (existed ? updated : created).push(`.gitignore (+ ${missing.join(", ")})`);
 }
 
 export const HOOK_SETTINGS_FILE = "settings.local.json";
@@ -230,6 +233,7 @@ export function init(opts: InitOptions): InitResult {
   const root = opts.root;
   const created: string[] = [];
   const skipped: string[] = [];
+  const updated: string[] = [];
   const warnings: string[] = [];
   const store = new MemoryStore(root);
   if (!store.exists()) {
@@ -245,14 +249,14 @@ export function init(opts: InitOptions): InitResult {
   const command = opts.command ?? resolveHookCommand(root, opts.cliPath);
   const stopCommand = opts.command ?? resolveStopCommand(root, opts.cliPath);
   const guardCommand = opts.command ?? resolveGuardCommand(root, opts.cliPath);
-  ensureGitignore(root, opts.hooks !== false ? [".jevmem/", `.claude/${HOOK_SETTINGS_FILE}`] : [".jevmem/"], created);
+  ensureGitignore(root, opts.hooks !== false ? [".jevmem/", `.claude/${HOOK_SETTINGS_FILE}`] : [".jevmem/"], created, updated);
   if (opts.hooks !== false) {
     const r = registerClaudeHooks(root, command, stopCommand, guardCommand);
     (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop (async), UserPromptSubmit, PreToolUse and SessionStart hooks${r === "updated" ? ", updated" : ""})`);
     if (projectEnablesPlugin(root))
       warnings.push("The jevmem Claude Code plugin is also enabled in this project. Its hooks stand down while these init hooks exist, so nothing runs twice. To use only the plugin, run `jevmem init --remove-hooks`.");
   }
-  return { created, skipped, warnings, command, stopCommand, guardCommand, guardMatcher: GUARD_MATCHER };
+  return { created, skipped, updated, warnings, command, stopCommand, guardCommand, guardMatcher: GUARD_MATCHER };
 }
 
 const DISABLED_CONFIG = path.join(".jevmem", "jevmem.config.json.disabled");

@@ -11,7 +11,7 @@ import { gatePendingRules } from "./guardrail.js";
 import { recordDecision } from "./labels.js";
 import { recordProvenance, savedBefore } from "./provenance.js";
 import { noteFirstLine } from "./notice.js";
-import { alwaysOnLines, formatInjection, formatSessionStart, recallGuarded, replacedTexts, type RecallPath } from "./recall.js";
+import { alwaysOnServed, formatInjection, formatSessionStart, recallGuarded, replacedTexts, type RecallPath } from "./recall.js";
 import { DEFAULT_CONFIG, type Memory } from "./types.js";
 import { drainQueue, enqueueTurn, readQueue, type QueuedTurn } from "./queue.js";
 import { isLive, MemoryStore } from "./store.js";
@@ -122,7 +122,7 @@ export function firstPromptLines(store: MemoryStore, cfg: ReturnType<typeof load
   const mode = cfg.alwaysOn?.mode ?? DEFAULT_CONFIG.alwaysOn.mode;
   if (mode === "off" || !sessionId || wasServed(store.root, sessionId)) return [];
   rememberServed(store.root, sessionId);
-  return alwaysOnLines(store.list(), mode, cfg.alwaysOn?.maxLines ?? DEFAULT_CONFIG.alwaysOn.maxLines).lines;
+  return alwaysOnServed(store.root, store.list(), mode, cfg.alwaysOn?.maxLines ?? DEFAULT_CONFIG.alwaysOn.maxLines, cfg.thresholds?.injectionMax ?? DEFAULT_CONFIG.thresholds.injectionMax).lines;
 }
 
 /**
@@ -134,10 +134,13 @@ export function sessionStartOutcome(store: MemoryStore, cfg: ReturnType<typeof l
   if (sessionId) rememberServed(store.root, sessionId);
   const mode = cfg.alwaysOn?.mode ?? DEFAULT_CONFIG.alwaysOn.mode;
   if (mode === "off") return { event, action: "noop", detail: "always-on mode off: nothing at session start" };
-  const { lines, more } = alwaysOnLines(store.list(), mode, cfg.alwaysOn?.maxLines ?? DEFAULT_CONFIG.alwaysOn.maxLines);
-  if (!lines.length) return { event, action: "noop", detail: `no ${mode === "always" ? "always-on" : "constraint"} lines` };
+  // 0.7.2: through the poisoning gate's plan, from the local files alone: verified lines and lines whose cached verdict
+  // passed; a line with no verdict yet or a withheld one is not served.
+  const { lines, more, pending, withheld } = alwaysOnServed(store.root, store.list(), mode, cfg.alwaysOn?.maxLines ?? DEFAULT_CONFIG.alwaysOn.maxLines, cfg.thresholds?.injectionMax ?? DEFAULT_CONFIG.thresholds.injectionMax);
+  const gate = `${pending.length ? `, ${pending.length} awaiting a gate verdict` : ""}${withheld.length ? `, ${withheld.length} withheld by the gate` : ""}`;
+  if (!lines.length) return { event, action: "noop", detail: `no ${mode === "always" ? "always-on" : "constraint"} lines to serve${gate}` };
   const additionalContext = formatSessionStart(lines, more);
-  return { event, action: "injected", detail: `${lines.length} always-on line(s)${more ? ` (${more} more not shown)` : ""}: ${lines.map((m) => m.id).join(",")}`, stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext } }) };
+  return { event, action: "injected", detail: `${lines.length} always-on line(s)${more ? ` (${more} more not shown)` : ""}: ${lines.map((m) => m.id).join(",")}${gate}`, stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext } }) };
 }
 
 /** Append the raw payload to `.jevmem/hook-debug.log` (opt-in with JEVMEM_DEBUG=1). Keeps the last 200 entries. */

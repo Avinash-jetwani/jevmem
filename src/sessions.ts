@@ -251,8 +251,16 @@ export async function importSessions(jev: JevCaller, store: MemoryStore, cfg: Re
     }
   }
   if (!opts.apply) return rows;
+  applySessionImport(store, rows);
+  return rows;
+}
+
+/** Write the accepted rows of a dry run (0.7.2: `jevmem setup` shows the lines first and asks again). Returns how many were written. */
+export function applySessionImport(store: MemoryStore, rows: SessionImportRow[]): number {
+  let n = 0;
   for (const r of rows) {
     if (r.outcome !== "add") continue;
+    n++;
     const saved = store.add({ kind: r.kind!, text: r.text, conf: r.decision?.confidence ?? 1, ...(r.always ? { always: true } : {}) });
     r.savedId = saved.id;
     recordProvenance(store.root, saved, "import");
@@ -263,7 +271,7 @@ export async function importSessions(jev: JevCaller, store: MemoryStore, cfg: Re
       recordDecision(store.root, { hash, memoryId: saved.id, message: mergeTurn(scrubSecrets(r.turn.user), scrubSecrets(r.turn.assistant)), decision: r.decision, via: "import-sessions" });
     }
   }
-  return rows;
+  return n;
 }
 
 const when = (iso: string) => iso.replace("T", " ").slice(0, 16);

@@ -258,8 +258,8 @@ NODE="$(command -v node)"
 STRIP_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 # 0.7.2: the plugin launcher's one-time setup message (SessionStart, once per machine, ~/.jevmem/setup-notice), word for
 # word as plugin/hooks/jevmem-hook.sh prints it, one text per state.
-NOTICE_NOCLI="jevmem: the plugin is added, but the jevmem command it runs is not installed, so it does nothing yet. To finish: npm install -g jevmem, then jevmem setup in a project folder (it asks for your TypeSafe key and turns jevmem on there). Shown once."
-NOTICE_NOKEY="jevmem: the jevmem command is installed, but no TypeSafe API key is saved, so it does nothing yet. To finish: jevmem setup in a project folder (it asks for the key without showing it, and turns jevmem on there; keys at https://console.typesafe.ai/keys). Shown once."
+NOTICE_NOCLI="jevmem: the plugin is added, but the jevmem command it runs is not on this computer yet, so it does nothing. To finish: get the jevmem command (one line, in the README: https://github.com/Avinash-jetwani/jevmem#readme), then run jevmem setup in a project folder (it asks for your TypeSafe key and turns jevmem on there). Shown once."
+NOTICE_NOKEY="jevmem: the jevmem command is in place, but no TypeSafe API key is saved, so it does nothing yet. To finish: jevmem setup in a project folder (it asks for the key without showing it, and turns jevmem on there; keys at https://console.typesafe.ai/keys). Shown once."
 NOTICE_NOTON="jevmem: the jevmem command and your TypeSafe key are in place, but jevmem is not turned on in this project, so nothing is saved or sent from here. To turn it on here: jevmem setup in this folder. Shown once."
 # What runs the sessions, as the log's first line: a results file made from this log then says it by itself.
 CLAUDE_VERSION="$(claude_cli --version 2>/dev/null | head -1 | sed 's/ (Claude Code)$//')"

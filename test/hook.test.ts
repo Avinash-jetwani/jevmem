@@ -187,7 +187,8 @@ describe("init", () => {
     const root = tmp();
     fs.writeFileSync(path.join(root, ".gitignore"), "node_modules");
     const r = init({ root, command: "node /x/cli.js hook" });
-    expect(r.created).toContain(".gitignore (+ .jevmem/, .claude/settings.local.json)");
+    expect(r.updated).toContain(".gitignore (+ .jevmem/, .claude/settings.local.json)"); // the file existed: updated, not created (0.7.2)
+    expect(r.created).not.toContain(".gitignore (+ .jevmem/, .claude/settings.local.json)");
     expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toBe("node_modules\n.jevmem/\n.claude/settings.local.json\n");
     init({ root, command: "node /x/cli.js hook" });
     expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toBe("node_modules\n.jevmem/\n.claude/settings.local.json\n");

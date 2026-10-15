@@ -258,7 +258,9 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     recallRelevanceMin: 0.8,
   },
   jev: {
-    model: "jev-latest",
+    // Pinned since 0.7.2: jev-latest is an alias TypeSafe moves to each new release (jev-1.14.0 from about 2026-10-21).
+    // 1.14.0 was measured worse on the attempts held-out sets and the benchmark's contradictions (results/*-2026-10-15-jev114*).
+    model: "jev-1.13.0",
     timeoutMs: 2000,
     recallTimeoutMs: 1000,
     maxIdsPerCall: 200,

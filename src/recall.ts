@@ -278,6 +278,21 @@ export function alwaysOnLines(memories: readonly Memory[], mode: AlwaysOnMode, m
   return { lines: picked.slice(0, Math.max(0, maxLines)), more: Math.max(0, picked.length - maxLines) };
 }
 
+/**
+ * The always-on lines that may be served (0.7.2): the picked lines through the poisoning gate's plan, from the local
+ * files alone (no request). Served: verified lines (jevmem wrote them, or you trusted them) and unverified lines whose
+ * cached gate verdict passed. Not served: lines with a cached verdict at or above `injectionMax` (`withheld`) and lines
+ * with no verdict yet (`pending`). Until 0.7.1 every live marked line was served, so a line that arrived in the file
+ * with always:1 through a pull request reached Claude every session, even one the gate had withheld from recall. The
+ * cap applies to the served lines, in file order.
+ */
+export function alwaysOnServed(root: string, memories: readonly Memory[], mode: AlwaysOnMode, maxLines: number, injectionMax: number): { lines: Memory[]; more: number; pending: Memory[]; withheld: Withheld[] } {
+  const picked = alwaysOnLines(memories, mode, Number.MAX_SAFE_INTEGER).lines;
+  const plan = planGate(root, picked, injectionMax);
+  const cap = Math.max(0, maxLines);
+  return { lines: plan.serve.slice(0, cap), more: Math.max(0, plan.serve.length - cap), pending: plan.check, withheld: plan.withheld };
+}
+
 /** The session-start context (0.7.1): the always-on lines under `<jevmem-rules>`, or an empty string when there are none. */
 export function formatSessionStart(lines: readonly Memory[], more = 0): string {
   if (lines.length === 0) return "";

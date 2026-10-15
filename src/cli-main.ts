@@ -13,7 +13,8 @@ import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { deferredTurns } from "./turns.js";
 import { captureTurns, drainTurns, recallPathStats, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, sessionStartOutcome, type HookInput, type HookOutcome } from "./hook.js";
-import { findSessionFiles, formatSessionImport, importSessions, parseSince } from "./sessions.js";
+import { applySessionImport, findSessionFiles, formatSessionImport, importSessions, parseSince } from "./sessions.js";
+import { checkJevKey, markSetupDone, SETUP_NEEDS_TERMINAL, withSetupNotice } from "./setup.js";
 import { ALWAYS_KINDS, decide } from "./decide.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, missingKeyHelp, PLUGIN_CONFIGURE_HINT, resolveJevKey, saveJevKey } from "./env.js";
@@ -42,6 +43,7 @@ Usage: jevmem <command> [options]
                                           Create JEVMEM.md, jevmem.config.json, .jevmem/ and set up the tool(s) (default: detect)
   init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (e.g. when using the plugin)
   enable                                  Opt this project in (plugin users): jevmem.config.json, JEVMEM.md, .jevmem/
+  setup                                   Finish the setup here: the CLI and the plugin, your TypeSafe key (asked for, not shown), jevmem turned on in this folder, doctor; terminal only
   disable                                 Opt this project out: jevmem does nothing here (JEVMEM.md is kept)
   <command> --help                        Help for one command
   hook                                    Claude Code hook entrypoint (reads the hook JSON from stdin)
@@ -100,7 +102,7 @@ const stderrWrite = (s: string) => void process.stderr.write(s);
 const defaultIo: CliIo = { out: stdoutWrite, err: stderrWrite };
 let io: CliIo = defaultIo;
 
-export const COMMANDS = ["enable", "disable", "init", "hook", "daemon", "mcp", "audit", "guard", "search", "list", "add", "always", "import", "why", "right", "wrong", "forget", "trust", "missed", "fit", "stats", "doctor", "key", "log", "watch"] as const;
+export const COMMANDS = ["enable", "setup", "disable", "init", "hook", "daemon", "mcp", "audit", "guard", "search", "list", "add", "always", "import", "why", "right", "wrong", "forget", "trust", "missed", "fit", "stats", "doctor", "key", "log", "watch"] as const;
 
 export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
   enable: `jevmem enable
@@ -108,6 +110,16 @@ export const COMMAND_HELP: Record<(typeof COMMANDS)[number], string> = {
 Opt this project in. jevmem (the Claude Code plugin's hooks and MCP server, or any jevmem hook) does nothing in a
 project without jevmem.config.json: no network calls, no files. enable creates jevmem.config.json, JEVMEM.md and
 .jevmem/, and adds .jevmem/ to .gitignore, like init, but registers no hooks. Commit jevmem.config.json and JEVMEM.md.
+`,
+  setup: `jevmem setup
+
+Finish the setup in this folder, in one go, on a terminal (it asks for your key): says which jevmem and which Claude Code
+plugin it found; asks for your TypeSafe API key without showing it and saves it to ~/.jevmem/env as jevmem key does (a
+key already in place is kept); turns jevmem on here as jevmem enable does; checks the key with one request to TypeSafe
+(the fixed words "jevmem setup: key check", nothing from the project; PRIVACY.md); runs jevmem doctor; says what is
+next; and, when this project has past Claude Code sessions, offers jevmem import --from sessions: the count and the
+cost first, the lines before anything is written, each after a yes. It also ends the plugin's one-time setup message
+on this machine (~/.jevmem/setup-notice). Without a terminal it prints the steps by hand and exits 1.
 `,
   disable: `jevmem disable
 
@@ -322,8 +334,15 @@ function wantsHelp(args: string[]): boolean {
   return args.includes("--help") || args.includes("-h");
 }
 
-export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { stdin?: string } = {}): Promise<number> {
+/** A terminal stand-in for tests: answers the prompts `readLine` would put to the user (the key, a yes or no). */
+export interface TerminalIo {
+  ask: (prompt: string, opts: { hidden?: boolean }) => Promise<string>;
+}
+let termIo: TerminalIo | null = null;
+
+export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { stdin?: string; terminal?: TerminalIo } = {}): Promise<number> {
   io = ioArg;
+  termIo = opts.terminal ?? null;
   applyPluginOption(); // the Claude Code plugin's typesafe_api_key option comes first
   const args = [...argv];
   const cmd = args.shift();
@@ -361,8 +380,85 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
     case "enable": {
       const r = enableProject(root);
       for (const c of r.created) io.out(`  created  ${c}\n`);
+      for (const u of r.updated) io.out(`  updated  ${u}\n`);
       for (const k of r.skipped) io.out(`  kept     ${k}\n`);
       io.out(`\njevmem is enabled in this project.\n${enableNextStep(root)}\n`);
+      return 0;
+    }
+    case "setup": {
+      // 0.7.2: finish the setup in this folder, on a terminal only (it asks for the key).
+      if (!isTerminal(opts)) return fail(SETUP_NEEDS_TERMINAL);
+      let self = process.argv[1] ?? "jevmem";
+      try {
+        self = fs.realpathSync(self);
+      } catch {
+        /* as given */
+      }
+      io.out(`jevmem ${PACKAGE_VERSION} (${self})\n`);
+      const installs = pluginInstalls(root);
+      if (installs.length) for (const i of installs) io.out(`Claude Code plugin: ${describeInstall(i)}\n`);
+      else io.out("Claude Code plugin: none found (checked the plugins synced from claude.ai and the user and project settings). Add it in the Claude app (Plugins → Discover → jevmem → Add), or run jevmem init --tool claude for hooks without the plugin.\n");
+      for (const i of installs) if (i.version && isOlder(PACKAGE_VERSION, i.version)) io.out(`The plugin is ${i.version} and this CLI ${PACKAGE_VERSION}: npm install -g jevmem@latest\n`);
+      // The key: found, or asked for without showing it and saved as `jevmem key` saves it.
+      const source = resolveJevKey(root);
+      if (source) io.out(`TypeSafe API key: found (${source})\n`);
+      else {
+        io.out("TypeSafe API key: none found. Get one at https://console.typesafe.ai/keys\n");
+        const raw = await readLine("TypeSafe API key (input hidden): ", { hidden: true });
+        const key = cleanPastedKey(raw);
+        if (!key) return fail("jevmem setup: no usable key read, so nothing was changed. Paste your TypeSafe API key (from https://console.typesafe.ai/keys) and press Enter; a key with spaces, quotes, #, $ or a backslash can't go in ~/.jevmem/env this way. Run jevmem setup again.");
+        const file = saveJevKey(key);
+        process.env.TYPESAFE_API_KEY = key;
+        io.out(`Saved your TypeSafe API key to ${file.replace(os.homedir(), "~")} (readable only by you).\n`);
+      }
+      // Turn this folder on, as `jevmem enable` does.
+      const r = enableProject(root);
+      for (const c of r.created) io.out(`  created  ${c}\n`);
+      for (const u of r.updated) io.out(`  updated  ${u}\n`);
+      for (const k of r.skipped) io.out(`  kept     ${k}\n`);
+      io.out(r.created.length || r.restored ? "jevmem is turned on in this project.\n" : "jevmem was already turned on in this project.\n");
+      if (projectHasInitHooks(root) && hasActivePlugin(installs)) io.out("This project also has the hooks jevmem init registered, so the plugin's hooks stand down here; jevmem init --remove-hooks keeps only the plugin.\n");
+      // The key check: one request with fixed words and nothing from the project (PRIVACY.md), logged under `setup`.
+      const cfg = loadConfig(root);
+      const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: false, zeroDataRetention: cfg.jev.zeroDataRetention });
+      const check = await checkJevKey(jev);
+      if (check.ok) io.out(`TypeSafe accepted the key (${check.ms} ms).\n`);
+      else if (check.rejected) io.out(`TypeSafe rejected the key${check.status ? ` (${check.status})` : ""}. Run jevmem key to replace it.\n`);
+      else io.out(`Could not reach TypeSafe (${check.error.slice(0, 120)}): the key is saved; jevmem retries on its own.\n`);
+      // Doctor, indented.
+      io.out("\njevmem doctor:\n");
+      const outer = io;
+      await main(["doctor"], { out: (s) => outer.out(s.replace(/^(?=.)/gm, "  ")), err: outer.err, cwd: outer.cwd }, opts);
+      io = outer;
+      // What is next, and the marker that ends the plugin's one-time message on this machine.
+      io.out("\nNext: start Claude Code in this folder (or run /reload-plugins in a session that is open), signed in with the same Claude account as the app. After each message jevmem decides what is worth keeping and saves it as one line in JEVMEM.md; on each prompt the relevant lines come back. jevmem doctor checks the setup any time.\n");
+      markSetupDone();
+      // Past sessions, offered: the count and the cost first, the lines before anything is written, each after a yes.
+      const found = findSessionFiles(root);
+      const turns = found.files.reduce((a, f) => a + f.turns.length, 0);
+      if (turns) {
+        const store = new MemoryStore(root, cfg.memoryFile);
+        const chars = found.files.reduce((a, f) => a + f.turns.reduce((b, x) => b + Math.min(6000, x.user.length) + Math.min(2000, x.assistant.length), 0), 0);
+        const est = { usd: turns * 0.00017, s: turns * 0.3 };
+        const n = found.files.length;
+        io.out(`\nFound ${n} past Claude Code session${n === 1 ? "" : "s"} with ${turns} turn${turns === 1 ? "" : "s"} in this project (${found.dir}). jevmem import --from sessions can read them for decisions, rules and dead ends: each turn is sent to TypeSafe (scrubbed), about ${chars.toLocaleString("en-US")} characters, an estimated ${est.usd.toFixed(3)} and ${Math.round(est.s)} s; you see the lines before anything is written.\n`);
+        const yes = await confirmOnTerminal(`Send ${turns} turn${turns === 1 ? "" : "s"} from ${n} session${n === 1 ? "" : "s"} to TypeSafe? [y/N] `);
+        if (!yes) io.out("Skipped. Later: jevmem import --from sessions shows what it would add, and --apply writes it.\n");
+        else {
+          const rows = await importSessions(jev, store, cfg, found.files, { apply: false, onProgress: (d, total) => io.err(`\rjevmem import: ${d}/${total} turns decided`) });
+          io.err("\n");
+          const adds = rows.filter((x) => x.outcome === "add");
+          const report = formatSessionImport(rows, { apply: false, files: found.files }).split("\n");
+          io.out(report.slice(0, -2).join("\n") + "\n"); // without the dry run's closing "Would add …" line
+          if (!adds.length) io.out("Nothing to write.\n");
+          else {
+            const write = await confirmOnTerminal(`Write these ${adds.length} line${adds.length === 1 ? "" : "s"} to JEVMEM.md? [y/N] `);
+            if (write) io.out(`Added ${applySessionImport(store, rows)} line(s) to JEVMEM.md; the session files were not changed. jevmem forget <id> retires a line.\n`);
+            else io.out("Nothing written.\n");
+          }
+          printJevSummary(jev.log);
+        }
+      }
       return 0;
     }
     case "disable": {
@@ -397,6 +493,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       }
       const r = init({ root, hooks: !noHooks && tools.includes("claude"), command, cliPath: process.argv[1] });
       for (const c of r.created) io.out(`  created  ${c}\n`);
+      for (const u of r.updated) io.out(`  updated  ${u}\n`);
       for (const k of r.skipped) io.out(`  kept     ${k}\n`);
       const notes: string[] = [];
       for (const t of tools) {
@@ -414,7 +511,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         notes.push(...res.notes);
       }
       io.out(`\nTools: ${tools.join(", ")}${toolArg ? "" : " (detected; use --tool to choose)"}\n`);
-      if (tools.includes("claude") && !noHooks) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n  PreToolUse        ${r.guardCommand}  (matcher ${r.guardMatcher})\n`);
+      if (tools.includes("claude") && !noHooks) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n  PreToolUse        ${r.guardCommand}  (matcher ${r.guardMatcher})\n  SessionStart      ${r.command}\n`);
       for (const n of notes) io.out(`\n${n}\n`);
       for (const w of r.warnings) io.out(`\n! ${w}\n`);
       // `jevmem init`'s hooks have no plugin setting, so the one fix alone.
@@ -455,7 +552,10 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         // SessionStart (0.7.1): the always-on lines from the file, no key and no daemon needed.
         if (event === "SessionStart") {
           const ss = sessionStartOutcome(new MemoryStore(projectRoot, cfg.memoryFile), cfg, input.session_id);
-          if (ss.stdout) io.out(ss.stdout + "\n");
+          // 0.7.2: the one-time setup message the plugin's launcher hands over (JEVMEM_SETUP_NOTICE) rides with this output.
+          const setupNotice = process.env.JEVMEM_SETUP_NOTICE?.trim();
+          const stdout = setupNotice ? withSetupNotice(ss.stdout, setupNotice, process.env.CLAUDE_CODE_ENTRYPOINT) : ss.stdout;
+          if (stdout) io.out(stdout + "\n");
           if (process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1") io.err(`jevmem: ${ss.event}: ${ss.action}: ${ss.detail}\n`);
           return 0;
         }
@@ -833,6 +933,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const source = resolveJevKey(root);
       const installs = pluginInstalls(root);
       io.out(source ? `key      TypeSafe key found (${source})\n` : `key      ${missingKeyHelp({ configure: canConfigure(installs) }).replace(/\n/g, "\n         ")}\n`);
+      const model = loadConfig(root).jev.model;
+      io.out(`model    ${model}${model === "jev-latest" ? `: an alias TypeSafe moves to each new Jev release (jev-1.14.0 about a week after 2026-10-14); this jevmem's default is jev-1.13.0, the model its numbers were measured on. To stay on it, set "jev": {"model": "jev-1.13.0"} in jevmem.config.json` : ""}\n`);
       loadEnvFallbacks(root); // the writer keys may live in .jevmem/.env or ~/.jevmem/env even when TYPESAFE_API_KEY doesn't
       const w = resolveWriter(loadConfig(root).writer);
       io.out(`writer   ${w.provider === "none" ? "jevmem (local, no LLM)" : `${w.provider} (${w.model})`}: ${w.reason}\n`);
@@ -1182,8 +1284,8 @@ async function handOffStop(root: string, cfg: ReturnType<typeof loadConfig>, inp
 }
 
 /** Is there a person at a terminal to answer a question? Tests pass their own stdin, which is never a terminal. */
-function isTerminal(opts: { stdin?: string }): boolean {
-  return opts.stdin === undefined && process.stdin.isTTY === true;
+function isTerminal(opts: { stdin?: string; terminal?: TerminalIo }): boolean {
+  return opts.terminal !== undefined || (opts.stdin === undefined && process.stdin.isTTY === true);
 }
 
 /** `jevmem trust`'s question, answered on the terminal. */
@@ -1207,6 +1309,14 @@ function readAll(): Promise<string> {
  * is echoed (the key); otherwise each character is (a yes or no).
  */
 function readLine(prompt: string, opts: { hidden?: boolean } = {}): Promise<string> {
+  if (termIo) {
+    const term = termIo;
+    io.err(prompt);
+    return term.ask(prompt, opts).then((v) => {
+      io.err("\n");
+      return v;
+    });
+  }
   return new Promise((resolve) => {
     const stdin = process.stdin;
     let text = "";

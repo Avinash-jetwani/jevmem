@@ -2,12 +2,12 @@
 # jevmem Claude Code plugin launcher (POSIX sh). The plugin contains no jevmem code: it runs the `jevmem` command
 # already on this machine. This script fetches nothing and runs no package manager.
 #
-#   jevmem-hook.sh [--detach] [--guard] <jevmem arguments...>
+#   jevmem-hook.sh [--detach] [--guard] [--start] <jevmem arguments...>
 #
 # 1. --detach (the Stop hook) ignores SIGTERM, SIGHUP and SIGINT first: when a session ends, Claude Code signals an
 #    async hook's process group, with `claude -p` as soon as the hook starts.
 # 2. Opt-in per project: a hook in a project without jevmem.config.json reads its input and exits 0. No network,
-#    no files, no output.
+#    no files, no output. The one exception is 7.
 # 3. Finds the jevmem CLI: `command -v jevmem`, else the path this launcher cached in CLAUDE_PLUGIN_DATA the last time
 #    it found one, else a fixed list of common global bin directories (Claude Code's desktop app can run hooks with a
 #    PATH that lacks them). No CLI in an enabled project: the UserPromptSubmit hook shows the user one message per
@@ -16,6 +16,15 @@
 # 5. Prints one warning line to stderr when the CLI is older than this plugin.
 # 6. Runs the CLI. With --detach it saves the hook JSON to a temp file, starts the CLI in its own process group and
 #    exits at once, so the Stop hook never makes Claude wait.
+# 7. --start marks the SessionStart hook (0.7.2): the one-time setup message. While ~/.jevmem/setup-notice does not
+#    exist, the first SessionStart on this machine works out what is missing, with shell tests on local files only (the
+#    CLI, a TypeSafe key, this project not turned on), says so in one message and writes the marker; when nothing is
+#    missing it writes the marker and says nothing. The message is a systemMessage, which Claude Code's terminal shows,
+#    and, unless Claude Code's entrypoint is that terminal (CLAUDE_CODE_ENTRYPOINT=cli), additionalContext as well,
+#    asking Claude to pass it on, since the desktop app's Code tab does not draw a hook's systemMessage (2.1.295). In a
+#    project that is on, with the CLI found, the message goes to the CLI in JEVMEM_SETUP_NOTICE, and the CLI puts it in
+#    its own SessionStart output. Nothing is sent, nothing is written inside the project, and after the marker exists
+#    a SessionStart costs one `[ -f ]` more than before. Creating the marker by hand is the opt-out.
 # --guard marks the PreToolUse hook (the guard). A jevmem CLI from before the guard would read that event as a finished
 # turn, so the launcher runs it only when the CLI has the `guard` command (checked once per CLI file and cached);
 # otherwise it reads the input and exits 0 without output. It prints no warning for this hook.
@@ -25,72 +34,149 @@ for a in "$@"; do
 done
 
 project="${CLAUDE_PROJECT_DIR:-$PWD}"
-if [ ! -f "$project/jevmem.config.json" ]; then
-  for a in "$@"; do
-    if [ "$a" = "hook" ]; then cat > /dev/null 2>&1; exit 0; fi
-  done
-fi
+enabled=0
+if [ -f "$project/jevmem.config.json" ]; then enabled=1; fi
+is_hook=0
+start=0
+for a in "$@"; do
+  if [ "$a" = "hook" ]; then is_hook=1; fi
+  if [ "$a" = "--start" ]; then start=1; fi
+done
 
 detach=0
 if [ "$1" = "--detach" ]; then detach=1; shift; fi
 guard=0
 if [ "$1" = "--guard" ]; then guard=1; shift; fi
+if [ "$1" = "--start" ]; then shift; fi
 
 # Node versions under ~/.nvm, newest first (numeric major, minor, patch).
 nvm_versions() {
   ls "$HOME/.nvm/versions/node" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$/\1/p' | sort -t . -k 1,1nr -k 2,2nr -k 3,3nr
 }
 
+# 3. The CLI: on PATH, else the one cached below, else the first of a fixed list of common global bin directories,
+# else the newest nvm Node version that has it. The cache in CLAUDE_PLUGIN_DATA holds five lines: the CLI path, a
+# key (the CLI file's `ls -lL` line and this plugin's folder, which changes with each plugin version), the Node path,
+# the version warning, and whether the CLI has the guard (1 or 0), so a warm run reads one small file with shell
+# builtins and starts no extra process. Sets cli (empty when none) and the c_* cache fields; runs once.
+cli=""; c_cli=""; c_key=""; c_node=""; c_warning=""; c_guard=""; cache=""; cli_searched=0
+find_cli() {
+  if [ "$cli_searched" -eq 1 ]; then return 0; fi
+  cli_searched=1
+  cache="${CLAUDE_PLUGIN_DATA:-}/cli"
+  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ -f "$cache" ]; then
+    { IFS= read -r c_cli; IFS= read -r c_key; IFS= read -r c_node; IFS= read -r c_warning; IFS= read -r c_guard; } < "$cache"
+  fi
+  cli="$(command -v jevmem 2>/dev/null)"
+  if [ -z "$cli" ] && [ -n "$c_cli" ] && [ -x "$c_cli" ]; then cli="$c_cli"; fi
+  if [ -z "$cli" ]; then
+    for d in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.volta/bin"; do
+      if [ -f "$d/jevmem" ] && [ -x "$d/jevmem" ]; then cli="$d/jevmem"; break; fi
+    done
+  fi
+  if [ -z "$cli" ]; then
+    for v in $(nvm_versions); do
+      if [ -f "$HOME/.nvm/versions/node/v$v/bin/jevmem" ] && [ -x "$HOME/.nvm/versions/node/v$v/bin/jevmem" ]; then
+        cli="$HOME/.nvm/versions/node/v$v/bin/jevmem"; break
+      fi
+    done
+  fi
+}
+
+# 7. Is a TypeSafe key in place? The plugin's key option (not an unsubstituted ${…} placeholder), TYPESAFE_API_KEY, or a
+# TYPESAFE_API_KEY= line with a value in ~/.jevmem/env or this project's .jevmem/.env. The value is never read into a
+# variable, only tested for.
+has_key() {
+  case "${CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY:-}" in
+    '') ;;
+    '${'*) ;;
+    *) return 0 ;;
+  esac
+  if [ -n "${TYPESAFE_API_KEY:-}" ]; then return 0; fi
+  for f in "$HOME/.jevmem/env" "$project/.jevmem/.env"; do
+    if [ -f "$f" ] && grep -Eq '^[[:space:]]*(export[[:space:]]+)?TYPESAFE_API_KEY[[:space:]]*=[[:space:]]*[^[:space:]#]' "$f" 2>/dev/null; then return 0; fi
+  done
+  return 1
+}
+
+# The one-time message, one text per state (src/setup.ts has the same texts; a test keeps them equal). No quotes or
+# backslashes: they go into JSON through printf.
+NOTICE_NOCLI="jevmem: the plugin is added, but the jevmem command it runs is not on this computer yet, so it does nothing. To finish: get the jevmem command (one line, in the README: https://github.com/Avinash-jetwani/jevmem#readme), then run jevmem setup in a project folder (it asks for your TypeSafe key and turns jevmem on there). Shown once."
+NOTICE_NOKEY="jevmem: the jevmem command is in place, but no TypeSafe API key is saved, so it does nothing yet. To finish: jevmem setup in a project folder (it asks for the key without showing it, and turns jevmem on there; keys at https://console.typesafe.ai/keys). Shown once."
+NOTICE_NOTON="jevmem: the jevmem command and your TypeSafe key are in place, but jevmem is not turned on in this project, so nothing is saved or sent from here. To turn it on here: jevmem setup in this folder. Shown once."
+# What asks Claude to pass the message on, around the text (\n is JSON's newline; printf %s leaves it as written).
+RELAY_HEAD='<jevmem-setup-notice>\n'
+RELAY_TAIL='\n</jevmem-setup-notice>\nThis is a one-time setup notice for the user from the jevmem plugin. Give it to the user at the start of your next reply, in these words, then go on with what they asked. It will not be shown again.'
+notice=""
+# Sets notice to the text for the first missing step and writes the marker; writes the marker alone when nothing is
+# missing. A marker that cannot be written means no message (it would otherwise show every session).
+setup_notice() {
+  find_cli
+  state=""
+  if [ -z "$cli" ]; then state="no-cli"
+  elif ! has_key; then state="no-key"
+  elif [ "$enabled" -eq 0 ]; then state="not-on"
+  fi
+  ( umask 077; mkdir -p "$HOME/.jevmem" ) 2>/dev/null || return 0
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)"
+  if [ -z "$state" ]; then
+    ( umask 077; printf 'done %s\n' "$now" > "$HOME/.jevmem/setup-notice" ) 2>/dev/null
+    return 0
+  fi
+  ( umask 077; printf 'shown %s %s\n' "$state" "$now" > "$HOME/.jevmem/setup-notice" ) 2>/dev/null || return 0
+  case "$state" in
+    no-cli) notice="$NOTICE_NOCLI" ;;
+    no-key) notice="$NOTICE_NOKEY" ;;
+    not-on) notice="$NOTICE_NOTON" ;;
+  esac
+}
+# The message as the hook's JSON output, when the CLI is not run for this event.
+print_notice() {
+  if [ "${CLAUDE_CODE_ENTRYPOINT:-}" = "cli" ]; then
+    printf '{"systemMessage":"%s"}\n' "$notice"
+  else
+    printf '{"systemMessage":"%s","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s%s%s"}}\n' "$notice" "$RELAY_HEAD" "$notice" "$RELAY_TAIL"
+  fi
+}
+if [ "$start" -eq 1 ] && [ "$is_hook" -eq 1 ] && [ ! -f "$HOME/.jevmem/setup-notice" ]; then setup_notice; fi
+
+# 2. A hook in a project that is not turned on: read the input, say the one-time message if this is its moment, exit.
+if [ "$enabled" -eq 0 ] && [ "$is_hook" -eq 1 ]; then
+  cat > /dev/null 2>&1
+  if [ -n "$notice" ]; then print_notice; fi
+  exit 0
+fi
+
 # No CLI, or no Node to run it: a hook reads its input and exits 0. The UserPromptSubmit hook (not --detach) prints
 # $1 as a systemMessage, which Claude Code shows the user, once per session: the session ids already told are listed
-# in CLAUDE_PLUGIN_DATA/notified. The Stop hook stays silent. Outside a hook, $1 goes to stderr.
+# in CLAUDE_PLUGIN_DATA/notified. The SessionStart hook prints the one-time message when this is its moment. The Stop
+# hook stays silent. Outside a hook, $1 goes to stderr.
 not_found() {
   msg="$1"; shift
-  for a in "$@"; do
-    if [ "$a" = "hook" ]; then
-      input="$(cat 2>/dev/null)"
-      [ "$detach" -eq 0 ] || exit 0
-      printf '%s\n' "$input" | grep -q '"hook_event_name" *: *"UserPromptSubmit"' || exit 0
-      sid="$(printf '%s\n' "$input" | sed -n 's/.*"session_id" *: *"\([A-Za-z0-9_-]*\)".*/\1/p' | head -n 1)"
-      [ -n "$sid" ] || sid=unknown
-      if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
-        seen="$CLAUDE_PLUGIN_DATA/notified"
-        if [ -f "$seen" ] && grep -qxF "$sid" "$seen" 2>/dev/null; then exit 0; fi
-        mkdir -p "$CLAUDE_PLUGIN_DATA" 2>/dev/null && printf '%s\n' "$sid" >> "$seen" 2>/dev/null
-      fi
-      printf '{"systemMessage":"%s"}\n' "$msg"
+  if [ "$is_hook" -eq 1 ]; then
+    input="$(cat 2>/dev/null)"
+    if [ "$start" -eq 1 ]; then
+      if [ -n "$notice" ]; then print_notice; fi
       exit 0
     fi
-  done
+    [ "$detach" -eq 0 ] || exit 0
+    printf '%s\n' "$input" | grep -q '"hook_event_name" *: *"UserPromptSubmit"' || exit 0
+    sid="$(printf '%s\n' "$input" | sed -n 's/.*"session_id" *: *"\([A-Za-z0-9_-]*\)".*/\1/p' | head -n 1)"
+    [ -n "$sid" ] || sid=unknown
+    if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+      seen="$CLAUDE_PLUGIN_DATA/notified"
+      if [ -f "$seen" ] && grep -qxF "$sid" "$seen" 2>/dev/null; then exit 0; fi
+      mkdir -p "$CLAUDE_PLUGIN_DATA" 2>/dev/null && printf '%s\n' "$sid" >> "$seen" 2>/dev/null
+    fi
+    printf '{"systemMessage":"%s"}\n' "$msg"
+    exit 0
+  fi
   echo "$msg" >&2
   exit 0
 }
 readme="See the jevmem README to set it up: https://github.com/Avinash-jetwani/jevmem#readme"
 
-# 3. The CLI: on PATH, else the one cached below, else the first of a fixed list of common global bin directories,
-# else the newest nvm Node version that has it. The cache in CLAUDE_PLUGIN_DATA holds five lines: the CLI path, a
-# key (the CLI file's `ls -lL` line and this plugin's folder, which changes with each plugin version), the Node path,
-# the version warning, and whether the CLI has the guard (1 or 0), so a warm run reads one small file with shell
-# builtins and starts no extra process.
-cache="${CLAUDE_PLUGIN_DATA:-}/cli"
-c_cli=""; c_key=""; c_node=""; c_warning=""; c_guard=""
-if [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ -f "$cache" ]; then
-  { IFS= read -r c_cli; IFS= read -r c_key; IFS= read -r c_node; IFS= read -r c_warning; IFS= read -r c_guard; } < "$cache"
-fi
-cli="$(command -v jevmem 2>/dev/null)"
-if [ -z "$cli" ] && [ -n "$c_cli" ] && [ -x "$c_cli" ]; then cli="$c_cli"; fi
-if [ -z "$cli" ]; then
-  for d in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.volta/bin"; do
-    if [ -f "$d/jevmem" ] && [ -x "$d/jevmem" ]; then cli="$d/jevmem"; break; fi
-  done
-fi
-if [ -z "$cli" ]; then
-  for v in $(nvm_versions); do
-    if [ -f "$HOME/.nvm/versions/node/v$v/bin/jevmem" ] && [ -x "$HOME/.nvm/versions/node/v$v/bin/jevmem" ]; then
-      cli="$HOME/.nvm/versions/node/v$v/bin/jevmem"; break
-    fi
-  done
-fi
+find_cli
 if [ -z "$cli" ]; then not_found "jevmem: CLI not found, so memory is off in this project. $readme" "$@"; fi
 
 # 4 and 5, from the cache when it is for this CLI file and this plugin version.
@@ -142,6 +228,9 @@ if [ "$guard" -eq 1 ] && [ "$has_guard" != "1" ]; then cat > /dev/null 2>&1; exi
 
 # 5. One warning line when the CLI is older than this plugin (not from the guard's hook, which runs on every tool call).
 if [ -n "$warning" ] && [ "$guard" -eq 0 ]; then echo "$warning" >&2; fi
+
+# 7. The one-time message rides with the CLI's own SessionStart output.
+if [ -n "$notice" ]; then JEVMEM_SETUP_NOTICE="$notice"; export JEVMEM_SETUP_NOTICE; fi
 
 # 6. Run.
 if [ "$detach" -eq 1 ]; then

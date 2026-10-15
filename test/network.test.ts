@@ -67,9 +67,9 @@ describe("network calls in src/", () => {
     expect(Object.keys(JSON.parse(read("package.json")).dependencies).sort()).toEqual(["@modelcontextprotocol/sdk", "@typesafe-ai/sdk", "zod"]);
   });
 
-  it("every Jev request goes through the one TypeSafe client; the request sites are decide, recall, the poisoning gate, audit, the daemon's warm-up, the guard and the line's sentences", () => {
+  it("every Jev request goes through the one TypeSafe client; the request sites are decide, recall, the poisoning gate, audit, the daemon's warm-up, the guard, the line's sentences and setup's key check (0.7.2)", () => {
     const sites = sources().filter((f) => /\bjev\.call\(/.test(read(f)));
-    expect(sites).toEqual(["src/audit.ts", "src/daemon.ts", "src/decide.ts", "src/guard.ts", "src/guardrail.ts", "src/pick.ts", "src/recall.ts"]);
+    expect(sites).toEqual(["src/audit.ts", "src/daemon.ts", "src/decide.ts", "src/guard.ts", "src/guardrail.ts", "src/pick.ts", "src/recall.ts", "src/setup.ts"]);
     expect(sources().filter((f) => /new TypeSafeClient\(/.test(read(f)))).toEqual(["src/jev.ts"]);
   });
 

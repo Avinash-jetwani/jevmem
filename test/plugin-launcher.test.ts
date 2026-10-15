@@ -12,6 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { MemoryStore } from "../src/store.js";
+import { SETUP_NOTICE_TEXTS, setupNoticeRelay } from "../src/setup.js";
 import { startFakeJev, type FakeJev } from "./fakejev.js";
 import { SAVE_DECISION } from "./helpers.js";
 
@@ -273,5 +274,106 @@ describe("the API key", () => {
         expect(body.includes("<key from user config>") || body.includes("<key from env>"), f).toBe(false);
       }
     }
+  });
+});
+
+// 0.7.2: the one-time setup message on the SessionStart hook (--start), once per machine (~/.jevmem/setup-notice).
+describe.skipIf(process.platform === "win32")("the one-time setup message (0.7.2)", () => {
+  const start = (root: string, session = "s1") => JSON.stringify({ hook_event_name: "SessionStart", session_id: session, cwd: root, source: "startup", transcript_path: "/x.jsonl" });
+  const baseEnv = (root: string, home: string, PATH = "/usr/bin:/bin") => ({ PATH, HOME: home, CLAUDE_PROJECT_DIR: root, CLAUDE_PLUGIN_ROOT: path.resolve("plugin"), CLAUDE_PLUGIN_DATA: tmp(), TMPDIR: tmp() });
+  const run = (root: string, env: Record<string, string>, input = start(root), args = ["--start", "hook", "--plugin"]) => spawnSync("sh", [LAUNCHER, ...args], { cwd: root, env, input, encoding: "utf8" });
+  const marker = (home: string) => {
+    try {
+      return fs.readFileSync(path.join(home, ".jevmem", "setup-notice"), "utf8").trim();
+    } catch {
+      return null;
+    }
+  };
+  const keyFile = (home: string) => {
+    fs.mkdirSync(path.join(home, ".jevmem"), { recursive: true });
+    fs.writeFileSync(path.join(home, ".jevmem", "env"), "TYPESAFE_API_KEY=ts-test-key-0000\n");
+  };
+
+  it("the launcher's three texts are the library's, word for word, with no quote or backslash in them", () => {
+    const sh = fs.readFileSync(LAUNCHER, "utf8");
+    for (const [state, text] of Object.entries(SETUP_NOTICE_TEXTS)) {
+      expect(sh, state).toContain(`"${text}"`);
+      expect(text).not.toMatch(/["\\]/);
+    }
+  });
+
+  it("no CLI, a project not turned on: the no-CLI text once per machine, as systemMessage and as context for Claude; nothing in the project", () => {
+    const root = tmp();
+    const home = tmp();
+    const before = files(root);
+    const a = run(root, baseEnv(root, home));
+    expect([a.status, a.stderr]).toEqual([0, ""]);
+    const out = JSON.parse(a.stdout);
+    expect(out.systemMessage).toBe(SETUP_NOTICE_TEXTS["no-cli"]);
+    expect(out.hookSpecificOutput).toEqual({ hookEventName: "SessionStart", additionalContext: setupNoticeRelay(SETUP_NOTICE_TEXTS["no-cli"]) });
+    expect(marker(home)).toMatch(/^shown no-cli 20\d\d-\d\d-\d\dT/);
+    expect(files(root)).toEqual(before);
+    // A resume of the same session and a new session: nothing more, ever.
+    for (const input of [start(root, "s1"), start(root, "s2")]) {
+      const r = run(root, baseEnv(root, home), input);
+      expect([r.status, r.stdout, r.stderr]).toEqual([0, "", ""]);
+    }
+    // The other hooks in a project that is not on stay silent, marker or not.
+    const u = run(root, baseEnv(root, tmp()), ups(root), ["hook", "--plugin"]);
+    expect([u.status, u.stdout, u.stderr]).toEqual([0, "", ""]);
+  });
+
+  it("in the terminal (CLAUDE_CODE_ENTRYPOINT=cli) the message is the systemMessage alone; the opt-out is a marker made by hand", () => {
+    const root = tmp();
+    const home = tmp();
+    const r = run(root, { ...baseEnv(root, home), CLAUDE_CODE_ENTRYPOINT: "cli" });
+    expect(JSON.parse(r.stdout)).toEqual({ systemMessage: SETUP_NOTICE_TEXTS["no-cli"] });
+    const home2 = tmp();
+    fs.mkdirSync(path.join(home2, ".jevmem"));
+    fs.writeFileSync(path.join(home2, ".jevmem", "setup-notice"), "");
+    const o = run(root, baseEnv(root, home2));
+    expect([o.status, o.stdout, o.stderr]).toEqual([0, "", ""]);
+    expect(fs.readFileSync(path.join(home2, ".jevmem", "setup-notice"), "utf8")).toBe("");
+  });
+
+  it("the CLI installed but no key: the key text; a key saved but this project not on: the not-on text; the plugin's option counts, a placeholder does not", () => {
+    const bin = npmBin();
+    const root = tmp();
+    const PATH = `${bin}:/usr/bin:/bin`;
+    const home = tmp();
+    const r = run(root, baseEnv(root, home, PATH));
+    expect(JSON.parse(r.stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["no-key"]);
+    expect(marker(home)).toMatch(/^shown no-key /);
+    const home2 = tmp();
+    keyFile(home2);
+    const r2 = run(root, baseEnv(root, home2, PATH));
+    expect(JSON.parse(r2.stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
+    expect(marker(home2)).toMatch(/^shown not-on /);
+    expect(r2.stdout + r2.stderr).not.toContain("ts-test-key-0000");
+    expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "ts-test-key-0000" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
+    expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "${user_config.typesafe_api_key}" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["no-key"]);
+    expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), TYPESAFE_API_KEY: "ts-test-key-0000" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
+  });
+
+  it("everything in place: the marker says done and nothing is said; a project that is on without a key gets the key text through the CLI's own SessionStart output", async () => {
+    const bin = npmBin();
+    const PATH = `${bin}:/usr/bin:/bin`;
+    const root = enabledProject();
+    const home = tmp();
+    keyFile(home);
+    const data = tmp();
+    const r = await runAsync("sh", [LAUNCHER, "--start", "hook", "--plugin"], { cwd: root, env: { ...baseEnv(root, home, PATH), CLAUDE_PLUGIN_DATA: data, JEVMEM_DAEMON: "0" }, input: start(root), encoding: "utf8" });
+    expect([r.status, r.stdout, r.stderr]).toEqual([0, "", ""]); // no always-on lines, no message
+    expect(marker(home)).toMatch(/^done /);
+    const home2 = tmp();
+    const r2 = await runAsync("sh", [LAUNCHER, "--start", "hook", "--plugin"], { cwd: root, env: { ...baseEnv(root, home2, PATH), CLAUDE_PLUGIN_DATA: data, JEVMEM_DAEMON: "0" }, input: start(root), encoding: "utf8" });
+    expect([r2.status, r2.stderr]).toEqual([0, ""]);
+    const out = JSON.parse(r2.stdout);
+    expect(out.systemMessage).toBe(SETUP_NOTICE_TEXTS["no-key"]);
+    expect(out.hookSpecificOutput).toEqual({ hookEventName: "SessionStart", additionalContext: setupNoticeRelay(SETUP_NOTICE_TEXTS["no-key"]) });
+    expect(marker(home2)).toMatch(/^shown no-key /);
+    // Said once: the next session start in the same project prints nothing.
+    const r3 = await runAsync("sh", [LAUNCHER, "--start", "hook", "--plugin"], { cwd: root, env: { ...baseEnv(root, home2, PATH), CLAUDE_PLUGIN_DATA: data, JEVMEM_DAEMON: "0" }, input: start(root, "s2"), encoding: "utf8" });
+    expect([r3.status, r3.stdout, r3.stderr]).toEqual([0, "", ""]);
   });
 });

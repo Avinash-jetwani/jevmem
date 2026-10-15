@@ -114,10 +114,13 @@ export function makeContext(root, base, events) {
     return changedCache;
   };
   const calls = toolCallsOf(events);
+  // The reply (0.7.2): the last result event's text, for a check whose right answer is that nothing needs building.
+  const reply = () => String((events.findLast?.((e) => e.type === "result") ?? [...events].reverse().find((e) => e.type === "result") ?? {}).result ?? "");
   return {
     root,
     base,
     read,
+    reply,
     readBase: (rel) => {
       try {
         return execFileSync("git", ["show", `${base}:${rel}`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });

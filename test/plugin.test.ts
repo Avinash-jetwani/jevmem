@@ -83,6 +83,8 @@ describe("plugin files", () => {
     expect(stop).toMatchObject({ type: "command", async: true, command: '"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" --detach hook --plugin' });
     expect(ups.async).toBeUndefined();
     expect(ups.command).toBe('"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" hook --plugin');
+    // SessionStart (0.7.1) carries --start (0.7.2): the launcher's one-time setup message, without reading the input.
+    expect(h.SessionStart[0].hooks[0]).toEqual({ type: "command", command: '"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" --start hook --plugin', timeout: 5 });
     expect(fs.statSync("plugin/hooks/jevmem-hook.sh").mode & 0o111, "the launcher is executable").not.toBe(0);
   });
 

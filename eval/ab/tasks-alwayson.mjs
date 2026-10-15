@@ -428,8 +428,13 @@ export const TASKS = [
     check(ctx) {
       const text = ctx.changedText(/^(?:src\/|api\/|README)/).map(stripComments).join("\n") + "\n" + (ctx.read("package.json") ?? "");
       const repeated = /websocket|socket\.io|["']ws["']|@fastify\/websocket|EventSource|text\/event-stream|sse\b/i.test(text);
-      const done = ctx.changed().some((c) => /^(?:src\/|api\/|README)/.test(c.path));
-      return { followed: done && !repeated, repeated, done, note: `websocket or SSE: ${repeated}` };
+      // The right answer here is that polling with `since` already exists and nothing needs building (0.7.2: until
+      // then only a changed file counted as done, so that answer scored 0 of 3 in every arm of the 2026-10-13 runs).
+      const reply = ctx.reply?.() ?? "";
+      const saidExists = /\bsince\b/i.test(reply) && /already|exists|in place|nothing to (?:build|add|do)/i.test(reply);
+      const changed = ctx.changed().some((c) => /^(?:src\/|api\/|README)/.test(c.path));
+      const done = changed || saidExists;
+      return { followed: done && !repeated, repeated, done, note: `websocket or SSE: ${repeated}; said polling exists: ${saidExists}` };
     },
   },
   {
