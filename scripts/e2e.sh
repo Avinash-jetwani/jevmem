@@ -1425,7 +1425,9 @@ JS
         for(const l of want)if(!file.includes(l))errs.push(`a retired line changed or was lost: ${l.slice(0,80)}`);
         const live=file.filter(l=>/^- \[(decision|constraint|preference|bug|architecture|todo|dead-end)\] /.test(l));
         const listed=fs.readFileSync(listFile,"utf8");
-        for(const l of want){const text=/^- \[retired\] (.*?)  <!--/.exec(l)?.[1]??"";if(text&&listed.includes(text))errs.push(`0.6.6 listed a retired line: ${text.slice(0,60)}`)}
+        // By id: a live line can carry the retired line's words (the B sessions save Claude's restatement of the fact it was
+        // served, as they did in the 0.7.0 and 0.7.1 gates), so the text alone is not proof that 0.6.6 listed the retired line.
+        for(const l of want){const id=/<!-- id:([a-z0-9]+)/.exec(l)?.[1]??"";if(id&&new RegExp("^"+id+"\\s","m").test(listed))errs.push(`0.6.6 listed a retired line: ${id}`)}
         console.log(`     after 0.6.6 wrote the file: ${want.length} retired line(s) kept as written, ${live.length} live line(s), none of the retired ones listed`);
         if(want.length<2)errs.push(`expected 2 retired lines, found ${want.length}`);
         if(!live.some(l=>/one decimal place/.test(l)))errs.push("0.6.6's add did not land");
