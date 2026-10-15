@@ -182,7 +182,7 @@ async function setUp(b, f) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-recall-")));
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-recall-home-"));
   b.lib.init({ root, hooks: false });
-  fs.writeFileSync(path.join(root, "jevmem.config.json"), JSON.stringify({ jev: { cache: false } }, null, 2) + "\n");
+  fs.writeFileSync(path.join(root, "jevmem.config.json"), JSON.stringify({ jev: { cache: false, ...(process.env.TYPESAFE_DEFAULT_MODEL ? { model: process.env.TYPESAFE_DEFAULT_MODEL } : {}) } }, null, 2) + "\n");
   const byKey = new Map(f.lines.map((l) => [l.key, l]));
   const memories = f.lines.map((l) => ({ id: l.id, kind: l.kind, text: l.text, ts: l.ts, conf: l.conf, ...(l.by ? { supersededBy: byKey.get(l.by).id } : {}) }));
   fs.writeFileSync(path.join(root, "JEVMEM.md"), b.lib.MEMORY_HEADER + memories.map((m) => b.lib.formatLine(m)).join("\n") + "\n");

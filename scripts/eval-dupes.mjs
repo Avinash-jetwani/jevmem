@@ -48,7 +48,7 @@ for (let d = path.dirname(path.resolve(distArg)); d !== path.dirname(d); d = pat
     if (pj.name === "jevmem") { version = pj.version; break; }
   }
 }
-const meta = { kind: "dupes", date: new Date().toISOString().slice(0, 10), commit, jevmem_version: version, dist: path.relative(process.cwd(), path.resolve(distArg)), set: FILE, mode: MODE, turns: rows.length, machine: `${process.platform} ${process.arch}, node ${process.version}, ${os.cpus()[0]?.model ?? "cpu"}`, cost_method: `input tokens × $${USD_PER_M_INPUT}/M (decide and the line's request)` };
+const meta = { kind: "dupes", date: new Date().toISOString().slice(0, 10), commit, jevmem_version: version, dist: path.relative(process.cwd(), path.resolve(distArg)), model: process.env.TYPESAFE_DEFAULT_MODEL ?? "jev-latest", set: FILE, mode: MODE, turns: rows.length, machine: `${process.platform} ${process.arch}, node ${process.version}, ${os.cpus()[0]?.model ?? "cpu"}`, cost_method: `input tokens × $${USD_PER_M_INPUT}/M (decide and the line's request)` };
 
 const DUP_NOUL = "restates_a_listed_memory";
 const inner = lib.createJev({ noLogFile: true, cache: false });

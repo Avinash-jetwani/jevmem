@@ -140,6 +140,7 @@ const report = {
   jevmem_version: pj.version,
   commit,
   dist: path.relative(process.cwd(), path.resolve(distArg)),
+  model: process.env.TYPESAFE_DEFAULT_MODEL ?? "jev-latest",
   eval_set: SET_FILE,
   turns: turns.length,
   machine: `${process.platform} ${process.arch}, node ${process.version}, ${os.cpus()[0]?.model ?? "cpu"}`,
