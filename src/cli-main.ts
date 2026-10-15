@@ -14,7 +14,7 @@ import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, 
 import { deferredTurns } from "./turns.js";
 import { captureTurns, drainTurns, recallPathStats, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, sessionStartOutcome, type HookInput, type HookOutcome } from "./hook.js";
 import { applySessionImport, findSessionFiles, formatSessionImport, importSessions, parseSince } from "./sessions.js";
-import { checkJevKey, markSetupDone, SETUP_NEEDS_TERMINAL, withSetupNotice } from "./setup.js";
+import { checkJevKey, markSetupDone, SETUP_NEEDS_TERMINAL } from "./setup.js";
 import { ALWAYS_KINDS, decide } from "./decide.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, missingKeyHelp, PLUGIN_CONFIGURE_HINT, resolveJevKey, saveJevKey } from "./env.js";
@@ -552,10 +552,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         // SessionStart (0.7.1): the always-on lines from the file, no key and no daemon needed.
         if (event === "SessionStart") {
           const ss = sessionStartOutcome(new MemoryStore(projectRoot, cfg.memoryFile), cfg, input.session_id);
-          // 0.7.2: the one-time setup message the plugin's launcher hands over (JEVMEM_SETUP_NOTICE) rides with this output.
-          const setupNotice = process.env.JEVMEM_SETUP_NOTICE?.trim();
-          const stdout = setupNotice ? withSetupNotice(ss.stdout, setupNotice, process.env.CLAUDE_CODE_ENTRYPOINT) : ss.stdout;
-          if (stdout) io.out(stdout + "\n");
+          if (ss.stdout) io.out(ss.stdout + "\n");
           if (process.env.JEVMEM_VERBOSE === "1" || process.env.JEVMEM_DEBUG === "1") io.err(`jevmem: ${ss.event}: ${ss.action}: ${ss.detail}\n`);
           return 0;
         }

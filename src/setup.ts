@@ -4,8 +4,8 @@
  * The message is printed by the plugin's launcher (plugin/hooks/jevmem-hook.sh), in sh, so that it works with no CLI
  * installed; this file has the same texts (a test keeps the two equal), the marker under `~/.jevmem/` that ends the
  * message, the context that asks Claude to pass the message on where Claude Code does not draw a hook's
- * `systemMessage` (the desktop app's Code tab, 2.1.295), the merge of the message into the CLI's own SessionStart
- * output (the launcher hands it over in JEVMEM_SETUP_NOTICE when it runs the CLI), and the one-request key check.
+ * `systemMessage` (the desktop app's Code tab, 2.1.295), and the one-request key check. The launcher reads no key: a
+ * project that is on gets the CLI, which says itself when no key is saved; so there are two texts, not three.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -16,8 +16,7 @@ import type { JevCaller } from "./jev.js";
 /** One text per state, word for word as the launcher prints it. No quotes or backslashes: the launcher prints them into JSON with printf. */
 export const SETUP_NOTICE_TEXTS = {
   "no-cli": "jevmem: the plugin is added, but the jevmem command it runs is not on this computer yet, so it does nothing. To finish: get the jevmem command (one line, in the README: https://github.com/Avinash-jetwani/jevmem#readme), then run jevmem setup in a project folder (it asks for your TypeSafe key and turns jevmem on there). Shown once.",
-  "no-key": "jevmem: the jevmem command is in place, but no TypeSafe API key is saved, so it does nothing yet. To finish: jevmem setup in a project folder (it asks for the key without showing it, and turns jevmem on there; keys at https://console.typesafe.ai/keys). Shown once.",
-  "not-on": "jevmem: the jevmem command and your TypeSafe key are in place, but jevmem is not turned on in this project, so nothing is saved or sent from here. To turn it on here: jevmem setup in this folder. Shown once.",
+  "not-on": "jevmem: the jevmem command is in place, but jevmem is not turned on in this project, so nothing is saved or sent from here. To turn it on here: run jevmem setup in this folder (it asks for your TypeSafe key if none is saved). Shown once.",
 } as const;
 export type SetupNoticeState = keyof typeof SETUP_NOTICE_TEXTS;
 
@@ -44,27 +43,6 @@ export function markSetupDone(home: string = os.homedir()): void {
 /** The context that asks Claude to pass the message on, as the launcher's RELAY_HEAD and RELAY_TAIL wrap it. */
 export function setupNoticeRelay(text: string): string {
   return `<jevmem-setup-notice>\n${text}\n</jevmem-setup-notice>\nThis is a one-time setup notice for the user from the jevmem plugin. Give it to the user at the start of your next reply, in these words, then go on with what they asked. It will not be shown again.`;
-}
-
-/**
- * The CLI's SessionStart output with the message in it: `systemMessage` always (the terminal shows it), and the relay
- * as `additionalContext` unless Claude Code's entrypoint is the terminal (`cli`), joined to any context already there.
- */
-export function withSetupNotice(stdout: string | undefined, notice: string, entrypoint: string | undefined): string {
-  let payload: Record<string, any> = {};
-  try {
-    payload = stdout ? JSON.parse(stdout) : {};
-  } catch {
-    payload = {};
-  }
-  payload.systemMessage = notice;
-  if (entrypoint !== "cli") {
-    const hso = payload.hookSpecificOutput && typeof payload.hookSpecificOutput === "object" ? payload.hookSpecificOutput : { hookEventName: "SessionStart" };
-    hso.hookEventName ??= "SessionStart";
-    hso.additionalContext = [hso.additionalContext, setupNoticeRelay(notice)].filter((s) => typeof s === "string" && s).join("\n\n");
-    payload.hookSpecificOutput = hso;
-  }
-  return JSON.stringify(payload);
 }
 
 /** The fixed words the key check sends: nothing from the project or the machine. */

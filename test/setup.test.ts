@@ -3,7 +3,7 @@
  * prompts here; the e2e `setup` scenario drives a real pseudo-terminal), the key asked for without showing it and saved
  * as `jevmem key` saves it, the folder turned on, the key checked with one request of fixed words, doctor run, what is
  * next said, the marker that ends the plugin's one-time message written, and past sessions offered with the lines shown
- * before anything is written. Also the merge of the message into the CLI's SessionStart output.
+ * before anything is written.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -11,7 +11,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { main, type TerminalIo } from "../src/cli-main.js";
 import { projectSlug } from "../src/import.js";
-import { readSetupMarker, SETUP_KEY_CHECK_TEXT, SETUP_NEEDS_TERMINAL, SETUP_NOTICE_TEXTS, setupNoticeRelay, withSetupNotice } from "../src/setup.js";
+import { readSetupMarker, SETUP_KEY_CHECK_TEXT, SETUP_NEEDS_TERMINAL } from "../src/setup.js";
 import { MemoryStore } from "../src/store.js";
 import { PACKAGE_VERSION } from "../src/version.js";
 import { startFakeJev, type FakeJev } from "./fakejev.js";
@@ -183,20 +183,5 @@ describe.skipIf(process.platform === "win32")("jevmem setup", () => {
     const lines = new MemoryStore(cwd).active();
     expect(lines).toHaveLength(1);
     expect(lines[0]!.text).toMatch(/SQLite/);
-  });
-});
-
-describe("the message in the CLI's SessionStart output", () => {
-  it("is the systemMessage, and the relay as context unless the entrypoint is the terminal, joined to context already there", () => {
-    const text = SETUP_NOTICE_TEXTS["no-key"];
-    expect(JSON.parse(withSetupNotice(undefined, text, "cli"))).toEqual({ systemMessage: text });
-    expect(JSON.parse(withSetupNotice(undefined, text, "claude-desktop"))).toEqual({ systemMessage: text, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: setupNoticeRelay(text) } });
-    expect(JSON.parse(withSetupNotice(undefined, text, undefined)).hookSpecificOutput.additionalContext).toBe(setupNoticeRelay(text));
-    const rules = JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: "<jevmem-rules>…</jevmem-rules>" } });
-    const merged = JSON.parse(withSetupNotice(rules, text, "claude-desktop"));
-    expect(merged.systemMessage).toBe(text);
-    expect(merged.hookSpecificOutput.additionalContext).toBe(`<jevmem-rules>…</jevmem-rules>\n\n${setupNoticeRelay(text)}`);
-    expect(JSON.parse(withSetupNotice(rules, text, "cli")).hookSpecificOutput.additionalContext).toBe("<jevmem-rules>…</jevmem-rules>");
-    expect(setupNoticeRelay(text)).toMatch(/^<jevmem-setup-notice>\n.*\n<\/jevmem-setup-notice>\n/s);
   });
 });
