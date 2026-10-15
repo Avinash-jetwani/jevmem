@@ -1,9 +1,12 @@
 """README graphics for jevmem, five of them: how it works, the guard, the A/B results, how it decides, the benchmark.
 Light and dark of each.
 usage: python3 make_svgs.py <outdir>   (writes docs/img/*.svg under it)
-Every measured number drawn here is from README.md at commit 471bc41 (v0.6.3), and the README has had the same
-numbers since. The benchmark's times are that README's milliseconds drawn as seconds, to two places."""
+Every measured number drawn here is from README.md: the A/B results and the guard as at commit 471bc41 (v0.6.3), the
+same since; the benchmark's jevmem row is 0.7.1's run of 2026-10-13 (results/eval-heldout-2026-10-13-v071.json) and
+its LLM rows v0.4.2's run of 2026-09-23 (results/bench-heldout-2026-09-23-v042.json). The benchmark's times are the
+results files' milliseconds drawn as seconds, to two places, rounded half up (215 ms is 0.22 s, as the README says)."""
 import sys, os
+from decimal import Decimal, ROUND_HALF_UP
 from xml.sax.saxutils import escape as esc
 
 OUT = os.path.join(sys.argv[1] if len(sys.argv) > 1 else ".", "docs", "img")
@@ -35,6 +38,10 @@ def step(x, y, n):
 def arrow(x, y):
     return f'<path d="M{x} {y - 11} L{x + 13} {y} L{x} {y + 11}" fill="none" stroke="{{orange}}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>'
 
+def seconds(ms):
+    """Milliseconds as seconds to two places, rounded half up on the exact value (a float's 0.215 would print 0.21)."""
+    return str((Decimal(ms) / Decimal(1000)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
 def write(name, w, h, body, title):
     for mode, t in THEMES.items():
         s = svg(w, h, body, title)
@@ -63,7 +70,7 @@ b.append(text(x + 22, top + 185, "in a Claude Code chat", 15, 400, "muted"))
 x = xs[1]
 b.append(text(x + 22, top + 102, "Worth keeping?", 18, 600))
 b.append(text(x + 22, top + 134, "Yes: a decision.", 18, 600, "orange"))
-b.append(text(x + 22, top + 185, "about 0.3 s, in the", 15, 400, "muted"))
+b.append(text(x + 22, top + 185, "about 0.2 s, in the", 15, 400, "muted"))
 b.append(text(x + 22, top + 205, "background", 15, 400, "muted"))
 # 3: the file, with the old line crossed out
 x = xs[2]
@@ -143,15 +150,17 @@ write("results", W, H, "".join(b), "A/B results: followed the project's decision
 print("ok", sorted(os.listdir(OUT)))
 
 # ------------------------------------------------------------------ 4. how it decides
-cw, ch, gap, top = 190, 230, 30, 20
-W, H = 20 + 5 * cw + 4 * gap, 270
-xs = [10 + i * (cw + gap) for i in range(5)]
+# Six steps since 0.7.1: dedupe (0.7.0) is folded into "Ask Jev" and "Thresholds", and the always-on mark (0.7.1) is step 6.
+cw, ch, gap, top = 180, 250, 26, 20
+W, H = 20 + 6 * cw + 5 * gap, 290
+xs = [10 + i * (cw + gap) for i in range(6)]
 steps = [
-    ("Scrub", ["Secrets, emails and", "card-shaped numbers", "are removed before", "the turn leaves your", "machine."]),
-    ("Ask Jev", ["A decision? A rule?", "A bug? Small talk?", "An injection?", "Which saved line", "does it change?"]),
-    ("Thresholds", ["Plain rules over the", "probabilities decide", "save or skip, in", "jevmem.config.json,", "not in a prompt."]),
-    ("Write a line", ["At most 200", "characters, from the", "sentence with the fact", "and the one with", "its reason."]),
+    ("Scrub", ["Secrets, emails and", "card-shaped numbers", "are removed before", "the turn leaves", "your machine."]),
+    ("Ask Jev", ["A decision? A rule?", "A bug? Small talk?", "An injection? Said", "already? A rule for", "every change? Which", "saved line does it", "change?"]),
+    ("Thresholds", ["Plain rules over the", "probabilities decide", "save or skip, in", "jevmem.config.json,", "not in a prompt.", "A restated line is", "not saved again."]),
+    ("Write a line", ["At most 200", "characters, from the", "sentence with the", "fact and the one", "with its reason."]),
     ("Supersede", ["The old line is", "tagged [superseded]", "and stays in the", "file, for history."]),
+    ("Always-on", ["A rule every change", "must follow is", "marked, and reaches", "Claude at the start", "of every session,", "whatever the prompt."]),
 ]
 b = []
 for i, (x, (t, body)) in enumerate(zip(xs, steps)):
@@ -159,13 +168,13 @@ for i, (x, (t, body)) in enumerate(zip(xs, steps)):
     b.append(step(x + 30, top + 34, i + 1))
     b.append(text(x + 54, top + 40, t, 18, 700))
     for k, ln in enumerate(body):
-        b.append(text(x + 18, top + 88 + k * 26, ln, 15, 400, "ink"))
-    if i < 4:
+        b.append(text(x + 18, top + 84 + k * 24, ln, 15, 400, "ink"))
+    if i < 5:
         b.append(arrow(x + cw + gap / 2 - 6, top + ch / 2))
-write("how-it-decides", W, H, "".join(b), "How jevmem decides: scrub secrets, ask Jev typed questions, apply thresholds in code, write one line, supersede the old line.")
+write("how-it-decides", W, H, "".join(b), "How jevmem decides: scrub secrets, ask Jev typed questions, apply thresholds in code (a restated line is not saved again), write one line, supersede the old line, and mark a rule for every change always-on.")
 
 # ------------------------------------------------------------------ 5. the benchmark
-rows = [("jevmem 0.6.0", 276, "98.5%", "$0.000157", True), ("Claude Opus 5.5", 2784, "97.0%", "$0.005186", False),
+rows = [("jevmem 0.7.1", 215, "98.5%", "$0.000184", True), ("Claude Opus 5.5", 2784, "97.0%", "$0.005186", False),
         ("Gemini 3.8 Flash", 2850, "92.4%", "$0.001174", False), ("GPT-6 Luna", 2927, "93.9%", "$0.000089", False),
         ("Grok 4.7", 3320, "90.9%", "$0.004602", False), ("GPT-6 Astra", 3469, "98.5%", "$0.007489", False),
         ("Claude Fable 5.1", 4290, "95.5%", "$0.013256", False)]
@@ -181,11 +190,11 @@ for name, ms, acc, cost, me in rows:
     b.append(text(LABW, y + 17, name, 16, 600 if me else 400, "ink", "end"))
     b.append(f'<rect x="{BX}" y="{y}" width="{BW}" height="22" rx="4" fill="{{soft}}" stroke="{{line}}" stroke-width="1"/>')
     b.append(f'<rect x="{BX}" y="{y}" width="{max(6, BW * ms / MAXMS):.1f}" height="22" rx="4" fill="{{{"orange" if me else "gray2"}}}"/>')
-    b.append(text(BX + BW + 12, y + 17, f"{ms / 1000:.2f} s", 16, w8))
+    b.append(text(BX + BW + 12, y + 17, f"{seconds(ms)} s", 16, w8))
     b.append(text(C1, y + 17, acc, 16, w8, "ink", "end"))
     b.append(text(C2 + 110, y + 17, cost, 16, w8, "ink", "end"))
     y += 38
-b.append(text(10, y + 14, "Each row is a single run: the LLM rows on 2026-09-23, jevmem's on 2026-09-30. Two LLMs were better at picking the kind of line.", 14, 400, "muted"))
+b.append(text(10, y + 14, "Each row is a single run: the LLM rows on 2026-09-23, jevmem's on 2026-10-13. Two LLMs were better at picking the kind of line.", 14, 400, "muted"))
 H = y + 30
-write("benchmark", W, H, "".join(b), "Median time to decide one message on 66 held-out turns: jevmem 0.28 s, six current LLMs 2.78 to 4.29 s; save/skip accuracy and cost per decision alongside.")
+write("benchmark", W, H, "".join(b), "Median time to decide one message on 66 held-out turns: jevmem 0.22 s, six current LLMs 2.78 to 4.29 s; save/skip accuracy and cost per decision alongside.")
 print("ok2", sorted(os.listdir(OUT)))

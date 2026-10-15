@@ -2,7 +2,7 @@
 
 Automatic project memory for Claude Code. Also works with Cursor and Codex.
 
-This file has two prompt sets. The **SQLite → Postgres demo** below (three live prompts in Claude Code, or five scripted steps through the hook's stdin) is for a screen recording. The **LinkGuard session** at the bottom is a different set of five prompts: the ones `scripts/e2e.sh` sends through a real Claude Code session, with its real output. The decider behind both scores 95.5% (`auto` and `fast`) save+kind on the 66-turn held-out eval set and 98.0% (`auto`) on the 50-turn regression set (`node scripts/eval.mjs`, v0.4.2, 2026-09-23, [`results/`](results/); the decide path is unchanged in v0.5.0); older figures remain in CHANGELOG.md.
+This file has two prompt sets. The **SQLite → Postgres demo** below (three live prompts in Claude Code, or five scripted steps through the hook's stdin) is for a screen recording. The **LinkGuard session** at the bottom is a different set of five prompts: the ones `scripts/e2e.sh` sends through a real Claude Code session, with its real output. The decider behind both scores 95.5% (`auto` and `fast`) save+kind on the 66-turn held-out eval set (`node scripts/eval.mjs`; 0.7.1, 2026-10-13, [results](results/eval-heldout-2026-10-13-v071.json), the same count as every build since v0.4.2) and 98.0% (`auto`) on the 50-turn regression set (v0.4.2, 2026-09-23, [results](results/eval-regression-2026-09-23-v042.json); 0.6.5, the last build run on it, 100.0% and 98.0% in two runs on 2026-10-05, [run 2](results/eval-regression-2026-10-05-v065-run2.json)); older figures remain in CHANGELOG.md.
 
 ## Setup (before recording)
 
@@ -53,7 +53,7 @@ Start a **new** Claude Code session (`/clear` or a fresh `claude`) so the model 
 
 > How should I connect to the database from the API layer?
 
-Before Claude answers, the `UserPromptSubmit` hook runs one Jev `choice` over the memory ids and injects the winners. Claude's answer talks about Postgres 16, not SQLite, because it received:
+Before Claude answers, the `UserPromptSubmit` hook makes one Jev call that asks about each saved line and injects the ones that bear on the prompt (since 0.6.0; up to 0.5.10, one `choice` over the memory ids). Claude's answer talks about Postgres 16, not SQLite, because it received:
 
 ```text
 <jevmem-memory>

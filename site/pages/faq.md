@@ -1,14 +1,14 @@
 ---
 path: /faq/
 nav: FAQ
-description: jevmem needs a TypeSafe API key, costs $0.00016 per message to decide what to save, is not supported on local models, and shares its memory file with your team through git.
+description: jevmem needs a TypeSafe API key, costs $0.00018 per message to decide what to save, is not supported on local models, and shares its memory file with your team through git.
 order: 12
 ---
 # Does jevmem need a key, what does it cost, and what are its limits?
 
-jevmem needs a TypeSafe API key; deciding what to save costs $0.00016 per message on that key; a local model is not a supported mode; your team gets the memory file through git; and the known limits are listed at the end of this page.
+jevmem needs a TypeSafe API key; deciding what to save costs $0.00018 per message on that key; a local model is not a supported mode; your team gets the memory file through git; and the known limits are listed at the end of this page.
 
-The cost is the average over 66 held-out turns with jevmem 0.6.0, one run on 2026-09-30, at TypeSafe's listed price for Jev ([results](../../results/eval-heldout-2026-09-30-v060.json)). To set jevmem up: [install](install.md).
+The cost is the average over 66 held-out turns with jevmem 0.7.1, one run on 2026-10-13, at TypeSafe's listed price for Jev ([results](../../results/eval-heldout-2026-10-13-v071.json)). To set jevmem up: [install](install.md).
 
 ## Do I need a key?
 
@@ -18,7 +18,7 @@ Yes: jevmem needs a [TypeSafe API key](https://console.typesafe.ai/keys), becaus
 
 jevmem itself is free and open source (MIT). The requests it makes to Jev are billed by TypeSafe to your key.
 
-- **Deciding what to save** costs $0.00016 per message (66 held-out turns, jevmem 0.6.0, 2026-09-30, [results](../../results/eval-heldout-2026-09-30-v060.json)).
+- **Deciding what to save** costs $0.00018 per message (66 held-out turns, jevmem 0.7.1, 2026-10-13, [results](../../results/eval-heldout-2026-10-13-v071.json)).
 - **Bringing lines back** costs more as the file grows: 300 prompts a day is about $0.03 with 18 live lines, $0.09 with 74 and $0.28 with 220 (the retrieval held-out set's files, run through the real hook on 2026-09-28, [results](../../results/recall-heldout-2026-09-28-now.json)).
 
 Both are input tokens at $0.042 per million, the price in TypeSafe's launch post; check TypeSafe's own pricing for what your key is charged. Every request is logged in `.jevmem/log.jsonl`, and `jevmem stats` adds them up. The whole table: [docs/cost.md](../../docs/cost.md).

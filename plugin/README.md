@@ -44,8 +44,9 @@ In an enabled project where the hooks can't find the `jevmem` CLI, memory is off
 Only in an enabled project. Before anything is sent, common secret shapes are replaced with `[REDACTED]`: API keys and tokens, passwords, credentials in connection strings, private keys, email addresses. This is best effort, so don't paste secrets into prompts.
 
 - **To TypeSafe AI, `https://api.typesafe.ai/v1/systemone`**, or the URL in `TYPESAFE_BASE_URL` if you set it:
-  - on each prompt: the prompt and up to 60 of your memory lines;
-  - after each turn: your message, the previous two turns (shortened), and up to 200 memory lines. Claude's reply is included only when your message reads as a question or a bug report, or has no text;
+  - on each prompt: the prompt and every live memory line, up to 250 (since 0.6.0; 0.5.x sent up to 60). Nothing at the start of a session, where the `SessionStart` hook reads the file (0.7.1);
+  - after each turn: your message, the previous two turns (shortened), and up to 200 memory lines. Claude's reply (its first 2,000 characters) is in the request when your message reads as a question or a bug report, when the reply reports an attempt, when the turn is about a saved dead end, or when your message has no text; since 0.6.6, when your message reads as a request to try or change something, a second small request asks whether the reply reports a failed attempt. Since 0.7.0 the request also asks whether your message restates a saved line, and since 0.7.1 whether it is a rule for every change, with no new text for either;
+  - when you run them: `jevmem trust` sends the one line you are trusting (0.7.0); `jevmem always --suggest` sends each rule-like line (0.7.1); `jevmem import --from sessions` sends your past Claude Code sessions, turn by turn, only after showing the count and the cost and asking (0.7.1);
   - from the MCP tools: the line to add (`add_memory`), your memory lines (`search_memory`, `list_memory`), and for `audit_memory` the file names to depth 3 (not their contents), `package.json` fields and the first 3,000 characters of your README.
 - **To OpenAI (`https://api.openai.com`) or Anthropic (`https://api.anthropic.com`)**, or the URL in `OPENAI_BASE_URL` or `ANTHROPIC_BASE_URL`, only when you set `"writer": "openai"` or `"anthropic"` in the project's `jevmem.config.json` (and that provider's key): the text of a turn Jev decided to save, to condense it into one line. An OpenAI or Anthropic key in your environment is not enough on its own. By default jevmem writes the line itself and sends nothing to either.
 
@@ -58,7 +59,7 @@ There is no telemetry. Details: https://github.com/Avinash-jetwani/jevmem/blob/m
 ## What it writes
 
 - `JEVMEM.md` in the project: the memory lines, meant to be committed.
-- `.jevmem/` in the project, which is gitignored: logs, the save queue, cached Jev answers, and recent decisions with the scrubbed turn text.
+- `.jevmem/` in the project, which is gitignored: logs, the save queue, cached Jev answers, recent decisions with the scrubbed turn text, the guard's index, cache and log, what the last prompt got and what the last turn decided (`last-recall.json`, `last-decision.json`, 0.7.0), and the ids of the sessions the `SessionStart` hook served (0.7.1).
 - `${CLAUDE_PLUGIN_DATA}/cli`: the paths of the CLI and Node it found, so later runs start faster.
 - `${CLAUDE_PLUGIN_DATA}/notified`: in an enabled project without the CLI, the ids of the sessions already shown the "CLI not found" line, so it is shown once per session.
 - In the system temp directory: a file holding the `Stop` hook's input, deleted when jevmem reads it. For a very long project path, jevmem's local socket goes there too, instead of in `.jevmem/`.

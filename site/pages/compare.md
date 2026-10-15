@@ -6,7 +6,7 @@ order: 3
 ---
 # How does jevmem compare with CLAUDE.md, Claude Code's auto memory and other memory tools?
 
-jevmem writes a memory file in your repo for you, `JEVMEM.md`, and brings back only the lines a prompt needs; `CLAUDE.md` is a file you write by hand that Claude Code loads at the start of every session, Claude Code's auto memory is notes that Claude keeps on one machine, and the five other memory tools on this page each keep their memories in a local database or on a server, by their own pages.
+jevmem writes a memory file in your repo for you, `JEVMEM.md`, and brings back only the lines a prompt needs (and, since 0.7.1, the rules it has marked always-on, at the start of every session); `CLAUDE.md` is a file you write by hand that Claude Code loads at the start of every session, Claude Code's auto memory is notes that Claude keeps on one machine, and the five other memory tools on this page each keep their memories in a local database or on a server, by their own pages.
 
 Only jevmem and `CLAUDE.md` were measured against each other, and the numbers are jevmem's own: in 72 real Claude Code sessions, Claude followed the project's saved decision in 66 with jevmem (66/72) and in 67 with the same lines in a hand-written `CLAUDE.md` (67/72), against 28 with no project memory (28/72). That was 24 tasks in three small projects, 3 runs each, with Claude Code 2.1.281, on 2026-09-28 and 2026-09-29 ([no memory and CLAUDE.md](../../results/ab-2026-09-28.json), [jevmem](../../results/ab-jevmem-2026-09-29-3b.json)). We did not test the other tools, and Claude Code's auto memory started empty in every session of that test, so nothing on this page says that one tool does better than another.
 
@@ -16,7 +16,7 @@ Each cell for a tool other than jevmem is what that project says on its own page
 
 | | How it saves | Where it stores | Works with | Account or key | Runs locally | Licence |
 |---|---|---|---|---|---|---|
-| **jevmem** | Automatic in Claude Code, after every turn; in Codex while `jevmem watch` runs; in Cursor and Claude Desktop when the agent calls it | A file in the repo, `JEVMEM.md`, shared through git | Claude Code, Codex, Cursor, Claude Desktop | A TypeSafe API key | The CLI runs on your machine; each decision is a request to TypeSafe's API | MIT |
+| **jevmem** | Automatic in Claude Code, after every turn; in Codex while `jevmem watch` runs; in Cursor and Claude Desktop when the agent calls it; from past Claude Code sessions when you ask (`jevmem import --from sessions`, 0.7.1) | A file in the repo, `JEVMEM.md`, shared through git | Claude Code, Codex, Cursor, Claude Desktop | A TypeSafe API key | The CLI runs on your machine; each decision is a request to TypeSafe's API | MIT |
 | **`CLAUDE.md`** | Manual: you write it | A file in the repo, shared through version control, or in your home folder | Claude Code | None named in the docs | Yes: a file Claude Code reads | A Claude Code feature |
 | **Claude Code's auto memory** | Automatic: Claude writes a note when it judges one worth keeping | Files under `~/.claude/projects/<project>/memory/`, on one machine | Claude Code | None named in the docs | Yes: machine-local files | A Claude Code feature |
 | **claude-mem** | Automatic, through Claude Code hooks | A local SQLite database, `~/.claude-mem/claude-mem.db`; a backup to cmem.ai is offered | Claude Code, and Cursor, Windsurf, OpenCode, Codex CLI and others | Its installer asks you to sign in to claude-mem, which can be skipped; memory is processed by a provider you pick | A local worker and database; the pre-selected provider is hosted | Apache-2.0 |
@@ -51,7 +51,7 @@ From the same page. Auto memory is notes Claude writes itself, on by default. Cl
 
 ### jevmem next to those two
 
-jevmem replaces neither. Rules every task must follow still belong in `CLAUDE.md`: in the test above, `CLAUDE.md` did better on a convention nothing in the prompt points at (3 of 3 sessions against 0 of 3). `jevmem import` reads an existing `CLAUDE.md` and shows what it would add from it. A longer table of the three: [CLAUDE.md, auto memory and jevmem side by side](claude-code-memory.md#claudemd-auto-memory-and-jevmem-side-by-side).
+jevmem replaces neither. Until 0.7.1, rules every task must follow belonged in `CLAUDE.md`: in the test above, `CLAUDE.md` did better on a convention nothing in the prompt points at (3 of 3 sessions against 0 of 3), because jevmem brought a line back only for a prompt it bears on. Since 0.7.1 jevmem marks such a rule always-on and sends it at the start of every session: on six held-out tasks written for that gap, Claude followed the convention in 14 of 18 sessions with 0.7.0 and 18 of 18 with 0.7.1, as with the same lines in `CLAUDE.md` ([method and limits](results.md#do-rules-every-change-must-follow-reach-claude)). `CLAUDE.md` still holds what you write by hand for every session, and `jevmem import` reads an existing one and shows what it would add from it. A longer table of the three: [CLAUDE.md, auto memory and jevmem side by side](claude-code-memory.md#claudemd-auto-memory-and-jevmem-side-by-side).
 
 ### claude-mem
 

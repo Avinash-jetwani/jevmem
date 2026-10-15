@@ -7,7 +7,7 @@ order: 7
 
 Run `jevmem init --tool codex` in your project, then keep `jevmem watch` running while you work: `init` registers jevmem's MCP server in `~/.codex/config.toml` and adds a section to the project's `AGENTS.md`, and `watch` reads Codex's session log for the project and decides, turn by turn, what to save, as jevmem does in Claude Code.
 
-Saving is automatic in Codex only while `jevmem watch` runs; without it, a line is saved when Codex's agent calls `add_memory`. Bringing lines back is up to the agent: the `AGENTS.md` section tells it to call `search_memory`. The check behind each save is the one a Claude Code turn gets: on 66 held-out turns it was right on save or skip for 98.5% (jevmem 0.6.0, one run on 2026-09-30, [results](../../results/eval-heldout-2026-09-30-v060.json)). Those turns were given to the decider directly; nothing has been measured inside Codex.
+Saving is automatic in Codex only while `jevmem watch` runs; without it, a line is saved when Codex's agent calls `add_memory`. Bringing lines back is up to the agent: the `AGENTS.md` section tells it to call `search_memory`. The check behind each save is the one a Claude Code turn gets: on 66 held-out turns it was right on save or skip for 98.5% (jevmem 0.7.1, one run on 2026-10-13, [results](../../results/eval-heldout-2026-10-13-v071.json)). Those turns were given to the decider directly; nothing has been measured inside Codex.
 
 ## Set it up
 

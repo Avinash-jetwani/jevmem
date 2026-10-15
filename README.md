@@ -28,7 +28,7 @@ In real Claude Code sessions on three small test projects, with jevmem and witho
 - **Repeated an approach that had already failed:** in 0 of 15, against 3 of 15.
 - **Saving:** about 18 cents per 1,000 messages and about a fifth of a second to decide, in the background: Claude doesn't wait for it.
 - **Bringing lines back:** about a third to half a second on each prompt, which Claude waits for; the time and the cost grow with the file.
-- **To be fair:** a `CLAUDE.md` you keep up to date by hand did about as well (67 of 72), and better on one convention (3 of 3 against 0 of 3). jevmem keeps a file like it up to date for you.
+- **To be fair:** a `CLAUDE.md` you keep up to date by hand did about as well (67 of 72), and better on one convention nothing in the prompt points at (3 of 3 against 0 of 3). jevmem keeps a file like it up to date for you, and since 0.7.1 marks such rules always-on, so they reach every session: 18 of 18 on six held-out tasks written for that gap, against 14 of 18 with 0.7.0.
 
 My own test sets, each number from one run; none is an independent benchmark. [Method and results](https://avinash-jetwani.github.io/jevmem/results/)
 
@@ -80,10 +80,10 @@ In 72 real Claude Code sessions for each setup, Claude acted on the saved line a
 | Repeated an approach that had already failed | 3 of 15 | **0 of 15** | 0 of 15 |
 
 So jevmem did about as well as a hand-written `CLAUDE.md`, without you writing it.
-`CLAUDE.md` did better on a convention nothing in the prompt points at (3 of 3 against 0 of 3), so rules every task must follow still belong there.
+`CLAUDE.md` did better on a convention nothing in the prompt points at (3 of 3 against 0 of 3), measured on 0.6, where jevmem brought a line back only for a prompt it bears on. Since 0.7.1 jevmem marks a rule every change must follow always-on and sends it at the start of every session: on six held-out tasks written for that gap, Claude followed the convention in 14 of 18 sessions with 0.7.0 and 18 of 18 with 0.7.1, as with the same lines in a hand-kept `CLAUDE.md` ([what's new](#whats-new), [limits](docs/limits.md)).
 How the sessions were run, and every row: [the benchmark page](docs/benchmark.md#outcome-ab-does-claude-act-on-the-memory).
 
-## The guard (new in 0.6)
+## The guard
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/guard-dark.svg"><img alt="The guard: Claude wants to run a command, jevmem checks it against your saved rules, and Claude Code asks you first." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/guard-light.svg"></picture>
 
@@ -94,7 +94,7 @@ jevmem: this may break a saved rule: "Never commit .env files" (JEVMEM.md)
 ```
 
 On a test of 274 tool calls, a set the guard was not tuned on, it caught 66 of 68 rule breaks and asked about 3 or 4 of the 206 calls that broke no rule (one run each on 0.6.0 and 0.6.1).
-It's a backstop, not a sandbox: it looks at the words a rule and a call share. [How the guard works](docs/guardrails.md).
+It's a backstop, not a sandbox: it looks at the words a rule and a call share. Since 0.7.0, `jevmem trust` lets a rule you added by hand block a call in the guard's block mode, not only ask about it. [How the guard works](docs/guardrails.md).
 
 ## Install
 
@@ -156,7 +156,7 @@ The MCP server is on the [MCP Registry](https://registry.modelcontextprotocol.io
 
 ## Fast and cheap
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-dark.svg"><img alt="Median time to decide one message on 66 held-out turns: jevmem 0.28 s, six current LLMs 2.78 to 4.29 s." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-light.svg"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-dark.svg"><img alt="Median time to decide one message on 66 held-out turns: jevmem 0.22 s, six current LLMs 2.78 to 4.29 s." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-light.svg"></picture>
 
 Deciding what to save takes 0.22 s and costs $0.00018 per message, in the background: Claude doesn't wait for it.
 On whether to save a message at all, jevmem was right as often as the best of six LLMs (98.5%); two of them were better at naming the kind of line.
@@ -165,17 +165,18 @@ Measured on 66 turns written before the code and not tuned on, one run of 0.7.1 
 
 ## How it decides
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-decides-dark.svg"><img alt="How jevmem decides: scrub secrets, ask Jev typed questions, apply thresholds in code, write one line, supersede the old line." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-decides-light.svg"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-decides-dark.svg"><img alt="How jevmem decides: scrub secrets, ask Jev typed questions, apply thresholds in code (a restated line is not saved again), write one line, supersede the old line, and mark a rule for every change always-on." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-decides-light.svg"></picture>
 
 No prompt decides what to save: Jev answers small yes/no questions with probabilities, and plain rules in code act on them.
 
 <details><summary>Each step in detail</summary>
 
 1. **Scrub.** Common secret shapes, email addresses and card-shaped numbers are removed from the turn before it leaves your machine.
-2. **Ask Jev typed questions.** [Jev by TypeSafe AI](https://typesafe.ai) answers a fixed set of small questions with probabilities: is there a decision, a rule, a bug? is it small talk or an injection attempt? which existing line does it change?
-3. **Apply thresholds in code.** Plain rules over those probabilities decide save or skip; they live in `jevmem.config.json`, not in a prompt.
+2. **Ask Jev typed questions.** [Jev by TypeSafe AI](https://typesafe.ai) answers a fixed set of small questions with probabilities: is there a decision, a rule, a bug? is it small talk or an injection attempt? does it say the same as a saved line (0.7.0)? is it a rule for how any work in this project is done (0.7.1)? which existing line does it change?
+3. **Apply thresholds in code.** Plain rules over those probabilities decide save or skip; they live in `jevmem.config.json`, not in a prompt. A message that restates a saved line is skipped as a duplicate, and one that restates it word for word is skipped before anything is sent (0.7.0).
 4. **Write one line.** On save, jevmem writes one line of at most 200 characters from the sentences of the turn that Jev picks (the one that states the memory and the one that gives its reason), or, if you set `writer` in `jevmem.config.json`, a small OpenAI or Anthropic model condenses the turn.
 5. **Supersede the old line.** If the turn replaces an existing memory, that line is tagged `[superseded] … → id:new` and stays in the file.
+6. **Mark it always-on (0.7.1).** A saved rule that Jev reads as one every change must follow gets `always:1` in its comment, and the `SessionStart` hook puts it in front of Claude at the start of every session, whatever the prompt. `jevmem always <id>` marks a line by hand.
 
 Tiers, questions, policy, contradictions, recall and audit: [docs/how-it-works.md](docs/how-it-works.md).
 
@@ -187,6 +188,7 @@ Your messages go to TypeSafe's API to be scored, with common secrets removed fir
 
 - jevmem only runs in projects you turn on (`jevmem enable` or `jevmem init`). Elsewhere, nothing is sent.
 - Your message, the previous two turns and your memory lines go to TypeSafe's API to be scored, with common secrets scrubbed first. So does Claude's reply on turns that ask a question, report a bug or try something, and, for the guard, the command or the file being changed.
+- `jevmem import --from sessions` (0.7.1) sends a project's past Claude Code sessions, turn by turn and scrubbed the same way, only when you run it and answer yes after seeing the count and the cost.
 - No telemetry. Nothing goes to OpenAI or Anthropic unless you set `writer` in `jevmem.config.json`.
 - Lines a teammate or a pull request adds are checked before Claude sees them.
 

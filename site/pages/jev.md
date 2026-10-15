@@ -15,11 +15,11 @@ Deciding what to save takes 0.22 s and costs $0.00018 per message, and was right
 
 ## The three places jevmem calls Jev
 
-- **After each turn, to decide what to save.** One request of small typed questions; a second, larger set only when the first is unsure. Thresholds in `jevmem.config.json` turn the probabilities into save or skip ([how it works](../../docs/how-it-works.md#the-decider-two-tiers-srcdecidets-srcquestionsts-srccombinets)).
+- **After each turn, to decide what to save.** One request of small typed questions; a second, larger set only when the first is unsure. Thresholds in `jevmem.config.json` turn the probabilities into save or skip ([how it works](../../docs/how-it-works.md#the-decider-two-tiers-srcdecidets-srcquestionsts-srccombinets)). Since 0.7.0 one of the questions asks whether the message restates a saved line, so that it is not saved twice, and since 0.7.1 one asks whether it is a rule for how any work in this project is done, which marks the line always-on.
 - **On each prompt, to pick the lines to bring back.** Each live line, up to 250 of them, is asked about on its own, and at most five go to Claude ([the read side](../../docs/how-it-works.md#the-read-side-one-call-per-prompt-srcrecallts)).
 - **Before a Bash, Edit or Write call, to check it against your rules.** Only for a call that shares a path, a command or enough words with a saved rule ([the guard](guard.md)).
 
-Jev also checks lines that jevmem did not write on your machine, such as a teammate's or a pull request's, before they reach Claude ([what leaves your machine](privacy.md)).
+Jev also checks lines that jevmem did not write on your machine, such as a teammate's or a pull request's, before they reach Claude ([what leaves your machine](privacy.md)). The same questions run when you ask for them: `jevmem trust` asks that check about one line you wrote (0.7.0), `jevmem always --suggest` asks the always-on question about each rule-like line (0.7.1), and `jevmem import --from sessions` decides each past turn of the project's Claude Code sessions (0.7.1). The `SessionStart` hook, which puts the always-on lines in front of Claude, makes no call.
 
 ## Why Jev and not an LLM
 

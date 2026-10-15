@@ -7,7 +7,7 @@ order: 8
 
 Run `jevmem init --tool claude-desktop` in your project and paste the config snippet it prints into Claude Desktop's `claude_desktop_config.json`: that starts jevmem's MCP server for that one project, and jevmem then saves a line when you ask Claude to call `add_memory` and looks lines up when you ask for `search_memory`.
 
-Nothing is automatic in Claude Desktop: it has no hook and no rule file, so jevmem acts only when you ask. A line added this way goes through the same check as a Claude Code turn: on 66 held-out turns that check was right on save or skip for 98.5% (jevmem 0.6.0, one run on 2026-09-30, [results](../../results/eval-heldout-2026-09-30-v060.json)). Those turns were given to the decider directly; nothing has been measured inside Claude Desktop.
+Nothing is automatic in Claude Desktop: it has no hook and no rule file, so jevmem acts only when you ask. A line added this way goes through the same check as a Claude Code turn: on 66 held-out turns that check was right on save or skip for 98.5% (jevmem 0.7.1, one run on 2026-10-13, [results](../../results/eval-heldout-2026-10-13-v071.json)). Those turns were given to the decider directly; nothing has been measured inside Claude Desktop.
 
 ## Set it up
 

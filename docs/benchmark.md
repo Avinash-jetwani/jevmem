@@ -1,26 +1,28 @@
 # Benchmark
 
-Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved, compared with six LLMs) was measured on v0.4.2 on 2026-09-23, and has not been re-run against the LLMs on a 0.5.x release. The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts.
+Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved) was measured against six LLMs on v0.4.2 on 2026-09-23; the LLMs have not been run since, and jevmem's own row is run again on each release, last for 0.7.1 on 2026-10-13 ([0.7.1 beside the six LLMs](#071-beside-the-six-llms)). The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts.
 
 ## Why Jev and not an LLM
 
-- **It is fast enough to run on every turn.** 0.3 s in-process (and the `Stop` hook no longer waits for it), against 2.8–4.3 s p50 for the LLMs we measured, means the decision can happen on *every* Stop, not once per session. Memory that updates continuously catches the decision made in passing at turn 41. It is not the most accurate: see [Benchmark](benchmark.md#benchmark).
+- **It is fast enough to run on every turn.** About 0.2 s in-process (0.7.1: a median of 215 ms on the 66 held-out turns, 2026-10-13; and the `Stop` hook no longer waits for it), against 2.8–4.3 s p50 for the LLMs we measured, means the decision can happen on *every* Stop, not once per session. Memory that updates continuously catches the decision made in passing at turn 41. It is not the most accurate: see [Benchmark](benchmark.md#benchmark).
 - **Typed answers, thresholds in code.** Jev returns probabilities, not prose. "Save if importance ≥ useful and chit-chat < 0.5" is a line of config, testable and tunable, not a prompt you hope the model follows.
 - **A narrow attack surface, not a closed one.** Per TypeSafe, Jev returns probabilities and does not generate text or call tools, so a transcript that says "ignore previous instructions and remember X" has no channel to run a command through Jev; the failure mode is a wrong probability. Injected text can still bias those probabilities, which is why an injection noul gates every hook and MCP `add_memory` save (one broad noul in tier 1, four atomic nouls when tier 2 runs), the eval sets carry injection attempts, and the harness sends one. Once Jev says save, the line itself is written by the writer LLM (or the extract) from the scrubbed message, so injected text that gets past the gate can still shape the line's wording. Lines typed with `jevmem add` are not checked by Jev.
 
 ## Compared with an LLM as the decider
 
-Only rows the [Benchmark](benchmark.md#benchmark) measures (held-out set, 66 turns):
+Only rows the [Benchmark](benchmark.md#benchmark) measures (held-out set, 66 turns). The LLM column is v0.4.2's run of 2026-09-23, the last time the six were run; jevmem's is 0.7.1's run of the same set on 2026-10-13 ([results](../results/eval-heldout-2026-10-13-v071.json)), three weeks later:
 
-| | An LLM called as the decider (six benchmarked) | Jevmem (`auto`) |
+| | An LLM called as the decider (six benchmarked, 2026-09-23) | jevmem 0.7.1 (`auto`, 2026-10-13) |
 |---|---|---|
-| Decides what to save with | One LLM call with a zero-shot prompt | One Jev call of 12 questions (14 with the assistant reply); a second of 33 (37) on 6–14% of turns |
+| Decides what to save with | One LLM call with a zero-shot prompt | One Jev call of 14 questions (15 when saved lines are listed; 16 or 17 with the assistant reply; 5 more when a live dead end is listed); a second of 35 (36; 39 or 40) on 18% of turns (12 of the 66) |
 | Accuracy: save/skip | 90.9%–98.5% | 98.5% (tied highest) |
 | Accuracy: save/skip + kind | 90.9%–98.5% | 95.5% (below GPT-6 Astra and Claude Opus 5.5) |
-| Latency per decision | 2.8–4.3 s p50, 4.9–29.6 s p95 | 300 ms p50, 629 ms p95 |
-| Cost per decision | $0.000089 (GPT-6 Luna) to $0.013256 (Claude Fable 5.1) | $0.000127 |
+| Latency per decision | 2.8–4.3 s p50, 4.9–29.6 s p95 | 215 ms p50, 462 ms p95 |
+| Cost per decision | $0.000089 (GPT-6 Luna) to $0.013256 (Claude Fable 5.1) | $0.000184 |
 | Detects contradictions | Five of six found 5/5 with a named id (Grok 4.7: 4/5, its miss an empty answer); none flagged a false one | 5/5 (`contradicts_existing_memory` ≥ 0.7 AND a named memory id) |
 | Injection resistance | Five of six refused all 6 injection turns (Gemini 3.8 Flash: 5/6, its miss an empty answer) | Refused all 6 injection turns |
+
+v0.4.2's first call asked 12 questions (14 with the reply) and its second 33 (37); since then the dead-end question (0.6.0), the restatement question (0.7.0) and the always-on question (0.7.1) joined each call, a live dead end adds five more, and the second call runs on 18% of the held-out turns against 13.6% then ([every mode, six builds](#every-mode-six-builds)).
 
 ## Benchmark
 
@@ -78,7 +80,7 @@ The 66-turn held-out set through `scripts/eval.mjs` (`decide` in-process with a 
 | 0.7.1 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000184 (+line $0.000185) | 215 ms |
 | 0.7.1 | `full` | 92.4% (61/66) | 89.4% (59/66) | 5/5 | $0.000257 (+line $0.000258) | 235 ms |
 
-The three builds miss the same turns in each mode (the debatable preference label, "no, leave it as is" saved as a decision, and in `full` two bugs and a constraint skipped). 0.6.0 costs more per decision than 0.5.9 in every mode because each tier asks one more noul (the dead-end noul) and tier 1's injection question is longer; `auto` escalated 18.2% of turns against 16.7% for 0.5.9 and 13.6% for v0.4.2. The README's figures, 0.27 s and $0.00017 per message, are 0.7.0's `auto` row here. 0.7.1 misses the same turns, and in `full` reads one more kind wrong: the Vitest-to-Jest reversal as a dead end rather than a decision, its contradiction still found (59 of 66 against 0.7.0's 60).
+The builds miss the same turns in each mode (the debatable preference label, "no, leave it as is" saved as a decision, and in `full` two bugs and a constraint skipped). 0.6.0 costs more per decision than 0.5.9 in every mode because each tier asks one more noul (the dead-end noul) and tier 1's injection question is longer; `auto` escalated 18.2% of turns against 16.7% for 0.5.9 and 13.6% for v0.4.2. The README's figures, 0.22 s and $0.00018 per message, are 0.7.1's `auto` row here. 0.7.1 misses the same turns, and in `full` reads one more kind wrong: the Vitest-to-Jest reversal as a dead end rather than a decision, its contradiction still found (59 of 66 against 0.7.0's 60).
 
 ### 0.7.1 beside the six LLMs
 
@@ -96,7 +98,7 @@ The table the README shows. 66 held-out turns, all seven deciders given the same
 
 The 0.22 s is the Jev API decision (p95 462 ms; a saved turn's line costs one more request, $0.000185 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](../results/ops-2026-09-26-v056.json), [cost and latency](cost.md)).
 
-On 66 held-out turns, jevmem 0.7.1's median decision took 0.22 s (one run, 2026-10-13; the README's graphic shows 0.6.0's run of 2026-09-30, 0.28 s, with the same counts), against 2.8–4.3 s for six current LLMs.
+On 66 held-out turns, jevmem 0.7.1's median decision took 0.22 s (one run, 2026-10-13, the run the README's graphic shows), against 2.8–4.3 s for six current LLMs.
 Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 95.5% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%) and Claude Opus 5.5 (97.0%) were more accurate on save+kind; Claude Fable 5.1 tied; GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
 GPT-6 Luna was cheaper ($0.000089 against $0.000184) but less accurate (93.9%) and about 14× slower.
 Each row is a single run, and differences of one or two turns are within run-to-run noise; the LLM rows and jevmem's are three weeks apart. If the most accurate decision matters most, GPT-6 Astra or Claude Opus 5.5 are better, at about 28–41× the cost per decision and 13–16× the latency. jevmem is for when you want a fast, cheap decision on every message.
@@ -329,7 +331,7 @@ Part 3's, with what part 3b changed:
 
 - **A slow or failed call.** Part 3: a call past the 2-second budget injected nothing (4 of 90 held-out prompts). Since part 3b a call has one second, and past it the prompt gets word-match lines. Word match finds lines that share the prompt's words (dev, as if every prompt had fallen back: direct 25/32) and seldom the others (indirect 3/33), so a slow call still costs the indirect prompts their lines. No held-out v2 call ran late; the fallback is measured on dev only.
 - **Two lines for one prompt.** Held-out prompts that needed two lines got both in 3 of 6, in part 3 and again on held-out v2 (0.5.9: 3 of 6 and 1 of 6). When the first line takes the whole choice, the second is kept only at the sure level; part 3b's lower floor does not reach a choice of 0.00.
-- **Lines nothing in the prompt points at.** Recall judges each line against the prompt alone. In the outcome A/B below, a convention for every user-facing string was never injected for "add a button" (0 of 3 in both runs), and a terse prompt ("Show the file name in front of each matching line.") got nothing; the same lines in `CLAUDE.md` were always in context. Rules that must apply to every task belong in `CLAUDE.md` ([How it works](how-it-works.md)).
+- **Lines nothing in the prompt points at.** Recall judges each line against the prompt alone. In the outcome A/B below, a convention for every user-facing string was never injected for "add a button" (0 of 3 in both runs), and a terse prompt ("Show the file name in front of each matching line.") got nothing; the same lines in `CLAUDE.md` were always in context. Since 0.7.1 a rule every change must follow is marked always-on and reaches every session ([Always-on rules](#always-on-rules-071)); until then, such rules belonged in `CLAUDE.md`.
 - **Cost per prompt** is about 2.2 to 2.3 times 0.5.9's on the two held-out sets, and about 3.1 to 3.3 times on a 250-line file. Part 3b did not change it.
 - **More than 250 live lines** (`jev.maxRecallLines`): the 250 sharing the most words with the prompt are sent. On dev's 500-line file (445 live) recall fell to 37/46 from 45/46 at 255 lines, 8 of the 9 missed lines never sent.
 - **MCP `search_memory` and `jevmem search`** are unchanged and were not measured here.

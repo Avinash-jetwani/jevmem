@@ -52,9 +52,9 @@ cd your-project
 jevmem init --tool claude
 ```
 
-`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the three Claude Code hooks ([details](hooks.md#what-init-sets-up)). Hooks don't get your shell's variables and jevmem doesn't read shell profiles, so save the key with `jevmem key`, which puts it in `~/.jevmem/env`. `jevmem doctor` checks the setup.
+`init` creates `JEVMEM.md`, `jevmem.config.json` and `.jevmem/`, and registers the four Claude Code hooks: `Stop`, `UserPromptSubmit`, `PreToolUse` and, since 0.7.1, `SessionStart` ([details](hooks.md#what-init-sets-up)). Hooks don't get your shell's variables and jevmem doesn't read shell profiles, so save the key with `jevmem key`, which puts it in `~/.jevmem/env`. `jevmem doctor` checks the setup.
 
-**Already have a `CLAUDE.md`?** `jevmem import` splits `CLAUDE.md`, `AGENTS.md` and `.cursor/rules/*` into statements, puts each through the same gate as a turn, and prints what it would add; `--apply` writes them. `--from claude-auto-memory` also reads Claude Code's own auto memory for the project. The source files are only read.
+**Already have a `CLAUDE.md`?** `jevmem import` splits `CLAUDE.md`, `AGENTS.md` and `.cursor/rules/*` into statements, puts each through the same gate as a turn, and prints what it would add; `--apply` writes them. `--from claude-auto-memory` also reads Claude Code's own auto memory for the project. The source files are only read. Since 0.7.1, `jevmem import --from sessions` reads the project's past Claude Code sessions the same way, after showing the count and the cost and asking ([how it works](how-it-works.md#import-srcimportts)).
 
 ## Works with
 
