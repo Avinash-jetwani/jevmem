@@ -2,6 +2,12 @@
 
 Design decisions made while building Jevmem v1, with the reasoning, so they can be revisited deliberately.
 
+## 0.7.3: the message where the marker stays
+
+- **An allowlist of entrypoints, not a denylist.** Claude Code's `CLAUDE_CODE_ENTRYPOINT` is not documented, and its values come from Claude Code's own code (27 of them on 2.1.300); a denylist would show the message in every value added later, and the cost of a miss is the nagging 0.7.2 produced. So the message shows for the four values seen or placed (`cli`, `claude-desktop`, `claude-vscode`, `ssh-remote`), the documented `CLAUDE_CODE_REMOTE` and the `remote` prefix name a cloud session over them, and `local-agent` and `CLAUDE_CODE_IS_COWORK` name Cowork on the desktop, whose sessions each get a home folder of their own. An unknown value, or none, means silence, which a later terminal session on the same computer makes good.
+- **The per-session "CLI not found" line follows the cloud rule only.** It is older (0.5.6), once per session, and its advice fits a computer; silencing it everywhere outside the four entrypoints would hide "memory is off" from a script or the VS Code extension for no gain. In a cloud or Cowork session every chat is a session, so there it would be the same nag.
+- **The e2e plays the cloud with the two variables, and keeps the other scenarios as they were.** A `claude -p` session is `sdk-cli`, where the new rule is silent, so the five scenarios that check the message set the Code tab's entrypoint; the harness's default is unchanged so the other scenarios compare with earlier releases' gates. The `remote` scenario ends with a control session that must show the message, since a silent run would also pass with a plugin that failed to load.
+
 ## 0.7.2: finish setup
 
 - **The one-time message comes from the launcher, in sh, and the launcher reads no key.** It must work with no CLI installed, so it cannot be the CLI's; the launcher already finds the CLI, and the project's config file is one shell test. The directory's review of 0.7.1 lists a hook that reads a credential from the user's machine, so the launcher tests for no key at all, not even the plugin's own option: two states (no CLI; the CLI there but the project not on), and in a project that is on the CLI runs and its own notice names the key step. It runs no CLI in a project that is not on, and writes one marker under `~/.jevmem/`, never inside the project.
