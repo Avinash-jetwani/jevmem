@@ -351,7 +351,8 @@ describe.skipIf(process.platform === "win32")("the one-time setup message (0.7.2
     expect(marker(home2)).toMatch(/^shown not-on /);
     expect(r2.stdout + r2.stderr).not.toContain("<example key>");
     expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "<example key>" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
-    expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "${user_config.typesafe_api_key}" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["no-key"]);
+    const unsubstituted = "${user_config.typesafe_api_key}"; // what Claude Code passes when the option is unset
+    expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: unsubstituted }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["no-key"]);
     expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), TYPESAFE_API_KEY: "<example key>" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
   });
 
