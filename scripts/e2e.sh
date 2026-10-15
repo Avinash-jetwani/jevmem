@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|forget|trust|alwayson|import|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|forget|trust|alwayson|import|setup|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -112,6 +112,16 @@
 #              SQLite, a [dead-end] naming pino, each with a provenance record). Then a new session with the hooks on,
 #              asked where the data lives from the project's memory only: the prompt's context must carry the decision
 #              line and the reply must name SQLite
+#   setup      `jevmem setup` (0.7.2): the plugin installed, the CLI on the session PATH, a HOME with no key, a project not turned
+#              on. Session 1: the SessionStart hook shows the one-time setup message (the key step) and nothing is written
+#              in the project. Then `jevmem setup` in a terminal (a pseudo-terminal: the key pasted at its hidden prompt, N
+#              to any [y/N]): the project is turned on, ~/.jevmem/env holds the key (600) and the key appears nowhere on the
+#              terminal or in the project, one key-check request was made, and the marker says done. Session 2 saves a
+#              line and session 3 recalls it; neither shows a session-start message
+# Since 0.7.2 the plugin's launcher shows a one-time setup message at session start (once per machine: the marker
+# ~/.jevmem/setup-notice in the session HOME): nocli checks the no-CLI text in session 1 and none in sessions 2 and 3,
+# nokey (plugin hooks) the key text, dormant the not-turned-on text and then a second not-turned-on session that shows,
+# sends and writes nothing. The texts are the NOTICE_* variables below, word for word as the launcher prints them.
 # Every turn in every scenario fails on any JEVMEM.md line that is not the init header, a jevmem-format
 # memory line, or the jevmem footer (i.e. a line the assistant wrote by hand).
 #
@@ -246,6 +256,11 @@ stamp_lines() { "$NODE" -e 'require("readline").createInterface({input:process.s
 claude_cli() { CLAUDE_CONFIG_DIR="$E2E_CONFIG_DIR" DISABLE_AUTOUPDATER=1 "$CLAUDE_BIN" "$@"; }
 NODE="$(command -v node)"
 STRIP_PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+# 0.7.2: the plugin launcher's one-time setup message (SessionStart, once per machine, ~/.jevmem/setup-notice), word for
+# word as plugin/hooks/jevmem-hook.sh prints it, one text per state.
+NOTICE_NOCLI="jevmem: the plugin is added, but the jevmem command it runs is not installed, so it does nothing yet. To finish: npm install -g jevmem, then jevmem setup in a project folder (it asks for your TypeSafe key and turns jevmem on there). Shown once."
+NOTICE_NOKEY="jevmem: the jevmem command is installed, but no TypeSafe API key is saved, so it does nothing yet. To finish: jevmem setup in a project folder (it asks for the key without showing it, and turns jevmem on there; keys at https://console.typesafe.ai/keys). Shown once."
+NOTICE_NOTON="jevmem: the jevmem command and your TypeSafe key are in place, but jevmem is not turned on in this project, so nothing is saved or sent from here. To turn it on here: jevmem setup in this folder. Shown once."
 # What runs the sessions, as the log's first line: a results file made from this log then says it by itself.
 CLAUDE_VERSION="$(claude_cli --version 2>/dev/null | head -1 | sed 's/ (Claude Code)$//')"
 MODEL_NOTE="not pinned (Claude Code's default)"; [ -n "$MODEL" ] && MODEL_NOTE="$MODEL (pinned with --model)"
@@ -436,10 +451,10 @@ run_nocli() {
   done
   sleep 3
   ( cd "$scratch" && eval "$listing" ) > "$scratch.after"
-  "$NODE" - "$events" "$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")" "${prompts[0]}" "${prompts[1]}" "${prompts[2]}" <<'JS' || fail=1
+  E2E_NOTICE="$NOTICE_NOCLI"   "$NODE" - "$events" "$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")" "${prompts[0]}" "${prompts[1]}" "${prompts[2]}" <<'JS' || fail=1
     const fs=require("fs");const base=process.argv[2];const sdir=process.argv[3];const prompts=process.argv.slice(4);
     const MESSAGE="jevmem: CLI not found, so memory is off in this project. See the jevmem README to set it up: https://github.com/Avinash-jetwani/jevmem#readme";
-    const errs=[];const sessions=[];const shown=[];
+    const errs=[];const sessions=[];const shown=[];const startShown=[];const NOTICE=process.env.E2E_NOTICE;
     for(const t of [0,1,2]){
       const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
       sessions.push((ev.find(e=>e.session_id)||{}).session_id);
@@ -450,6 +465,13 @@ run_nocli() {
       const asyncStop=e=>(e.hook_event||"")==="Stop"&&e.exit_code===1&&e.outcome==="cancelled";
       for(const e of ours)console.log(`     turn ${t+1} hook ${e.hook_event||e.hook_name||"?"}: exit ${e.exit_code??"?"}, outcome ${e.outcome??"?"}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,70))}, stderr ${JSON.stringify(String(e.stderr??"").slice(0,80))}`);
       const ups=ours.filter(e=>/UserPromptSubmit/.test(e.hook_event||e.hook_name||""));
+      // 0.7.2: the one-time setup message (the no-CLI text) from the SessionStart hook, in session 1 only: the marker in
+      // the session HOME keeps it from the --continue turn (a SessionStart:resume) and from the new session.
+      const starts=responses.filter(e=>/SessionStart/.test(e.hook_event||e.hook_name||""));
+      const startOut=starts.map(e=>String(e.stdout??e.output??"").trim()).join("");
+      startShown.push(startOut!=="");
+      if(startOut!==""){let m;try{m=JSON.parse(startOut).systemMessage}catch{}if(m!==NOTICE)errs.push(`turn ${t+1}: unexpected SessionStart output ${JSON.stringify(startOut).slice(0,140)}`);else console.log(`     turn ${t+1}'s session-start message, as the hook printed it: ${m}`);}
+      for(const e of starts){if(e.exit_code!==undefined&&e.exit_code!==0)errs.push(`turn ${t+1}: SessionStart exit ${e.exit_code}`);if(e.stderr&&e.stderr.trim())errs.push(`turn ${t+1}: SessionStart wrote to stderr`);}
       const stops=ours.filter(e=>/Stop/.test(e.hook_event||e.hook_name||""));
       if(ups.length!==1)errs.push(`turn ${t+1}: ${ups.length} UserPromptSubmit hook responses, expected 1`);
       for(const e of ours){
@@ -474,10 +496,12 @@ run_nocli() {
     if(fileOf[0]>=0&&fileOf[0]!==fileOf[1])errs.push("turn 2 (--continue) is not in turn 1's transcript");
     if(fileOf[0]>=0&&fileOf[2]===fileOf[0])errs.push("turn 3 is in turn 1's transcript");
     if(shown.join()!=="true,false,true")errs.push(`message shown ${shown.join(",")}, expected true,false,true (once per session)`);
+    if(startShown.join()!=="true,false,false")errs.push(`session-start message shown ${startShown.join(",")}, expected true,false,false (once per machine)`);
     if(errs.length){console.log("   ✗ FAIL: "+errs.join("; "));process.exit(1);}
-    console.log("   ✓ every hook exited 0 (the async Stop hook shows Claude Code's usual -p \"cancelled\"); the CLI-not-found message was shown on each session's first prompt only; Stop printed nothing");
+    console.log("   ✓ every hook exited 0 (the async Stop hook shows Claude Code's usual -p \"cancelled\"); the CLI-not-found message was shown on each session's first prompt only, the setup message at the start of session 1 only; Stop printed nothing");
 JS
   if ! diff -q "$scratch.before" "$scratch.after" >/dev/null; then echo "   ✗ FAIL: files appeared in the project:"; diff "$scratch.before" "$scratch.after" | sed 's/^/     /'; fail=1; else echo "   ✓ no file created in the project"; fi
+  if head -n 1 "$home/.jevmem/setup-notice" 2>/dev/null | grep -q '^shown no-cli '; then echo "   ✓ the marker ~/.jevmem/setup-notice in the session HOME says shown no-cli"; else echo "   ✗ FAIL: no marker 'shown no-cli' in the session HOME (first line: $(head -n 1 "$home/.jevmem/setup-notice" 2>/dev/null))"; fail=1; fi
   uninstall_plugin "$scratch"
   rm -f "$events" "$events".* "$scratch.before" "$scratch.after"
   rm -rf "${home:?}"
@@ -564,7 +588,7 @@ run_nokey_variant() {
     ( cd "$scratch" && claude_session -- -p $flag --max-turns 5 --output-format stream-json --verbose --include-hook-events "${prompts[$t]}" > "$events.$t" 2>&1 )
   done
   sleep 3 # any detached Stop hook has finished by now
-  "$NODE" - "$events" "$scratch" "$variant" "$ROOT/dist/index.js" "$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")" "${prompts[0]}" "${prompts[1]}" <<'JS' || fail=1
+  E2E_NOTICE="$NOTICE_NOKEY"   "$NODE" - "$events" "$scratch" "$variant" "$ROOT/dist/index.js" "$E2E_CONFIG_DIR/projects/$(slug_of "$scratch")" "${prompts[0]}" "${prompts[1]}" <<'JS' || fail=1
     const fs=require("fs");const [base,root,variant,lib,sdir,...prompts]=process.argv.slice(2);
     const errs=[];const shown=[];const sessions=[];
     const built=require(lib);const expected=variant==="plugin"?built.MISSING_KEY_NOTICE_MARKETPLACE:built.MISSING_KEY_NOTICE_INIT; // the plugin is installed from a marketplace here
@@ -574,6 +598,14 @@ run_nokey_variant() {
       const ours=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&/UserPromptSubmit|Stop/.test(e.hook_event||""));
       for(const e of ours)console.log(`     turn ${t+1} hook ${e.hook_event}: exit ${e.exit_code??"?"}, outcome ${e.outcome??"?"}, stdout ${JSON.stringify(String(e.stdout??e.output??"").slice(0,90))}${String(e.stdout??"").length>90?"…":""}`);
       const ups=ours.filter(e=>e.hook_event==="UserPromptSubmit");
+      // 0.7.2: the plugin's launcher shows the one-time setup message (the key text) at session start, in session 1 only;
+      // the hooks `jevmem init` registers have no launcher, so they show none.
+      const starts=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="SessionStart");
+      const startMsgs=starts.map(e=>{try{return JSON.parse(String(e.stdout??e.output??"").trim()).systemMessage}catch{return undefined}}).filter(Boolean);
+      const wantStart=variant==="plugin"&&t===0?[process.env.E2E_NOTICE]:[];
+      if(JSON.stringify(startMsgs)!==JSON.stringify(wantStart))errs.push(`turn ${t+1}: SessionStart messages ${JSON.stringify(startMsgs).slice(0,160)}, expected ${wantStart.length?"the key text once":"none"}`);
+      else if(startMsgs.length)console.log(`     turn ${t+1}'s session-start message, as the hook printed it: ${startMsgs[0]}`);
+      for(const e of starts){if(e.exit_code!==0||e.outcome!=="success")errs.push(`turn ${t+1}: SessionStart exit ${e.exit_code} outcome ${e.outcome}`);if(String(e.stderr??"").trim())errs.push(`turn ${t+1}: SessionStart wrote to stderr`);}
       if(ups.length!==1)errs.push(`turn ${t+1}: ${ups.length} UserPromptSubmit hook responses, expected 1`);
       // Claude Code reports every async Stop hook in a -p session as exit 1, "cancelled" (see nocli); only its output counts.
       for(const e of ours){
@@ -606,6 +638,9 @@ run_nokey_variant() {
     if(errs.length){console.log("   ✗ FAIL: "+errs.join("; "));process.exit(1);}
     console.log("   ✓ turns 1-2: the message on the first prompt only, nothing on the second, the Stop hooks silent, nothing saved");
 JS
+  if [ "$variant" = plugin ]; then
+    if head -n 1 "$home/.jevmem/setup-notice" 2>/dev/null | grep -q '^shown no-key '; then echo "   ✓ the marker ~/.jevmem/setup-notice in the session HOME says shown no-key"; else echo "   ✗ FAIL: no marker 'shown no-key' in the session HOME (first line: $(head -n 1 "$home/.jevmem/setup-notice" 2>/dev/null))"; fail=1; fi
+  fi
   if [ $fail -eq 0 ]; then
     # What the message tells the user to do, taken from the message itself: "run <command> in a terminal and paste your key".
     local cmd; cmd="$(sed -n 's/.*To fix it, run \(.*\) in a terminal and paste your key.*/\1/p' "$events.message")"
@@ -634,6 +669,8 @@ JS
         const ev=[];for(const l of fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean)){try{ev.push(JSON.parse(l))}catch{}}
         const ups=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="UserPromptSubmit");
         const shown=ups.map(e=>{try{return JSON.parse(String(e.stdout??"")).systemMessage}catch{return undefined}}).filter(Boolean);
+        const starts=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="SessionStart").map(e=>{try{return JSON.parse(String(e.stdout??e.output??"").trim()).systemMessage}catch{return undefined}}).filter(Boolean);
+        if(starts.length)errs.push(`turn ${t+1}: a session-start message after the key was saved: ${JSON.stringify(starts).slice(0,120)}`);
         const want=t===3?[first]:[];
         if(JSON.stringify(shown)!==JSON.stringify(want))errs.push(`turn ${t+1}: messages ${JSON.stringify(shown).slice(0,160)}, expected ${JSON.stringify(want)}`);
         else if(t===3)console.log(`     turn 4's message, as the hook printed it: ${first}`);
@@ -675,6 +712,7 @@ run_dormant() {
   echo "================ run $run  scenario=$([ "$PUBLISHED" -eq 1 ] && echo published || echo dormant)  scratch=$scratch"
   ( cd "$scratch" && git init -q && printf '{"name":"client-app","private":true}\n' > package.json && printf '# client-app\n' > README.md )
   install_plugin "$scratch" || { uninstall_plugin "$scratch"; return 1; }
+  rm -f "$E2E_HOME/.jevmem/setup-notice" # 0.7.2: a marker left by an earlier scenario or run would hide the message
   # The desktop app's case: jevmem is not on the session PATH; the launcher must find it in ~/.local/bin (its directory
   # list) and cache that path.
   local SESSION_PATH="$STRIP_PATH"
@@ -690,14 +728,46 @@ run_dormant() {
   ( cd "$scratch" && eval "$listing" ) > "$plog.before"
   local p1="Decision: invoices are archived as PDFs in S3, one file per invoice."
   local p2="Decision: refunds go back to the original payment method only."
+  local p1b="Decision: the invoice archive keeps one PDF per invoice, nothing else."
   echo "---- turn 1 (project not enabled): $p1"
-  ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --max-turns 15 "$p1" 2>&1 | tail -2 | sed 's/^/   claude> /' )
+  ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --max-turns 15 --output-format stream-json --verbose --include-hook-events "$p1" > "$plog.t1" 2>&1 )
+  "$NODE" -e 'const fs=require("fs");const ev=fs.readFileSync(process.argv[1],"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});const r=ev.find(e=>e.type==="result")||{};console.log("   claude> "+String(r.result??"").replace(/\n/g," ").slice(0,160))' "$plog.t1"
   sleep 5 # any detached hook process would have finished by now
   ( cd "$scratch" && eval "$listing" ) > "$plog.after"
   n=$(wc -l < "$plog" | tr -d ' ')
   if [ "$n" -ne 0 ]; then echo "   ✗ FAIL turn 1: $n request(s) reached Jev from a project that is not enabled"; fail=1; fi
   if ! diff -q "$plog.before" "$plog.after" >/dev/null; then echo "   ✗ FAIL turn 1: files appeared in the project:"; diff "$plog.before" "$plog.after" | sed 's/^/     /'; fail=1; fi
   [ $fail -eq 0 ] && echo "   ✓ turn 1: 0 requests to Jev, no file created in the project (plugin $PLUGIN_ID enabled at user scope)"
+  # 0.7.2: the one-time setup message (the not-turned-on text) from the SessionStart hook of session 1 only; a second
+  # session in the same project, still not turned on, shows nothing, sends nothing and writes nothing in the project.
+  E2E_NOTICE="$NOTICE_NOTON" "$NODE" - "$plog.t1" <<'JS' || fail=1
+    const fs=require("fs");const ev=fs.readFileSync(process.argv[2],"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
+    const starts=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="SessionStart");
+    const msgs=starts.map(e=>{try{return JSON.parse(String(e.stdout??e.output??"").trim()).systemMessage}catch{return undefined}}).filter(Boolean);
+    const errs=[];
+    if(!starts.length)errs.push("no SessionStart hook response in the stream");
+    if(msgs.length!==1||msgs[0]!==process.env.E2E_NOTICE)errs.push(`SessionStart messages ${JSON.stringify(msgs).slice(0,200)}, expected the not-turned-on text once`);
+    for(const e of starts){if(e.exit_code!==undefined&&e.exit_code!==0)errs.push(`SessionStart exit ${e.exit_code}`);if(String(e.stderr??"").trim())errs.push("SessionStart wrote to stderr")}
+    if(errs.length){console.log("   ✗ FAIL turn 1: "+errs.join("; "));process.exit(1);}
+    console.log("   ✓ turn 1: the session-start message, as the hook printed it: "+msgs[0]);
+JS
+  if head -n 1 "$E2E_HOME/.jevmem/setup-notice" 2>/dev/null | grep -q '^shown not-on '; then echo "   ✓ the marker ~/.jevmem/setup-notice in the session HOME says shown not-on"; else echo "   ✗ FAIL: no marker 'shown not-on' in the session HOME (first line: $(head -n 1 "$E2E_HOME/.jevmem/setup-notice" 2>/dev/null))"; fail=1; fi
+  if [ $fail -eq 0 ]; then
+    echo "---- turn 1b (a new session, the project still not enabled): $p1b"
+    ( cd "$scratch" && claude_session TYPESAFE_BASE_URL="$proxy_url" -- -p --max-turns 15 --output-format stream-json --verbose --include-hook-events "$p1b" > "$plog.t1b" 2>&1 )
+    sleep 5
+    ( cd "$scratch" && eval "$listing" ) > "$plog.after1b"
+    n=$(wc -l < "$plog" | tr -d ' ')
+    if [ "$n" -ne 0 ]; then echo "   ✗ FAIL turn 1b: $n request(s) reached Jev from a project that is not enabled"; fail=1; fi
+    if ! diff -q "$plog.before" "$plog.after1b" >/dev/null; then echo "   ✗ FAIL turn 1b: files appeared in the project:"; diff "$plog.before" "$plog.after1b" | sed 's/^/     /'; fail=1; fi
+    "$NODE" - "$plog.t1b" <<'JS' || fail=1
+      const fs=require("fs");const ev=fs.readFileSync(process.argv[2],"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
+      const hooks=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response");
+      const out=hooks.map(e=>String(e.stdout??e.output??"").trim()).filter(Boolean);
+      if(out.length){console.log("   ✗ FAIL turn 1b: a hook printed something: "+JSON.stringify(out).slice(0,200));process.exit(1);}
+      console.log(`   ✓ turn 1b: ${hooks.length} hook response(s), none with output; 0 requests to Jev; no file in the project`);
+JS
+  fi
   if [ $fail -eq 0 ]; then
     echo "---- jevmem enable (the installed CLI)"
     ( cd "$scratch" && cli enable | sed 's/^/   /' )
@@ -742,7 +812,7 @@ JS
   ( cd "$scratch" && cli daemon stop >/dev/null 2>&1 )
   { kill "$proxy_pid"; wait "$proxy_pid"; } 2>/dev/null
   uninstall_plugin "$scratch"
-  rm -f "$plog" "$plog".* "$E2E_HOME/.local/bin/jevmem"
+  rm -f "$plog" "$plog".* "$E2E_HOME/.local/bin/jevmem" "$E2E_HOME/.jevmem/setup-notice"
   local name=dormant; [ "$PUBLISHED" -eq 1 ] && name=published
   if [ $fail -eq 0 ]; then echo "PASS run $run scenario=$name"; else echo "FAIL run $run scenario=$name"; fi
   [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
@@ -1737,6 +1807,144 @@ JS
   return $fail
 }
 
+# `jevmem setup` in a pseudo-terminal, as a user runs it: HOME=$1, PATH=$2, in the folder $3. It pastes $E2E_PASTE (from
+# the environment, never the command line) at the hidden key prompt and answers N to any [y/N] question, prints what the
+# terminal showed, and exits 0 only when the command exited 0, asked for the key at its hidden prompt and never showed it.
+setup_in_terminal() {
+  python3 - "$@" <<'PY'
+import os, pty, select, sys, time
+home, path, cwd = sys.argv[1:4]
+paste = os.environ.pop("E2E_PASTE")
+env = {"HOME": home, "PATH": path, "TERM": "xterm", "USER": os.environ.get("USER", "")}
+pid, fd = pty.fork()
+if pid == 0:
+    os.chdir(cwd)
+    os.execvpe("jevmem", ["jevmem", "setup"], env)
+out = b""
+def pump(t):
+    global out
+    r, _, _ = select.select([fd], [], [], t)
+    if not r:
+        return True
+    try:
+        d = os.read(fd, 4096)
+    except OSError:
+        return False
+    if not d:
+        return False
+    out += d
+    return True
+hidden = b"TypeSafe API key (input hidden): "
+asked = False; answered = 0; alive = True
+end = time.time() + 90
+while time.time() < end and alive:
+    alive = pump(0.1)
+    if not asked and hidden in out:
+        os.write(fd, (paste + "\r").encode()); asked = True; continue
+    tail = out[-200:]
+    if b"[y/N]" in tail and tail.count(b"[y/N]") > answered:
+        os.write(fd, b"N\r"); answered += 1
+_, status = os.waitpid(pid, 0)
+code = os.waitstatus_to_exitcode(status)
+text = out.decode("utf-8", "replace").replace("\r", "")
+for line in text.split("\n"):
+    if line.strip():
+        print("   term> " + line)
+ok = code == 0 and asked and paste not in text
+print("   " + ("✓" if ok else "✗ FAIL:") + f" jevmem setup {'asked for the key at its hidden prompt' if asked else 'never asked for the key'}, exited {code}, answered {answered} [y/N] question(s), and the pasted key was {'not ' if paste not in text else ''}shown on the terminal")
+sys.exit(0 if ok else 1)
+PY
+}
+
+# `jevmem setup` (0.7.2): see the header. The plugin installed, the CLI on the session PATH, a HOME with no key, a project
+# not turned on; session 1 gets the one-time message (the key step); setup on a pseudo-terminal; then a saved and a
+# recalled turn with no session-start message.
+run_setup() {
+  local run="$1" scratch home events fail=0 before
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=setup  scratch=$scratch"
+  ( cd "$scratch" && git init -q && printf '{"name":"client-app","private":true}\n' > package.json && printf '# client-app\n' > README.md )
+  install_plugin "$scratch" || { uninstall_plugin "$scratch"; return 1; }
+  home="$(mktemp -d /tmp/jevmem-e2e-home.XXXXXX)"
+  [ -d "$HOME/.nvm" ] && ln -s "$HOME/.nvm" "$home/.nvm"
+  local SESSION_HOME="$home" SESSION_PATH="$E2E_NPM/prefix/bin:$STRIP_PATH"
+  local listing='find . -path ./.git -prune -o -print | sort'
+  ( cd "$scratch" && eval "$listing" ) > "$scratch.before"
+  events="$(mktemp /tmp/jevmem-e2e-events.XXXXXX)"
+  local p1="Decision: invoices are archived as PDFs in S3." p2="Decision: refunds go back to the original payment method only." p3="In one sentence, and from this project's memory only: where do refunds go?"
+  echo "---- session 1 (project not turned on, no key in HOME, jevmem on PATH): $p1"
+  ( cd "$scratch" && claude_session -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p1" > "$events.1" 2>&1 )
+  sleep 3
+  ( cd "$scratch" && eval "$listing" ) > "$scratch.after"
+  E2E_NOTICE="$NOTICE_NOKEY" "$NODE" - "$events.1" <<'JS' || fail=1
+    const fs=require("fs");const ev=fs.readFileSync(process.argv[2],"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
+    const hooks=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response");
+    const starts=hooks.filter(e=>e.hook_event==="SessionStart");
+    const msgs=starts.map(e=>{try{return JSON.parse(String(e.stdout??e.output??"").trim()).systemMessage}catch{return undefined}}).filter(Boolean);
+    const errs=[];
+    if(!starts.length)errs.push("no SessionStart hook response in the stream");
+    if(msgs.length!==1||msgs[0]!==process.env.E2E_NOTICE)errs.push(`SessionStart messages ${JSON.stringify(msgs).slice(0,200)}, expected the key text once`);
+    const others=hooks.filter(e=>e.hook_event!=="SessionStart").map(e=>String(e.stdout??e.output??"").trim()).filter(Boolean);
+    if(others.length)errs.push(`another hook printed something in a project that is not turned on: ${JSON.stringify(others).slice(0,160)}`);
+    for(const e of hooks){if(String(e.stderr??"").trim())errs.push(`${e.hook_event} wrote to stderr`)}
+    if(errs.length){console.log("   ✗ FAIL session 1: "+errs.join("; "));process.exit(1);}
+    console.log("   ✓ session 1: the session-start message, as the hook printed it: "+msgs[0]);
+JS
+  if ! diff -q "$scratch.before" "$scratch.after" >/dev/null; then echo "   ✗ FAIL session 1: files appeared in the project:"; diff "$scratch.before" "$scratch.after" | sed 's/^/     /'; fail=1; else echo "   ✓ session 1: no file created in the project"; fi
+  if head -n 1 "$home/.jevmem/setup-notice" 2>/dev/null | grep -q '^shown no-key '; then echo "   ✓ the marker ~/.jevmem/setup-notice in the session HOME says shown no-key"; else echo "   ✗ FAIL: no marker 'shown no-key' in the session HOME (first line: $(head -n 1 "$home/.jevmem/setup-notice" 2>/dev/null))"; fail=1; fi
+  if [ $fail -eq 0 ]; then
+    echo "---- jevmem setup in a terminal (HOME=<session home>, the npm-installed jevmem on PATH): the key pasted at its hidden prompt, N to any [y/N]"
+    E2E_PASTE="$TYPESAFE_API_KEY" setup_in_terminal "$home" "$E2E_NPM/prefix/bin:$(dirname "$NODE"):/usr/bin:/bin" "$scratch" > "$events.setup" 2>&1 || fail=1
+    cat "$events.setup"
+    for f in jevmem.config.json JEVMEM.md .jevmem; do if [ -e "$scratch/$f" ]; then echo "   ✓ $f is there"; else echo "   ✗ FAIL: no $f after setup"; fail=1; fi; done
+    if [ -f "$home/.jevmem/env" ] && grep -q "^TYPESAFE_API_KEY=" "$home/.jevmem/env" && [ "$(stat -f '%Lp' "$home/.jevmem/env" 2>/dev/null || stat -c '%a' "$home/.jevmem/env")" = "600" ]; then echo "   ✓ ~/.jevmem/env in the session HOME holds a key, mode 600"; else echo "   ✗ FAIL: ~/.jevmem/env missing, without a key, or not mode 600"; fail=1; fi
+    if grep -rqF -- "$TYPESAFE_API_KEY" "$scratch" "$events.setup" 2>/dev/null; then echo "   ✗ FAIL: the key appears in the project or on the terminal"; fail=1; else echo "   ✓ the key appears nowhere in the project or on the terminal"; fi
+    if head -n 1 "$home/.jevmem/setup-notice" 2>/dev/null | grep -q '^done '; then echo "   ✓ the marker says done"; else echo "   ✗ FAIL: the marker does not say done (first line: $(head -n 1 "$home/.jevmem/setup-notice" 2>/dev/null))"; fail=1; fi
+    "$NODE" - "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const root=process.argv[2];
+      const log=(fs.existsSync(root+"/.jevmem/log.jsonl")?fs.readFileSync(root+"/.jevmem/log.jsonl","utf8"):"").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
+      const checks=log.filter(e=>e.label==="setup");
+      if(checks.length!==1||!checks[0].ok){console.log(`   ✗ FAIL: expected one successful key check (label setup) in .jevmem/log.jsonl, got ${JSON.stringify(checks).slice(0,200)}`);process.exit(1);}
+      console.log(`   ✓ one key-check request to TypeSafe, ok, ${checks[0].latencyMs} ms, ${checks[0].inputTokens} input tokens`);
+JS
+  fi
+  if [ $fail -eq 0 ]; then
+    before=$(decisions "$scratch")
+    echo "---- session 2 (a new session, the project turned on): $p2"
+    ( cd "$scratch" && claude_session -- -p --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p2" > "$events.2" 2>&1 )
+    wait_queue "$scratch" "$before" || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; fail=1; }
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- session 3 (--continue, recall): $p3"
+    ( cd "$scratch" && claude_session -- -p --continue --max-turns 5 --output-format stream-json --verbose --include-hook-events "$p3" > "$events.3" 2>&1 )
+    "$NODE" - "$events" "$scratch" <<'JS' || fail=1
+      const fs=require("fs");const [base,root]=process.argv.slice(2);const errs=[];
+      for(const t of [2,3]){
+        const ev=fs.readFileSync(`${base}.${t}`,"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
+        const starts=ev.filter(e=>e.type==="system"&&e.subtype==="hook_response"&&e.hook_event==="SessionStart").map(e=>{try{return JSON.parse(String(e.stdout??e.output??"").trim()).systemMessage}catch{return undefined}}).filter(Boolean);
+        if(starts.length)errs.push(`session ${t}: a session-start message after setup: ${JSON.stringify(starts).slice(0,120)}`);
+        if(t===3){const r=String((ev.find(e=>e.type==="result")||{}).result??"");console.log(`     claude> ${r.replace(/\n/g," ").slice(0,200)}`);if(!/original payment method/i.test(r))errs.push("session 3: the reply does not use the saved line")}
+      }
+      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
+      for(const l of lines)console.log("     "+l.replace(/\s*<!--.*-->/,""));
+      if(lines.length!==1||!/refund/i.test(lines[0]||""))errs.push(`expected session 2's line only, got ${lines.length} line(s)`);
+      const log=fs.readFileSync(root+"/.jevmem/log.jsonl","utf8").split("\n").filter(Boolean).map(l=>JSON.parse(l));
+      if(!log.some(e=>e.label==="recall"&&e.ok&&!e.event))errs.push("no successful recall call in .jevmem/log.jsonl");
+      if(errs.length){console.log("   ✗ FAIL: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ sessions 2 and 3: no session-start message after setup, session 2's line saved, recall gave it back");
+JS
+  fi
+  ( cd "$scratch" && env HOME="$home" "$E2E_NPM/prefix/bin/jevmem" daemon stop >/dev/null 2>&1 )
+  uninstall_plugin "$scratch"
+  rm -f "$events" "$events".* "$scratch.before" "$scratch.after"
+  rm -rf "${home:?}"
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=setup"; else echo "FAIL run $run scenario=setup"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
+  return $fail
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
   [ "$scenario" = dormant ] && { PUBLISHED=0; run_dormant "$run"; return $?; }
@@ -1752,6 +1960,7 @@ run_once() {
   [ "$scenario" = trust ] && { run_trust "$run"; return $?; }
   [ "$scenario" = alwayson ] && { run_alwayson "$run"; return $?; }
   [ "$scenario" = import ] && { run_import "$run"; return $?; }
+  [ "$scenario" = setup ] && { PUBLISHED=0; run_setup "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
     linkguard|plugin) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;
@@ -1869,14 +2078,14 @@ JS
 }
 
 modes=("$AUTOMEM"); [ "$AUTOMEM" = "both" ] && modes=(present cleared)
-scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard guardgit deadend supersede forget trust alwayson import)
+scenarios=("$SCENARIO"); [ "$SCENARIO" = "all" ] && scenarios=(linkguard handwrite); [ "$SCENARIO" = "full" ] && scenarios=(linkguard handwrite plugin dormant nocli nokey outage guard guardgit deadend supersede forget trust alwayson import setup)
 # Every failed scenario is recorded with its whole output in test-results/e2e-failures.log (JEVMEM_TEST_RESULTS names
 # another folder), as the unit tests' failures are in test-results/failures.jsonl.
 RESULTS="${JEVMEM_TEST_RESULTS:-$ROOT/test-results}"
 mkdir -p "$RESULTS"
 # Each scenario's output also goes through tee, so it runs in a subshell: the packed CLI the plugin scenarios share is
 # installed here, once, instead of by the first of them.
-case " ${scenarios[*]} " in *" plugin "*|*" dormant "*|*" published "*|*" nocli "*|*" nokey "*) install_cli || exit 1;; esac
+case " ${scenarios[*]} " in *" plugin "*|*" dormant "*|*" published "*|*" nocli "*|*" nokey "*|*" setup "*) install_cli || exit 1;; esac
 status=0
 for m in "${modes[@]}"; do
   for r in $(seq 1 "$RUNS"); do
