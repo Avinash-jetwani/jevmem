@@ -291,7 +291,7 @@ describe.skipIf(process.platform === "win32")("the one-time setup message (0.7.2
   };
   const keyFile = (home: string) => {
     fs.mkdirSync(path.join(home, ".jevmem"), { recursive: true });
-    fs.writeFileSync(path.join(home, ".jevmem", "env"), "TYPESAFE_API_KEY=example-key-0000\n");
+    fs.writeFileSync(path.join(home, ".jevmem", "env"), "TYPESAFE_API_KEY=<example key>\n");
   };
 
   it("the launcher's three texts are the library's, word for word, with no quote or backslash in them", () => {
@@ -349,10 +349,10 @@ describe.skipIf(process.platform === "win32")("the one-time setup message (0.7.2
     const r2 = run(root, baseEnv(root, home2, PATH));
     expect(JSON.parse(r2.stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
     expect(marker(home2)).toMatch(/^shown not-on /);
-    expect(r2.stdout + r2.stderr).not.toContain("example-key-0000");
-    expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "example-key-0000" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
+    expect(r2.stdout + r2.stderr).not.toContain("<example key>");
+    expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "<example key>" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
     expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY: "${user_config.typesafe_api_key}" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["no-key"]);
-    expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), TYPESAFE_API_KEY: "example-key-0000" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
+    expect(JSON.parse(run(root, { ...baseEnv(root, tmp(), PATH), TYPESAFE_API_KEY: "<example key>" }).stdout).systemMessage).toBe(SETUP_NOTICE_TEXTS["not-on"]);
   });
 
   it("everything in place: the marker says done and nothing is said; a project that is on without a key gets the key text through the CLI's own SessionStart output", async () => {
