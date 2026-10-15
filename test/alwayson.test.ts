@@ -183,7 +183,7 @@ describe.skipIf(process.platform === "win32")("marking a line always-on asks the
     const root = tmp();
     init({ root, hooks: false });
     process.env.HOME = tmp();
-    process.env.TYPESAFE_API_KEY = "test-key";
+    process.env.TYPESAFE_API_KEY = "example-key";
     process.env.JEVMEM_DAEMON = "0";
     fake = await startFakeJev((q) => Object.fromEntries(Object.keys(q).filter((k) => k.startsWith("inj_")).map((k) => [k, answers(k.slice(4))])));
     process.env.TYPESAFE_BASE_URL = fake.url;

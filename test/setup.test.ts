@@ -36,7 +36,7 @@ function terminal(answers: Record<string, string>): TerminalIo & { asked: string
     },
   };
 }
-const KEY = "ts-test-key-abcdef1234";
+const KEY = "example-key-abcdef1234";
 const KEY_PROMPT = "TypeSafe API key (input hidden): ";
 let fake: FakeJev | null = null;
 const saved: Record<string, string | undefined> = {};
