@@ -66,7 +66,9 @@ export const CASES = [
     id: "cd-pp-space-bug",
     project: "parcelpost",
     prompts: ["A tracking number with a space in it comes back 404 from the lookup route. Find out why in src/routes/parcels.ts and fix it.", "Rule: never edit src/generated/client.ts by hand; only npm run gen writes it."],
-    labels: [{ save: true, kind: "bug", has: ["space", "404", "trim", "encod"] }, { save: true, kind: "constraint", has: ["generated", "gen"] }],
+    // Run 1 was cut by the capture's 600 s limit (no result event, no turn_ended line): an interrupted turn, which
+    // jevmem must not decide. The label says so; the bug label it was written with is kept in `was`.
+    labels: [{ save: false, interrupted: true, was: { save: true, kind: "bug", has: ["space", "404", "trim", "encod"] } }, { save: true, kind: "constraint", has: ["generated", "gen"] }],
   },
   // recipebox
   {

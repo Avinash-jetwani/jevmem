@@ -39,7 +39,9 @@ export const CASES = [
     id: "ch-wl-same-second",
     project: "waterlog",
     prompts: ["Two POST /plants/fern/water calls in the same second keep only one record. Find the cause in src/store.mjs and fix it.", "I prefer the data file written with two-space indentation so diffs stay readable. Change the writer."],
-    labels: [{ save: true, kind: "bug", has: ["second", "timestamp", "key", "overwrit"] }, { save: true, kind: "preference", has: ["indent", "two-space", "2-space"] }],
+    // Run 1 was cut by the capture's 600 s limit (exit 130, no result event; a structural fact, its text not read):
+    // an interrupted turn, which jevmem must not decide. The bug label it was written with is kept in `was`.
+    labels: [{ save: false, interrupted: true, was: { save: true, kind: "bug", has: ["second", "timestamp", "key", "overwrit"] } }, { save: true, kind: "preference", has: ["indent", "two-space", "2-space"] }],
   },
   {
     id: "ch-wl-port-reverse",
