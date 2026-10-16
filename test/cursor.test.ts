@@ -394,8 +394,11 @@ describe.skipIf(process.platform === "win32")("the Cursor launcher (hooks/jevmem
     expect(r.stdout).toBe("");
     expect(r.ms).toBeLessThan(2_500); // the stand-in sleeps 4 s: a launcher that waited for it would take longer
     expect(fs.existsSync(log)).toBe(false);
+    // The stand-in writes its arguments line, then the payload: wait for the payload, not for the file (a slow runner
+    // can read the file between the two writes).
     const until = Date.now() + 10_000;
-    while (!fs.existsSync(log) && Date.now() < until) await new Promise((res) => setTimeout(res, 100));
+    const logged = () => fs.existsSync(log) && fs.readFileSync(log, "utf8").includes('{"status":"completed"}');
+    while (!logged() && Date.now() < until) await new Promise((res) => setTimeout(res, 100));
     expect(fs.readFileSync(log, "utf8")).toContain("args: hook --cursor --stdin-file");
     expect(fs.readFileSync(log, "utf8")).toContain('{"status":"completed"}');
   });
