@@ -41,6 +41,16 @@ const distDir = path.dirname(path.resolve(cliArg));
 const lib = await import(pathToFileURL(path.join(distDir, "index.js")).href);
 if (typeof lib.readCursorTranscript !== "function") throw new Error(`${distDir}/index.js has no readCursorTranscript (a build before 0.7.4)`);
 const sessions = fs.readFileSync(FILE, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((s) => !ONLY || ONLY.includes(s.id));
+// The labels come from the cases file when it is there (a label can change after the capture: a run cut short is
+// relabelled interrupted); the row's copy is the fallback.
+const CASES_FILE = opt("--cases", null) ?? { dev: "eval/cursor/dev.cases.mjs", heldout: "eval/cursor/heldout.cases.mjs" }[SET];
+if (CASES_FILE && fs.existsSync(CASES_FILE)) {
+  const { CASES } = await import(pathToFileURL(path.resolve(CASES_FILE)).href);
+  for (const s of sessions) {
+    const c = CASES.find((x) => x.id === s.id);
+    if (c) s.labels = c.labels;
+  }
+}
 const pairs = fs.existsSync(PAIRS) ? JSON.parse(fs.readFileSync(PAIRS, "utf8")).pairs : [];
 let commit = null;
 try {
@@ -99,7 +109,7 @@ for (const s of sessions) {
     const decs = readJsonl(path.join(root, ".jevmem", "decisions.jsonl")).slice(before);
     const dec = decs.at(-1) ?? null;
     const store = new lib.MemoryStore(root);
-    const all = store.all ? store.all() : store.active();
+    const all = store.list();
     const saved = dec?.memoryId ? all.find((m) => m.id === dec.memoryId) ?? null : null;
     const added = Boolean(dec?.decision?.save && dec?.memoryId);
     const saveRight = interrupted ? decs.length === 0 : label.save ? added : !added;
@@ -107,9 +117,9 @@ for (const s of sessions) {
     const has = label.save && added ? (label.has ?? []).some((w) => String(saved?.text ?? "").toLowerCase().includes(String(w).toLowerCase())) : null;
     let supersedesRight = null;
     if (label.supersedes !== undefined) {
+      // The decision names the line it supersedes; the store then tags that line [superseded] (it leaves the live list).
       const earlier = turns[label.supersedes];
-      const old = earlier?.memory_id ? all.find((m) => m.id === earlier.memory_id) : null;
-      supersedesRight = Boolean(added && earlier?.outcome === "add" && old && (old.supersededBy === dec.memoryId || old.kind === "superseded"));
+      supersedesRight = Boolean(added && earlier?.outcome === "add" && earlier.memory_id && dec?.decision?.contradiction && dec.decision.touchesMemoryId === earlier.memory_id);
     }
     const log = readJsonl(path.join(root, ".jevmem", "log.jsonl"));
     const calls = log.filter((e) => e.label && e.ok !== undefined);

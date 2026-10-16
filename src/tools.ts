@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { cursorHooksStatus, registerCursorHooks } from "./cursor.js";
 
 export const TOOLS = ["claude", "cursor", "codex", "claude-desktop"] as const;
 export type Tool = (typeof TOOLS)[number];
@@ -33,10 +34,28 @@ export function detectTools(root: string): Tool[] {
 }
 
 const MCP_ENTRY = { command: "npx", args: ["-y", "jevmem", "mcp"] };
+const CURSOR_HOOK_EVENT_LIST = "sessionStart, beforeSubmitPrompt, afterAgentResponse, stop and sessionEnd";
 /** Cursor reads the key from its own environment: this reference is written to `.cursor/mcp.json` as it is, not expanded by jevmem. */
 const CURSOR_KEY_REFERENCE = "${env:TYPESAFE_API_KEY}";
 
 export const CURSOR_RULE = `---
+description: Project memory via Jevmem (JEVMEM.md). Use the jevmem MCP tools to read it; jevmem saves each turn itself.
+alwaysApply: true
+---
+
+# Jevmem project memory
+
+This project keeps durable memory in \`JEVMEM.md\` (one line per decision, constraint, preference, bug, architecture fact, to-do or dead end), managed by the \`jevmem\` MCP server. Since jevmem 0.7.4 the hooks in \`.cursor/hooks.json\` save the decisions, rules and failed approaches from each finished agent turn on their own.
+
+- Before any non-trivial task, call \`search_memory\` with a one-line description of the task and read the results. They are decisions and constraints from earlier sessions; follow them unless the user overrides.
+- \`add_memory\` is only for something the user asks to record that the conversation does not state (one line, at most 200 characters, with the right kind: decision | constraint | preference | bug | architecture | todo | dead-end). jevmem scrubs secrets and asks Jev first; it may refuse the line (injection, small talk, duplicate) or correct the kind, and says why. What the user says in the chat is saved by the hooks: do not add it again.
+- If something you learned contradicts a memory, tell the user which line it contradicts; jevmem supersedes the old line when the user states the change.
+- Never add, edit or remove lines in \`JEVMEM.md\` directly: record memories only through \`add_memory\`, which checks and formats them.
+`;
+
+/** The 0.4.4 to 0.7.3 rule and the v0.4.3 rule, verbatim; `init --tool cursor` replaces a file that still matches one exactly. */
+export const LEGACY_CURSOR_RULES: readonly string[] = [
+  `---
 description: Project memory via Jevmem (JEVMEM.md). Use the jevmem MCP tools to read and write it.
 alwaysApply: true
 ---
@@ -50,10 +69,8 @@ This project keeps durable memory in \`JEVMEM.md\` (one line per decision, const
 - If something you learned contradicts a memory, add the new memory and tell the user which line it replaces.
 - Do not add greetings, questions, or anything already obvious from the code.
 - Never add, edit or remove lines in \`JEVMEM.md\` directly: record memories only through \`add_memory\`, which checks and formats them.
-`;
-
-/** The v0.4.3 rule, verbatim; `init --tool cursor` replaces a file that still matches it exactly. */
-export const LEGACY_CURSOR_RULES: readonly string[] = [`---
+`,
+`---
 description: Project memory via Jevmem (JEVMEM.md). Use the jevmem MCP tools to read and write it.
 alwaysApply: true
 ---
@@ -118,9 +135,17 @@ export function setupCursor(root: string): ToolSetupResult {
     r.created.push(".cursor/rules/jevmem.mdc");
   } else if (LEGACY_CURSOR_RULES.includes(fs.readFileSync(rule, "utf8"))) {
     fs.writeFileSync(rule, CURSOR_RULE);
-    r.created.push(".cursor/rules/jevmem.mdc (updated: never edit JEVMEM.md directly)");
+    r.created.push(".cursor/rules/jevmem.mdc (updated: the hooks save each turn; add_memory only for what the chat does not state)");
   } else r.skipped.push(".cursor/rules/jevmem.mdc");
-  r.notes.push("Cursor has no per-turn hook: capture happens when the agent calls add_memory (the rule tells it when). Reload the window so Cursor picks up the MCP server.");
+  // 0.7.4: the hooks that save each finished agent turn, and the launcher they run, both committable (no path of this machine).
+  const hooks = registerCursorHooks(root);
+  const what = `.cursor/hooks.json (jevmem's ${CURSOR_HOOK_EVENT_LIST} hooks) and .cursor/hooks/jevmem-hook.sh`;
+  if (hooks === "added") r.created.push(what);
+  else if (hooks === "updated") r.created.push(`${what} (updated)`);
+  else r.skipped.push(what);
+  const st = cursorHooksStatus(root);
+  if (st.others) r.notes.push(`Your other Cursor hooks in .cursor/hooks.json are kept (${st.others} entr${st.others === 1 ? "y" : "ies"}).`);
+  r.notes.push("Cursor saves each finished agent turn through the hooks in .cursor/hooks.json (the launcher runs the jevmem it finds on PATH or in the usual places; a clone without jevmem stays silent). Reload the window once so Cursor picks up the hooks and the MCP server; recall is the agent's search_memory call over MCP.");
   return r;
 }
 

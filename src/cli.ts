@@ -7,9 +7,16 @@ import path from "node:path";
 // the hook payload's cwd.
 const argv = process.argv.slice(2);
 if (argv[0] === "hook" && process.env.CLAUDE_PROJECT_DIR && !fs.existsSync(path.join(process.env.CLAUDE_PROJECT_DIR, "jevmem.config.json"))) {
-  process.stdin.resume();
-  process.stdin.on("error", () => process.exit(0));
-  process.stdin.on("end", () => process.exit(0));
+  // Cursor's beforeSubmitPrompt hook (0.7.4, `--cursor`) must still say the prompt may go on; its launcher answers
+  // the same before ever running the CLI, so this covers a CLI called without it.
+  const chunks: Buffer[] = [];
+  process.stdin.on("data", (c: Buffer) => chunks.push(c));
+  const done = () => {
+    if (argv.includes("--cursor") && /"hook_event_name"\s*:\s*"beforeSubmitPrompt"/.test(Buffer.concat(chunks).toString("utf8"))) process.stdout.write('{"continue":true}\n', () => process.exit(0));
+    else process.exit(0);
+  };
+  process.stdin.on("error", done);
+  process.stdin.on("end", done);
 } else if (argv[0] === "hook" && !argv.includes("--stdin-file")) {
   // The hook's input is read here, once. PreToolUse (every Bash, Edit and Write call) loads only the guard, not the
   // rest of the CLI; every other event goes to the CLI with the input already read.

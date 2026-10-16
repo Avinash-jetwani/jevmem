@@ -51,7 +51,7 @@ describe("tool setup", () => {
     fs.mkdirSync(path.join(root, ".cursor"));
     fs.writeFileSync(path.join(root, ".cursor", "mcp.json"), JSON.stringify({ mcpServers: { other: { command: "x" } } }));
     const r = setupCursor(root);
-    expect(r.created).toEqual([".cursor/mcp.json (jevmem server)", ".cursor/rules/jevmem.mdc"]);
+    expect(r.created).toEqual([".cursor/mcp.json (jevmem server)", ".cursor/rules/jevmem.mdc", ".cursor/hooks.json (jevmem's sessionStart, beforeSubmitPrompt, afterAgentResponse, stop and sessionEnd hooks) and .cursor/hooks/jevmem-hook.sh"]);
     const mcp = JSON.parse(fs.readFileSync(path.join(root, ".cursor", "mcp.json"), "utf8"));
     expect(mcp.mcpServers.other.command).toBe("x");
     expect(mcp.mcpServers.jevmem.args).toEqual(["-y", "jevmem", "mcp"]);

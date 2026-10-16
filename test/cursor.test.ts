@@ -11,6 +11,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { CURSOR_HOOK_EVENTS, cursorHooksStatus, readCursorTranscript, registerCursorHooks, stripCursorPrompt, unregisterCursorHooks } from "../src/cursor.js";
 import { init } from "../src/init.js";
 import { readQueue } from "../src/queue.js";
+import { recordProvenance } from "../src/provenance.js";
 import { MemoryStore } from "../src/store.js";
 import { setupCursor } from "../src/tools.js";
 
@@ -200,7 +201,7 @@ describe("jevmem hook --cursor (the built CLI, the payloads Cursor sends)", () =
     expect(r.status).toBe(0);
     expect(r.stdout.trim() === "" || JSON.stringify(JSON.parse(r.stdout)) === "{}").toBe(true);
     const store = new MemoryStore(root);
-    store.add({ kind: "constraint", text: "Never commit .env files.", always: true } as any);
+    recordProvenance(root, store.add({ kind: "constraint", text: "Never commit .env files.", always: true }), "hook"); // a line jevmem wrote: verified, so the gate serves it
     r = hook(root, { ...start, conversation_id: "conv-2", session_id: "conv-2", workspace_roots: [root] });
     expect(r.status).toBe(0);
     const out = JSON.parse(r.stdout);

@@ -39,6 +39,8 @@ export interface HookInput {
   user_message?: string;
   assistant_message?: string;
   recent_context?: string;
+  /** Where a simulated turn's text came from, for the queue's `source` (0.7.4: `cursor-transcript`, `cursor-stash`). */
+  source?: string;
 }
 
 export interface HookOutcome {
@@ -341,7 +343,7 @@ export function captureTurns(input: HookInput, root: string, event: string, deps
   let user = input.user_message ?? input.message ?? "";
   let assistant = input.assistant_message ?? "";
   let previous = input.recent_context ?? "";
-  let source = "payload";
+  let source = input.source ?? "payload";
   let turnId: string | null = null;
   const session = input.session_id ?? input.transcript_path ?? "";
   const before: CapturedTurn[] = [];

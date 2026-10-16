@@ -12,7 +12,7 @@ import { configuredWriter, isEnabled, loadConfig, NOT_ENABLED_MESSAGE } from "./
 import { PACKAGE_VERSION } from "./version.js";
 import { DAEMON_VERSION, daemonEnabled, daemonRequest, jevFingerprint, pidFile, serveDaemon, spawnDaemon } from "./daemon.js";
 import { deferredTurns } from "./turns.js";
-import { captureTurns, drainTurns, recallPathStats, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, sessionStartOutcome, type HookInput, type HookOutcome } from "./hook.js";
+import { captureTurns, drainTurns, recallPathStats, hookEvent, hookRoot, logHookProblem, parseHookInput, readStdinJson, runHook, sessionStartOutcome, wasServed, type HookInput, type HookOutcome } from "./hook.js";
 import { applySessionImport, findSessionFiles, formatSessionImport, importSessions, parseSince } from "./sessions.js";
 import { checkJevKey, markSetupDone, SETUP_NEEDS_TERMINAL } from "./setup.js";
 import { ALWAYS_KINDS, decide } from "./decide.js";
@@ -25,6 +25,8 @@ import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES
 import { disableProject, enableProject, init, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
 import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong, MIN_LABELS, readFitInfo, readLabels, runFit } from "./labels.js";
 import { detectTools, setupClaudeDesktop, setupCodex, setupCursor, TOOLS, type Tool } from "./tools.js";
+import { CURSOR_HOOK_EVENTS, cursorHooksStatus, cursorTurnFromInput, dropStash, isCursorPayload, stashPrompt, stashResponse, unregisterCursorHooks } from "./cursor.js";
+import { markDecided } from "./turns.js";
 import { watchCodex } from "./watch.js";
 import { mergeTurn } from "./transcript.js";
 import { appendLog, createJev, hasJevKey, readLog, summarizeLog } from "./jev.js";
@@ -474,8 +476,8 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
     }
     case "init": {
       if (flag(args, "--remove-hooks")) {
-        const removed = unregisterClaudeHooks(root);
-        io.out(removed.length ? `removed jevmem's hooks from ${removed.join(", ")}\n` : "no jevmem hooks in .claude/settings.local.json or .claude/settings.json\n");
+        const removed = [...unregisterClaudeHooks(root), ...unregisterCursorHooks(root)];
+        io.out(removed.length ? `removed jevmem's hooks from ${removed.join(", ")}\n` : "no jevmem hooks in .claude/settings.local.json, .claude/settings.json or .cursor/hooks.json\n");
         return 0;
       }
       const noHooks = flag(args, "--no-hooks");
@@ -530,6 +532,9 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         const input = stdinFile ? readInputFile(stdinFile) : opts.stdin !== undefined ? parseHookInput(opts.stdin) : await readStdinJson();
         projectRoot = hookRoot(input);
         event = hookEvent(input);
+        // 0.7.4: Cursor's hooks (`.cursor/hooks.json`, the launcher runs `hook --cursor`). Without the flag, a Cursor
+        // payload (Cursor also runs a project's Claude Code hooks with its own event names) is ignored, as before.
+        if (flag(args, "--cursor")) return await cursorHook(projectRoot, input, io);
         // Opt-in per project: without jevmem.config.json, do nothing at all (no key lookup, no log, no network).
         if (!isEnabled(projectRoot)) return 0;
         // The guard (src/cli.ts sends PreToolUse there directly; this is the path for a saved input file).
@@ -976,6 +981,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const plugin = hasActivePlugin(installs);
       const hooks = [...installs.map(describeInstall), projectHasInitHooks(root) ? `\`jevmem init\` hooks in .claude/settings.local.json${projectHasInitGuardHook(root) ? " (with the PreToolUse guard)" : " (no PreToolUse guard: `jevmem init` with a jevmem that has the guard adds it)"}` : null].filter(Boolean);
       io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no jevmem plugin found (checked the plugins synced from claude.ai and the user and project settings), and no init hooks in this project: run `jevmem init --tool claude`, or add the plugin"}\n`);
+      if (fs.existsSync(path.join(root, ".cursor"))) io.out(`cursor   ${cursorDoctorLine(root)}\n`);
       if (enabled) io.out(`guard    ${guardStatus(root)}\n`);
       if (enabled) io.out(`always   ${alwaysOnStatus(root)}\n`);
       for (const line of hookCliLines(root, plugin)) io.out(line + "\n");
@@ -1292,6 +1298,112 @@ function readInputFile(file: string): HookInput {
  * the queue as it starts); an older one without the `drain` request is stopped and replaced. With the daemon off, the
  * queue is evaluated here (the Stop hook is async, so nobody waits for it).
  */
+/** `jevmem doctor`'s line for a project with a `.cursor/` folder. */
+function cursorDoctorLine(root: string): string {
+  const st = cursorHooksStatus(root);
+  const mcp = (() => {
+    try {
+      return Boolean(JSON.parse(fs.readFileSync(path.join(root, ".cursor", "mcp.json"), "utf8"))?.mcpServers?.jevmem);
+    } catch {
+      return false;
+    }
+  })();
+  const rule = fs.existsSync(path.join(root, ".cursor", "rules", "jevmem.mdc"));
+  const parts: string[] = [];
+  if (st.events.length === CURSOR_HOOK_EVENTS.length && st.launcher === "current") parts.push("hooks in .cursor/hooks.json (sessionStart, beforeSubmitPrompt, afterAgentResponse, stop, sessionEnd) with the launcher .cursor/hooks/jevmem-hook.sh: each finished agent turn is saved");
+  else if (st.events.length) parts.push(`hooks in .cursor/hooks.json for ${st.events.join(", ")} only${st.launcher === "missing" ? ", and no launcher at .cursor/hooks/jevmem-hook.sh" : st.launcher === "stale" ? ", with an older launcher" : ""}: run \`jevmem init --tool cursor\` to complete them`);
+  else parts.push("no jevmem hooks in .cursor/hooks.json: turns are not saved in Cursor until `jevmem init --tool cursor` adds them (0.7.4)");
+  parts.push(mcp ? "MCP server in .cursor/mcp.json" : "no jevmem server in .cursor/mcp.json");
+  parts.push(rule ? "the rule .cursor/rules/jevmem.mdc" : "no rule file");
+  if (projectHasInitHooks(root)) parts.push("Cursor also runs this project's Claude Code hooks (.claude/settings*.json) with its own event names, which jevmem ignores there, so nothing runs twice");
+  return parts.join("; ");
+}
+
+/**
+ * The Cursor hooks (0.7.4): what each event does is in src/cursor.ts. Every path exits 0; `beforeSubmitPrompt` always
+ * answers `{"continue": true}`, since a hook answer Cursor cannot read could hold a prompt back.
+ */
+async function cursorHook(root: string, input: any, io: CliIo): Promise<number> {
+  const event = String(input?.hook_event_name ?? "");
+  const answer = (o: Record<string, unknown> | null) => {
+    if (o) io.out(JSON.stringify(o) + "\n");
+  };
+  const minimal = () => answer(event === "beforeSubmitPrompt" ? { continue: true } : null);
+  try {
+    if (!isCursorPayload(input) || !(CURSOR_HOOK_EVENTS as readonly string[]).includes(event) || !isEnabled(root)) {
+      minimal();
+      return 0;
+    }
+    loadEnvFallbacks(root);
+    const cfg = loadConfig(root);
+    if (cfg.enabled === false) {
+      minimal();
+      return 0;
+    }
+    const conversation = String(input.conversation_id ?? input.session_id ?? "");
+    const generation = typeof input.generation_id === "string" ? input.generation_id : null;
+    const log = (detail: string, ok = true) => appendLog(root, { ts: new Date().toISOString(), label: "cursor", ok, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, detail: `${event}: ${detail}` });
+    if (event === "sessionStart") {
+      // Once per conversation: Cursor fires it once per new chat, and a second firing must not add the lines twice.
+      if (conversation && wasServed(root, conversation)) {
+        log("already served this conversation");
+        return 0;
+      }
+      const ss = sessionStartOutcome(new MemoryStore(root, cfg.memoryFile), cfg, conversation || null);
+      let context: string | null = null;
+      try {
+        context = ss.stdout ? (JSON.parse(ss.stdout)?.hookSpecificOutput?.additionalContext ?? null) : null;
+      } catch {
+        /* no context */
+      }
+      if (context) answer({ additional_context: context });
+      log(`${ss.action}: ${ss.detail}`);
+      return 0;
+    }
+    if (event === "beforeSubmitPrompt") {
+      if (conversation) stashPrompt(root, conversation, generation, String(input.prompt ?? ""));
+      answer({ continue: true });
+      return 0;
+    }
+    if (event === "afterAgentResponse") {
+      if (conversation && typeof input.text === "string") stashResponse(root, conversation, generation, input.text);
+      answer({});
+      return 0;
+    }
+    // stop and sessionEnd: a finished turn, or nothing.
+    const finished = event === "stop" ? input.status === "completed" : input.reason === "completed";
+    if (!finished) {
+      if (conversation) dropStash(root, conversation);
+      log(`${event === "stop" ? `status ${input.status}` : `reason ${input.reason}`}: nothing decided`);
+      return 0;
+    }
+    if (!hasJevKey()) {
+      log("no TypeSafe key: the turn is not decided", false);
+      return 0;
+    }
+    keyFound(root);
+    const { turn, reason } = cursorTurnFromInput(root, input);
+    if (!turn) {
+      log(reason);
+      return 0;
+    }
+    const stopInput: HookInput = { hook_event_name: "Stop", session_id: turn.session, cwd: root, user_message: turn.user, assistant_message: turn.assistant, recent_context: turn.previous, source: turn.source };
+    const useDaemon = daemonEnabled(cfg) && hasJevKey();
+    const out = await handOffStop(root, cfg, stopInput, "Stop", useDaemon);
+    markDecided(root, turn.session, turn.turn);
+    log(`${reason} (${turn.source}) → ${out.action}: ${out.detail}`);
+    return 0;
+  } catch (err) {
+    try {
+      logHookProblem(root, `cursor ${event}`, err instanceof Error ? err.message : String(err));
+    } catch {
+      /* nothing to do */
+    }
+    minimal();
+    return 0;
+  }
+}
+
 async function handOffStop(root: string, cfg: ReturnType<typeof loadConfig>, input: HookInput, event: string, useDaemon: boolean): Promise<HookOutcome> {
   // The turns that are over: earlier turns that waited for their background subagents, then this one unless it is still
   // running (src/turns.ts).
