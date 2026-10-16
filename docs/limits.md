@@ -2,7 +2,7 @@
 
 # Limits
 
-## Known limits in 0.7.1
+## Known limits
 
 - **A plain statement can fall under the content threshold.** A rule said without must, never or prefer ("user-facing copy is British English") can be skipped: 2 of the 12 genuine rules on the genuine-rule held-out set, in 0.5.9 too ([docs/benchmark.md](benchmark.md#genuine-rules-and-the-injection-check)).
 - **A restatement can slip past dedupe when the question and the id choice disagree.** Dedupe (0.7.0) skips a turn as a duplicate only when the restatement question is at 0.7 or more *and* `touches_memory_id` picks the restated line: on the dedupe held-out set one quoted rule got 0.97 from the question and "none" from the choice, and was saved; 24 of 25 restatements were stopped ([docs/benchmark.md](benchmark.md#memory-you-can-see-and-fix-070)). The local check before any request needs the same words as the line (a tag, backticks, quotes and the final punctuation aside), so a paraphrase always goes to Jev.
@@ -26,7 +26,7 @@
 
 ## Honest limits
 
-- **Early:** 0.7.1; the eval sets were written by the author, or captured from Claude Code sessions on scratch projects built for them, and none is an independent benchmark.
+- **Early:** first released on 2026-09-22; the eval sets were written by the author, or captured from Claude Code sessions on scratch projects built for them, and none is an independent benchmark.
 - **Not the most accurate:** GPT-6 Astra and Claude Opus 5.5 scored higher on save+kind; jevmem's edge is speed and cost.
 - **Recall quality is not measured:** that relevant lines are injected is tested; whether answers get better is not.
 - **Long-run drift is not measured:** the harness covers five-turn sessions, not weeks of use.

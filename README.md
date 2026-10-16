@@ -194,7 +194,7 @@ Exactly what is sent, scrubbed and checked, with the third parties' privacy poli
 
 jevmem is young, and these are the limits to know before you rely on it:
 
-- **Early:** 0.7.1, and every test set was written by the author or captured from Claude Code sessions on scratch projects built for it. None is an independent benchmark.
+- **Early:** first released on 2026-09-22, and every test set was written by the author or captured from Claude Code sessions on scratch projects built for it. None is an independent benchmark.
 - **Not the most accurate:** two LLMs scored higher at picking the kind of line. jevmem's edge is speed and cost.
 - **Answer quality isn't measured:** the tests check that the right lines reach Claude, not that its answers get better.
 - **Automatic saving is Claude Code only** (and Codex while `jevmem watch` runs).
@@ -254,7 +254,7 @@ jevmem guard test "<command>" | --edit <path>  Dry run of the PreToolUse guard o
 jevmem guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
 ```
 
-These are 0.7.1's commands: 0.5.10's, `jevmem guard` (0.6.0), `forget`, `trust` and `add --trust` (0.7.0), and `always`, `add --always` and `import --from sessions` (0.7.1). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
+These are 0.7.3's commands: 0.5.10's, `jevmem guard` (0.6.0), `forget`, `trust` and `add --trust` (0.7.0), `always`, `add --always` and `import --from sessions` (0.7.1), and `setup` (0.7.2); 0.7.3 added no command and changed none. Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
 
 </details>
 
