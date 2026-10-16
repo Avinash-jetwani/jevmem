@@ -2150,9 +2150,11 @@ JS
   if [ $fail -eq 0 ]; then
     echo "---- session 3 (the MCP server removed; an always-on rule through sessionStart): $p3"
     mv "$scratch/.cursor/mcp.json" "$scratch/.cursor/mcp.json.off"
-    ( cd "$scratch" && env TYPESAFE_BASE_URL="$proxy_url" cli add --always constraint "Never commit .env files to this repository." 2>&1 | sed 's/^/   /' | head -3 ) # the key is in the harness's own environment
-    ( cd "$scratch" && env "${agent_env[@]}" "$agent_bin" -p --trust --force --output-format stream-json --model "$model" "$p3" > "$plog.s3" 2>"$plog.s3.err" )
-    "$NODE" - "$plog.s3" <<'JS' || fail=1
+    # `cli` is a function, so the proxy URL goes as a prefix assignment, not through env; the key is in the harness's own environment.
+    ( cd "$scratch" && TYPESAFE_BASE_URL="$proxy_url" cli add --always constraint "Never commit .env files to this repository." 2>&1 | sed 's/^/   /' | head -3 )
+    if ! grep -q "always:1" "$scratch/JEVMEM.md"; then echo "   ✗ FAIL session 3: the always-on rule was not added"; fail=1; fi
+    [ $fail -eq 0 ] && ( cd "$scratch" && env "${agent_env[@]}" "$agent_bin" -p --trust --force --output-format stream-json --model "$model" "$p3" > "$plog.s3" 2>"$plog.s3.err" )
+    [ $fail -eq 0 ] && "$NODE" - "$plog.s3" <<'JS' || fail=1
       const fs=require("fs");const raw=fs.readFileSync(process.argv[2],"utf8");const ev=raw.split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
       const r=ev.find(e=>e.type==="result")||{};const reply=String(r.result||"");
       console.log("   agent> "+reply.replace(/\n/g," ").slice(0,160));
