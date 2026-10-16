@@ -1,0 +1,69 @@
+Claude Code 2.1.299: /Users/avinashjetwani/Library/Application Support/Claude/claude-code/2.1.299/4fa9694b7975/claude.app/Contents/MacOS/claude (the desktop app's bundled binary); model: not pinned (Claude Code's default)
+   jevmem CLI 0.7.4: npm install -g of the packed checkout, in a temporary prefix
+================ run 1  scenario=cursor  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  scratch=/private/tmp/jevmem-e2e.6KBvag
+---- jevmem init --tool cursor (the packed CLI)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+     created  .cursor/mcp.json (jevmem server)
+     created  .cursor/rules/jevmem.mdc
+     created  .cursor/hooks.json (jevmem's sessionStart, beforeSubmitPrompt, afterAgentResponse, stop and sessionEnd hooks) and .cursor/hooks/jevmem-hook.sh
+   
+   Tools: cursor
+   
+   Cursor saves each finished agent turn through the hooks in .cursor/hooks.json (the launcher runs the jevmem it finds on PATH or in the usual places; a clone without jevmem stays silent). Reload the window once so Cursor picks up the hooks and the MCP server; recall is the agent's search_memory call over MCP.
+   
+   the hook commands name the packed CLI (--cli) and this Node (--node) for the launcher
+---- session 1 (turned on, the hooks alone): Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else.
+   agent> model Grok 4.7 256K Extra High; ok
+   queue drained 61 ms after claude exited
+     - [decision] Invoices are archived as PDFs in S3, one file per invoice.
+   ✓ session 1: saved by the sessionEnd hook from the transcript (2 request(s) to Jev)
+---- session 2 (a new chat, recall over MCP): From this project's memory only, in one sentence: where are invoices archived?
+   agent> I'll look this up in the project's memory only.Invoices are archived as PDFs in S3, one file per invoice.
+   ✓ session 2: the agent called search_memory over MCP and the reply used the line
+---- session 3 (the MCP server removed; an always-on rule through sessionStart): Which rules apply to work in this project? Answer from the context you were given, in one line, and run no tool.
+   added ba50dq: [constraint] Never commit .env files to this repository. (always-on)
+   agent> The project rule is: never commit `.env` files (id:ba50dq), and jevmem saves memories automatically, so do not write to `JEVMEM.md` yourself.
+   ✓ session 3: the always-on rule reached the model through sessionStart's additional_context
+---- a project not turned on (the hooks file and launcher, no jevmem.config.json): Decision: refunds go back to the original payment method only. Say ok and nothing else.
+   ✓ not turned on: 0 requests to Jev, no file in the project
+   served by: Grok 4.7 256K Extra High
+PASS run 1 scenario=cursor
+   served by: no claude run
+   jevmem CLI 0.7.4: npm install -g of the packed checkout, in a temporary prefix
+================ run 2  scenario=cursor  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  scratch=/private/tmp/jevmem-e2e.EVQjpi
+---- jevmem init --tool cursor (the packed CLI)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+     created  .cursor/mcp.json (jevmem server)
+     created  .cursor/rules/jevmem.mdc
+     created  .cursor/hooks.json (jevmem's sessionStart, beforeSubmitPrompt, afterAgentResponse, stop and sessionEnd hooks) and .cursor/hooks/jevmem-hook.sh
+   
+   Tools: cursor
+   
+   Cursor saves each finished agent turn through the hooks in .cursor/hooks.json (the launcher runs the jevmem it finds on PATH or in the usual places; a clone without jevmem stays silent). Reload the window once so Cursor picks up the hooks and the MCP server; recall is the agent's search_memory call over MCP.
+   
+   the hook commands name the packed CLI (--cli) and this Node (--node) for the launcher
+---- session 1 (turned on, the hooks alone): Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else.
+   agent> model Grok 4.7 256K Extra High; I'll check project memory for this invoice-archive decision before acknowledging it.ok
+   queue drained 53 ms after claude exited
+     - [decision] Invoices are archived as PDFs in S3, one file per invoice.
+   ✓ session 1: saved by the sessionEnd hook from the transcript (2 request(s) to Jev)
+---- session 2 (a new chat, recall over MCP): From this project's memory only, in one sentence: where are invoices archived?
+   agent> I'll look this up in the project's memory and answer in one sentence.Invoices are archived as PDFs in S3, one file per invoice.
+   ✓ session 2: the agent called search_memory over MCP and the reply used the line
+---- session 3 (the MCP server removed; an always-on rule through sessionStart): Which rules apply to work in this project? Answer from the context you were given, in one line, and run no tool.
+   added bgjwng: [constraint] Never commit .env files to this repository. (always-on)
+   agent> Never commit `.env` files to this repository (constraint `bgjwng`); jevmem saves memories automatically, so do not write to `JEVMEM.md` yourself.
+   ✓ session 3: the always-on rule reached the model through sessionStart's additional_context
+---- a project not turned on (the hooks file and launcher, no jevmem.config.json): Decision: refunds go back to the original payment method only. Say ok and nothing else.
+   ✓ not turned on: 0 requests to Jev, no file in the project
+   served by: Grok 4.7 256K Extra High
+PASS run 2 scenario=cursor
+   served by: no claude run
+================ models: Claude Code 2.1.299, model not pinned (Claude Code's default)
+   no claude run
