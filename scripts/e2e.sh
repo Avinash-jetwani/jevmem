@@ -2063,7 +2063,8 @@ JS
 # (measured on 2026.08.11 to 2026.10.16), so each run's turn is closed by jevmem's sessionEnd hook from the transcript,
 # the same reader the app's stop hook uses. It uses your Cursor plan: four agent runs per scenario run (E2E_CURSOR_MODEL,
 # default grok-4.7-xhigh), and the real HOME, since the CLI's sign-in lives there (the harness's HOME is used for nothing
-# here; TYPESAFE_API_KEY and the proxy URL go to the hooks through the agent's environment). Session 1, a project turned
+# here; the proxy URL goes to the hooks through the agent's environment, and the key is read from ~/.jevmem/env, never
+# put in a scratch file or in the agent's environment, since the agent has the shell). Session 1, a project turned
 # on with `jevmem init --tool cursor` (the hooks file, the launcher, the MCP entry pointed at the packed CLI): a stated
 # decision must be saved by the hooks alone. Session 2, a new chat with the MCP server: a question answered from the
 # project's memory only must call `search_memory` and use the line. Session 3, the MCP server removed and a rule marked
@@ -2091,11 +2092,14 @@ run_cursor() {
     [ -f "$scratch/$f" ] || { echo "   ✗ FAIL: init did not write $f"; fail=1; }
   done
   if grep -q "$HOME\|$E2E_NPM" "$scratch/.cursor/hooks.json" "$scratch/.cursor/hooks/jevmem-hook.sh" 2>/dev/null; then echo "   ✗ FAIL: a path of this machine in the committed hooks files"; fail=1; fi
-  # The MCP server runs the packed CLI, not npx's download; the key and the proxy go through its env.
+  # The MCP server runs the packed CLI, not npx's download; the proxy goes through its env. The key goes into no file
+  # in the scratch and not into the agent's environment: the agent has the shell and could echo it; the hooks and the
+  # MCP server read it from ~/.jevmem/env, as a user's do.
   "$NODE" -e '
-    const fs=require("fs");const [file,bin,key,url]=process.argv.slice(1);
-    fs.writeFileSync(file,JSON.stringify({mcpServers:{jevmem:{command:bin,args:["mcp"],env:{TYPESAFE_API_KEY:key,TYPESAFE_BASE_URL:url,JEVMEM_WRITER:"none"}}}},null,2)+"\n");' "$scratch/.cursor/mcp.json" "$E2E_NPM/prefix/bin/jevmem" "$TYPESAFE_API_KEY" "$proxy_url"
-  local agent_env=(PATH="$E2E_NPM/prefix/bin:$PATH" HOME="$HOME" TYPESAFE_API_KEY="$TYPESAFE_API_KEY" TYPESAFE_BASE_URL="$proxy_url" JEVMEM_WRITER=none JEVMEM_DAEMON=0)
+    const fs=require("fs");const [file,bin,url]=process.argv.slice(1);
+    fs.writeFileSync(file,JSON.stringify({mcpServers:{jevmem:{command:bin,args:["mcp"],env:{TYPESAFE_BASE_URL:url,JEVMEM_WRITER:"none"}}}},null,2)+"\n");' "$scratch/.cursor/mcp.json" "$E2E_NPM/prefix/bin/jevmem" "$proxy_url"
+  [ -f "$HOME/.jevmem/env" ] || { echo "cursor: the hooks read the key from ~/.jevmem/env, which is missing (run jevmem key)"; return 1; }
+  local agent_env=(-u TYPESAFE_API_KEY PATH="$E2E_NPM/prefix/bin:$PATH" HOME="$HOME" TYPESAFE_BASE_URL="$proxy_url" JEVMEM_WRITER=none JEVMEM_DAEMON=0)
   local p1="Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else."
   local p2="From this project's memory only, in one sentence: where are invoices archived?"
   local p3="Which rules apply to work in this project? Answer from the context you were given, in one line, and run no tool."
