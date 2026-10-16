@@ -37,13 +37,13 @@ import { scrubSecrets } from "./scrub.js";
 import { MemoryStore } from "./store.js";
 import { DEFAULT_CONFIG, NEW_KINDS, type Kind } from "./types.js";
 
-const HELP = `jevmem — Automatic project memory for Claude Code. Also works with Cursor and Codex.
+const HELP = `jevmem — Automatic project memory for Claude Code and Cursor. Also works with Codex and Claude Desktop over MCP.
 
 Usage: jevmem <command> [options]
 
   init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
                                           Create JEVMEM.md, jevmem.config.json, .jevmem/ and set up the tool(s) (default: detect)
-  init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (e.g. when using the plugin)
+  init --remove-hooks                     Remove jevmem's Claude Code hooks and Cursor hooks from this project (e.g. when using the plugin)
   enable                                  Opt this project in (plugin users): jevmem.config.json, JEVMEM.md, .jevmem/
   setup                                   Finish the setup here: the CLI and the plugin, your TypeSafe key (asked for, not shown), jevmem turned on in this folder, doctor; terminal only
   disable                                 Opt this project out: jevmem does nothing here (JEVMEM.md is kept)
@@ -62,7 +62,7 @@ Usage: jevmem <command> [options]
   always --suggest [--apply]              Ask Jev which live lines are rules for every change and propose the marks (--apply sets them)
   trust <id> [<id>…]                      Mark a line you wrote as verified, after the poisoning gate (asks on a terminal); the guard can then block on it
   import [--from <sources>] [--apply]     Import CLAUDE.md, AGENTS.md, .cursor/rules/* (dry run unless --apply); --from sessions reads this project's past Claude Code sessions (asks before anything is sent)
-  watch [--replay] [--once]               Capture turns from Codex's session log for this project (Cursor: use MCP)
+  watch [--replay] [--once]               Capture turns from Codex's session log for this project (Cursor saves through its hooks since 0.7.4)
   why <id|hash>                           Show every Jev answer behind a memory line or a skipped turn
   right <id|hash>                         Label the decision as correct
   wrong <id|hash> [--should-be <kind|none>] Label the decision as wrong (--should-be none retires the line)
@@ -138,7 +138,11 @@ Create JEVMEM.md, jevmem.config.json and .jevmem/ in the current directory and s
 Claude Code hooks go to .claude/settings.local.json (machine-specific paths); init adds it to .gitignore.
 Re-running init repairs an existing jevmem hook command and moves one found in .claude/settings.json.
   --remove-hooks    Only remove jevmem's hooks from .claude/settings.local.json and .claude/settings.json (for
-                    projects that use the jevmem Claude Code plugin instead). Nothing else is touched.
+                    projects that use the jevmem Claude Code plugin instead) and from .cursor/hooks.json, with its
+                    launcher .cursor/hooks/jevmem-hook.sh. Nothing else is touched.
+Cursor (--tool cursor, since 0.7.4): .cursor/hooks.json gets jevmem's hooks with relative commands and .cursor/hooks/
+jevmem-hook.sh the launcher they run (no path of this machine, so both can be committed), beside .cursor/mcp.json and
+the rule; each finished agent turn is then saved as in Claude Code, and the agent reads memory over MCP.
 With the Claude Code plugin installed you do not need init: the plugin's hooks and MCP server work in every project.
 If a project has both, the plugin's hooks stand down and say so once per session.
 `,
@@ -1122,7 +1126,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const once = flag(args, "--once");
       const tool = opt(args, "--tool") ?? "codex";
       if (!isEnabled(root)) return fail(NOT_ENABLED_MESSAGE);
-      if (tool !== "codex") return fail(`watch supports --tool codex only. Cursor keeps chats in a SQLite database (state.vscdb) with no text log; use the MCP add_memory path (jevmem init --tool cursor).`);
+      if (tool !== "codex") return fail(`watch supports --tool codex only. Cursor saves each finished agent turn through its hooks since 0.7.4 (jevmem init --tool cursor).`);
       requireKey();
       io.err(`jevmem watch: tailing Codex sessions for ${root}${replay ? " (replaying last 24 h)" : ""}. Ctrl-C to stop.\n`);
       const r = await watchCodex(root, {

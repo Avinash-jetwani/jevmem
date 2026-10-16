@@ -8,7 +8,7 @@ order: 9
 
 Install jevmem in three steps: add the plugin in the Claude app (**Plugins → Discover → jevmem → Add**), install the CLI with `npm install -g jevmem`, and run `jevmem setup` in your project's folder, which asks for your TypeSafe API key without showing it, turns jevmem on there and checks the setup. If you start Claude Code before that is done, the plugin says once what is left.
 
-Once it runs, deciding what to save takes 0.22 s and costs $0.00018 per message, at TypeSafe's listed price for Jev (measured on 66 held-out turns with jevmem 0.7.3, one run on 2026-10-15, [results](../../results/eval-heldout-2026-10-15-v073.json)). The rest of this page is the repository's install and upgrade notes.
+Once it runs, deciding what to save takes 0.23 s and costs $0.00019 per message, at TypeSafe's listed price for Jev (measured on 66 held-out turns with jevmem 0.7.4, one run on 2026-10-16, [results](../../results/eval-heldout-2026-10-16-v074.json)). The rest of this page is the repository's install and upgrade notes.
 
 {{include docs/install.md}}
 

@@ -1,6 +1,6 @@
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/brand/lockup/svg/jevmem-lockup-horizontal-dark.svg"><img alt="jevmem" src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/brand/lockup/svg/jevmem-lockup-horizontal-light.svg" height="64"></picture>
 
-**Say it once.** jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session. Before Claude runs a command or edits a file, it checks the call against your saved rules. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry, and works with Cursor and Codex over MCP.
+**Say it once.** jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session. Before Claude runs a command or edits a file, it checks the call against your saved rules. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry. Since 0.7.4 it saves from Cursor chats the same way, and it works with Codex and Claude Desktop over MCP.
 
 In Anthropic's Claude plugin directory · On the [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.Avinash-jetwani/jevmem) · Open source, MIT
 
@@ -139,25 +139,25 @@ Every step, and what to do if the plugin can't find the CLI: [docs/install.md](d
 
 ## Works with
 
-Saving is automatic in Claude Code, and in Codex while `jevmem watch` runs. Cursor, Codex and Claude Desktop reach jevmem over MCP, a standard way for an AI tool to call another program, when the agent asks for it.
+Saving is automatic in Claude Code and, since 0.7.4, in Cursor, where Cursor's hooks save each finished agent turn; and in Codex while `jevmem watch` runs. Cursor, Codex and Claude Desktop reach jevmem over MCP, a standard way for an AI tool to call another program, when the agent asks for it. In Cursor, on 10 held-out chats captured before the code (24 turns), every turn was saved whole, the prompt with the whole reply, in 24 of 24, and what to save was right in 21 of 24 ([measured](docs/hooks.md#cursor-hooks-074)).
 
 | | Saving | Bringing it back |
 |---|---|---|
 | **Claude Code** | Automatic, every turn | Automatic, every prompt |
 | **Codex** | Automatic while `jevmem watch` runs | When the agent asks, over MCP |
-| **Cursor** | When the agent calls it, over MCP | When the agent asks, over MCP |
+| **Cursor** | Automatic, every finished agent turn (0.7.4) | When the agent asks, over MCP |
 | **Claude Desktop** | When you ask it to, over MCP | When you ask it to, over MCP |
 
 The MCP server is on the [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.Avinash-jetwani/jevmem) as `io.github.Avinash-jetwani/jevmem`. Client setup: [docs/mcp.md](docs/mcp.md) · [docs/install.md](docs/install.md#works-with).
 
 ## Fast and cheap
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-dark.svg"><img alt="Median time to decide one message on 66 held-out turns: jevmem 0.22 s, six current LLMs 2.78 to 4.29 s." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-light.svg"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-dark.svg"><img alt="Median time to decide one message on 66 held-out turns: jevmem 0.23 s, six current LLMs 2.78 to 4.29 s." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-light.svg"></picture>
 
-Deciding what to save takes 0.22 s and costs $0.00018 per message, in the background: Claude doesn't wait for it.
+Deciding what to save takes 0.23 s and costs $0.00019 per message, in the background: Claude doesn't wait for it.
 On whether to save a message at all, jevmem was right as often as the best of six LLMs (98.5%); two of them were better at naming the kind of line.
 
-Measured on 66 turns written before the code and not tuned on, one run of 0.7.3 on 2026-10-15 ([results](results/eval-heldout-2026-10-15-v073.json)); the six LLMs ran on 2026-09-23. All seven in one table, with the cost of each and how it was run: [benchmark](docs/benchmark.md#073-beside-the-six-llms).
+Measured on 66 turns written before the code and not tuned on, one run of 0.7.4 on 2026-10-16 ([results](results/eval-heldout-2026-10-16-v074.json)); the six LLMs ran on 2026-09-23. All seven in one table, with the cost of each and how it was run: [benchmark](docs/benchmark.md#074-beside-the-six-llms).
 
 ## How it decides
 
@@ -206,6 +206,7 @@ Every limit, with the numbers: [docs/limits.md](docs/limits.md).
 
 What changed, newest first; the measurements behind each line are on the what's new page.
 
+- **0.7.4: a Cursor chat saves like a Claude Code one.** `jevmem init --tool cursor` writes Cursor's hooks (and a launcher, both committable), and when an agent turn finishes the `stop` hook reads the turn from Cursor's transcript and runs the same decide and write path as in Claude Code; reading memory in Cursor stays the agent's MCP call. On 10 held-out Cursor chats (24 turns), captured through Cursor's own CLI before the code, every turn was paired whole and what to save was right in 21 of 24. Run `jevmem init --tool cursor` once more in a project set up earlier. [Details](docs/whats-new.md).
 - **0.7.3: the setup message stays off cloud and Cowork sessions.** 0.7.2's one-time message showed at the start of every claude.ai chat that ran in a cloud workspace, where its marker could not stay. Now it shows only on your own computer (a terminal, the desktop app, the VS Code extension or an SSH session), and a cloud or Cowork session gets no message and no file. The plugin's launcher and the docs; the CLI's code is unchanged. [Details](docs/whats-new.md).
 - **0.7.2: finish the setup in one command.** After **Add** in the Claude app, the first session on a machine says once what is left, and `jevmem setup` asks for your key, turns jevmem on in the folder and checks the setup. Always-on lines now go through the poisoning gate before they reach a session, and Jev 1.13.0 is pinned: beside 1.13 on six test sets, 1.14 missed one of five contradictions in all three runs, saved fewer dead ends from captured sessions in all three, and kept fewer of the reasons on the written set. [Details](docs/whats-new.md).
 - **0.7.1: rules for every change, and memory from past sessions.** A line marked always-on reaches Claude at the start of every session, whatever the prompt: on six test tasks in files written before their conventions, Claude followed the convention in 14 of 18 sessions with 0.7.0 and 18 of 18 with 0.7.1, as with the same lines in a hand-kept `CLAUDE.md`. `jevmem import --from sessions` reads a project's past Claude Code sessions and proposes the decisions, rules and dead ends in them, after showing the count and the cost and asking. [Details](docs/whats-new.md).
@@ -222,13 +223,13 @@ Details and measurements: [docs/whats-new.md](docs/whats-new.md) · Upgrading: [
 
 ```text
 jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
-jevmem init --remove-hooks                     Remove jevmem's Claude Code hooks from this project (plugin users)
+jevmem init --remove-hooks                     Remove jevmem's Claude Code hooks and Cursor hooks from this project (plugin users)
 jevmem enable                                  Opt this project in (plugin users): jevmem.config.json, JEVMEM.md, .jevmem/
 jevmem setup                                   Finish the setup here: the CLI and the plugin, your TypeSafe key (asked for, not shown), jevmem turned on in this folder, doctor; terminal only
 jevmem disable                                 Opt this project out: jevmem does nothing here (JEVMEM.md is kept)
 jevmem hook                                    Hook entrypoint; reads the Claude Code hook JSON on stdin
 jevmem daemon [status|start|stop]              Warm Jev client used by the hook (auto-started, exits when idle)
-jevmem watch [--replay] [--once]               Capture turns from Codex's session log for this project
+jevmem watch [--replay] [--once]               Capture turns from Codex's session log for this project (Cursor saves through its hooks)
 jevmem mcp [--root <dir>]                      Stdio MCP server
 jevmem audit [--dry-run]                       Re-score every memory against the repo, flag [stale?]
 jevmem audit --security [--ci]                 List lines that read as instructions to an AI (--ci: exit 1 if any)

@@ -23,7 +23,7 @@ The `Dockerfile` at the repository root is for MCP directories that inspect a se
 
 ### Cursor
 
-`.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
+`jevmem init --tool cursor` writes this entry, the rule `.cursor/rules/jevmem.mdc` and, since 0.7.4, the hooks that save each finished agent turn ([docs/hooks.md](hooks.md#cursor-hooks-074)); the MCP server is how the agent reads memory (`search_memory`). `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
 
 ```json
 {

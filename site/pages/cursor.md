@@ -1,13 +1,17 @@
 ---
 path: /cursor/
-description: Run jevmem init --tool cursor in your project. Cursor's agent then saves decisions and looks them up through jevmem's MCP server. In Cursor, saving happens only when the agent calls it.
+description: Run jevmem init --tool cursor in your project. Since jevmem 0.7.4, Cursor's hooks save the decisions, rules and failed approaches from each finished agent turn, as Claude Code's do; the agent reads memory over MCP.
 order: 6
 ---
 # How do I use jevmem in Cursor?
 
-Run `jevmem init --tool cursor` in your project: it adds jevmem's MCP server to `.cursor/mcp.json` and writes a rule, `.cursor/rules/jevmem.mdc`, that tells Cursor's agent to save a decision with `add_memory` when you state one and to call `search_memory` before a non-trivial task.
+Run `jevmem init --tool cursor` in your project. Since jevmem 0.7.4 it writes Cursor's hooks into `.cursor/hooks.json`, with a small launcher at `.cursor/hooks/jevmem-hook.sh` that runs jevmem, and both files can be committed: nothing in them names your computer. When an agent turn finishes, the `stop` hook reads the turn from the transcript Cursor keeps and runs the same decide and write path as in Claude Code, so the decisions, rules and failed approaches you state in a Cursor chat land in `JEVMEM.md` on their own. It also adds jevmem's MCP server to `.cursor/mcp.json` and a rule, `.cursor/rules/jevmem.mdc`, that tells the agent to call `search_memory` before a non-trivial task: Cursor's prompt hook takes no context, so reading memory is the agent's call, over MCP.
 
-In Cursor, jevmem saves only when the agent calls it; saving is automatic in Claude Code, and in Codex while `jevmem watch` runs. A line the agent adds goes through the same check as a Claude Code turn: on 66 held-out turns that check was right on save or skip for 98.5% (jevmem 0.7.1, one run on 2026-10-13, [results](../../results/eval-heldout-2026-10-13-v071.json)). Those turns were given to the decider directly; nothing has been measured inside Cursor.
+Before 0.7.4, saving in Cursor happened only when the agent called `add_memory`. If you set jevmem up for Cursor earlier, run `jevmem init --tool cursor` once more: it adds the two files, updates the rule's text when you have not changed it, and keeps your MCP entry; then reload the window.
+
+## What was measured
+
+Twenty real Cursor sessions were captured through Cursor's `agent` CLI in scratch copies of small projects, before any of the Cursor code was written, and each turn was labelled with what jevmem should save. On the ten held-out sessions (24 turns), run on the release build: every turn was paired whole, the prompt with the whole reply and no tool output, in 24 of 24; the decider, unchanged from Claude Code, was right on save or skip for 21 of 24 turns and on save and kind for 20 of 24, every saved line carried its labelled words, and the one reversal replaced the line it reversed ([results](../../results/cursor-heldout-2026-10-16-v074-run2.json)). The set was run twice: the first run found a line Cursor's CLI writes itself after a background task, which the reader took as a new turn in one session (21 of 24 paired); that was fixed in the release and the set run again ([the first run](../../results/cursor-heldout-2026-10-16-v074.json)). The three decide misses are a fact stated in a reply saved as an architecture line, twice, and a failing test runner found by "Run the tests" saved as a bug. The sessions were served by Grok 4.7 Extra High; what Cursor's hooks send, and what each of jevmem's does with it, is on the repository's [hooks page](../../docs/hooks.md#cursor-hooks-074).
 
 ## Set it up
 
@@ -23,9 +27,13 @@ In Cursor, jevmem saves only when the agent calls it; saving is automatic in Cla
    ```bash
    jevmem init --tool cursor
    ```
-4. Reload the Cursor window, so that it picks up the MCP server.
+4. Reload the Cursor window, so that it picks up the hooks and the MCP server. Cursor runs project hooks in a trusted workspace.
 
-`init` also creates `JEVMEM.md`, `jevmem.config.json` and a gitignored `.jevmem/` folder in the project. Every install path: [install](install.md).
+`init` also creates `JEVMEM.md`, `jevmem.config.json` and a gitignored `.jevmem/` folder in the project. `jevmem doctor` shows a `cursor` line with what it found. Every install path: [install](install.md).
+
+## What is saved, and what is not
+
+A turn that ends with `status: completed` is saved; a turn you stopped, or that ended in an error, is not. In Cursor's `agent` CLI, which fires `sessionEnd` and not the app's `stop`, each `agent -p` run is one turn, saved when the run ends. A turn's `previous` context is the turn before it, as in Claude Code. What goes to TypeSafe is the same as from a Claude Code turn ([privacy](privacy.md)). Known limits in Cursor: [limits](../../docs/limits.md).
 
 ## The MCP config, if you write it yourself
 

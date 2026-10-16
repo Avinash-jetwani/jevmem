@@ -1,6 +1,6 @@
-# Claude Code hooks
+# Claude Code hooks, and Cursor's
 
-How `jevmem init` registers the hooks, where the hook finds your key, the warm daemon, and what Claude Code actually sends.
+How `jevmem init` registers the hooks, where the hook finds your key, the warm daemon, what Claude Code actually sends, and, since 0.7.4, [Cursor's hooks](#cursor-hooks-074).
 
 ## The Claude Code plugin
 
@@ -101,6 +101,41 @@ Since 0.7.0 the hooks write two small files in `.jevmem/` (gitignored, and `.jev
 ```
 
 `action` is `saved`, `skipped` (then `kind`, `line` and `id` are null and `reason` says why; a duplicate has `duplicate_of`) or `error`. `jevmem why <hash>` has the whole decision behind it.
+
+## Cursor hooks (0.7.4)
+
+Cursor runs a project's `.cursor/hooks.json` hooks, in the app and in its `agent` CLI, with a JSON payload on stdin and the project root as the working directory ([Cursor's docs](https://cursor.com/docs/hooks), read 2026-10-16). `jevmem init --tool cursor` writes jevmem's entries into that file, beside `.cursor/mcp.json` and the rule, and copies a launcher into the project:
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [{ "command": "sh .cursor/hooks/jevmem-hook.sh sessionStart", "timeout": 5 }],
+    "beforeSubmitPrompt": [{ "command": "sh .cursor/hooks/jevmem-hook.sh beforeSubmitPrompt", "timeout": 5 }],
+    "afterAgentResponse": [{ "command": "sh .cursor/hooks/jevmem-hook.sh afterAgentResponse", "timeout": 5 }],
+    "stop": [{ "command": "sh .cursor/hooks/jevmem-hook.sh stop", "timeout": 20 }],
+    "sessionEnd": [{ "command": "sh .cursor/hooks/jevmem-hook.sh sessionEnd", "timeout": 20 }]
+  }
+}
+```
+
+**Both files can be committed.** Cursor's docs say project hooks are checked in, so the commands are relative and the launcher, `.cursor/hooks/jevmem-hook.sh` (POSIX sh, a copy of the package's `hooks/jevmem-cursor-hook.sh`), holds no path of one computer: it finds the `jevmem` command as the Claude Code plugin's launcher does (`command -v jevmem`, else the path it cached in the gitignored `.jevmem/cursor-launcher`, else `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `~/.volta/bin`, else the newest nvm Node that has it), finds a Node 20+ to run it with, and runs `jevmem hook --cursor`. A clone where jevmem is not installed, or a project without `jevmem.config.json`, gets a launcher that reads its input and exits 0 at once, answering `{"continue": true}` for `beforeSubmitPrompt` and nothing for the rest; nothing is written anywhere. Other hooks in the file are kept; running `init` again changes nothing, repairs a moved command or an older launcher, and `jevmem init --remove-hooks` takes jevmem's entries and the launcher out (a file left with nothing is deleted). A project set up with an earlier version needs `jevmem init --tool cursor` once more, which adds the two files and replaces the rule's text when it is unchanged; reload the window once.
+
+**What each hook does.** Measured on Cursor 3.24.18 and the `agent` CLI (2026.08.11 to 2026.10.16) with a logging-only hook before any code ([the probe](../.reports/release-0.7.4-prompt.md) is described in the release report; the payloads are in `test/fixtures/cursor/`):
+
+| Hook | Fires | What jevmem does | Budget |
+|---|---|---|---|
+| `beforeSubmitPrompt` | The app, when you send a prompt (the CLI does not fire it) | Writes the prompt and the turn's `generation_id` to `.jevmem/cursor/<conversation id>.json` and answers `{"continue": true}`, which it answers on any failure too: a hook answer Cursor cannot read could hold a prompt back | A file write; the entry's timeout is 5 s |
+| `afterAgentResponse` | The app, once per turn, with the final message's text (a text block before a tool call was not reported in the probe) | Appends the text to that file; answers `{}` | The same |
+| `stop` | The app, when the turn ends, with `status` `completed`, `aborted` or `error` and a `transcript_path` | `completed`: reads the turn **from the transcript** Cursor names, a JSONL of the whole conversation (one line per message; the person's text wrapped in `<timestamp>` and `<user_query>`, which are stripped; the assistant's text blocks joined, its `tool_use` blocks skipped; a `turn_ended` line when a turn finishes, and a resumed CLI chat's file keeps only the last one, so a turn is also closed by the next person's line; a line Cursor wrote itself after a background task, its follow-up, continues the turn), or, when there is no transcript, from the stash; then the same queue, decide and write as the Claude Code `Stop` hook, with the turn before it as context. `aborted` and `error`: nothing is decided, the stash is dropped. The launcher saves the payload and starts the CLI in its own process group, as the Claude Code Stop launcher does, because Cursor waits for a `stop` hook's answer (it may carry a follow-up prompt; jevmem never returns one) | Hands off in milliseconds; decide runs detached (601 ms p50 inline on the dev set, decide included) |
+| `sessionEnd` | The app when a chat ends (`reason` `completed`, `aborted`, `error`, `window_close`, `user_close`); **the CLI at the end of every `agent -p` run**, which fires none of the three above | `completed`: the transcript's last finished turn, when it is not decided yet. This is how a headless CLI run is saved; in the app it adds nothing after `stop` | The same |
+| `sessionStart` | Both, once per new chat | The project's always-on lines as `additional_context`, through the same gate as the Claude Code `SessionStart` hook (verified lines, or lines whose cached gate verdict passed), once per conversation | Milliseconds, no request, no key |
+
+A turn is marked decided by conversation id and turn number (`.jevmem/turns.json`), so a `stop` fired twice, or `sessionEnd` after `stop`, decides nothing twice. Stashes older than a day are deleted by any later hook. Recall is not automatic in Cursor: `beforeSubmitPrompt` has no field for context, so the agent reads memory with `search_memory` over MCP when the rule tells it to.
+
+**Cursor also runs a project's Claude Code hooks.** With its third-party import on (Cursor's default), Cursor loads `.claude/settings.local.json` and `.claude/settings.json` hooks and runs them with its own payloads and event names (`beforeSubmitPrompt`, `stop`, `sessionStart`, `preToolUse`), which `jevmem hook` without `--cursor` does not act on: measured on 2026-10-16 with 0.7.3's four hook commands and every payload of the probe, each exited 0 with no output, no request and no file (`test/cursor-payloads.test.ts` keeps it so). A project with both runs jevmem once per event, through the Cursor entries.
+
+**Measured.** Twenty real Cursor sessions, captured through the `agent` CLI in scratch copies of the eval projects before any Cursor code (`eval/cursor-dev-sessions.jsonl`, 10 sessions and 26 runs; `eval/cursor-heldout-sessions.jsonl`, 10 sessions and 24 runs in other projects, not read while building), each run's pair labelled from the CLI's own events, then replayed through the built `jevmem hook --cursor` with the real Jev (`scripts/eval-cursor.mjs`). On the held-out set, run once on the build: 21 of 24 turns paired whole; the three misses were one session where Cursor's CLI had submitted a follow-up of its own as a user line after a background task, which the reader took as a new turn. Fixed in the release, and the set run a second time: **24 of 24 turns paired whole** (the prompt without Cursor's wrappers, the whole reply as the CLI reported it, no tool output, the one interrupted run read as open and left alone), and decide, unchanged from Claude Code, right on save or skip for 21 of 24, with the kind for 20 of 24, every saved line carrying its labelled words (14 of 14), the one reversal superseded, precision 14 of 17, recall 14 of 14 ([results](../results/cursor-heldout-2026-10-16-v074-run2.json), [the first run](../results/cursor-heldout-2026-10-16-v074.json)). The three decide misses are two questions whose reply stated a fact, saved as architecture lines, and a "Run the tests" whose reply found the failing runner, saved as a bug: the behaviour 0.6.0 chose for a fact in the reply ([limits](limits.md)). The dev set on the same build: 26 of 26 paired whole, save or skip right 23 of 25 counted turns (one run is left out: its agent read this repository's labels), with the kind 21 of 25, 2 of 2 reversals ([results](../results/cursor-dev-2026-10-16-v074.json)). The Grok 4.7 Extra High model served every captured session; the CLI updated itself from 2026.10.14 to 2026.10.16 between the first and the other sessions.
 
 ### What the hooks actually receive
 
