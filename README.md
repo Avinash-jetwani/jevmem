@@ -197,7 +197,7 @@ jevmem is young, and these are the limits to know before you rely on it:
 - **Early:** first released on 2026-09-22, and every test set was written by the author or captured from Claude Code sessions on scratch projects built for it. None is an independent benchmark.
 - **Not the most accurate:** two LLMs scored higher at picking the kind of line. jevmem's edge is speed and cost.
 - **Answer quality isn't measured:** the tests check that the right lines reach Claude, not that its answers get better.
-- **Automatic saving is Claude Code only** (and Codex while `jevmem watch` runs).
+- **Automatic saving is Claude Code and, since 0.7.4, Cursor** (and Codex while `jevmem watch` runs); Claude Desktop saves only when the agent calls `add_memory`, and in Cursor recall is still the agent's call.
 - **The guard looks at shared words:** a rule worded far from the command it should catch can be missed.
 
 Every limit, with the numbers: [docs/limits.md](docs/limits.md).
