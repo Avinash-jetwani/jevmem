@@ -7,7 +7,7 @@ order: 1
 
 **Say it once.** jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session. Before Claude runs a command or edits a file, it checks the call against your saved rules. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry, and works with Cursor and Codex over MCP.
 
-[Watch the film](https://github.com/user-attachments/assets/65e48f03-8e1c-49d9-baad-6f217911e861)
+[Watch the film](https://github.com/user-attachments/assets/c8a7eced-c427-4ef6-85f2-124eb34ad291)
 
 ## In numbers
 
