@@ -11,7 +11,8 @@
  * - `stop` with `status: completed` (the app): the turn is read from the transcript Cursor names in `transcript_path`,
  *   a JSONL of the whole conversation (one line per message: the user's text wrapped in `<timestamp>` and `<user_query>`,
  *   the assistant's text and `tool_use` blocks, a `turn_ended` line when a turn finishes; a resumed chat's file keeps
- *   only the last `turn_ended`, so a turn is also closed by the next user line), or, when there is no transcript, from
+ *   only the last `turn_ended`, so a turn is also closed by the next user line; a user line Cursor wrote itself after a
+ *   background task continues the turn), or, when there is no transcript, from
  *   the stash; then the same queue, decide and write as Claude Code's Stop hook. `aborted` and `error` decide nothing.
  * - `sessionEnd` with `reason: completed`: the transcript's last finished turn, when it is not decided yet. This is how
  *   the CLI's runs end (one turn each); in the app it adds nothing after `stop`.
@@ -48,6 +49,17 @@ export interface CursorTurn {
   status: string | null;
 }
 
+/**
+ * A user line Cursor wrote itself, not the person: after a background task ends, the CLI (2026.08.11 on) submits a
+ * follow-up ("Briefly inform the user about the task result and perform any follow-up actions…") whose `<user_query>`
+ * holds the text on the tag's own line, where a typed prompt sits on its own lines inside the tag. Such a line and the
+ * assistant's answer to it belong to the turn that is running; measured on a held-out session (0.7.4).
+ */
+export function isCursorAutomaticPrompt(text: string): boolean {
+  const t = String(text ?? "");
+  return /<user_query>[^\n<]/.test(t) || /<user_query>\s*Briefly inform the user about the task result/.test(t);
+}
+
 /** The text Cursor's transcript keeps for a prompt: the prompt, wrapped in `<timestamp>` and `<user_query>`. */
 export function stripCursorPrompt(text: string): string {
   let t = String(text ?? "").replace(/<timestamp>[\s\S]*?<\/timestamp>/g, "");
@@ -80,8 +92,11 @@ export function readCursorTranscript(file: string): CursorTurn[] {
       continue;
     }
     if (e?.role === "user") {
+      const raw = texts(e).join("\n\n");
+      // Cursor's own follow-up line continues the running turn; a person's prompt starts a new one.
+      if (cur && !cur.ended && isCursorAutomaticPrompt(raw)) continue;
       if (cur) cur.ended = true;
-      cur = { index: turns.length + 1, user: stripCursorPrompt(texts(e).join("\n\n")), assistant: "", ended: false, status: null };
+      cur = { index: turns.length + 1, user: stripCursorPrompt(raw), assistant: "", ended: false, status: null };
       turns.push(cur);
     } else if (e?.role === "assistant" && cur) {
       const t = texts(e);

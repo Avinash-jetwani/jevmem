@@ -66,6 +66,7 @@ for (let d = distDir; d !== path.dirname(d); d = path.dirname(d)) {
 }
 const meta = { kind: "cursor-sessions", set: SET, file: FILE, pairs: PAIRS, date: new Date().toISOString().slice(0, 10), commit, jevmem_version: version, cli: path.relative(process.cwd(), path.resolve(cliArg)), sessions: sessions.length, agent_cli: [...new Set(sessions.flatMap((s) => s.runs.map((r) => r.cursor_version ?? s.cursor_version)))].join(", "), model: [...new Set(sessions.flatMap((s) => s.runs.map((r) => r.model_served)))].join(", "), cost_method: `input tokens × $${USD_PER_M_INPUT}/M` };
 const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
+const tight = (s) => String(s ?? "").replace(/\s+/g, "");
 const readJsonl = (f) => (fs.existsSync(f) ? fs.readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
 
 const results = [];
@@ -95,7 +96,9 @@ for (const s of sessions) {
     const read = transcriptText ? lib.readCursorTranscript(tfile) : [];
     const mine = read[i] ?? null;
     const userRight = Boolean(mine) && squash(mine.user) === squash(run.prompt);
-    const assistantRight = Boolean(mine) && Boolean(pair) && squash(mine.assistant) === squash(pair.assistant);
+    // The pair's assistant text: the CLI's assistant events joined, or its result text (every delta joined with nothing
+    // between), whitespace aside: the result carries the reply to a follow-up Cursor submitted itself, the events may not.
+    const assistantRight = Boolean(mine) && Boolean(pair) && (tight(mine.assistant) === tight(pair.assistant) || (pair.result != null && tight(mine.assistant) === tight(pair.result)));
     const ended = Boolean(mine?.ended);
     const extra = read.length - (i + 1);
     // Decide: the real sessionEnd payload for this run.

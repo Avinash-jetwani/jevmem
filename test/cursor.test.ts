@@ -94,6 +94,30 @@ describe("Cursor's transcript", () => {
     expect(turns[0]!.assistant).not.toContain("tool_use");
   });
 
+  it("a user line Cursor wrote itself after a background task continues the turn; the person's next prompt starts one", () => {
+    const f = path.join(tmp(), "follow-up.jsonl");
+    const line = (o: unknown) => JSON.stringify(o);
+    const user = (text: string) => line({ role: "user", message: { content: [{ type: "text", text }] } });
+    const assistant = (text: string) => line({ role: "assistant", message: { content: [{ type: "text", text }] } });
+    fs.writeFileSync(
+      f,
+      [
+        user("<timestamp>Friday, Oct 16, 2026, 8:34 PM (UTC+1)</timestamp>\n<user_query>\nRule: the server listens on 8080, not 3000.\n</user_query>"),
+        assistant("I'll change the port and start the server to check it."),
+        user("<timestamp>Friday, Oct 16, 2026, 8:35 PM (UTC+1)</timestamp>\n\n<user_query>Briefly inform the user about the task result and perform any follow-up actions (if needed). If there's no follow-ups needed, don't explicitly say that.</user_query>"),
+        assistant("The server listens on 8080 now; the check server has stopped."),
+        line({ type: "turn_ended", status: "success" }),
+        user("<timestamp>Friday, Oct 16, 2026, 8:36 PM (UTC+1)</timestamp>\n<user_query>\nRun the tests.\n</user_query>"),
+        assistant("All green."),
+        line({ type: "turn_ended", status: "success" }),
+      ].join("\n") + "\n",
+    );
+    const turns = readCursorTranscript(f);
+    expect(turns).toHaveLength(2);
+    expect(turns[0]).toMatchObject({ user: "Rule: the server listens on 8080, not 3000.", assistant: "I'll change the port and start the server to check it.\n\nThe server listens on 8080 now; the check server has stopped.", ended: true });
+    expect(turns[1]).toMatchObject({ user: "Run the tests.", assistant: "All green.", ended: true });
+  });
+
   it("a missing or broken file gives no turns and no throw", () => {
     expect(readCursorTranscript(path.join(tmp(), "none.jsonl"))).toEqual([]);
     const f = path.join(tmp(), "bad.jsonl");

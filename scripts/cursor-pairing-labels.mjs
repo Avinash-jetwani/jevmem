@@ -33,6 +33,9 @@ for (const r of rows) {
       assistant_messages: texts.length,
       assistant: texts.join("\n\n"),
       final: texts.at(-1) ?? "",
+      // The CLI's own result text: every text delta of the run joined with nothing between, which carries the reply
+      // to a follow-up Cursor submitted itself after a background task, where the assistant events may not.
+      result: run.result_text ?? null,
       tool_calls: (run.tool_calls ?? []).length,
       result_event: run.result ? run.result.subtype : null,
       cursor_version: run.cursor_version ?? r.cursor_version ?? null,
