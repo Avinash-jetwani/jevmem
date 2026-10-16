@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { applyAudit, auditMemories, formatAuditTable, formatSecurityTable, securityAudit } from "./audit.js";
@@ -1317,6 +1318,16 @@ function cursorDoctorLine(root: string): string {
   if (st.events.length === CURSOR_HOOK_EVENTS.length && st.launcher === "current") parts.push("hooks in .cursor/hooks.json (sessionStart, beforeSubmitPrompt, afterAgentResponse, stop, sessionEnd) with the launcher .cursor/hooks/jevmem-hook.sh: each finished agent turn is saved");
   else if (st.events.length) parts.push(`hooks in .cursor/hooks.json for ${st.events.join(", ")} only${st.launcher === "missing" ? ", and no launcher at .cursor/hooks/jevmem-hook.sh" : st.launcher === "stale" ? ", with an older launcher" : ""}: run \`jevmem init --tool cursor\` to complete them`);
   else parts.push("no jevmem hooks in .cursor/hooks.json: turns are not saved in Cursor until `jevmem init --tool cursor` adds them (0.7.4)");
+  // The CLI the launcher last ran (its cache), and whether it is this one: Cursor gives its hooks its own PATH.
+  try {
+    const [cli] = fs.readFileSync(path.join(root, ".jevmem", "cursor-launcher"), "utf8").split("\n");
+    if (cli) {
+      const v = spawnSync(cli, ["--version"], { encoding: "utf8", timeout: 5000 }).stdout?.trim() ?? "";
+      parts.push(`the launcher last ran ${cli.replace(os.homedir(), "~")}${v ? ` (${v}${v !== PACKAGE_VERSION ? `, not this ${PACKAGE_VERSION}` : ""})` : ""}${v && v < "0.7.4" ? ": a jevmem before 0.7.4 ignores Cursor's hooks, so turns are not saved until it is updated" : ""}`);
+    }
+  } catch {
+    /* no cache yet */
+  }
   parts.push(mcp ? "MCP server in .cursor/mcp.json" : "no jevmem server in .cursor/mcp.json");
   parts.push(rule ? "the rule .cursor/rules/jevmem.mdc" : "no rule file");
   if (projectHasInitHooks(root)) parts.push("Cursor also runs this project's Claude Code hooks (.claude/settings*.json) with its own event names, which jevmem ignores there, so nothing runs twice");

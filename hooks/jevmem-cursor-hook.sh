@@ -3,7 +3,10 @@
 # .cursor/hooks/jevmem-hook.sh and names it in .cursor/hooks.json with relative commands, so both files can be committed
 # with the project: nothing in here is a path of one computer.
 #
-#   jevmem-hook.sh <event>      event: sessionStart | beforeSubmitPrompt | afterAgentResponse | stop | sessionEnd
+#   jevmem-hook.sh [--cli <path>] [--node <path>] <event>
+#       event: sessionStart | beforeSubmitPrompt | afterAgentResponse | stop | sessionEnd
+#       --cli, --node: an explicit jevmem CLI and Node to run it with, before any search (the e2e harness uses them to
+#       run the packed CLI, since Cursor gives its hooks its own resolved shell PATH, not the agent process's)
 #
 # Cursor runs a project hook from the project root with the hook's JSON payload on stdin and reads its JSON answer. This
 # launcher (1) answers the least Cursor may need and exits 0 when the project has no jevmem.config.json, when no jevmem
@@ -16,6 +19,14 @@
 # The cache (the CLI path and the Node path, one line each) lives in the project's gitignored .jevmem/ folder and is
 # written only in a project that is turned on.
 
+given_cli=""; given_node=""
+while [ $# -gt 1 ]; do
+  case "$1" in
+    --cli) given_cli="$2"; shift 2 ;;
+    --node) given_node="$2"; shift 2 ;;
+    *) break ;;
+  esac
+done
 event="${1:-}"
 
 # The answer Cursor needs when the CLI does not run: beforeSubmitPrompt must say the prompt may go on.
@@ -43,7 +54,9 @@ nvm_versions() {
   ls "$HOME/.nvm/versions/node" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$/\1/p' | sort -t . -k 1,1nr -k 2,2nr -k 3,3nr
 }
 
-cli="$(command -v jevmem 2>/dev/null)"
+cli=""
+if [ -n "$given_cli" ] && [ -x "$given_cli" ]; then cli="$given_cli"; fi
+[ -n "$cli" ] || cli="$(command -v jevmem 2>/dev/null)"
 if [ -z "$cli" ] && [ -n "$c_cli" ] && [ -x "$c_cli" ]; then cli="$c_cli"; fi
 if [ -z "$cli" ]; then
   for d in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.volta/bin"; do
@@ -61,7 +74,8 @@ node_ok() { [ -n "$1" ] && [ -x "$1" ] && "$1" -e 'process.exit(+process.version
 node=""
 case "$(head -n 1 "$cli" 2>/dev/null)" in
   '#!'*node*)
-    if [ "$c_cli" = "$cli" ] && node_ok "$c_node"; then node="$c_node"; fi
+    if node_ok "$given_node"; then node="$given_node"; fi
+    if [ -z "$node" ] && [ "$c_cli" = "$cli" ] && node_ok "$c_node"; then node="$c_node"; fi
     if [ -z "$node" ]; then
       for n in "${cli%/*}/node" "$(command -v node 2>/dev/null)" /opt/homebrew/bin/node /usr/local/bin/node "$HOME/.volta/bin/node"; do
         if node_ok "$n"; then node="$n"; break; fi

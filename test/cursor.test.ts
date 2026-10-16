@@ -373,6 +373,18 @@ describe.skipIf(process.platform === "win32")("the Cursor launcher (hooks/jevmem
     expect(fs.readFileSync(log, "utf8")).toContain('{"text":"again"}');
   });
 
+  it("--cli and --node name the CLI and Node to run, before the search on PATH", () => {
+    const root = tmp();
+    init({ root, hooks: false });
+    const onPath = fakeCli();
+    const chosen = fakeCli();
+    const r = spawnSync("sh", [LAUNCHER, "--cli", path.join(chosen.bin, "jevmem"), "afterAgentResponse"], { cwd: root, env: { PATH: `${onPath.bin}:/usr/bin:/bin`, HOME: tmp("jevmem-cursor-home-"), CURSOR_PROJECT_DIR: root }, input: '{"text":"x"}', encoding: "utf8", timeout: 15_000 });
+    expect(r.status).toBe(0);
+    expect(fs.existsSync(chosen.log)).toBe(true);
+    expect(fs.existsSync(onPath.log)).toBe(false);
+    expect(fs.readFileSync(path.join(root, ".jevmem", "cursor-launcher"), "utf8").split("\n")[0]).toBe(path.join(chosen.bin, "jevmem"));
+  });
+
   it("stop and sessionEnd return at once while the CLI goes on detached", async () => {
     const root = tmp();
     init({ root, hooks: false });

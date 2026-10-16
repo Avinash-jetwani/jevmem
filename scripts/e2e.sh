@@ -2099,6 +2099,15 @@ run_cursor() {
     const fs=require("fs");const [file,bin,url]=process.argv.slice(1);
     fs.writeFileSync(file,JSON.stringify({mcpServers:{jevmem:{command:bin,args:["mcp"],env:{TYPESAFE_BASE_URL:url,JEVMEM_WRITER:"none"}}}},null,2)+"\n");' "$scratch/.cursor/mcp.json" "$E2E_NPM/prefix/bin/jevmem" "$proxy_url"
   [ -f "$HOME/.jevmem/env" ] || { echo "cursor: the hooks read the key from ~/.jevmem/env, which is missing (run jevmem key)"; return 1; }
+  # Cursor gives its hooks its own resolved shell PATH, not the agent process's (measured: the launcher found the global
+  # jevmem under nvm, not the packed one first on the agent's PATH), so the hook commands name the packed CLI and this
+  # Node explicitly; a user's committed file has no such path.
+  "$NODE" -e '
+    const fs=require("fs");const [file,cli,node]=process.argv.slice(1);const h=JSON.parse(fs.readFileSync(file,"utf8"));
+    for(const list of Object.values(h.hooks))for(const e of list)if(/jevmem-hook\.sh/.test(e.command))e.command=e.command.replace("jevmem-hook.sh ",`jevmem-hook.sh --cli "${cli}" --node "${node}" `);
+    fs.writeFileSync(file,JSON.stringify(h,null,2)+"\n");' "$scratch/.cursor/hooks.json" "$E2E_NPM/prefix/bin/jevmem" "$NODE"
+  echo "   the hook commands name the packed CLI (--cli) and this Node (--node) for the launcher"
+  : > "$scratch/.jevmem/cursor-launcher" 2>/dev/null; rm -f "$scratch/.jevmem/cursor-launcher"
   local agent_env=(-u TYPESAFE_API_KEY PATH="$E2E_NPM/prefix/bin:$PATH" HOME="$HOME" TYPESAFE_BASE_URL="$proxy_url" JEVMEM_WRITER=none JEVMEM_DAEMON=0)
   local p1="Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else."
   local p2="From this project's memory only, in one sentence: where are invoices archived?"
@@ -2141,7 +2150,7 @@ JS
   if [ $fail -eq 0 ]; then
     echo "---- session 3 (the MCP server removed; an always-on rule through sessionStart): $p3"
     mv "$scratch/.cursor/mcp.json" "$scratch/.cursor/mcp.json.off"
-    ( cd "$scratch" && env TYPESAFE_API_KEY="$TYPESAFE_API_KEY" TYPESAFE_BASE_URL="$proxy_url" cli add --always constraint "Never commit .env files to this repository." 2>&1 | sed 's/^/   /' | head -3 )
+    ( cd "$scratch" && env TYPESAFE_BASE_URL="$proxy_url" cli add --always constraint "Never commit .env files to this repository." 2>&1 | sed 's/^/   /' | head -3 ) # the key is in the harness's own environment
     ( cd "$scratch" && env "${agent_env[@]}" "$agent_bin" -p --trust --force --output-format stream-json --model "$model" "$p3" > "$plog.s3" 2>"$plog.s3.err" )
     "$NODE" - "$plog.s3" <<'JS' || fail=1
       const fs=require("fs");const raw=fs.readFileSync(process.argv[2],"utf8");const ev=raw.split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
