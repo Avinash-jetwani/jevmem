@@ -52,7 +52,7 @@ Not when it says the same as a live line (0.7.0). On a held-out set of 50 turns 
 
 Yes, since 0.7.1: `jevmem import --from sessions` reads a project's past Claude Code sessions and proposes the lines the hooks would have saved, after counting the sessions and turns, estimating the cost and asking. On 12 real held-out sessions with 27 turns, captured before the code in two new projects, it read every turn (27 of 27), proposed a line for every turn labelled to give one (17 of 17) with the labelled words in each, superseded both reversals (2 of 2), and gave 4 lines for turns labelled skip: precision 17 of 21 (one run on the build, 2026-10-13, [results](../../results/import-heldout-2026-10-13-v071.json)).
 
-**Limits.** The kind was wrong in 5 of the 27 turns, as decide reads them. Two prompts with nothing from Claude between them are one turn to the reader. The session format is undocumented: the reader counts what it skips and stops when no file gives a turn. More: [docs/limits.md](../../docs/limits.md#known-limits-in-071); the method: [docs/benchmark.md](../../docs/benchmark.md#memory-from-past-sessions-071).
+**Limits.** The kind was wrong in 5 of the 27 turns, as decide reads them. Two prompts with nothing from Claude between them are one turn to the reader. The session format is undocumented: the reader counts what it skips and stops when no file gives a turn. More: [docs/limits.md](../../docs/limits.md#known-limits); the method: [docs/benchmark.md](../../docs/benchmark.md#memory-from-past-sessions-071).
 
 ## Dead ends, background subagents and planted lines
 
