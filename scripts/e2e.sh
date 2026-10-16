@@ -2,7 +2,7 @@
 # End-to-end harness: a REAL multi-turn Claude Code session in a scratch project, under the desktop app's
 # stripped environment (bare PATH, no shell variables), with the jevmem hooks doing the work.
 #
-#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|forget|trust|alwayson|import|setup|remote|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
+#   scripts/e2e.sh [--runs N] [--scenario linkguard|handwrite|plugin|dormant|published|nocli|nokey|outage|guard|guardgit|deadend|supersede|forget|trust|alwayson|import|setup|remote|cursor|all|full] [--automemory present|cleared|both|keep] [--model NAME] [--keep-scratch]
 #
 # Isolation: every `claude` call (sessions and `claude plugin …`) runs with a fresh temporary CLAUDE_CONFIG_DIR, so the
 # harness never reads or writes ~/.claude (settings, plugins, session transcripts, auto memory). A fresh config dir is
@@ -2058,6 +2058,121 @@ JS
   return $fail
 }
 
+# Automatic saving in Cursor (0.7.4), through Cursor's `agent` CLI, which runs a project's .cursor/hooks.json hooks
+# headless: `sessionStart`, the tool hooks and `sessionEnd`, not `beforeSubmitPrompt`, `afterAgentResponse` or `stop`
+# (measured on 2026.08.11 to 2026.10.16), so each run's turn is closed by jevmem's sessionEnd hook from the transcript,
+# the same reader the app's stop hook uses. It uses your Cursor plan: four agent runs per scenario run (E2E_CURSOR_MODEL,
+# default grok-4.7-xhigh), and the real HOME, since the CLI's sign-in lives there (the harness's HOME is used for nothing
+# here; TYPESAFE_API_KEY and the proxy URL go to the hooks through the agent's environment). Session 1, a project turned
+# on with `jevmem init --tool cursor` (the hooks file, the launcher, the MCP entry pointed at the packed CLI): a stated
+# decision must be saved by the hooks alone. Session 2, a new chat with the MCP server: a question answered from the
+# project's memory only must call `search_memory` and use the line. Session 3, the MCP server removed and a rule marked
+# always-on: a question about the project's rules must be answered with it, which only the `sessionStart` hook's
+# additional_context can carry. Then a project not turned on, with the same hooks file: one run, 0 requests, no file.
+run_cursor() {
+  local run="$1" scratch scratch2 proxy_pid proxy_url plog fail=0 n n2 model agent_bin
+  agent_bin="$(command -v agent 2>/dev/null)"
+  if [ -z "$agent_bin" ]; then echo "cursor: no \`agent\` CLI on PATH"; return 1; fi
+  model="${E2E_CURSOR_MODEL:-grok-4.7-xhigh}"
+  install_cli || return 1
+  scratch="${E2E_SCRATCH:-$(mktemp -d /tmp/jevmem-e2e.XXXXXX)}"
+  scratch="$(cd "$scratch" && pwd -P)"
+  rm -rf "${scratch:?}"/* "${scratch:?}"/.[!.]* 2>/dev/null
+  echo "================ run $run  scenario=cursor  agent=$("$agent_bin" --version 2>/dev/null | head -1)  model=$model  scratch=$scratch"
+  ( cd "$scratch" && git init -q && printf '{"name":"client-app","private":true}\n' > package.json && printf '# client-app\n' > README.md && git add -A && git -c user.name=Sam -c user.email=sam@example.com commit -q -m init )
+  plog="$(mktemp /tmp/jevmem-e2e-proxy.XXXXXX)"
+  "$NODE" "$ROOT/scripts/jev-outage-proxy.mjs" --flag "$plog.never" > "$plog.url" 2> "$plog" &
+  proxy_pid=$!
+  for _ in $(seq 1 50); do [ -s "$plog.url" ] && break; sleep 0.1; done
+  proxy_url="$(cat "$plog.url")"
+  echo "---- jevmem init --tool cursor (the packed CLI)"
+  ( cd "$scratch" && cli init --tool cursor 2>&1 | sed 's/^/   /' | head -12 )
+  for f in .cursor/hooks.json .cursor/hooks/jevmem-hook.sh .cursor/mcp.json .cursor/rules/jevmem.mdc jevmem.config.json; do
+    [ -f "$scratch/$f" ] || { echo "   ✗ FAIL: init did not write $f"; fail=1; }
+  done
+  if grep -q "$HOME\|$E2E_NPM" "$scratch/.cursor/hooks.json" "$scratch/.cursor/hooks/jevmem-hook.sh" 2>/dev/null; then echo "   ✗ FAIL: a path of this machine in the committed hooks files"; fail=1; fi
+  # The MCP server runs the packed CLI, not npx's download; the key and the proxy go through its env.
+  "$NODE" -e '
+    const fs=require("fs");const [file,bin,key,url]=process.argv.slice(1);
+    fs.writeFileSync(file,JSON.stringify({mcpServers:{jevmem:{command:bin,args:["mcp"],env:{TYPESAFE_API_KEY:key,TYPESAFE_BASE_URL:url,JEVMEM_WRITER:"none"}}}},null,2)+"\n");' "$scratch/.cursor/mcp.json" "$E2E_NPM/prefix/bin/jevmem" "$TYPESAFE_API_KEY" "$proxy_url"
+  local agent_env=(PATH="$E2E_NPM/prefix/bin:$PATH" HOME="$HOME" TYPESAFE_API_KEY="$TYPESAFE_API_KEY" TYPESAFE_BASE_URL="$proxy_url" JEVMEM_WRITER=none JEVMEM_DAEMON=0)
+  local p1="Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else."
+  local p2="From this project's memory only, in one sentence: where are invoices archived?"
+  local p3="Which rules apply to work in this project? Answer from the context you were given, in one line, and run no tool."
+  local p4="Decision: refunds go back to the original payment method only. Say ok and nothing else."
+  if [ $fail -eq 0 ]; then
+    echo "---- session 1 (turned on, the hooks alone): $p1"
+    ( cd "$scratch" && env "${agent_env[@]}" "$agent_bin" -p --trust --force --output-format stream-json --model "$model" "$p1" > "$plog.s1" 2>"$plog.s1.err" )
+    "$NODE" -e 'const fs=require("fs");const ev=fs.readFileSync(process.argv[1],"utf8").split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});const i=ev.find(e=>e.type==="system"&&e.subtype==="init")||{};const r=ev.find(e=>e.type==="result")||{};console.log("   agent> model "+(i.model||"?")+"; "+String(r.result||"").replace(/\n/g," ").slice(0,120))' "$plog.s1"
+    wait_queue "$scratch" 0 || { echo "   ✗ queue did not drain within 60 s"; queue_state "$scratch"; fail=1; }
+    n=$(wc -l < "$plog" | tr -d ' ')
+    "$NODE" - "$scratch" "$n" <<'JS' || fail=1
+      const fs=require("fs");const [root,n]=process.argv.slice(2);
+      const lines=fs.readFileSync(root+"/JEVMEM.md","utf8").split("\n").filter(l=>/^- \[[a-z]+(?:-[a-z]+)*\] .*<!-- id:\w+/.test(l));
+      for(const l of lines)console.log("     "+l.replace(/\s*<!--.*-->/,""));
+      const errs=[];
+      if(lines.length!==1)errs.push(`expected 1 line, got ${lines.length}`);
+      else if(!/invoice/i.test(lines[0])||!/(S3|PDF)/i.test(lines[0]))errs.push("the saved line is not the invoice decision");
+      if(!(Number(n)>0))errs.push("no request reached Jev");
+      const log=fs.existsSync(root+"/.jevmem/log.jsonl")?fs.readFileSync(root+"/.jevmem/log.jsonl","utf8"):"";
+      if(!/cursor/.test(log))errs.push("no cursor entry in .jevmem/log.jsonl");
+      if(errs.length){console.log("   ✗ FAIL session 1: "+errs.join("; "));process.exit(1);}
+      console.log(`   ✓ session 1: saved by the sessionEnd hook from the transcript (${n} request(s) to Jev)`);
+JS
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- session 2 (a new chat, recall over MCP): $p2"
+    ( cd "$scratch" && env "${agent_env[@]}" "$agent_bin" -p --trust --force --approve-mcps --output-format stream-json --model "$model" "$p2" > "$plog.s2" 2>"$plog.s2.err" )
+    "$NODE" - "$plog.s2" <<'JS' || fail=1
+      const fs=require("fs");const raw=fs.readFileSync(process.argv[2],"utf8");const ev=raw.split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
+      const r=ev.find(e=>e.type==="result")||{};const reply=String(r.result||"");
+      console.log("   agent> "+reply.replace(/\n/g," ").slice(0,160));
+      const errs=[];
+      if(!/search_memory/.test(raw))errs.push("no search_memory call in the stream");
+      if(!/invoice/i.test(reply)||!/(S3|PDF)/i.test(reply))errs.push("the reply does not use the saved line");
+      if(errs.length){console.log("   ✗ FAIL session 2: "+errs.join("; "));process.exit(1);}
+      console.log("   ✓ session 2: the agent called search_memory over MCP and the reply used the line");
+JS
+  fi
+  if [ $fail -eq 0 ]; then
+    echo "---- session 3 (the MCP server removed; an always-on rule through sessionStart): $p3"
+    mv "$scratch/.cursor/mcp.json" "$scratch/.cursor/mcp.json.off"
+    ( cd "$scratch" && env TYPESAFE_API_KEY="$TYPESAFE_API_KEY" TYPESAFE_BASE_URL="$proxy_url" cli add --always constraint "Never commit .env files to this repository." 2>&1 | sed 's/^/   /' | head -3 )
+    ( cd "$scratch" && env "${agent_env[@]}" "$agent_bin" -p --trust --force --output-format stream-json --model "$model" "$p3" > "$plog.s3" 2>"$plog.s3.err" )
+    "$NODE" - "$plog.s3" <<'JS' || fail=1
+      const fs=require("fs");const raw=fs.readFileSync(process.argv[2],"utf8");const ev=raw.split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch{return {}}});
+      const r=ev.find(e=>e.type==="result")||{};const reply=String(r.result||"");
+      console.log("   agent> "+reply.replace(/\n/g," ").slice(0,160));
+      if(!/\.env/.test(reply)){console.log("   ✗ FAIL session 3: the reply does not name the always-on rule (.env)");process.exit(1);}
+      console.log("   ✓ session 3: the always-on rule reached the model through sessionStart's additional_context");
+JS
+    mv "$scratch/.cursor/mcp.json.off" "$scratch/.cursor/mcp.json" 2>/dev/null
+  fi
+  if [ $fail -eq 0 ]; then
+    scratch2="$(mktemp -d /tmp/jevmem-e2e.XXXXXX)"; scratch2="$(cd "$scratch2" && pwd -P)"
+    ( cd "$scratch2" && git init -q && printf '{"name":"other-app","private":true}\n' > package.json && mkdir -p .cursor/hooks && cp "$scratch/.cursor/hooks.json" .cursor/ && cp "$scratch/.cursor/hooks/jevmem-hook.sh" .cursor/hooks/ && git add -A && git -c user.name=Sam -c user.email=sam@example.com commit -q -m init )
+    local listing='find . -path ./.git -prune -o -print | sort'
+    ( cd "$scratch2" && eval "$listing" ) > "$plog.before"
+    n=$(wc -l < "$plog" | tr -d ' ')
+    echo "---- a project not turned on (the hooks file and launcher, no jevmem.config.json): $p4"
+    ( cd "$scratch2" && env "${agent_env[@]}" "$agent_bin" -p --trust --force --output-format stream-json --model "$model" "$p4" > "$plog.s4" 2>"$plog.s4.err" )
+    sleep 5
+    n2=$(wc -l < "$plog" | tr -d ' ')
+    ( cd "$scratch2" && eval "$listing" ) > "$plog.after"
+    if [ "$n2" -ne "$n" ]; then echo "   ✗ FAIL: $((n2-n)) request(s) reached Jev from a project that is not turned on"; fail=1; fi
+    if ! diff -q "$plog.before" "$plog.after" >/dev/null; then echo "   ✗ FAIL: files appeared in the project:"; diff "$plog.before" "$plog.after" | sed 's/^/     /'; fail=1; fi
+    [ $fail -eq 0 ] && echo "   ✓ not turned on: 0 requests to Jev, no file in the project"
+    [ $KEEP -eq 1 ] || rm -rf "${scratch2:?}"
+  fi
+  "$NODE" -e 'const fs=require("fs");const names=new Set();for(const f of process.argv.slice(1)){try{for(const l of fs.readFileSync(f,"utf8").split("\n")){try{const e=JSON.parse(l);if(e.type==="system"&&e.subtype==="init"&&e.model)names.add(e.model)}catch{}}}catch{}}console.log("   served by: "+([...names].join(", ")||"?"))' "$plog.s1" "$plog.s2" "$plog.s3" "$plog.s4"
+  ( cd "$scratch" && cli daemon stop >/dev/null 2>&1 )
+  { kill "$proxy_pid"; wait "$proxy_pid"; } 2>/dev/null
+  rm -f "$plog" "$plog".*
+  if [ $fail -eq 0 ]; then echo "PASS run $run scenario=cursor"; else echo "FAIL run $run scenario=cursor"; fi
+  [ $KEEP -eq 1 ] || rm -rf "${scratch:?}"
+  return $fail
+}
+
 run_once() {
   local run="$1" automem="$2" scenario="$3"
   [ "$scenario" = dormant ] && { PUBLISHED=0; run_dormant "$run"; return $?; }
@@ -2075,6 +2190,7 @@ run_once() {
   [ "$scenario" = import ] && { run_import "$run"; return $?; }
   [ "$scenario" = setup ] && { PUBLISHED=0; run_setup "$run"; return $?; }
   [ "$scenario" = remote ] && { PUBLISHED=0; run_remote "$run"; return $?; }
+  [ "$scenario" = cursor ] && { run_cursor "$run"; return $?; }
   local scratch perm=()
   case "$scenario" in
     linkguard|plugin) PROMPTS=("${LG_PROMPTS[@]}"); EXPECT=("${LG_EXPECT[@]}");;

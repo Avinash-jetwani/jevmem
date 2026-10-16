@@ -48,6 +48,7 @@ export type { Family, AtomicNoul } from "./questions.js";
 export { recordDecision, readDecisions, findDecision, readLabels, addLabel, labelRight, labelWrong, labelMissed, runFit, readFitInfo, footerMeta, formatFooter, formatWhy, formatFit, MIN_LABELS } from "./labels.js";
 export type { DecisionRecord, LabelRecord, FitInfo } from "./labels.js";
 export { detectTools, setupCursor, setupCodex, setupClaudeDesktop, claudeDesktopSnippet, TOOLS, CURSOR_RULE, AGENTS_SECTION, CODEX_MCP_SECTION } from "./tools.js";
+export { CURSOR_HOOK_EVENTS, cursorHooksStatus, readCursorTranscript, registerCursorHooks, stripCursorPrompt, unregisterCursorHooks, type CursorTurn, type CursorHookEvent } from "./cursor.js";
 export type { Announce } from "./tools.js";
 export type { Tool, ToolSetupResult } from "./tools.js";
 export { watchCodex, findCodexRollouts, parseRolloutLines, codexSessionsDir } from "./watch.js";
