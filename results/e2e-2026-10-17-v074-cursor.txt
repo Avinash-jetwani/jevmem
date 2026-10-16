@@ -1,0 +1,42 @@
+Claude Code 2.1.299: /Users/avinashjetwani/Library/Application Support/Claude/claude-code/2.1.299/4fa9694b7975/claude.app/Contents/MacOS/claude (the desktop app's bundled binary); model: not pinned (Claude Code's default)
+   jevmem CLI 0.7.3: npm install -g of the packed checkout, in a temporary prefix
+================ run 1  scenario=cursor  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  scratch=/private/tmp/jevmem-e2e.DsfL05
+---- jevmem init --tool cursor (the packed CLI)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+     created  .cursor/mcp.json (jevmem server)
+     created  .cursor/rules/jevmem.mdc
+     created  .cursor/hooks.json (jevmem's sessionStart, beforeSubmitPrompt, afterAgentResponse, stop and sessionEnd hooks) and .cursor/hooks/jevmem-hook.sh
+   
+   Tools: cursor
+   
+   Cursor saves each finished agent turn through the hooks in .cursor/hooks.json (the launcher runs the jevmem it finds on PATH or in the usual places; a clone without jevmem stays silent). Reload the window once so Cursor picks up the hooks and the MCP server; recall is the agent's search_memory call over MCP.
+   
+---- session 1 (turned on, the hooks alone): Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else.
+   agent> model Grok 4.7 256K Extra High; The workspace rule says decisions stated in chat are saved by hooks, so I’ll confirm the memory tools and record this on
+   ✗ queue did not drain within 60 s
+     state: 0 decision(s); queue: empty; drain.lock: none; daemon.json: none; state.json: none
+   ✗ FAIL session 1: expected 1 line, got 0; no request reached Jev; no cursor entry in .jevmem/log.jsonl
+   served by: Grok 4.7 256K Extra High
+FAIL run 1 scenario=cursor
+   served by: no claude run
+   (recorded in /Users/avinashjetwani/jevmem/test-results/e2e-failures.log)
+   jevmem CLI 0.7.3: npm install -g of the packed checkout, in a temporary prefix
+================ run 2  scenario=cursor  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  scratch=/private/tmp/jevmem-e2e.ecnIbt
+---- jevmem init --tool cursor (the packed CLI)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+     created  .cursor/mcp.json (jevmem server)
+     created  .cursor/rules/jevmem.mdc
+     created  .cursor/hooks.json (jevmem's sessionStart, beforeSubmitPrompt, afterAgentResponse, stop and sessionEnd hooks) and .cursor/hooks/jevmem-hook.sh
+   
+   Tools: cursor
+   
+   Cursor saves each finished agent turn through the hooks in .cursor/hooks.json (the launcher runs the jevmem it finds on PATH or in the usual places; a clone without jevmem stays silent). Reload the window once so Cursor picks up the hooks and the MCP server; recall is the agent's search_memory call over MCP.
+   
+---- session 1 (turned on, the hooks alone): Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else.
+   agent> model Grok 4.7 256K Extra High; I'll check project memory before acknowledging that decision.ok
