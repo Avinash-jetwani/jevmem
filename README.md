@@ -12,7 +12,7 @@ The docs site, one page per question: [avinash-jetwani.github.io/jevmem](https:/
 [![CI](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml/badge.svg)](https://github.com/Avinash-jetwani/jevmem/actions/workflows/ci.yml)
 [![M8ven Verified](https://m8ven.ai/badge/mcp/avinash-jetwani/jevmem?variant=verified)](https://m8ven.ai/mcp/avinash-jetwani/jevmem)
 
-https://github.com/user-attachments/assets/65e48f03-8e1c-49d9-baad-6f217911e861
+https://github.com/user-attachments/assets/c8a7eced-c427-4ef6-85f2-124eb34ad291
 
 ## Why
 
