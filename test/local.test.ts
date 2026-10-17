@@ -2,6 +2,7 @@
  * The two local files 0.7.1's pane reads (0.7.0): `.jevmem/last-recall.json` after a prompt and
  * `.jevmem/last-decision.json` after a turn; and the call's `tool_use_id` in the guard's log.
  */
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -56,5 +57,50 @@ describe("the pane's local files", () => {
     await evaluateGuard({ hook_event_name: "PreToolUse", cwd: root, tool_name: "Bash", tool_input: { command: "ls" }, tool_use_id: "toolu_01abc" }, { root, jev, log: true });
     const log = readGuardLog(root);
     expect(log.at(-1)).toMatchObject({ tool: "Bash", tool_use_id: "toolu_01abc" });
+  });
+
+  // 0.7.5: the pane reads the file on every prompt, so a project with no memory line gets one too, with the count.
+  it("last-recall.json is written on every prompt, with the count of live lines: served [] and lines 0 in a project with no memory line", async () => {
+    const root = tmp();
+    new MemoryStore(root).ensureDir();
+    const out = await runHook({ hook_event_name: "UserPromptSubmit", cwd: root, session_id: "s0", prompt: "Where are invoices archived?" }, { jev: mockJev(() => ({})) });
+    expect(out.action).toBe("noop");
+    const r = read(root, LAST_RECALL_FILE);
+    expect(r).toMatchObject({ session_id: "s0", path: "none", served: [], withheld: [], gated: 0, deferred: 0, lines: 0 });
+    expect(r.prompt_hash).toBe(crypto.createHash("sha1").update("Where are invoices archived?").digest("hex").slice(0, 16));
+    const store = new MemoryStore(root);
+    const m = store.add({ kind: "decision", text: "Invoices are archived as PDFs in S3" });
+    await runHook({ hook_event_name: "UserPromptSubmit", cwd: root, prompt: "Where are invoices archived?" }, { jev: mockJev((q) => ({ ...relevance(q, 0.98), most_relevant: m.id })) });
+    expect(read(root, LAST_RECALL_FILE)).toMatchObject({ path: "jev", lines: 1, served: [{ id: m.id }] });
+  });
+
+  // 0.7.5: the pane matches the decision to its prompt and its session, not only by time.
+  it("last-decision.json carries the session id and the prompt's hash", async () => {
+    const store = new MemoryStore(tmp());
+    const jev = mockJev(() => ({ ...SAVE_DECISION }));
+    await evaluateTurn(store, DEFAULT_CONFIG, jev, { hash: "h1", user: "Use Postgres 16 for the main database.", assistant: "Noted.", previous: "", session: "sess-1" });
+    expect(read(store.root, LAST_DECISION_FILE)).toMatchObject({ hash: "h1", action: "saved", session_id: "sess-1", prompt_hash: crypto.createHash("sha1").update("Use Postgres 16 for the main database.").digest("hex").slice(0, 16) });
+    // Through the Stop hook itself (the queue carries the session).
+    const root = tmp();
+    const out = await runHook({ hook_event_name: "Stop", cwd: root, session_id: "sess-2", user_message: "Use Postgres 16 for the main database.", assistant_message: "Noted." }, { jev, env: { JEVMEM_WRITER: "none" } as NodeJS.ProcessEnv });
+    expect(out.action).toBe("saved");
+    expect(read(root, LAST_DECISION_FILE)).toMatchObject({ action: "saved", session_id: "sess-2", prompt_hash: crypto.createHash("sha1").update("Use Postgres 16 for the main database.").digest("hex").slice(0, 16) });
+  });
+
+  // 0.7.5: a Stop that decides nothing for this turn says so in the file, so the pane need not wait for a limit.
+  it("a Stop that finds an empty turn writes last-decision.json as skipped with the reason; a repeated Stop of a captured turn writes nothing", async () => {
+    const root = tmp();
+    const jev = mockJev(() => ({ ...SAVE_DECISION }));
+    const out = await runHook({ hook_event_name: "Stop", cwd: root, session_id: "s3", user_message: "", assistant_message: "" }, { jev });
+    expect(out.action).toBe("noop");
+    expect(read(root, LAST_DECISION_FILE)).toMatchObject({ action: "skipped", hash: null, kind: null, line: null, id: null, session_id: "s3", source: "stop-hook" });
+    expect(read(root, LAST_DECISION_FILE).reason).toMatch(/^empty turn/);
+    const env = { JEVMEM_WRITER: "none" } as NodeJS.ProcessEnv;
+    await runHook({ hook_event_name: "Stop", cwd: root, session_id: "s3", user_message: "Use Postgres 16 for the main database.", assistant_message: "Noted." }, { jev, env });
+    const saved = read(root, LAST_DECISION_FILE);
+    expect(saved.action).toBe("saved");
+    const again = await runHook({ hook_event_name: "Stop", cwd: root, session_id: "s3", user_message: "Use Postgres 16 for the main database.", assistant_message: "Noted." }, { jev, env });
+    expect(again.detail).toBe("turn already captured");
+    expect(read(root, LAST_DECISION_FILE)).toEqual(saved);
   });
 });

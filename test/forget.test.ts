@@ -109,6 +109,54 @@ describe("jevmem forget", () => {
   });
 });
 
+describe("jevmem wrong --should-be none on a rule (0.7.5, fix e)", () => {
+  const decisionFor = (cwd: string, memoryId: string) => {
+    const decision = { save: true, kind: "constraint", importance: "critical", importanceScore: 3, contradiction: false, touchesMemoryId: null, worksNow: null, retest: null, nouls: {}, families: {}, content: 0.9, kindProbabilities: { constraint: 0.9 }, confidence: 0.9, reason: "save", usage: { inputTokens: 1, outputTokens: 1 }, cacheHit: false, thresholds: DEFAULT_CONFIG.thresholds, source: "user_message", assistantIncluded: false, sourceText: "", tier: 1, mode: "auto", escalated: false, escalationReasons: [] };
+    fs.mkdirSync(path.join(cwd, ".jevmem"), { recursive: true });
+    fs.writeFileSync(path.join(cwd, ".jevmem", "decisions.jsonl"), JSON.stringify({ ts: "2026-10-08T00:00:00.000Z", hash: "abc123def456", memoryId, message: "USER: Never commit .env files", decision }) + "\n");
+  };
+  it("off a terminal it is refused with nothing changed and no label written, as forget is", async () => {
+    const cwd = tmp();
+    const store = new MemoryStore(cwd);
+    const rule = store.add({ kind: "constraint", text: "Never commit .env files" });
+    decisionFor(cwd, rule.id);
+    const r = await run(["wrong", rule.id, "--should-be", "none"], cwd);
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("needs a yes on a terminal");
+    expect(r.err).toContain(`jevmem wrong ${rule.id} --should-be none`);
+    expect(store.active().map((m) => m.id)).toEqual([rule.id]);
+    expect(fs.existsSync(path.join(cwd, ".jevmem", "labels.jsonl"))).toBe(false);
+    // A kind other than none, or a line that is not a rule, is unchanged: the label is written and nothing asks.
+    expect((await run(["wrong", rule.id, "--should-be", "preference"], cwd)).code).toBe(0);
+    expect(store.active().map((m) => m.id)).toEqual([rule.id]);
+  });
+  it("on a terminal it shows the rule and asks; yes labels and retires it, no changes nothing", async () => {
+    const cwd = tmp();
+    const store = new MemoryStore(cwd);
+    const rule = store.add({ kind: "constraint", text: "Never commit .env files" });
+    decisionFor(cwd, rule.id);
+    const ask = async (answer: string) => {
+      let out = "";
+      let err = "";
+      const prompts: string[] = [];
+      const code = await main(["wrong", rule.id, "--should-be", "none"], { out: (s) => void (out += s), err: (s) => void (err += s), cwd }, { terminal: { ask: async (p) => (prompts.push(p), answer) } });
+      return { code, out, err, prompts };
+    };
+    const no = await ask("n");
+    expect(no.code).toBe(0);
+    expect(no.out).toContain(`[constraint] Never commit .env files  (${rule.id})`);
+    expect(no.prompts).toEqual(["Retire this rule? [y/N] "]);
+    expect(no.out).toContain("nothing was changed");
+    expect(store.active().map((m) => m.id)).toEqual([rule.id]);
+    const yes = await ask("y");
+    expect(yes.code).toBe(0);
+    expect(yes.out).toContain("labelled: should not have been saved");
+    expect(yes.out).toContain(`retired ${rule.id}`);
+    expect(store.active()).toEqual([]);
+    expect(store.list().find((x) => x.id === rule.id)).toMatchObject({ kind: "retired", was: "constraint" });
+  });
+});
+
 describe("the leading-tag strip", () => {
   it("drops kind and label tags, doubled or not, in any case, with a list dash, and keeps other bracketed tokens", () => {
     expect(stripLeadingTags("[constraint] Never commit the key.")).toBe("Never commit the key.");

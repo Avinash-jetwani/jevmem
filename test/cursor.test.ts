@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { CURSOR_HOOK_EVENTS, cursorHooksStatus, readCursorTranscript, registerCursorHooks, stripCursorPrompt, unregisterCursorHooks } from "../src/cursor.js";
+import { main } from "../src/cli-main.js";
 import { init } from "../src/init.js";
 import { readQueue } from "../src/queue.js";
 import { recordProvenance } from "../src/provenance.js";
@@ -419,5 +420,41 @@ describe.skipIf(process.platform === "win32")("the Cursor launcher (hooks/jevmem
     while (readQueue(root).length === 0 && Date.now() < until) await new Promise((res) => setTimeout(res, 100));
     expect(readQueue(root)).toHaveLength(1);
     expect(readQueue(root)[0]!.user).toBe(PROMPT_1);
+  });
+});
+
+// 0.7.5 (fix b): the Cursor app starts a project's MCP server only after the source toggle; until then recall over MCP
+// cannot work, and doctor should say so. The app keeps one folder per started server under
+// ~/.cursor/projects/<slug>/mcps/, the slug being the project path with "/" as "-" (read on Cursor 3.25.9).
+describe("jevmem doctor and the Cursor app's MCP server", () => {
+  const doctor = async (cwd: string) => {
+    let out = "";
+    await main(["doctor"], { out: (s) => void (out += s), err: () => {}, cwd });
+    return out.split("\n").find((l) => l.startsWith("cursor ")) ?? "";
+  };
+  const withHome = async (home: string, fn: () => Promise<void>) => {
+    const prev = process.env.HOME;
+    process.env.HOME = home;
+    try {
+      await fn();
+    } finally {
+      process.env.HOME = prev;
+    }
+  };
+  it("says when the app has not started this project's server, names the toggle, and says when it has", async () => {
+    const root = tmp();
+    const home = tmp("jevmem-cursor-home-");
+    init(root, { hooks: false });
+    setupCursor(root);
+    const slug = root.replace(/^\//, "").replace(/\//g, "-");
+    await withHome(home, async () => {
+      expect(await doctor(root)).toContain("MCP server in .cursor/mcp.json (this project has not been opened in the Cursor app yet)");
+      fs.mkdirSync(path.join(home, ".cursor", "projects", slug, "mcps", "cursor-origin"), { recursive: true });
+      const line = await doctor(root);
+      expect(line).toContain("the Cursor app has not started this project's MCP server yet");
+      expect(line).toContain("Customize > MCPs > jevmem > Configure > the source toggle for .cursor/mcp.json, then Reload");
+      fs.mkdirSync(path.join(home, ".cursor", "projects", slug, "mcps", "project-1a2b3c-jevmem"), { recursive: true });
+      expect(await doctor(root)).toContain("MCP server in .cursor/mcp.json, started by the Cursor app");
+    });
   });
 });

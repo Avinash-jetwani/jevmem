@@ -2,7 +2,7 @@
 // The text of a saved line (v0.6 part 3c): what a build writes for turns that are saved, judged against labels, and
 // genuine rules stated with an instruction against planted-line turns.
 //
-//   node scripts/eval-lines.mjs [path/to/dist/index.js] [--set dev|heldout|rules-dev|rules-heldout|cause-last-dev|cause-last-heldout] [--mode auto|fast|full] [--label now] [--out results/…json]
+//   node scripts/eval-lines.mjs [path/to/dist/index.js] [--set dev|heldout|rules-dev|rules-heldout|cause-last-dev|cause-last-heldout|label-dev|label-heldout] [--mode auto|fast|full] [--label now] [--out results/…json]
 //
 // Sets: eval/lines-dev.jsonl (tuning) and eval/lines-heldout.jsonl (run once at the end, on the final code and on 0.5.9),
 // eval/rules-dev.jsonl (tuning) and eval/rules-heldout.jsonl (run once at the end). Every row is one turn with the
@@ -21,6 +21,9 @@
 // writer when decide reads the content source as labelled (`source`): the line the build writes when decide agrees with
 // the label, so two builds are compared on the same input.
 //
+// The label-prefix sets (0.7.5): turns whose text starts with a label that names the kind ("Decision for this project:",
+// "Rule:", "Note:"); a row's `prefix` is that label, and the line keeps it (`keepsLabel`) when it starts with it. Two
+// rows per set have no label (controls). eval/label-prefix-dev.jsonl (tuning), eval/label-prefix-heldout.jsonl (once).
 // Judged in code, with no LLM: a line states the fact when it contains one of the row's `factKeys`, keeps the reason
 // when it contains one of its `reasonKeys` (rows with a reason), carries a request when it contains one of its
 // `junkKeys`, and is a junk line when it does not state the fact and is one of the requests, hand-offs or instructions
@@ -41,7 +44,7 @@ const opt = (n, d) => {
 };
 const distArg = args[0] && !args[0].startsWith("--") ? args[0] : path.resolve("dist/index.js");
 const SET = opt("--set", "dev");
-const FILE = { dev: "eval/lines-dev.jsonl", heldout: "eval/lines-heldout.jsonl", "rules-dev": "eval/rules-dev.jsonl", "rules-heldout": "eval/rules-heldout.jsonl", "cause-last-dev": "eval/cause-last-dev.jsonl", "cause-last-heldout": "eval/cause-last-heldout.jsonl" }[SET];
+const FILE = { dev: "eval/lines-dev.jsonl", heldout: "eval/lines-heldout.jsonl", "label-dev": "eval/label-prefix-dev.jsonl", "label-heldout": "eval/label-prefix-heldout.jsonl", "rules-dev": "eval/rules-dev.jsonl", "rules-heldout": "eval/rules-heldout.jsonl", "cause-last-dev": "eval/cause-last-dev.jsonl", "cause-last-heldout": "eval/cause-last-heldout.jsonl" }[SET];
 if (!FILE) throw new Error(`unknown --set ${SET}`);
 const RULES = SET.startsWith("rules");
 const MODE = opt("--mode", "auto");
@@ -80,7 +83,7 @@ function isJunk(r, line) {
 }
 function judge(r, line) {
   if (!line) return { line: null, statesFact: false, keepsReason: r.reason ? false : null, carriesRequest: false, junk: false };
-  return { line, chars: line.length, statesFact: hasKey(line, r.factKeys), keepsReason: r.reason ? hasKey(line, r.reasonKeys) : null, carriesRequest: hasKey(line, r.junkKeys), junk: isJunk(r, line), endsInEllipsis: line.endsWith("…") };
+  return { line, chars: line.length, statesFact: hasKey(line, r.factKeys), keepsReason: r.reason ? hasKey(line, r.reasonKeys) : null, carriesRequest: hasKey(line, r.junkKeys), junk: isJunk(r, line), endsInEllipsis: line.endsWith("…"), keepsLabel: r.prefix ? lower(line).startsWith(lower(r.prefix).replace(/:\s*$/, "")) : null };
 }
 /** Did Jev's pick (when the build reports one) choose a sentence the labels say states the memory? */
 function judgePick(r, pick) {
@@ -154,7 +157,7 @@ for (const r of rows) {
   row.reasonFits = reasonFits(r);
   out.push(row);
   const p = row.pipeline;
-  process.stderr.write(`${r.id.padEnd(24)} ${row.error ? `ERROR ${row.error}` : row.decide.save ? `${row.decide.kind.padEnd(12)} ${p.statesFact ? "fact" : "----"} ${r.reason ? (p.keepsReason ? "why " : "--- ") : "    "}${p.junk ? "JUNK " : ""}${p.line}` : `skip  ${row.decide.reason}`}\n`);
+  process.stderr.write(`${r.id.padEnd(24)} ${row.error ? `ERROR ${row.error}` : row.decide.save ? `${row.decide.kind.padEnd(12)} ${p.statesFact ? "fact" : "----"} ${r.reason ? (p.keepsReason ? "why " : "--- ") : "    "}${p.junk ? "JUNK " : ""}${p.keepsLabel ? "LABEL " : ""}${p.line}` : `skip  ${row.decide.reason}`}\n`);
 }
 fs.rmSync(tmp, { recursive: true, force: true });
 const finishedAt = new Date().toISOString();
@@ -173,6 +176,7 @@ function lineSummary(items, get) {
   const fits = reasons.filter((o) => o.reasonFits);
   const deadEnds = items.filter((o) => o.tag === "dead-end-but");
   const picks = items.map((o) => get(o)?.pickJudged).filter((p) => p && p.asked);
+  const labelled = items.filter((o) => rows.find((r) => r.id === o.id)?.prefix);
   return {
     turns: items.length,
     withLine: withLine.length,
@@ -183,6 +187,7 @@ function lineSummary(items, get) {
     junk: frac(items, (o) => get(o)?.junk),
     carriesRequest: frac(items, (o) => get(o)?.carriesRequest),
     endsInEllipsis: frac(withLine, (o) => get(o)?.endsInEllipsis),
+    ...(labelled.length ? { keepsLabel: frac(labelled, (o) => get(o)?.keepsLabel) } : {}),
     meanChars: Math.round(mean(withLine.map((o) => get(o).chars)) ?? 0),
     ...(picks.length ? { jevPicked: picks.length, pickMainStatesFact: `${picks.filter((p) => p.mainStatesFact).length}/${picks.length}`, pickMainIsJunk: `${picks.filter((p) => p.mainIsJunk).length}/${picks.length}`, pickFailed: picks.filter((p) => p.error).length } : {}),
   };

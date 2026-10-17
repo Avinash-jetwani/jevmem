@@ -65,6 +65,22 @@ describe("tool setup", () => {
     expect(setupCursor(root).created).toEqual([]);
   });
 
+  // 0.7.5 (fix a): Cursor writes its own state file under .cursor/hooks/state/, next to the launcher people commit.
+  it("in a git repository, setupCursor gitignores .cursor/hooks/state/ (Cursor's own state file lives next to the committable launcher); once", () => {
+    const root = tmp();
+    fs.mkdirSync(path.join(root, ".git"));
+    fs.writeFileSync(path.join(root, ".gitignore"), ".jevmem/\n");
+    const r = setupCursor(root);
+    expect(r.created).toContain(".gitignore (+ .cursor/hooks/state/)");
+    expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toBe(".jevmem/\n.cursor/hooks/state/\n");
+    expect(setupCursor(root).created).toEqual([]);
+    expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toBe(".jevmem/\n.cursor/hooks/state/\n");
+    // Not a git repository and no .gitignore: nothing is written.
+    const plain = tmp();
+    expect(setupCursor(plain).created.some((c) => c.startsWith(".gitignore"))).toBe(false);
+    expect(fs.existsSync(path.join(plain, ".gitignore"))).toBe(false);
+  });
+
   it("appends the Codex section to AGENTS.md and registers the MCP in ~/.codex/config.toml when present", () => {
     const root = tmp();
     const home = tmp();

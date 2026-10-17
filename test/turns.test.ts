@@ -190,3 +190,21 @@ describe("the Stop hook with background subagents", () => {
     expect(r.action).toBe("saved");
   });
 });
+
+describe("the pane's decision file while a turn waits for its subagents (0.7.5)", () => {
+  it("the Stop hook writes last-decision.json as deferred, with the reason, and the real decision replaces it once the turn is whole", async () => {
+    const root = tmp();
+    const s = session("d-bg-utc");
+    const jev = mockJev(() => SAVE_DECISION);
+    const read = () => JSON.parse(fs.readFileSync(path.join(root, ".jevmem", "last-decision.json"), "utf8"));
+    const a = await runHook(stopAt(root, s, 0), { jev, env });
+    expect(a.action).toBe("noop");
+    expect(read()).toMatchObject({ action: "deferred", hash: null, kind: null, line: null, id: null, source: "stop-hook" });
+    expect(read().reason).toMatch(/^turn still running: 1 background subagent/);
+    expect(typeof read().session_id).toBe("string");
+    const b = await runHook(stopAt(root, s, 1), { jev, env });
+    expect(b.action).toBe("saved");
+    expect(read()).toMatchObject({ action: "saved", kind: "decision" });
+    expect(read().prompt_hash).toMatch(/^[0-9a-f]{16}$/);
+  });
+});
