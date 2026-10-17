@@ -3,7 +3,7 @@
 // `plain` buttons with a hotkey where one is natural.
 import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
 import type { Decision, GuardEntry, Pending, Recall, Saving } from '../types'
-import { hhmm, isHash, isId, routeWords } from './files'
+import { hhmm, isHash, isId, plainDecision, routeWords } from './files'
 
 export type View = {
   on: boolean
@@ -131,9 +131,7 @@ export function draw($: EngineInterface, e: RenderInput<'Pane'>, v: View, act: A
     if (isId(d.id)) saved.push(buttons(d.id, d.kind, 'last', 'decision'))
     else saved.push(<Text dimColor>not a memory id</Text>)
   } else {
-    const head = d.action === 'deferred' ? 'waiting' : d.action === 'error' ? 'error' : 'skipped'
-    saved.push(<Text dimColor wrap="wrap">{`${head}: ${cut(d.reason ?? d.detail ?? '')}`}</Text>)
-    if (d.duplicate_of && !/duplicate of/.test(d.reason ?? d.detail ?? '')) saved.push(<Text dimColor>{`duplicate of ${d.duplicate_of}`}</Text>)
+    saved.push(<Text dimColor wrap="wrap">{plainDecision(d)}</Text>)
     if (isHash(d.hash)) saved.push(
       <Box flexDirection="row" gap={1}>
         <Button key="why:last" plain onPress={() => act.why(d.hash!, 'decision')}>why</Button>

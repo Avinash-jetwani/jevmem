@@ -26,6 +26,7 @@ Written by hand for shapes the captures did not produce (said so here, and in th
 | `decision-deferred.json` | 0.7.5's write when the Stop hook keeps a turn whose background subagents are still running |
 | `decision-empty-turn.json` | 0.7.5's write when the Stop hook finds an empty turn |
 | `decision-error.json` | a decision that ended in an error |
+| `decision-skipped-minor.json` | the skip the Code-tab probe showed on 2026-10-17 (`kind=none, content=0.44<0.5, importance=minor<useful [tier 2, escalated]`), from `decision-skipped.json` |
 | `recall-no-lines.json` | 0.7.5's write for a prompt in a project with no memory line (`lines: 0`) |
 | `recall-bad-id.json` | a served line whose id is not an id (`../x`): the pane must draw no button for it |
 | `queue-retry.jsonl` | `.jevmem/queue.jsonl` with the turn waiting for a retry after a Jev failure |

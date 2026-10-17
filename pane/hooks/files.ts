@@ -126,3 +126,30 @@ export function hhmm(iso: string): string {
   if (Number.isNaN(d.getTime())) return '?'
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
+
+/**
+ * The plain words for a turn that saved nothing, from the decision's reason (the details stay behind `why`, which
+ * prints the whole decision): the first rule that fits, from the most specific. A deferred turn and an error have
+ * their own words.
+ */
+export function plainDecision(d: Decision): string {
+  const r = `${d.reason ?? ''} ${d.detail ?? ''}`
+  if (d.action === 'deferred') {
+    const n = /(\d+) background subagent/.exec(r)?.[1]
+    return n ? `Waiting: ${n} background subagent${n === '1' ? ' has' : 's have'} not reported back` : 'Waiting: the turn is still running'
+  }
+  if (d.action === 'error') return `Failed: ${short(d.detail || d.reason || 'the decision ended in an error')}`
+  if (d.action !== 'skipped') return `${d.action}: ${short(d.reason ?? d.detail ?? '')}`
+  if (/^empty turn/.test(d.reason ?? d.detail ?? '')) return 'Not saved: an empty turn'
+  const dup = d.duplicate_of ?? /duplicate of ([a-z0-9]{6})/.exec(r)?.[1]
+  if (dup) return `Not saved: already in memory as ${dup}`
+  if (/injection=|instructions aimed at an AI/.test(r)) return 'Not saved: it read as instructions aimed at an AI'
+  if (/chit_chat/.test(r)) return 'Not saved: small talk'
+  if (/source=assistant_reply|assistant_meta|may come from the assistant/.test(r)) return "Not saved: only a bug, an architecture note or a dead end is taken from Claude's reply"
+  if (/status \w+: nothing decided|turn was stopped/.test(r)) return 'Not saved: the turn was stopped'
+  if (/kind=none/.test(r)) return 'Not saved: nothing worth keeping'
+  if (/content=[\d.]+<[\d.]+/.test(r)) return 'Not saved: too little of a fact in it'
+  if (/importance=\w+<\w+/.test(r)) return 'Not saved: not important enough'
+  return 'Not saved'
+}
+const short = (s: string) => (s.length > 120 ? `${s.slice(0, 119)}…` : s)

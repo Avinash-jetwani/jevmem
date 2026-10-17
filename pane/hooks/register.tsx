@@ -25,6 +25,7 @@ const GUARDED = new Set(['Bash', 'Edit', 'Write'])
 
 // The view's state, one atom per key of the contract (pane/types/index.d.ts); a reload or a hooks-worker restart keeps it.
 const S_ON = atom({ plugin: 'jevmem-pane', key: 'on' } as const, false)
+const S_OPENED = atom({ plugin: 'jevmem-pane', key: 'opened' } as const, false)
 const S_CLI = atom({ plugin: 'jevmem-pane', key: 'cli' } as const, null as Cli)
 const S_PROMPT = atom({ plugin: 'jevmem-pane', key: 'prompt' } as const, null as Prompt | null)
 const S_RECALL = atom({ plugin: 'jevmem-pane', key: 'recall' } as const, null as Recall | null)
@@ -176,18 +177,36 @@ async function doClose($: EngineInterface): Promise<void> {
   redraw($)
 }
 
+/**
+ * Opens the pane once per session: at session.start when a surface is attached (the terminal), else when one attaches
+ * (the desktop app's Code tab attaches after the mod loaded: an open before that answered `no-surface`), else at the
+ * first prompt. Unasked, the engine places it from 144 terminal columns and keeps it waiting below that; /jevmem
+ * places it at any width.
+ */
+async function openOnce($: EngineInterface): Promise<void> {
+  if (!(await read($, S_ON)) || (await read($, S_OPENED))) return
+  await update($, S_OPENED, () => true)
+  await $.ui.open({ id: PANE, title: 'jevmem', columns: 48 })
+}
+
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'jevmem', description: 'Open or close the jevmem pane: what was recalled for this prompt, what the guard decided, what the last turn saved' })
     const isOn = await projectOn($)
     await update($, S_ON, () => isOn)
+    await update($, S_OPENED, () => false)
     if (isOn) {
       const cli = await findCli($)
       await update($, S_CLI, () => cli)
-      // Unasked, the engine places the pane from 144 terminal columns and keeps it waiting below that; /jevmem places it anywhere.
-      await $.ui.open({ id: PANE, title: 'jevmem', columns: 48 })
+      if ((await $.session.surfaces()).length > 0) await openOnce($)
     }
     return next(e)
+  })
+
+  on('session.attach', async ($, e, next) => {
+    const r = await next(e)
+    await openOnce($)
+    return r
   })
 
   on('command.run', { command: 'jevmem' }, async ($) => {
@@ -203,6 +222,7 @@ export const register: Register = (on) => {
 
   on('prompt.submit', async ($, e, next) => {
     if (e.command || e.isMeta || !(await read($, S_ON))) return next(e)
+    await openOnce($)
     const at = await $.clock.now()
     const hash = await promptHash(e.text)
     await update($, S_PROMPT, () => ({ at, hash }))

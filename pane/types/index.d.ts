@@ -72,6 +72,8 @@ declare module 'claude-code' {
     'jevmem-pane': {
       /** The project is turned on (jevmem.config.json exists and does not say enabled false). */
       on: boolean
+      /** The pane has been opened this session: at session.start with a surface attached, else when one attaches, else at the first prompt. */
+      opened: boolean
       cli: Cli
       prompt: Prompt | null
       recall: Recall | null
