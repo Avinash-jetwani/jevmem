@@ -60,9 +60,9 @@ export type Prompt = { at: number; hash: string }
 export type Saving = 'none' | 'saving' | 'ready' | 'queued' | 'failed' | 'unknown'
 /** The row a button opened: a confirm, a command's output, or a note (a refusal, a hint). */
 export type Pending =
-  | { kind: 'confirm'; action: 'forget' | 'wrong'; id: string }
-  | { kind: 'output'; title: string; text: string }
-  | { kind: 'note'; text: string }
+  | { kind: 'confirm'; where: 'recall' | 'guard' | 'decision'; action: 'forget' | 'wrong'; id: string }
+  | { kind: 'output'; where: 'recall' | 'guard' | 'decision'; title: string; text: string }
+  | { kind: 'note'; where: 'recall' | 'guard' | 'decision'; text: string }
   | null
 /** How the pane runs the jevmem CLI: the argv in front of the command (`['jevmem']`, or node and cli.js); null when none was found. */
 export type Cli = { argv: string[] } | null
@@ -79,8 +79,8 @@ declare module 'claude-code' {
       recallState: 'none' | 'this' | 'other' | 'missing'
       /** The last ask, deny or warning of this session, and whether it was the call just made. */
       guard: { entry: GuardEntry; thisCall: boolean } | null
-      /** The last checked call of this session, whatever its decision. */
-      lastCall: GuardEntry | null
+      /** The last checked call of this session, whatever its decision; `missing` when the log had no entry for it. */
+      lastCall: GuardEntry | { tool: string; missing: true } | null
       decision: Decision | null
       saving: Saving
       /** What the queue or the log said when the decision did not land in time. */

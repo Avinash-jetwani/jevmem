@@ -444,7 +444,7 @@ describe("jevmem doctor and the Cursor app's MCP server", () => {
   it("says when the app has not started this project's server, names the toggle, and says when it has", async () => {
     const root = tmp();
     const home = tmp("jevmem-cursor-home-");
-    init(root, { hooks: false });
+    init({ root, hooks: false });
     setupCursor(root);
     const slug = root.replace(/^\//, "").replace(/\//g, "-");
     await withHome(home, async () => {

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { cursorHooksStatus, registerCursorHooks } from "./cursor.js";
+import { ensureGitignore } from "./init.js";
 
 export const TOOLS = ["claude", "cursor", "codex", "claude-desktop"] as const;
 export type Tool = (typeof TOOLS)[number];
@@ -143,6 +144,9 @@ export function setupCursor(root: string): ToolSetupResult {
   if (hooks === "added") r.created.push(what);
   else if (hooks === "updated") r.created.push(`${what} (updated)`);
   else r.skipped.push(what);
+  // 0.7.5: Cursor writes its own state file (continual-learning.json) under .cursor/hooks/state/, next to the launcher
+  // the docs invite people to commit, so a git repository gets that folder gitignored (0.7.4's live check committed it).
+  ensureGitignore(root, [".cursor/hooks/state/"], r.created);
   const st = cursorHooksStatus(root);
   if (st.others) r.notes.push(`Your other Cursor hooks in .cursor/hooks.json are kept (${st.others} entr${st.others === 1 ? "y" : "ies"}).`);
   r.notes.push("Cursor saves each finished agent turn through the hooks in .cursor/hooks.json (the launcher runs the jevmem it finds on PATH or in the usual places; a clone without jevmem stays silent). Reload the window once so Cursor picks up the hooks. Then turn the project's MCP server on once in the Cursor app (Customize > MCPs > jevmem > Configure > the source toggle for .cursor/mcp.json, then Reload): Cursor starts a project's MCP server only after that, and recall is the agent's search_memory call over it.");

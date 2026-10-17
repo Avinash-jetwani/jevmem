@@ -243,6 +243,9 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
       const prompt = (input.user_prompt ?? input.prompt ?? input.user_prompt_raw ?? input.message ?? "").trim();
       const all = store.list();
       const memories = all.filter(isLive);
+      // 0.7.5: the pane reads the file on every prompt, so a project with no memory line gets one too (served nothing,
+      // `lines: 0`), and it can say "no memory lines yet" instead of guessing.
+      if (prompt && memories.length === 0) writeLocalJson(store.root, LAST_RECALL_FILE, { ts: new Date().toISOString(), session_id: input.session_id ?? null, prompt_hash: hashOf(prompt), path: "none", served: [], withheld: [], gated: 0, deferred: 0, ms: 0, lines: 0 });
       if (!prompt || memories.length === 0) return { event, action: "noop", detail: "no prompt or no memories" };
       // Unverified lines (not written here by jevmem) go through the poisoning gate in the same Jev call. When the call
       // fails or runs past its budget, the prompt gets the lines sharing the most words with it instead (src/recall.ts).
@@ -273,6 +276,7 @@ async function runHookInner(event: string, input: HookInput, store: MemoryStore,
         gated,
         deferred,
         ms,
+        lines: memories.length,
         ...(error ? { error } : {}),
       });
       const how = served === "word-match" ? `; by word match, Jev: ${error}` : "";
@@ -323,7 +327,7 @@ const hashOf = (message: string) => crypto.createHash("sha1").update(message).di
 function releasedTurn(r: ReleasedTurn): CapturedTurn | null {
   const message = mergeTurn(r.user, r.assistant);
   if (message.trim().length < 8) return null;
-  return { hash: hashOf(message), user: r.user, assistant: r.assistant, previous: r.previous, source: `transcript (a turn that waited for its background subagents; ${r.why})`, current: false };
+  return { hash: hashOf(message), user: r.user, assistant: r.assistant, previous: r.previous, source: `transcript (a turn that waited for its background subagents; ${r.why})`, current: false, ...(r.session ? { session: r.session } : {}) };
 }
 
 /**
@@ -360,7 +364,9 @@ export function captureTurns(input: HookInput, root: string, event: string, deps
       source = input.last_assistant_message ? "transcript+last_assistant_message" : "transcript";
       if (t.waiting.length) {
         deferTurn(root, { session, turn: t.id, transcript: input.transcript_path, user, assistant, previous, waiting: t.waiting }, now);
-        return { turns: before, outcome: { event, action: "noop", detail: `turn still running: ${t.waiting.length} background subagent(s) it launched have not reported back; it is decided once they have` } };
+        const detail = `turn still running: ${t.waiting.length} background subagent(s) it launched have not reported back; it is decided once they have`;
+        writeUndecided(root, "deferred", detail, input.session_id ?? null, user, now);
+        return { turns: before, outcome: { event, action: "noop", detail } };
       }
       if (isDecided(root, session, t.id)) return { turns: before, outcome: { event, action: "noop", detail: "turn already decided" } };
     } else {
@@ -379,6 +385,7 @@ export function captureTurns(input: HookInput, root: string, event: string, deps
   if (message.trim().length < 8) {
     const detail = `empty turn (source: ${source}${input.transcript_path ? `, transcript ${fs.existsSync(input.transcript_path) ? "exists" : "missing"}` : ", no transcript_path"})`;
     if (source !== "payload") logHookProblem(root, event, detail);
+    writeUndecided(root, "skipped", detail, input.session_id ?? null, user, now);
     return { turns: before, outcome: { event, action: "noop", detail } };
   }
   const hash = hashOf(message);
@@ -387,7 +394,16 @@ export function captureTurns(input: HookInput, root: string, event: string, deps
   if (state.lastTurnHash === hash) return { turns: before, outcome: { event, action: "noop", detail: "turn already captured" } };
   writeStateFile(dir, { ...state, lastTurnHash: hash, lastRunAt: now.toISOString() });
   if (input.transcript_path && source.startsWith("transcript")) markDecided(root, session, turnId, now);
-  return { turns: [...before, { hash, user, assistant, previous, source, current: true }] };
+  return { turns: [...before, { hash, user, assistant, previous, source, current: true, ...(input.session_id ? { session: input.session_id } : {}) }] };
+}
+
+/**
+ * 0.7.5: when the Stop hook decides nothing for the turn it was called for (the turn waits for its background
+ * subagents, or it is empty), `.jevmem/last-decision.json` says so at once, so the pane does not wait for a limit. A
+ * repeated Stop of a turn already captured or decided writes nothing: that turn's own decision stands in the file.
+ */
+function writeUndecided(root: string, action: "deferred" | "skipped", detail: string, sessionId: string | null, user: string, now: Date): void {
+  writeLocalJson(root, LAST_DECISION_FILE, { ts: now.toISOString(), hash: null, action, detail, kind: null, line: null, id: null, superseded: null, duplicate_of: null, reason: detail, source: "stop-hook", tier: null, ms: 0, session_id: sessionId, prompt_hash: user.trim() ? hashOf(user.trim()) : null });
 }
 
 /** Queue the kept turns whose sessions have gone quiet or are gone (the daemon's timer). Returns how many were queued. */
@@ -415,7 +431,7 @@ export function captureTurn(input: HookInput, root: string, event: string, deps:
  * Evaluate one queued turn: decide, then write. Throws when Jev fails, so the queue keeps the turn for a retry.
  * The text was scrubbed when it was queued; decide and the writer scrub again.
  */
-export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, turn: Pick<QueuedTurn, "hash" | "user" | "assistant" | "previous">, deps: HookDeps = {}): Promise<HookOutcome> {
+export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof loadConfig>, jev: JevCaller, turn: Pick<QueuedTurn, "hash" | "user" | "assistant" | "previous" | "session">, deps: HookDeps = {}): Promise<HookOutcome> {
   const t0 = performance.now();
   const outcome = await evaluateTurnInner(store, cfg, jev, turn, deps);
   const d = outcome.decision as Decision | undefined;
@@ -434,6 +450,9 @@ export async function evaluateTurn(store: MemoryStore, cfg: ReturnType<typeof lo
     source: d?.source ?? null,
     tier: d?.tier ?? null,
     ms: Math.round(performance.now() - t0),
+    // 0.7.5: the pane matches the decision to its session and its prompt (the hash the recall file carries), not only by time.
+    session_id: turn.session ?? null,
+    prompt_hash: turn.user.trim() ? hashOf(turn.user.trim()) : null,
   });
   return outcome;
 }

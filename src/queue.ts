@@ -31,6 +31,8 @@ export interface QueuedTurn {
   previous: string;
   /** Where the text came from (payload, transcript, watch). */
   source: string;
+  /** The Claude Code session the turn belongs to (0.7.5, for `.jevmem/last-decision.json`); absent for older entries. */
+  session?: string;
   enqueuedAt: string;
   /** Failed evaluations so far. */
   attempts: number;
@@ -154,13 +156,14 @@ function applyCaps(root: string, items: QueuedTurn[], now: number): QueuedTurn[]
 }
 
 /** Append a scrubbed turn (a turn already in the queue is not added twice). Returns the queue length. */
-export function enqueueTurn(root: string, turn: { hash: string; user: string; assistant: string; previous: string; source: string }, now: Date = new Date()): number {
+export function enqueueTurn(root: string, turn: { hash: string; user: string; assistant: string; previous: string; source: string; session?: string }, now: Date = new Date()): number {
   const entry: QueuedTurn = {
     hash: turn.hash,
     user: scrubSecrets(turn.user),
     assistant: scrubSecrets(turn.assistant),
     previous: scrubSecrets(turn.previous),
     source: turn.source,
+    ...(turn.session ? { session: turn.session } : {}),
     enqueuedAt: now.toISOString(),
     attempts: 0,
   };

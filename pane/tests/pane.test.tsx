@@ -23,13 +23,26 @@ type Files = Record<string, string>
 type Answer = (argv: readonly string[]) => { exitCode?: number; stdout?: string; stderr?: string }
 type World = { files: Files; runs: string[][]; opens: number; placed: boolean; placeNext: boolean; clock: ReturnType<typeof mock.clock> }
 
+/** The file a path names: the kit resolves the pane's relative paths against the working directory, so a key matches by suffix. */
+function lookup(files: Files, path: string): string | undefined {
+  if (path in files) return files[path]
+  const key = Object.keys(files).find((k) => !k.startsWith('/') && path.endsWith(`/${k}`))
+  return key === undefined ? undefined : files[key]
+}
 /** The world beneath the pane: a clock, an environment, the files, the engine's ui and session nouns, the command. */
 function world(on: On, files: Files, opts: { now?: string; answer?: Answer } = {}): World {
   const w: World = { files, runs: [], opens: 0, placed: false, placeNext: true, clock: mock.clock(on, { now: AT(opts.now ?? '2026-10-17T10:22:40.000Z') }) }
   mock.env(on, { PATH: '/usr/bin:/bin', HOME: '/home/t' })
-  on('fs.read', (_$, e) => (e.path in w.files ? { value: w.files[e.path]! } : { deny: `ENOENT: ${e.path}` }))
-  on('fs.exists', (_$, e) => ({ value: e.path in w.files }))
-  on('fs.stat', (_$, e) => (e.path in w.files ? { value: { kind: 'file' as const, size: w.files[e.path]!.length, mtimeMs: 0, isLink: false } } : { deny: `ENOENT: ${e.path}` }))
+  on('fs.read', (_$, e) => {
+    const text = lookup(w.files, e.path)
+    return text === undefined ? { deny: `ENOENT: ${e.path}` } : { value: text }
+  })
+  on('fs.exists', (_$, e) => ({ value: lookup(w.files, e.path) !== undefined }))
+  on('fs.stat', (_$, e) => {
+    const text = lookup(w.files, e.path)
+    return text === undefined ? { deny: `ENOENT: ${e.path}` } : { value: { kind: 'file' as const, size: text.length, mtimeMs: 0, isLink: false } }
+  })
+  on('session.id', () => ({ value: 's1' })) // the session the hand-written decision fixtures name
   on('fs.list', () => ({ value: [] }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('ui.open', () => {
@@ -208,7 +221,7 @@ each('a served line whose id is not an id gets no button and runs nothing', asyn
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-bad-id.json']!)
-  await shows(ui, /We're submitting to the Chrome Web Store this week/)
+  await shows(ui, /\.\.\/x \[decision\] The extension ships as a sideload zip only/)
   await shows(ui, /not a memory id/)
   expect((await ui.findAll({ type: 'Button' })).filter((b) => /^(why|wrong|forget):/.test(b.key ?? ''))).toHaveLength(0)
   expect(w.runs).toEqual([])

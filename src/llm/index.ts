@@ -605,6 +605,14 @@ const URL_RE = /^[a-z][a-z0-9+.-]*:\/\/\S+|^www\.\S+/i;
 
 const FILLER_LABEL = /^(?:decision|decided|constraint|bug|to-?do|preference|update|note|fyi|reminder|change of plan|heads[ -]?up|quick note|context)\s*:\s*/i;
 /**
+ * 0.7.5 (fix c): a label that names the kind with a scope ("Decision for this project:", "Rule for this repo:",
+ * "Project rule:", "Team convention:") or a bare rule label ("Rule:") goes when a whole sentence follows it, three
+ * words or more; a fragment keeps it ("Rule: pnpm"), and words that only look like one stay ("Rules engine decisions
+ * are cached", "Decision support tables:"). 0.7.4's live check saved "Decision for this project: we use pnpm…" whole.
+ */
+const KIND_LABEL = /^(?:(?:project|team|repo|house|our|my)\s+)?(?:decision|decided|rule|rules|constraint|convention|conventions|policy|note|reminder|preference|fact|bug|to-?do)(?:\s+(?:for|in|on|about)\s+(?:this|the|our)\s+(?:project|repo|repository|codebase|code base|app|service|team|monorepo))?\s*:\s*/i;
+const WHOLE_SENTENCE = /^\S+(?:\s+\S+){2,}/;
+/**
  * The labels a reply puts in front of its findings ("Why it fails:", "What I tried:", "The problem:", "Current state."):
  * never part of the memory, so they go from a candidate sentence (src/pick.ts) and from the line (0.6.6, on the real
  * replies of eval/attempts-dev.jsonl, where a line began "Why it failed:" and the cut then fell before the cause).
@@ -627,6 +635,11 @@ export function stripFiller(line: string): string {
     const label = FILLER_LABEL.exec(t) ?? REPORT_LABEL.exec(t) ?? FILLER_LEAD.exec(t);
     if (label) {
       t = t.slice(label[0].length).trimStart();
+      continue;
+    }
+    const kindLabel = KIND_LABEL.exec(t);
+    if (kindLabel && WHOLE_SENTENCE.test(t.slice(kindLabel[0].length))) {
+      t = t.slice(kindLabel[0].length).trimStart();
       continue;
     }
     const word = FILLER_WORD.exec(t);

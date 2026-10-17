@@ -1028,6 +1028,19 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const rec = findDecision(root, id);
       if (!rec) return fail(`no recorded decision for ${id}`);
       const cfg = loadConfig(root);
+      // 0.7.5 (fix e): `wrong --should-be none` retires the line, and a rule is retired only after a yes on a terminal,
+      // as `jevmem forget` has it since 0.7.0: an agent's shell has none, and the guard's tamper check asks first.
+      if (cmd === "wrong" && shouldBe === "none" && rec.decision.save && rec.memoryId) {
+        const m = new MemoryStore(root, cfg.memoryFile).list().find((x) => x.id === rec.memoryId);
+        if (m && m.kind === "constraint") {
+          io.out(`[constraint] ${m.text}  (${m.id})\n`);
+          if (!isTerminal(opts)) return fail(`jevmem wrong: ${m.id} is a rule, and retiring a rule needs a yes on a terminal; nothing was changed. Run jevmem wrong ${m.id} --should-be none in a terminal.`);
+          if (!(await confirmOnTerminal("Retire this rule? [y/N] "))) {
+            io.out("nothing was changed\n");
+            return 0;
+          }
+        }
+      }
       if (cmd === "right") {
         const n = labelRight(root, rec);
         io.out(`labelled as correct (${rec.decision.save ? `saved as ${rec.decision.kind}` : "skipped"}). ${n} label(s) total.\n`);
@@ -1328,10 +1341,30 @@ function cursorDoctorLine(root: string): string {
   } catch {
     /* no cache yet */
   }
-  parts.push(mcp ? "MCP server in .cursor/mcp.json" : "no jevmem server in .cursor/mcp.json");
+  parts.push(mcp ? cursorMcpState(root) : "no jevmem server in .cursor/mcp.json");
   parts.push(rule ? "the rule .cursor/rules/jevmem.mdc" : "no rule file");
   if (projectHasInitHooks(root)) parts.push("Cursor also runs this project's Claude Code hooks (.claude/settings*.json) with its own event names, which jevmem ignores there, so nothing runs twice");
   return parts.join("; ");
+}
+
+/**
+ * 0.7.5 (fix b): the Cursor app starts a project's MCP server only after its source toggle (Customize > MCPs > jevmem >
+ * Configure), and until then the agent cannot read memory over MCP. The app keeps one folder per started server under
+ * `~/.cursor/projects/<slug>/mcps/`, the slug being the project path with `/` as `-` (read on Cursor 3.25.9, 2026-10-17;
+ * a project server's folder is `project-…-jevmem`). No project folder: the app has not opened the project.
+ */
+function cursorMcpState(root: string): string {
+  const slugs = new Set([root, (() => { try { return fs.realpathSync(root); } catch { return root; } })()].map((p) => p.replace(/^[/\\]+/, "").replace(/[/\\:]+/g, "-")));
+  const dirs = [...slugs].map((slug) => path.join(os.homedir(), ".cursor", "projects", slug)).filter((d) => fs.existsSync(d));
+  if (!dirs.length) return "MCP server in .cursor/mcp.json (this project has not been opened in the Cursor app yet)";
+  const started = dirs.some((d) => {
+    try {
+      return fs.readdirSync(path.join(d, "mcps")).some((name) => /jevmem/i.test(name));
+    } catch {
+      return false;
+    }
+  });
+  return started ? "MCP server in .cursor/mcp.json, started by the Cursor app" : "the Cursor app has not started this project's MCP server yet: turn it on once (Customize > MCPs > jevmem > Configure > the source toggle for .cursor/mcp.json, then Reload); until then the agent cannot read memory over MCP";
 }
 
 /**
