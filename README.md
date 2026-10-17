@@ -139,13 +139,13 @@ Every step, and what to do if the plugin can't find the CLI: [docs/install.md](d
 
 ## Works with
 
-Saving is automatic in Claude Code and, since 0.7.4, in Cursor, where Cursor's hooks save each finished agent turn; and in Codex while `jevmem watch` runs. Cursor, Codex and Claude Desktop reach jevmem over MCP, a standard way for an AI tool to call another program, when the agent asks for it. In Cursor, on 10 held-out chats captured before the code (24 turns), the first run paired 21 of 24 turns whole, the prompt with the whole reply; a reader fix came from that run, and the second run paired 24 of 24, with what to save right in 21 of 24 ([measured](docs/hooks.md#cursor-hooks-074)).
+Saving is automatic in Claude Code and, since 0.7.4, in Cursor, where Cursor's hooks save each finished agent turn; and in Codex while `jevmem watch` runs. Cursor, Codex and Claude Desktop reach jevmem over MCP, a standard way for an AI tool to call another program, when the agent asks for it; in the Cursor app a project's MCP server starts off until you turn it on once ([the step](docs/mcp.md#cursor)). In Cursor, on 10 held-out chats captured before the code (24 turns), the first run paired 21 of 24 turns whole, the prompt with the whole reply; a reader fix came from that run, and the second run paired 24 of 24, with what to save right in 21 of 24 ([measured](docs/hooks.md#cursor-hooks-074)).
 
 | | Saving | Bringing it back |
 |---|---|---|
 | **Claude Code** | Automatic, every turn | Automatic, every prompt |
 | **Codex** | Automatic while `jevmem watch` runs | When the agent asks, over MCP |
-| **Cursor** | Automatic, every finished agent turn (0.7.4) | When the agent asks, over MCP |
+| **Cursor** | Automatic, every finished agent turn (0.7.4) | When the agent asks, over MCP, once you have turned the project's server on in the Cursor app ([the step](docs/mcp.md#cursor)) |
 | **Claude Desktop** | When you ask it to, over MCP | When you ask it to, over MCP |
 
 The MCP server is on the [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.Avinash-jetwani/jevmem) as `io.github.Avinash-jetwani/jevmem`. Client setup: [docs/mcp.md](docs/mcp.md) · [docs/install.md](docs/install.md#works-with).

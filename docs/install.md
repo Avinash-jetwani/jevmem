@@ -46,7 +46,7 @@ cd your-project && jevmem setup
 
 The plugin runs the `jevmem` CLI from npm, so install that first. The hooks find it on the PATH Claude Code gives them or, when that PATH lacks it (the desktop app's can), in `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `~/.volta/bin` or the newest Node version under `~/.nvm`. Without it, an enabled project shows "jevmem: CLI not found, so memory is off in this project" on the first prompt of each session, and the MCP server fails to start (`/mcp` shows it as failed). The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](hooks.md#the-claude-code-plugin).
 
-**Option 2: npm** (also sets up Cursor and Codex; for Cursor, `jevmem init --tool cursor` is the whole setup: the hooks, the launcher, the MCP entry and the rule)
+**Option 2: npm** (also sets up Cursor and Codex; for Cursor, `jevmem init --tool cursor` is the whole setup on disk: the hooks, the launcher, the MCP entry and the rule; one toggle in the Cursor app then turns the project's MCP server on, [the step](mcp.md#cursor))
 
 ```bash
 npm install -g jevmem
@@ -66,7 +66,7 @@ What is automatic and what depends on the agent:
 |---|---|---|---|
 | **Claude Code** | the plugin, or `jevmem init --tool claude` | **Automatic**, every turn, via the `Stop` hook | **Automatic**, every prompt, via `UserPromptSubmit` |
 | **Codex** | `jevmem init --tool codex` | **Automatic while `jevmem watch` runs** (it tails Codex's session log for this project and runs the same decide → write path); otherwise agent-initiated via MCP `add_memory`, prompted by an `AGENTS.md` section | Agent-initiated: `search_memory` via MCP, prompted by `AGENTS.md` |
-| **Cursor** | `jevmem init --tool cursor` | **Automatic since 0.7.4**, every finished agent turn, via the hooks in `.cursor/hooks.json` (the app's `stop` hook; the `agent` CLI's `sessionEnd`), through the same decide and write path as Claude Code ([what was measured](hooks.md#cursor-hooks-074)). Before 0.7.4: only when the agent called MCP `add_memory` | Agent-initiated: the rule `.cursor/rules/jevmem.mdc` tells it to call `search_memory` before non-trivial tasks (Cursor's prompt hook takes no context, so recall is not automatic there) |
+| **Cursor** | `jevmem init --tool cursor` | **Automatic since 0.7.4**, every finished agent turn, via the hooks in `.cursor/hooks.json` (the app's `stop` hook; the `agent` CLI's `sessionEnd`), through the same decide and write path as Claude Code ([what was measured](hooks.md#cursor-hooks-074)). Before 0.7.4: only when the agent called MCP `add_memory` | Agent-initiated: the rule `.cursor/rules/jevmem.mdc` tells it to call `search_memory` before non-trivial tasks (Cursor's prompt hook takes no context, so recall is not automatic there). The Cursor app starts a project's MCP server only after you turn it on once, Customize → MCPs → jevmem → Configure → the source toggle for `.cursor/mcp.json`, then Reload ([the step](mcp.md#cursor)) |
 | **Claude Desktop** | `jevmem init --tool claude-desktop` prints a config snippet to paste (one project per config, named with `--root`) | Manual: ask it to call `add_memory` (no hook, no rule file) | On request: `search_memory` |
 
 MCP `add_memory` goes through the same gate as the hook. Client configs: [docs/mcp.md](mcp.md).

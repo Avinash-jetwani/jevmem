@@ -145,7 +145,7 @@ export function setupCursor(root: string): ToolSetupResult {
   else r.skipped.push(what);
   const st = cursorHooksStatus(root);
   if (st.others) r.notes.push(`Your other Cursor hooks in .cursor/hooks.json are kept (${st.others} entr${st.others === 1 ? "y" : "ies"}).`);
-  r.notes.push("Cursor saves each finished agent turn through the hooks in .cursor/hooks.json (the launcher runs the jevmem it finds on PATH or in the usual places; a clone without jevmem stays silent). Reload the window once so Cursor picks up the hooks and the MCP server; recall is the agent's search_memory call over MCP.");
+  r.notes.push("Cursor saves each finished agent turn through the hooks in .cursor/hooks.json (the launcher runs the jevmem it finds on PATH or in the usual places; a clone without jevmem stays silent). Reload the window once so Cursor picks up the hooks. Then turn the project's MCP server on once in the Cursor app (Customize > MCPs > jevmem > Configure > the source toggle for .cursor/mcp.json, then Reload): Cursor starts a project's MCP server only after that, and recall is the agent's search_memory call over it.");
   return r;
 }
 

@@ -2,6 +2,11 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **`jevmem init --tool cursor`'s note names the Cursor-app step** that turns the project's MCP server on (Customize > MCPs > jevmem > Configure > the source toggle for `.cursor/mcp.json`, then Reload), since the Cursor app starts a project's server only after it ([docs/mcp.md](docs/mcp.md#cursor); measured on 2026-10-17 with Cursor 3.25.9). The docs say the same on the README, install, MCP, hooks and limits pages and on the site's Cursor page, and the limits page carries the live Stop measure of 2026-10-16: a turn stopped with the Stop button reported `aborted` and nothing was decided.
+
 ## [0.7.4] - 2026-10-16
 
 Automatic saving in Cursor: `jevmem init --tool cursor` now writes Cursor's hooks, and the decisions, rules and failed approaches from each finished agent turn are saved through the same decide and write path as in Claude Code, with no `add_memory` call needed. Reading memory in Cursor stays the agent's `search_memory` call over MCP, since Cursor's prompt hook takes no context. Upgrade with `npm install -g jevmem@latest`, then `jevmem init --tool cursor` once more in each Cursor project.

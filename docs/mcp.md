@@ -37,6 +37,8 @@ The `Dockerfile` at the repository root is for MCP directories that inspect a se
 }
 ```
 
+**In the Cursor app, turn the project's server on once.** Cursor reads a project's `.cursor/mcp.json` but starts its server only after you enable it: open Customize → MCPs, search `jevmem` (it shows "jevmem · your project · Disabled"), open Configure, turn on the source toggle "your project .cursor/mcp.json", then Reload. Until then Environments says "Local: Disconnected" and the agent cannot call `search_memory`: it reads `JEVMEM.md` as a file instead and may say the memory server is not connected. Measured on 2026-10-17 with Cursor 3.25.9: before the toggle, Cursor's logs showed the server registered and `disconnected` at every window load, never started; after it, "Successfully connected to stdio server" in under a second, and the agent's next question was answered through `search_memory`. Cursor's `agent` CLI asks the same approval, or takes `--approve-mcps`, which the `cursor` e2e scenario passes. Saving by the hooks needs no server.
+
 ### Claude Desktop
 
 `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows). Claude Desktop does not inherit your shell and has no project directory, so name the project with `--root` and give the key explicitly. One config entry serves one project:

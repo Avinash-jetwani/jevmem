@@ -27,7 +27,8 @@ Twenty real Cursor sessions were captured through Cursor's `agent` CLI in scratc
    ```bash
    jevmem init --tool cursor
    ```
-4. Reload the Cursor window, so that it picks up the hooks and the MCP server. Cursor runs project hooks in a trusted workspace.
+4. Reload the Cursor window, so that it picks up the hooks. Cursor runs project hooks in a trusted workspace.
+5. Turn the project's MCP server on once, in the Cursor app: Customize → MCPs → jevmem → Configure → the source toggle for `.cursor/mcp.json`, then Reload. Cursor starts a project's MCP server only after this; the hooks need no server ([what you see, and what was measured](#the-mcp-config-if-you-write-it-yourself)).
 
 `init` also creates `JEVMEM.md`, `jevmem.config.json` and a gitignored `.jevmem/` folder in the project. `jevmem doctor` shows a `cursor` line with what it found. Every install path: [install](install.md).
 
