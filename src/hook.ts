@@ -161,7 +161,7 @@ export function debugLogPayload(root: string, input: HookInput, env: NodeJS.Proc
 }
 
 /**
- * The two local files 0.7.1's side pane reads (docs/hooks.md, "Local files for the pane"): `.jevmem/last-recall.json`,
+ * The two local files the side pane reads (jevmem-pane, 0.7.5; docs/hooks.md, "Local files for the pane"): `.jevmem/last-recall.json`,
  * what the last prompt got, and `.jevmem/last-decision.json`, what the last turn's decision was. Written whole through a
  * temporary file and a rename, so a reader never sees half of one; best effort, never a reason for a hook to fail.
  * Both stay on the machine: `.jevmem/` is gitignored and `.jevmem/.gitignore` holds `*`.

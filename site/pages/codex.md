@@ -1,7 +1,7 @@
 ---
 path: /codex/
 description: Run jevmem init --tool codex in your project and keep jevmem watch running. watch saves from each Codex turn. Codex's agent looks saved lines up through jevmem's MCP server.
-order: 7
+order: 8
 ---
 # How do I use jevmem in Codex?
 

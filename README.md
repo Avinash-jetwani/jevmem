@@ -96,6 +96,16 @@ jevmem: this may break a saved rule: "Never commit .env files" (JEVMEM.md)
 On a test of 274 tool calls, a set the guard was not tuned on, it caught 66 of 68 rule breaks and asked about 3 or 4 of the 206 calls that broke no rule (one run each on 0.6.0 and 0.6.1).
 It's a backstop, not a sandbox: it looks at the words a rule and a call share. Since 0.7.0, `jevmem trust` lets a rule you added by hand block a call in the guard's block mode, not only ask about it. [How the guard works](docs/guardrails.md).
 
+## Side pane
+
+A pane beside your Claude Code chat shows what jevmem just did: the memory lines it gave Claude for your prompt, what its guard said about a command, and the line it saved from the turn, each with `why`, `wrong` and `forget` buttons. The two that change `JEVMEM.md` ask first; a rule is retired in a terminal only. It reads three local files and sends nothing anywhere.
+
+```
+/plugin install jevmem-pane@jevmem
+```
+
+It is a second plugin from the jevmem marketplace (the jevmem plugin itself still ships no code), for Claude Code 2.1.299 or newer; it opens on its own in a terminal 144 columns wide or wider and in the desktop app's Code tab, and `/jevmem` opens or closes it anywhere. What each block shows, and what was measured: [docs/pane.md](docs/pane.md).
+
 ## Install
 
 You need a [TypeSafe API key](https://console.typesafe.ai/keys), which jevmem's requests are billed to, and Claude Code 2.1.273 or later.
@@ -120,6 +130,7 @@ From the jevmem marketplace:
 npm install -g jevmem
 claude plugin marketplace add Avinash-jetwani/jevmem
 claude plugin install jevmem@jevmem
+claude plugin install jevmem-pane@jevmem   # the side pane (0.7.5), optional
 cd your-project && jevmem setup
 ```
 
@@ -154,10 +165,10 @@ The MCP server is on the [MCP Registry](https://registry.modelcontextprotocol.io
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-dark.svg"><img alt="Median time to decide one message on 66 held-out turns: jevmem 0.23 s, six current LLMs 2.78 to 4.29 s." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/benchmark-light.svg"></picture>
 
-Deciding what to save takes 0.23 s and costs $0.00019 per message, in the background: Claude doesn't wait for it.
+Deciding what to save takes 0.23 s and costs $0.00018 per message, in the background: Claude doesn't wait for it.
 On whether to save a message at all, jevmem was right as often as the best of six LLMs (98.5%); two of them were better at naming the kind of line.
 
-Measured on 66 turns written before the code and not tuned on, one run of 0.7.4 on 2026-10-16 ([results](results/eval-heldout-2026-10-16-v074.json)); the six LLMs ran on 2026-09-23. All seven in one table, with the cost of each and how it was run: [benchmark](docs/benchmark.md#074-beside-the-six-llms).
+Measured on 66 turns written before the code and not tuned on, one run of 0.7.5 on 2026-10-17 ([results](results/eval-heldout-2026-10-17-v075.json)); the six LLMs ran on 2026-09-23. All seven in one table, with the cost of each and how it was run: [benchmark](docs/benchmark.md#075-beside-the-six-llms).
 
 ## How it decides
 
@@ -199,6 +210,7 @@ jevmem is young, and these are the limits to know before you rely on it:
 - **Answer quality isn't measured:** the tests check that the right lines reach Claude, not that its answers get better.
 - **Automatic saving is Claude Code and, since 0.7.4, Cursor** (and Codex while `jevmem watch` runs); Claude Desktop saves only when the agent calls `add_memory`, and in Cursor recall is still the agent's call.
 - **The guard looks at shared words:** a rule worded far from the command it should catch can be missed.
+- **The side pane is Claude Code only** (2.1.299 or newer): Cursor has no pane, and Claude Code for VS Code draws none yet.
 
 Every limit, with the numbers: [docs/limits.md](docs/limits.md).
 
@@ -206,6 +218,7 @@ Every limit, with the numbers: [docs/limits.md](docs/limits.md).
 
 What changed, newest first; the measurements behind each line are on the what's new page.
 
+- **0.7.5: a pane beside the chat shows what jevmem did.** Install `jevmem-pane` from the jevmem marketplace and Claude Code shows, for each prompt and turn, the lines it recalled, what the guard decided and what was saved, with `why`, `wrong` and `forget` buttons. Also: a leading label like "Decision for this project:" no longer ends up in the saved line (on 12 held-out turns written that way, run once, 0 of 10 lines kept it), `jevmem init --tool cursor` gitignores Cursor's own state folder, `jevmem doctor` says when the Cursor app has not started the project's MCP server, and `jevmem wrong … --should-be none` on a rule asks on a terminal like `forget` does ([what's new](docs/whats-new.md)).
 - **0.7.4: a Cursor chat saves like a Claude Code one.** `jevmem init --tool cursor` writes Cursor's hooks (and a launcher, both committable), and when an agent turn finishes the `stop` hook reads the turn from Cursor's transcript and runs the same decide and write path as in Claude Code; reading memory in Cursor stays the agent's MCP call. On 10 held-out Cursor chats (24 turns), captured through Cursor's own CLI before the code, the first run paired 21 of 24 turns whole; a reader fix came from that run, and the second run paired 24 of 24, with what to save right in 21 of 24. Run `jevmem init --tool cursor` once more in a project set up earlier. [Details](docs/whats-new.md).
 - **0.7.3: the setup message stays off cloud and Cowork sessions.** 0.7.2's one-time message showed at the start of every claude.ai chat that ran in a cloud workspace, where its marker could not stay. Now it shows only on your own computer (a terminal, the desktop app, the VS Code extension or an SSH session), and a cloud or Cowork session gets no message and no file. The plugin's launcher and the docs; the CLI's code is unchanged. [Details](docs/whats-new.md).
 - **0.7.2: finish the setup in one command.** After **Add** in the Claude app, the first session on a machine says once what is left, and `jevmem setup` asks for your key, turns jevmem on in the folder and checks the setup. Always-on lines now go through the poisoning gate before they reach a session, and Jev 1.13.0 is pinned: beside 1.13 on six test sets, 1.14 missed one of five contradictions in all three runs, saved fewer dead ends from captured sessions in all three, and kept fewer of the reasons on the written set. [Details](docs/whats-new.md).

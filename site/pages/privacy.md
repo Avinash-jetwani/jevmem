@@ -1,7 +1,7 @@
 ---
 path: /privacy/
 description: From a project you have turned on, jevmem sends message text to TypeSafe to be scored, with common secrets scrubbed first. From other projects it sends nothing, and it has no telemetry.
-order: 11
+order: 12
 ---
 # What leaves my machine?
 

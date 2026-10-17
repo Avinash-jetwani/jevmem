@@ -1,7 +1,7 @@
 ---
 path: /claude-desktop/
 description: Run jevmem init --tool claude-desktop in your project and paste the config it prints into Claude Desktop. jevmem then saves and looks up lines when you ask Claude to, over MCP.
-order: 8
+order: 9
 ---
 # How do I use jevmem in Claude Desktop?
 

@@ -2,7 +2,7 @@
 path: /results/
 nav: Results
 description: In 72 real Claude Code sessions, Claude followed the project's saved decision in 66 with jevmem, 28 with no project memory and 67 with a hand-written CLAUDE.md. Every result, with its method and limits.
-order: 10
+order: 11
 ---
 # Does jevmem work?
 

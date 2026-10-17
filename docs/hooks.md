@@ -60,9 +60,9 @@ The first hook call in a project starts a small **warm daemon** (`jevmem daemon 
 
 Since 0.7.1 the `SessionStart` hook also writes `.jevmem/sessions-served.json`, the ids of the last 200 sessions it served (so the prompt hook knows when a session got no session-start context); it holds ids and nothing else.
 
-Since 0.7.0 the hooks write two small files in `.jevmem/` (gitignored, and `.jevmem/.gitignore` holds `*`), one prompt or turn each, overwritten by the next, through a temporary file and a rename so a reader never sees half of one. A side pane for Claude Code, planned for a later version, will read them; nothing else does, and nothing in them is sent anywhere.
+Since 0.7.0 the hooks write two small files in `.jevmem/` (gitignored, and `.jevmem/.gitignore` holds `*`), one prompt or turn each, overwritten by the next, through a temporary file and a rename so a reader never sees half of one. The side pane ([docs/pane.md](pane.md), `jevmem-pane`, 0.7.5) reads them, and the guard log's `tool_use_id`, to show what each prompt got, what the guard decided and what each turn saved; nothing else reads them, and nothing in them is sent anywhere.
 
-`.jevmem/last-recall.json`, written by the `UserPromptSubmit` hook after recall, whether or not the prompt got a line:
+`.jevmem/last-recall.json`, written by the `UserPromptSubmit` hook after recall, whether or not the prompt got a line, and since 0.7.5 also in a project with no memory line yet (then `path` is `none`, `served` is empty and `lines` is 0, so the pane can say so instead of showing a stale file; `lines` is the count of live lines):
 
 ```json
 {
@@ -74,13 +74,14 @@ Since 0.7.0 the hooks write two small files in `.jevmem/` (gitignored, and `.jev
   "withheld": [{ "id": "k3x9ab", "reason": "reads as instructions aimed at an AI (gate 0.91 ≥ 0.5)" }],
   "gated": 1,
   "deferred": 0,
-  "ms": 310
+  "ms": 310,
+  "lines": 12
 }
 ```
 
 `path` is `jev` or `word-match` (then each served line has `shared_words` instead of a meaningful `p`, and `error` says why Jev did not answer); `gated` is how many unverified lines the call checked, `deferred` how many it left for a later prompt. `served` is in the order the lines were injected.
 
-`.jevmem/last-decision.json`, written when a turn's decision is made (by the hook or the daemon, so after the `Stop` hook returns):
+`.jevmem/last-decision.json`, written when a turn's decision is made (by the hook or the daemon, so after the `Stop` hook returns: on 2026-10-17 it landed 520 to 799 ms after the turn ended, on 15 of 15 turns never before; [results](../results/pane-probe-2026-10-17.json)). Since 0.7.5 it carries `session_id` and `prompt_hash` (the hash the recall file has for the prompt), so the pane matches the decision to its prompt and its session and not only by time; and the `Stop` hook writes it at once when it decides nothing for the turn it was called for: `action` `deferred` for a turn whose background subagents are still running, `skipped` for an empty turn, each with the reason and `source` `stop-hook`, so the pane need not wait for a limit. A repeated `Stop` of a turn already captured writes nothing.
 
 ```json
 {
@@ -96,11 +97,13 @@ Since 0.7.0 the hooks write two small files in `.jevmem/` (gitignored, and `.jev
   "reason": "save kind=decision content=0.98 importance=important [tier 1]",
   "source": "user_message",
   "tier": 1,
-  "ms": 290
+  "ms": 290,
+  "session_id": "…",
+  "prompt_hash": "16 hex characters: sha1 of the prompt"
 }
 ```
 
-`action` is `saved`, `skipped` (then `kind`, `line` and `id` are null and `reason` says why; a duplicate has `duplicate_of`) or `error`. `jevmem why <hash>` has the whole decision behind it.
+`action` is `saved`, `skipped` (then `kind`, `line` and `id` are null and `reason` says why; a duplicate has `duplicate_of`), `deferred` (0.7.5, above) or `error`. `jevmem why <hash>` has the whole decision behind it.
 
 ## Cursor hooks (0.7.4)
 

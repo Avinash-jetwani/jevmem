@@ -27,7 +27,7 @@ beforeAll(() => {
 
 describe("the docs site", () => {
   it("has the pages the README links to, each a question with its answer first", () => {
-    expect(pages.map((p) => p.path)).toEqual(["/", "/claude-code-memory/", "/compare/", "/jev/", "/guard/", "/cursor/", "/codex/", "/claude-desktop/", "/install/", "/results/", "/privacy/", "/faq/", "/whats-new/"]);
+    expect(pages.map((p) => p.path)).toEqual(["/", "/claude-code-memory/", "/compare/", "/jev/", "/guard/", "/cursor/", "/pane/", "/codex/", "/claude-desktop/", "/install/", "/results/", "/privacy/", "/faq/", "/whats-new/"]);
     for (const p of pages) {
       expect(p.title, p.path).toMatch(/\?$/);
       expect(p.answer.length, p.path).toBeGreaterThan(80);

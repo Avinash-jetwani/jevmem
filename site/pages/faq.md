@@ -2,7 +2,7 @@
 path: /faq/
 nav: FAQ
 description: jevmem needs a TypeSafe API key, costs $0.00018 per message to decide what to save, is not supported on local models, and shares its memory file with your team through git.
-order: 12
+order: 13
 ---
 # Does jevmem need a key, what does it cost, and what are its limits?
 

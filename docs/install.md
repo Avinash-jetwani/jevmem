@@ -42,6 +42,17 @@ cd your-project && jevmem setup
 
 `jevmem setup` asks for your key (or run `jevmem key`); for a plugin installed from a marketplace you can instead enter it in Claude Code with `/plugin configure jevmem`, which Claude Code keeps in your system's secure credential store (the `claude plugin install` shell command doesn't ask for it). That setting exists only for a plugin installed from a marketplace: the directory's `jevmem@synced` has no Configure options.
 
+## The side pane (0.7.5)
+
+A second plugin from the same marketplace draws a pane beside your Claude Code chat with what jevmem recalled for the prompt, what the guard decided and what the turn saved ([docs/pane.md](pane.md)):
+
+```
+claude plugin marketplace add Avinash-jetwani/jevmem   # once, if not added yet
+/plugin install jevmem-pane@jevmem                      # in Claude Code
+```
+
+It needs the jevmem command (0.7.5 or newer), a project that is turned on, and Claude Code 2.1.299 or newer; the jevmem plugin itself is unchanged.
+
 ## If the plugin can't find the CLI
 
 The plugin runs the `jevmem` CLI from npm, so install that first. The hooks find it on the PATH Claude Code gives them or, when that PATH lacks it (the desktop app's can), in `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `~/.volta/bin` or the newest Node version under `~/.nvm`. Without it, an enabled project shows "jevmem: CLI not found, so memory is off in this project" on the first prompt of each session, and the MCP server fails to start (`/mcp` shows it as failed). The plugin does nothing until you run `jevmem enable` in a project; what it runs, and how to switch it off: [docs/hooks.md](hooks.md#the-claude-code-plugin).
