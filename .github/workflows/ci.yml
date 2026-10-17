@@ -46,3 +46,30 @@ jobs:
       - run: node scripts/check-versions.mjs
       # The plugin in plugin/ ships no code: no file over 256 KiB, no dist/, nothing minified.
       - run: node scripts/check-plugin.mjs
+
+  # 0.7.5: the side pane (pane/, a Claude Code mod) is checked by Claude Code itself: `claude plugin validate --strict`
+  # reads the module the way the engine will, `claude plugin test` runs pane/tests/*.test.tsx on the terminal and the
+  # desktop surfaces with the real captured files as fixtures. Neither needs a login. The binary is the one the native
+  # installer fetches, pinned to a version and its published sha256 (downloads.claude.ai/claude-code-releases/
+  # <version>/manifest.json), so the job changes only when the pin does; bump it by hand when the tests pass on a newer
+  # build (the mod API is early access and moves every release). This job is not a required check.
+  pane:
+    name: pane / claude plugin validate and test (Claude Code 2.1.302)
+    runs-on: ubuntu-latest
+    env:
+      CLAUDE_VERSION: 2.1.302
+      CLAUDE_SHA256: 60d7eb7f12fbb28a52533fe8be5884097403562aa02dc73991a021c7067e29a5
+      DISABLE_AUTOUPDATER: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Claude Code, the binary checked against its published checksum
+        run: |
+          curl -fsSL -o claude "https://downloads.claude.ai/claude-code-releases/${CLAUDE_VERSION}/linux-x64/claude"
+          echo "${CLAUDE_SHA256}  claude" | sha256sum -c -
+          chmod +x claude
+          mkdir -p "$HOME/.local/bin" && mv claude "$HOME/.local/bin/claude"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "CLAUDE_CONFIG_DIR=$RUNNER_TEMP/claude-config" >> "$GITHUB_ENV"
+      - run: claude --version
+      - run: claude plugin validate --strict pane
+      - run: claude plugin test pane
