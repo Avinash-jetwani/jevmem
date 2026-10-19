@@ -24,6 +24,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import os from "node:os";
 import { isJevmemHookCommand } from "./config.js";
 import { isDecided } from "./turns.js";
 
@@ -47,17 +48,20 @@ export interface CursorTurn {
   /** Closed by a `turn_ended` line or by a later user line; only the last turn of a file can be open. */
   ended: boolean;
   status: string | null;
+  /** 0.7.6 (fix d): the turn's user line is Cursor's own follow-up and no person's turn came before it: not decided. */
+  automatic?: boolean;
 }
 
 /**
- * A user line Cursor wrote itself, not the person: after a background task ends, the CLI (2026.08.11 on) submits a
- * follow-up ("Briefly inform the user about the task result and perform any follow-up actions…") whose `<user_query>`
- * holds the text on the tag's own line, where a typed prompt sits on its own lines inside the tag. Such a line and the
- * assistant's answer to it belong to the turn that is running; measured on a held-out session (0.7.4).
+ * A user line Cursor wrote itself, not the person: after a background task ends, the CLI (2026.08.11 on) and the app
+ * submit a follow-up ("Briefly inform the user about the task result and perform any follow-up actions…") whose
+ * `<user_query>` holds the text on the tag's own line, where a typed prompt sits on its own lines inside the tag; a
+ * hook payload carries it bare. Such a line and the assistant's answer to it belong to the turn before it, whether
+ * that turn is still open (a held-out session, 0.7.4) or has ended (0.7.4's live check, fixed in 0.7.6, fix d).
  */
 export function isCursorAutomaticPrompt(text: string): boolean {
   const t = String(text ?? "");
-  return /<user_query>[^\n<]/.test(t) || /<user_query>\s*Briefly inform the user about the task result/.test(t);
+  return /<user_query>[^\n<]/.test(t) || /<user_query>\s*Briefly inform the user about the task result/.test(t) || /^\s*Briefly inform the user about the task result/.test(t);
 }
 
 /** The text Cursor's transcript keeps for a prompt: the prompt, wrapped in `<timestamp>` and `<user_query>`. */
@@ -93,10 +97,12 @@ export function readCursorTranscript(file: string): CursorTurn[] {
     }
     if (e?.role === "user") {
       const raw = texts(e).join("\n\n");
-      // Cursor's own follow-up line continues the running turn; a person's prompt starts a new one.
-      if (cur && !cur.ended && isCursorAutomaticPrompt(raw)) continue;
+      // Cursor's own follow-up line belongs to the turn before it, open or ended (its answer is appended; an ended
+      // turn stays ended and decided); with no turn before it, it is a turn of its own that is never decided.
+      const automatic = isCursorAutomaticPrompt(raw);
+      if (cur && automatic) continue;
       if (cur) cur.ended = true;
-      cur = { index: turns.length + 1, user: stripCursorPrompt(raw), assistant: "", ended: false, status: null };
+      cur = { index: turns.length + 1, user: stripCursorPrompt(raw), assistant: "", ended: false, status: null, ...(automatic ? { automatic: true } : {}) };
       turns.push(cur);
     } else if (e?.role === "assistant" && cur) {
       const t = texts(e);
@@ -139,6 +145,8 @@ function writeStash(root: string, conversation: string, s: Stash): void {
 }
 /** `beforeSubmitPrompt`: a new turn in this conversation (the earlier stash of it, if any, is replaced). */
 export function stashPrompt(root: string, conversation: string, generation: string | null, prompt: string, now = new Date()): void {
+  // Cursor's own follow-up line (fix d) is not a person's prompt: the stash of the turn it continues stays.
+  if (isCursorAutomaticPrompt(prompt)) return;
   writeStash(root, conversation, { generation_id: generation, prompt, responses: [], at: now.toISOString() });
   cleanStashes(root, now);
 }
@@ -207,6 +215,10 @@ export function cursorTurnFromInput(root: string, input: any): { turn: CursorCap
     const last = turns[turns.length - 1]!;
     const id = `t${last.index}`;
     if (!last.ended) return { turn: null, reason: `the transcript's last turn (${last.index}) is not ended` };
+    if (last.automatic) {
+      dropStash(root, session);
+      return { turn: null, reason: `turn ${last.index} is Cursor's own follow-up line, not a person's turn: nothing decided` };
+    }
     if (isDecided(root, session, id)) return { turn: null, reason: `turn ${last.index} already decided` };
     if (!last.user && !last.assistant) return { turn: null, reason: `turn ${last.index} is empty` };
     const prev = turns[turns.length - 2];
@@ -219,6 +231,24 @@ export function cursorTurnFromInput(root: string, input: any): { turn: CursorCap
   const id = `g:${stash.generation_id ?? stash.at}`;
   if (isDecided(root, session, id)) return { turn: null, reason: "the stashed turn was decided before" };
   return { turn: { session, turn: id, user: stash.prompt, assistant: stash.responses.join("\n\n"), previous: "", source: "cursor-stash" }, reason: "stash" };
+}
+
+// The jevmem plugin for Cursor (0.7.6).
+
+/**
+ * The marker the plugin's launcher writes on `sessionStart` (`--plugin`), once a day, in any project: its version and
+ * the time. The one file the plugin keeps outside a project, and how `init` and `doctor` know it is installed on this
+ * computer (Cursor records installs in its own state, not in a project). Null when the plugin never ran here.
+ */
+export const CURSOR_PLUGIN_MARKER = path.join(".jevmem", "cursor-plugin");
+export function readCursorPluginMarker(home: string = os.homedir()): { version: string; seen: string } | null {
+  try {
+    const [version, seen] = fs.readFileSync(path.join(home, CURSOR_PLUGIN_MARKER), "utf8").split("\n");
+    if (!version?.trim()) return null;
+    return { version: version.trim(), seen: (seen ?? "").trim() };
+  } catch {
+    return null;
+  }
 }
 
 // `jevmem init --tool cursor`: the hooks file and the launcher.

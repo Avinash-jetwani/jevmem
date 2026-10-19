@@ -452,12 +452,13 @@ each('/jevmem closes a placed pane and opens a waiting one', async ($, on, surfa
 // 0.7.6: a skipped turn gets a `missed` button: a confirm first, then `jevmem missed "<the prompt as typed>"` once. The
 // pane keeps the prompt's text from prompt.submit, so the command gets what was typed, never a reconstruction.
 each('a skipped turn offers missed: a confirm, no runs nothing, yes runs jevmem missed with the prompt as typed', async ($, on, surface) => {
-  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-0.json']!, [DECISION]: fixtures['decision-skipped-minor.json']! }, { session: sessionOf('recall-served-0.json') })
+  // The skipped decision names no session, so it is read as this turn's by time; the recall file names its own session.
+  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-0.json']!, [DECISION]: fixtures['decision-skipped.json']! }, { session: sessionOf('recall-served-0.json') })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-served-0.json']!)
   await turn($)
-  await shows(ui, /skipped:/)
+  await shows(ui, /^Not saved: small talk$/)
   await button(ui, 'missed:last')
   await ui.press({ key: 'missed:last' })
   await shows(ui, /Save this turn as a memory line\? jevmem missed decides the kind and adds it\./)

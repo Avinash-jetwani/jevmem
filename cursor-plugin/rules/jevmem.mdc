@@ -1,0 +1,10 @@
+---
+description: jevmem project memory (JEVMEM.md); only in a project that has jevmem.config.json
+alwaysApply: true
+---
+
+# jevmem project memory
+
+This rule applies only in a project that has a `jevmem.config.json` file. Without that file, jevmem is off here: do not call its tools.
+
+Where it is on: before a non-trivial task, call `search_memory` with a one-line description of the task and follow what it returns (decisions, rules and failed approaches from earlier sessions; the user's word overrides them). jevmem's hooks save each finished turn on their own, so call `add_memory` only for something the user asks to record that the chat does not state. Never edit `JEVMEM.md` directly: jevmem writes it.

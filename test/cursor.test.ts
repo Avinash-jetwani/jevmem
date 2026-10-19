@@ -314,7 +314,7 @@ describe("jevmem init --tool cursor: .cursor/hooks.json and the launcher", () =>
     expect(fs.existsSync(path.join(root, ".cursor", "hooks.json"))).toBe(true);
     const rule = fs.readFileSync(path.join(root, ".cursor", "rules", "jevmem.mdc"), "utf8");
     expect(rule).toContain("search_memory");
-    expect(rule).toMatch(/saves .*(each|every) .*turn/i);
+    expect(rule).toMatch(/saves? .*(each|every) .*turn/i);
     expect(rule).not.toMatch(/When the user states a decision.*call `add_memory`/);
     expect(r.notes.join(" ")).not.toContain("Cursor has no per-turn hook");
     expect(setupCursor(root).created).toEqual([]);

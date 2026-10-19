@@ -55,12 +55,13 @@ export type GuardEntry = {
   error?: string
 }
 /** The prompt the pane is showing: when it entered and the hash the recall file carries for it. */
-export type Prompt = { at: number; hash: string }
+/** The prompt as typed: when, its hash (what the recall and decision files carry) and, since 0.7.6, its text (what `jevmem missed` gets). */
+export type Prompt = { at: number; hash: string; text: string }
 /** Where block 3 stands: before a prompt, waiting for the decision, showing it, or what the log said after the wait. */
 export type Saving = 'none' | 'saving' | 'ready' | 'queued' | 'failed' | 'unknown'
 /** The row a button opened: a confirm, a command's output, or a note (a refusal, a hint). */
 export type Pending =
-  | { kind: 'confirm'; where: 'recall' | 'guard' | 'decision'; action: 'forget' | 'wrong'; id: string }
+  | { kind: 'confirm'; where: 'recall' | 'guard' | 'decision'; action: 'forget' | 'wrong' | 'missed'; id: string; text?: string }
   | { kind: 'output'; where: 'recall' | 'guard' | 'decision'; title: string; text: string }
   | { kind: 'note'; where: 'recall' | 'guard' | 'decision'; text: string }
   | null

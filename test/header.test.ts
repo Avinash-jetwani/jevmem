@@ -64,7 +64,9 @@ describe("injected context", () => {
 
 describe("agent instructions", () => {
   it("the Cursor rule and AGENTS.md section say: add_memory only, never edit JEVMEM.md directly", () => {
-    for (const t of [CURSOR_RULE, AGENTS_SECTION]) expect(t).toMatch(/Never add, edit or remove lines in `JEVMEM\.md` directly/);
+    // The AGENTS.md section's long form; the Cursor rule's short form since 0.7.6 (the plugin's rule is in every chat).
+    expect(AGENTS_SECTION).toMatch(/Never add, edit or remove lines in `JEVMEM\.md` directly/);
+    expect(CURSOR_RULE).toMatch(/Never edit `JEVMEM\.md` directly/);
   });
 
   it("init upgrades an unmodified old Cursor rule and AGENTS.md section, and leaves edited ones alone", () => {

@@ -127,6 +127,11 @@
 #              reach the proxy. Then a control, session 3 with a new HOME and the Code tab's entrypoint (claude-desktop)
 #              in the project turned off again: the no-CLI text once and the marker, so a silent run cannot pass because
 #              the plugin did not load
+#   cursor-plugin  the jevmem plugin for Cursor (0.7.6), loaded into the `agent` CLI with --plugin-dir from a scratch copy
+#              of cursor-plugin/ (its launcher given the packed CLI with --cli/--node; its MCP entry the proxy URL): a
+#              project turned on with `jevmem enable` alone saves a stated decision through the plugin's hooks, a new
+#              chat recalls it over the plugin's MCP server, and a project not turned on gets 0 requests and no file.
+#              Three agent runs per scenario run, on your Cursor plan; outside `full`, as `cursor` is.
 # Since 0.7.2 the plugin's launcher shows a one-time setup message at session start (once per machine: the marker
 # ~/.jevmem/setup-notice in the session HOME): nocli checks the no-CLI text in session 1 and none in sessions 2 and 3,
 # nokey no session-start message at all (the project is on, so the CLI's own notice names the key step at the first

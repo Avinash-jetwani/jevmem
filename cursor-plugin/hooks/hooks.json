@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/jevmem-hook.sh\" --plugin sessionStart",
+        "timeout": 5
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/jevmem-hook.sh\" --plugin beforeSubmitPrompt",
+        "timeout": 5
+      }
+    ],
+    "afterAgentResponse": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/jevmem-hook.sh\" --plugin afterAgentResponse",
+        "timeout": 5
+      }
+    ],
+    "stop": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/jevmem-hook.sh\" --plugin stop",
+        "timeout": 20
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/jevmem-hook.sh\" --plugin sessionEnd",
+        "timeout": 20
+      }
+    ]
+  }
+}

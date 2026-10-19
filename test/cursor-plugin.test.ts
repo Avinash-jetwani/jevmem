@@ -317,9 +317,13 @@ describe.skipIf(process.platform === "win32")("the plugin's hooks through the bu
     const r = runLauncher(["--plugin", "stop"], { root, bin: cliBin(), input: JSON.stringify({ ...stop, transcript_path: transcriptCopy(), workspace_roots: [root] }) });
     expect(r.status).toBe(0);
     expect(r.stdout).toBe("");
-    expect(await waitFor(() => readQueue(root).length === 1)).toBe(true);
-    expect(readQueue(root)[0]!.user).toBe(PROMPT_1);
-    expect(fs.readFileSync(path.join(root, ".jevmem", "log.jsonl"), "utf8")).toMatch(/"label":"cursor"/);
+    // The fake Jev answers, so the turn is decided at once: the log says which turn, and decide ran once.
+    const log = path.join(root, ".jevmem", "log.jsonl");
+    const text = () => (fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "");
+    expect(await waitFor(() => /"label":"cursor".*stop: transcript turn 1 \(cursor-transcript\)/.test(text()))).toBe(true);
+    expect(text().split("\n").filter((l) => l.includes('"label":"decide"'))).toHaveLength(1);
+    expect(fake!.requests.length).toBeGreaterThan(0);
+    expect(fake!.requests[0]!.state?.user_message ?? JSON.stringify(fake!.requests[0]!.state)).toContain(PROMPT_1.slice(0, 20));
   });
 
   it("in a project that is not turned on every event leaves the project as it was, sends nothing", async () => {
@@ -343,7 +347,7 @@ describe.skipIf(process.platform === "win32")("the plugin's hooks through the bu
     fake = await startFakeJev(() => ({}));
     const root = tmp();
     init({ root, hooks: false });
-    setupCursor(root); // the project's hooks file and launcher, as `jevmem init --tool cursor` writes them
+    setupCursor(root, { files: true }); // the project's hooks file and launcher, as `jevmem init --tool cursor` writes them
     const bin = cliBin();
     const stop = appPayloads("stop", root)[0]!;
     const t = transcriptCopy();
@@ -360,10 +364,13 @@ describe.skipIf(process.platform === "win32")("the plugin's hooks through the bu
     // The project's own launcher, the same payload: the turn is decided once.
     const r2 = spawnSync("sh", [path.join(root, ".cursor", "hooks", "jevmem-hook.sh"), "stop"], { cwd: root, env: { PATH: `${bin}:/usr/bin:/bin`, HOME: tmp("jevmem-cplug-home-"), CURSOR_PROJECT_DIR: root, TYPESAFE_API_KEY: "k", TYPESAFE_BASE_URL: fake.url, JEVMEM_DAEMON: "0", JEVMEM_WRITER: "none" }, input, encoding: "utf8", timeout: 20_000 });
     expect(r2.status).toBe(0);
-    expect(await waitFor(() => readQueue(root).length === 1)).toBe(true);
+    const decided = () => log().split("\n").filter((l) => l.includes('"label":"decide"')).length;
+    expect(await waitFor(() => /stop: transcript turn 1 \(cursor-transcript\)/.test(log()))).toBe(true);
+    expect(decided()).toBe(1);
+    expect(readQueue(root)).toHaveLength(0);
     runLauncher(["--plugin", "stop"], { root, bin, input });
-    await new Promise((res) => setTimeout(res, 1000));
-    expect(readQueue(root)).toHaveLength(1);
+    await new Promise((res) => setTimeout(res, 1500));
+    expect(decided()).toBe(1); // the plugin stood down again: one decision for the turn, from the project's own hook
   });
 });
 
@@ -376,7 +383,7 @@ describe("init, doctor and --remove-hooks once the plugin has run on this comput
       const r = await cli(["init", "--tool", "cursor"], root);
       expect(r.code).toBe(0);
       expect(r.out).toContain("created  JEVMEM.md");
-      expect(r.out).toMatch(/Cursor plugin/);
+      expect(r.out).toMatch(/plugin for Cursor/);
       expect(r.out).toMatch(/--files/);
       expect(fs.existsSync(path.join(root, "jevmem.config.json"))).toBe(true);
       expect(fs.existsSync(path.join(root, ".cursor"))).toBe(false);
@@ -399,12 +406,12 @@ describe("init, doctor and --remove-hooks once the plugin has run on this comput
       const root = tmp();
       init({ root, hooks: false });
       const line = (await cli(["doctor"], root)).out.split("\n").find((l) => l.startsWith("cursor ")) ?? "";
-      expect(line).toContain(`the Cursor plugin ${VERSION}`);
+      expect(line).toContain(`the jevmem plugin for Cursor (${VERSION})`);
       expect(line).toContain("2026-10-18");
       expect(line).not.toMatch(/stands down/);
-      setupCursor(root);
+      setupCursor(root, { files: true }); // the project's own hooks beside the plugin
       const both = (await cli(["doctor"], root)).out.split("\n").find((l) => l.startsWith("cursor ")) ?? "";
-      expect(both).toContain(`the Cursor plugin ${VERSION}`);
+      expect(both).toContain(`the jevmem plugin for Cursor (${VERSION})`);
       expect(both).toMatch(/stands down/);
       expect(both).toMatch(/init --remove-hooks/);
     });
@@ -421,7 +428,7 @@ describe("init, doctor and --remove-hooks once the plugin has run on this comput
     await withHome(home, async () => {
       const root = tmp();
       init({ root, hooks: false });
-      setupCursor(root);
+      setupCursor(root, { files: true }); // a project set up with 0.7.4 or 0.7.5, before the plugin
       const r = await cli(["init", "--remove-hooks"], root);
       expect(r.code).toBe(0);
       expect(r.out).toContain(".cursor/hooks.json");
@@ -433,7 +440,7 @@ describe("init, doctor and --remove-hooks once the plugin has run on this comput
       // A changed rule and another server stay.
       const root2 = tmp();
       init({ root: root2, hooks: false });
-      setupCursor(root2);
+      setupCursor(root2, { files: true });
       fs.appendFileSync(path.join(root2, ".cursor", "rules", "jevmem.mdc"), "\n- Also: prefer pnpm.\n");
       const mcp = JSON.parse(fs.readFileSync(path.join(root2, ".cursor", "mcp.json"), "utf8"));
       mcp.mcpServers.other = { command: "x" };

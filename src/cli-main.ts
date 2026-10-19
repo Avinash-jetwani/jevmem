@@ -25,8 +25,8 @@ import { firstLineNotice, keyFound, missingKeyNotice, writerOptInNotice } from "
 import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
 import { disableProject, enableProject, init, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
 import { findDecision, formatFit, formatWhy, labelMissed, labelRight, labelWrong, MIN_LABELS, readFitInfo, readLabels, runFit } from "./labels.js";
-import { detectTools, setupClaudeDesktop, setupCodex, setupCursor, TOOLS, type Tool } from "./tools.js";
-import { CURSOR_HOOK_EVENTS, cursorHooksStatus, cursorTurnFromInput, dropStash, isCursorPayload, stashPrompt, stashResponse, unregisterCursorHooks } from "./cursor.js";
+import { TOOLS, detectTools, setupClaudeDesktop, setupCodex, setupCursor, type Tool, unregisterCursorFiles } from "./tools.js";
+import { CURSOR_HOOK_EVENTS, cursorHooksStatus, cursorTurnFromInput, dropStash, isCursorPayload, readCursorPluginMarker, stashPrompt, stashResponse, unregisterCursorHooks } from "./cursor.js";
 import { markDecided } from "./turns.js";
 import { watchCodex } from "./watch.js";
 import { mergeTurn } from "./transcript.js";
@@ -42,7 +42,7 @@ const HELP = `jevmem — Automatic project memory for Claude Code and Cursor. Al
 
 Usage: jevmem <command> [options]
 
-  init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
+  init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--files] [--command "<cmd>"]
                                           Create JEVMEM.md, jevmem.config.json, .jevmem/ and set up the tool(s) (default: detect)
   init --remove-hooks                     Remove jevmem's Claude Code hooks and Cursor hooks from this project (e.g. when using the plugin)
   enable                                  Opt this project in (plugin users): jevmem.config.json, JEVMEM.md, .jevmem/
@@ -129,7 +129,7 @@ on this machine (~/.jevmem/setup-notice). Without a terminal it prints the steps
 Opt this project out: moves jevmem.config.json to .jevmem/jevmem.config.json.disabled (jevmem enable restores it) and
 stops the daemon. From then on jevmem's hooks and MCP server do nothing here. JEVMEM.md is left untouched.
 `,
-  init: `jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--command "<cmd>"]
+  init: `jevmem init [--tool claude|cursor|codex|claude-desktop|all] [--no-hooks] [--files] [--command "<cmd>"]
 
 Create JEVMEM.md, jevmem.config.json and .jevmem/ in the current directory and set up the chosen tool(s).
   --tool <list>     Comma-separated; default: detect from .claude/, .cursor/, AGENTS.md in this project (else claude).
@@ -140,10 +140,15 @@ Claude Code hooks go to .claude/settings.local.json (machine-specific paths); in
 Re-running init repairs an existing jevmem hook command and moves one found in .claude/settings.json.
   --remove-hooks    Only remove jevmem's hooks from .claude/settings.local.json and .claude/settings.json (for
                     projects that use the jevmem Claude Code plugin instead) and from .cursor/hooks.json, with its
-                    launcher .cursor/hooks/jevmem-hook.sh. Nothing else is touched.
+                    launcher .cursor/hooks/jevmem-hook.sh; with the jevmem plugin for Cursor on this computer
+                    (0.7.6), also jevmem's unchanged rule file and its MCP entry, which the plugin carries. Nothing
+                    else is touched.
 Cursor (--tool cursor, since 0.7.4): .cursor/hooks.json gets jevmem's hooks with relative commands and .cursor/hooks/
 jevmem-hook.sh the launcher they run (no path of this machine, so both can be committed), beside .cursor/mcp.json and
-the rule; each finished agent turn is then saved as in Claude Code, and the agent reads memory over MCP.
+the rule; each finished agent turn is then saved as in Claude Code, and the agent reads memory over MCP. With the
+jevmem plugin for Cursor installed on this computer (0.7.6), init only turns the project on and writes no Cursor file,
+since the plugin saves each turn, serves memory and carries the rule in every window; --files writes them anyway (a
+teammate without the plugin), and the plugin stands down beside them.
 With the Claude Code plugin installed you do not need init: the plugin's hooks and MCP server work in every project.
 If a project has both, the plugin's hooks stand down and say so once per session.
 `,
@@ -481,11 +486,15 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
     }
     case "init": {
       if (flag(args, "--remove-hooks")) {
-        const removed = [...unregisterClaudeHooks(root), ...unregisterCursorHooks(root)];
-        io.out(removed.length ? `removed jevmem's hooks from ${removed.join(", ")}\n` : "no jevmem hooks in .claude/settings.local.json, .claude/settings.json or .cursor/hooks.json\n");
+        // 0.7.6: with the Cursor plugin on this computer, jevmem's unchanged rule file and default MCP entry go too: the plugin carries both.
+        const plugin = readCursorPluginMarker();
+        const removed = [...unregisterClaudeHooks(root), ...unregisterCursorHooks(root), ...(plugin ? unregisterCursorFiles(root) : [])];
+        io.out(removed.length ? `removed jevmem's entries from ${removed.join(", ")}\n` : "no jevmem hooks in .claude/settings.local.json, .claude/settings.json or .cursor/hooks.json\n");
+        if (plugin && removed.some((f) => f === ".cursor/rules/jevmem.mdc" || f === ".cursor/mcp.json")) io.out(`The jevmem plugin for Cursor (${plugin.version}) is installed on this computer and carries the rule and the MCP server, so jevmem's rule file and MCP entry went with the hooks. Reload the Cursor window once.\n`);
         return 0;
       }
       const noHooks = flag(args, "--no-hooks");
+      const cursorFiles = flag(args, "--files");
       const command = opt(args, "--command");
       const toolArg = opt(args, "--tool");
       let tools: Tool[];
@@ -506,7 +515,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       for (const t of tools) {
         const res =
           t === "cursor"
-            ? setupCursor(root)
+            ? setupCursor(root, { files: cursorFiles })
             : t === "codex"
               ? setupCodex(root, undefined, ({ file, backup, lines }) => io.out(`\nAbout to append to ${file} (outside this project)\n  backup: ${backup}\n  lines:\n${lines.split("\n").filter(Boolean).map((l) => "    " + l).join("\n")}\n`), Boolean(toolArg))
               : t === "claude-desktop"
@@ -539,7 +548,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         event = hookEvent(input);
         // 0.7.4: Cursor's hooks (`.cursor/hooks.json`, the launcher runs `hook --cursor`). Without the flag, a Cursor
         // payload (Cursor also runs a project's Claude Code hooks with its own event names) is ignored, as before.
-        if (flag(args, "--cursor")) return await cursorHook(projectRoot, input, io);
+        if (flag(args, "--cursor")) return await cursorHook(projectRoot, input, io, viaPlugin); // viaPlugin: flag() took --plugin out of args above
         // Opt-in per project: without jevmem.config.json, do nothing at all (no key lookup, no log, no network).
         if (!isEnabled(projectRoot)) return 0;
         // The guard (src/cli.ts sends PreToolUse there directly; this is the path for a saved input file).
@@ -640,10 +649,13 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
     case "mcp": {
       // Clients without a project working directory (Claude Desktop) name the project with --root or JEVMEM_ROOT.
       // The Claude Code plugin's MCP server gets CLAUDE_PROJECT_DIR (set for stdio MCP servers).
-      const mcpRoot = opt(args, "--root") ?? process.env.JEVMEM_ROOT ?? process.env.CLAUDE_PROJECT_DIR ?? root;
+      // 0.7.6: the Cursor plugin's entry passes --root "${workspaceFolder}", which the Cursor app expands per window and
+      // the agent CLI leaves literal: a placeholder means the working directory.
+      const rootArg = opt(args, "--root");
+      const mcpRoot = (rootArg && !rootArg.startsWith("${") ? rootArg : undefined) ?? process.env.JEVMEM_ROOT ?? process.env.CLAUDE_PROJECT_DIR ?? root;
       if (!fs.existsSync(mcpRoot)) return fail(`--root ${mcpRoot} does not exist`);
       const pluginVersion = process.env.JEVMEM_PLUGIN_VERSION;
-      if (pluginVersion && isOlder(PACKAGE_VERSION, pluginVersion)) io.err(`jevmem: the installed CLI is ${PACKAGE_VERSION}, older than the Claude Code plugin (${pluginVersion}); run: npm install -g jevmem\n`);
+      if (pluginVersion && isOlder(PACKAGE_VERSION, pluginVersion)) io.err(`jevmem: the installed CLI is ${PACKAGE_VERSION}, older than the plugin (${pluginVersion}); run: npm install -g jevmem\n`);
       await serveMcp(mcpRoot);
       return -1; // keep running
     }
@@ -986,7 +998,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const plugin = hasActivePlugin(installs);
       const hooks = [...installs.map(describeInstall), projectHasInitHooks(root) ? `\`jevmem init\` hooks in .claude/settings.local.json${projectHasInitGuardHook(root) ? " (with the PreToolUse guard)" : " (no PreToolUse guard: `jevmem init` with a jevmem that has the guard adds it)"}` : null].filter(Boolean);
       io.out(`hooks    ${hooks.length ? hooks.join("; ") : "no jevmem plugin found (checked the plugins synced from claude.ai and the user and project settings), and no init hooks in this project: run `jevmem init --tool claude`, or add the plugin"}\n`);
-      if (fs.existsSync(path.join(root, ".cursor"))) io.out(`cursor   ${cursorDoctorLine(root)}\n`);
+      if (fs.existsSync(path.join(root, ".cursor")) || readCursorPluginMarker()) io.out(`cursor   ${cursorDoctorLine(root)}\n`);
       if (enabled) io.out(`guard    ${guardStatus(root)}\n`);
       if (enabled) io.out(`always   ${alwaysOnStatus(root)}\n`);
       for (const line of hookCliLines(root, plugin)) io.out(line + "\n");
@@ -1328,9 +1340,12 @@ function cursorDoctorLine(root: string): string {
   })();
   const rule = fs.existsSync(path.join(root, ".cursor", "rules", "jevmem.mdc"));
   const parts: string[] = [];
+  // 0.7.6: the plugin, known from the marker its sessionStart hook writes on this computer.
+  const plugin = readCursorPluginMarker();
+  if (plugin) parts.push(`the jevmem plugin for Cursor (${plugin.version}) ran on this computer last on ${plugin.seen.slice(0, 10) || "an unknown day"}${st.events.length ? ": this project has its own jevmem hooks in .cursor/hooks.json too, so the plugin stands down here (jevmem init --remove-hooks keeps the plugin alone)" : ": it saves each finished agent turn here, serves memory over MCP in every window and carries the rule"}`);
   if (st.events.length === CURSOR_HOOK_EVENTS.length && st.launcher === "current") parts.push("hooks in .cursor/hooks.json (sessionStart, beforeSubmitPrompt, afterAgentResponse, stop, sessionEnd) with the launcher .cursor/hooks/jevmem-hook.sh: each finished agent turn is saved");
   else if (st.events.length) parts.push(`hooks in .cursor/hooks.json for ${st.events.join(", ")} only${st.launcher === "missing" ? ", and no launcher at .cursor/hooks/jevmem-hook.sh" : st.launcher === "stale" ? ", with an older launcher" : ""}: run \`jevmem init --tool cursor\` to complete them`);
-  else parts.push("no jevmem hooks in .cursor/hooks.json: turns are not saved in Cursor until `jevmem init --tool cursor` adds them (0.7.4)");
+  else if (!plugin) parts.push("no jevmem hooks in .cursor/hooks.json: turns are not saved in Cursor until `jevmem init --tool cursor` adds them (0.7.4), or the jevmem plugin for Cursor is installed (0.7.6)");
   // The CLI the launcher last ran (its cache), and whether it is this one: Cursor gives its hooks its own PATH.
   try {
     const [cli] = fs.readFileSync(path.join(root, ".jevmem", "cursor-launcher"), "utf8").split("\n");
@@ -1341,8 +1356,10 @@ function cursorDoctorLine(root: string): string {
   } catch {
     /* no cache yet */
   }
-  parts.push(mcp ? cursorMcpState(root) : "no jevmem server in .cursor/mcp.json");
-  parts.push(rule ? "the rule .cursor/rules/jevmem.mdc" : "no rule file");
+  if (mcp) parts.push(cursorMcpState(root));
+  else if (!plugin) parts.push("no jevmem server in .cursor/mcp.json");
+  if (rule) parts.push("the rule .cursor/rules/jevmem.mdc");
+  else if (!plugin) parts.push("no rule file");
   if (projectHasInitHooks(root)) parts.push("Cursor also runs this project's Claude Code hooks (.claude/settings*.json) with its own event names, which jevmem ignores there, so nothing runs twice");
   return parts.join("; ");
 }
@@ -1371,7 +1388,7 @@ function cursorMcpState(root: string): string {
  * The Cursor hooks (0.7.4): what each event does is in src/cursor.ts. Every path exits 0; `beforeSubmitPrompt` always
  * answers `{"continue": true}`, since a hook answer Cursor cannot read could hold a prompt back.
  */
-async function cursorHook(root: string, input: any, io: CliIo): Promise<number> {
+async function cursorHook(root: string, input: any, io: CliIo, viaPlugin = false): Promise<number> {
   const event = String(input?.hook_event_name ?? "");
   const answer = (o: Record<string, unknown> | null) => {
     if (o) io.out(JSON.stringify(o) + "\n");
@@ -1385,6 +1402,13 @@ async function cursorHook(root: string, input: any, io: CliIo): Promise<number> 
     loadEnvFallbacks(root);
     const cfg = loadConfig(root);
     if (cfg.enabled === false) {
+      minimal();
+      return 0;
+    }
+    // 0.7.6: the plugin's hooks beside a project's own jevmem hooks (`jevmem init --tool cursor`'s) stand down, so
+    // a turn is decided once; one log line a day says so.
+    if (viaPlugin && cursorHooksStatus(root).events.length) {
+      cursorPluginStandDown(root);
       minimal();
       return 0;
     }
@@ -1449,6 +1473,26 @@ async function cursorHook(root: string, input: any, io: CliIo): Promise<number> 
     }
     minimal();
     return 0;
+  }
+}
+
+/** The Cursor plugin's stand-down beside project hooks (0.7.6): one log line a day, kept in .jevmem/state.json as the Claude plugin's is. */
+function cursorPluginStandDown(root: string): void {
+  const stateFile = path.join(root, ".jevmem", "state.json");
+  let state: Record<string, unknown> = {};
+  try {
+    state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+  } catch {
+    /* none yet */
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  if (state.cursorPluginStandDownLogged === today) return;
+  appendLog(root, { ts: new Date().toISOString(), label: "cursor", event: "cursor-plugin-standdown", ok: true, latencyMs: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, questions: 0, detail: "the jevmem plugin for Cursor and this project's own jevmem hooks (.cursor/hooks.json) are both here; the plugin's hooks stand down, so nothing is decided twice (jevmem init --remove-hooks keeps the plugin alone)" });
+  try {
+    fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+    fs.writeFileSync(stateFile, JSON.stringify({ ...state, cursorPluginStandDownLogged: today }));
+  } catch {
+    /* the log line is what matters */
   }
 }
 

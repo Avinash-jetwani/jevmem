@@ -46,6 +46,8 @@ jobs:
       - run: node scripts/check-versions.mjs
       # The plugin in plugin/ ships no code: no file over 256 KiB, no dist/, nothing minified.
       - run: node scripts/check-plugin.mjs
+      # The Cursor plugin in cursor-plugin/ (0.7.6) passes Cursor's submission checklist and ships one launcher, no code.
+      - run: node scripts/check-cursor-plugin.mjs
 
   # 0.7.5: the side pane (pane/, a Claude Code mod) is checked by Claude Code itself: `claude plugin validate --strict`
   # reads the module the way the engine will, `claude plugin test` runs pane/tests/*.test.tsx on the terminal and the

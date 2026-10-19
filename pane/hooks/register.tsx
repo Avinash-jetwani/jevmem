@@ -70,13 +70,13 @@ async function snapshot($: EngineInterface): Promise<View> {
 }
 const redraw = ($: EngineInterface) => $.ui.invalidate('ui.render')
 
-/** The recall file is this prompt's when its `prompt_hash` is the hash of the prompt as typed. */
-async function refreshRecall($: EngineInterface, hash: string): Promise<void> {
+/** The recall file is this prompt's when its `prompt_hash` is the hash of the prompt as typed and, since 0.7.6, its `session_id` is this session's (two sessions in one project can send the same prompt). */
+async function refreshRecall($: EngineInterface, hash: string, session: string | null): Promise<void> {
   const file = parseRecall(await readText($, RECALL))
   if (!file) {
     await update($, S_RECALL, () => null)
     await update($, S_RECALL_STATE, () => 'missing')
-  } else if (file.prompt_hash === hash) {
+  } else if (file.prompt_hash === hash && !(session && file.session_id && file.session_id !== session)) {
     await update($, S_RECALL, () => file)
     await update($, S_RECALL_STATE, () => 'this')
   } else {
@@ -150,6 +150,13 @@ async function doRetire($: EngineInterface, action: 'forget' | 'wrong', id: stri
   await update($, S_PENDING, (): Pending => ({ kind: 'confirm', where, action, id }))
   redraw($)
 }
+/** 0.7.6: a skipped turn's `missed` button: a confirm, then `jevmem missed "<the prompt as typed>"`, which labels the turn and adds the line. */
+async function doMissed($: EngineInterface, where: Where): Promise<void> {
+  const p = await read($, S_PROMPT)
+  if (!p || !p.text.trim()) return note($, where, 'no prompt text for this turn')
+  await update($, S_PENDING, (): Pending => ({ kind: 'confirm', where, action: 'missed', id: '', text: p.text }))
+  redraw($)
+}
 async function doConfirm($: EngineInterface, yes: boolean): Promise<void> {
   const p = await read($, S_PENDING)
   if (!p || p.kind !== 'confirm') return
@@ -160,9 +167,9 @@ async function doConfirm($: EngineInterface, yes: boolean): Promise<void> {
   }
   const cli = await read($, S_CLI)
   if (!cli) return note($, p.where, NOT_FOUND)
-  const args = p.action === 'forget' ? ['forget', p.id] : ['wrong', p.id, '--should-be', 'none']
+  const args = p.action === 'forget' ? ['forget', p.id] : p.action === 'wrong' ? ['wrong', p.id, '--should-be', 'none'] : ['missed', p.text ?? '']
   const r = await runCli($, cli, args)
-  await update($, S_PENDING, (): Pending => ({ kind: 'output', where: p.where, title: `jevmem ${args.join(' ')}${r.ok ? '' : ' (failed)'}`, text: r.text }))
+  await update($, S_PENDING, (): Pending => ({ kind: 'output', where: p.where, title: `jevmem ${p.action === 'missed' ? 'missed "…"' : args.join(' ')}${r.ok ? '' : ' (failed)'}`, text: r.text }))
   redraw($)
 }
 async function doGuardLog($: EngineInterface): Promise<void> {
@@ -225,12 +232,12 @@ export const register: Register = (on) => {
     await openOnce($)
     const at = await $.clock.now()
     const hash = await promptHash(e.text)
-    await update($, S_PROMPT, () => ({ at, hash }))
+    await update($, S_PROMPT, () => ({ at, hash, text: e.text }))
     await update($, S_SAVING, () => 'saving')
     await update($, S_SAVING_NOTE, () => null)
     await update($, S_PENDING, () => null)
     const r = await next(e)
-    await refreshRecall($, hash)
+    await refreshRecall($, hash, await sessionId($))
     redraw($)
     return r
   })
@@ -278,6 +285,7 @@ export const register: Register = (on) => {
       wrong: (id, kind, where) => void doRetire($, 'wrong', id, kind, where),
       forget: (id, kind, where) => void doRetire($, 'forget', id, kind, where),
       guardLog: () => void doGuardLog($),
+      missed: (where) => void doMissed($, where),
       confirm: (yes) => void doConfirm($, yes),
       close: () => void doClose($),
     })

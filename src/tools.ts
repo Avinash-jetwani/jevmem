@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { cursorHooksStatus, registerCursorHooks } from "./cursor.js";
+import { cursorHooksStatus, readCursorPluginMarker, registerCursorHooks } from "./cursor.js";
 import { ensureGitignore } from "./init.js";
 
 export const TOOLS = ["claude", "cursor", "codex", "claude-desktop"] as const;
@@ -39,7 +39,27 @@ const CURSOR_HOOK_EVENT_LIST = "sessionStart, beforeSubmitPrompt, afterAgentResp
 /** Cursor reads the key from its own environment: this reference is written to `.cursor/mcp.json` as it is, not expanded by jevmem. */
 const CURSOR_KEY_REFERENCE = "${env:TYPESAFE_API_KEY}";
 
+/**
+ * The rule, one text for `init --tool cursor`'s file and the plugin's (0.7.6): the plugin's rule is in every chat of
+ * every project the plugin is installed for, so it is short and its first sentence keeps the agent off jevmem where
+ * the project is not turned on (no `jevmem.config.json`): no tool call, no wasted request. Its context cost is
+ * measured in docs/limits.md.
+ */
 export const CURSOR_RULE = `---
+description: jevmem project memory (JEVMEM.md); only in a project that has jevmem.config.json
+alwaysApply: true
+---
+
+# jevmem project memory
+
+This rule applies only in a project that has a \`jevmem.config.json\` file. Without that file, jevmem is off here: do not call its tools.
+
+Where it is on: before a non-trivial task, call \`search_memory\` with a one-line description of the task and follow what it returns (decisions, rules and failed approaches from earlier sessions; the user's word overrides them). jevmem's hooks save each finished turn on their own, so call \`add_memory\` only for something the user asks to record that the chat does not state. Never edit \`JEVMEM.md\` directly: jevmem writes it.
+`;
+
+/** The 0.7.4 and 0.7.5 rule, the 0.4.4 to 0.7.3 rule and the v0.4.3 rule, verbatim; `init --tool cursor` replaces a file that still matches one exactly. */
+export const LEGACY_CURSOR_RULES: readonly string[] = [
+  `---
 description: Project memory via Jevmem (JEVMEM.md). Use the jevmem MCP tools to read it; jevmem saves each turn itself.
 alwaysApply: true
 ---
@@ -52,10 +72,7 @@ This project keeps durable memory in \`JEVMEM.md\` (one line per decision, const
 - \`add_memory\` is only for something the user asks to record that the conversation does not state (one line, at most 200 characters, with the right kind: decision | constraint | preference | bug | architecture | todo | dead-end). jevmem scrubs secrets and asks Jev first; it may refuse the line (injection, small talk, duplicate) or correct the kind, and says why. What the user says in the chat is saved by the hooks: do not add it again.
 - If something you learned contradicts a memory, tell the user which line it contradicts; jevmem supersedes the old line when the user states the change.
 - Never add, edit or remove lines in \`JEVMEM.md\` directly: record memories only through \`add_memory\`, which checks and formats them.
-`;
-
-/** The 0.4.4 to 0.7.3 rule and the v0.4.3 rule, verbatim; `init --tool cursor` replaces a file that still matches one exactly. */
-export const LEGACY_CURSOR_RULES: readonly string[] = [
+`,
   `---
 description: Project memory via Jevmem (JEVMEM.md). Use the jevmem MCP tools to read and write it.
 alwaysApply: true
@@ -118,8 +135,20 @@ function readJson(file: string): any {
   }
 }
 
-export function setupCursor(root: string): ToolSetupResult {
+/**
+ * `jevmem init --tool cursor`. With the jevmem plugin for Cursor installed on this computer (0.7.6: the marker its
+ * sessionStart hook writes, `~/.jevmem/cursor-plugin`), the plugin saves each turn, serves memory over MCP and carries
+ * the rule in every window, so the project needs only to be turned on (which `init` did) and no Cursor file is
+ * written; `--files` writes them anyway (a teammate without the plugin), and the plugin stands down beside them.
+ */
+export function setupCursor(root: string, opts: { files?: boolean } = {}): ToolSetupResult {
   const r: ToolSetupResult = { created: [], skipped: [], notes: [] };
+  const plugin = readCursorPluginMarker();
+  if (plugin && !opts.files) {
+    r.skipped.push(".cursor/ (the jevmem plugin for Cursor is installed on this computer: no hooks file, launcher, MCP entry or rule written here)");
+    r.notes.push(`The jevmem plugin for Cursor (${plugin.version}, last ran ${plugin.seen.slice(0, 10)}) is installed on this computer: it saves each finished agent turn, serves memory over MCP and carries the rule in every Cursor window, so this project only had to be turned on, which it now is. For a teammate without the plugin, \`jevmem init --tool cursor --files\` writes the hooks, the launcher, the MCP entry and the rule into the project; the plugin stands down beside them, so nothing is saved twice.`);
+    return r;
+  }
   const dir = path.join(root, ".cursor");
   fs.mkdirSync(path.join(dir, "rules"), { recursive: true });
   const mcpFile = path.join(dir, "mcp.json");
@@ -149,8 +178,43 @@ export function setupCursor(root: string): ToolSetupResult {
   ensureGitignore(root, [".cursor/hooks/state/"], r.created);
   const st = cursorHooksStatus(root);
   if (st.others) r.notes.push(`Your other Cursor hooks in .cursor/hooks.json are kept (${st.others} entr${st.others === 1 ? "y" : "ies"}).`);
+  if (plugin) r.notes.push(`The jevmem plugin for Cursor (${plugin.version}) is installed on this computer too: beside these project hooks it stands down, so nothing is saved twice.`);
   r.notes.push("Cursor saves each finished agent turn through the hooks in .cursor/hooks.json (the launcher runs the jevmem it finds on PATH or in the usual places; a clone without jevmem stays silent). Reload the window once so Cursor picks up the hooks. Then turn the project's MCP server on once in the Cursor app (Customize > MCPs > jevmem > Configure > the source toggle for .cursor/mcp.json, then Reload): Cursor starts a project's MCP server only after that, and recall is the agent's search_memory call over it.");
   return r;
+}
+
+/**
+ * `jevmem init --remove-hooks` with the Cursor plugin on this computer (0.7.6): the plugin carries the rule and the
+ * MCP server, so jevmem's rule file goes when its text is one jevmem wrote (unchanged by the user) and the `jevmem`
+ * entry of `.cursor/mcp.json` when it is the one `init` wrote; other servers and a changed rule stay. The paths changed.
+ */
+export function unregisterCursorFiles(root: string): string[] {
+  const changed: string[] = [];
+  const rule = path.join(root, ".cursor", "rules", "jevmem.mdc");
+  try {
+    const text = fs.readFileSync(rule, "utf8");
+    if (text === CURSOR_RULE || LEGACY_CURSOR_RULES.includes(text)) {
+      fs.unlinkSync(rule);
+      changed.push(".cursor/rules/jevmem.mdc");
+      try {
+        if (!fs.readdirSync(path.dirname(rule)).length) fs.rmdirSync(path.dirname(rule));
+      } catch {
+        /* not empty */
+      }
+    }
+  } catch {
+    /* no rule */
+  }
+  const mcpFile = path.join(root, ".cursor", "mcp.json");
+  const mcp = readJson(mcpFile);
+  const entry = mcp?.mcpServers?.jevmem;
+  if (entry && JSON.stringify(entry) === JSON.stringify({ ...MCP_ENTRY, env: { TYPESAFE_API_KEY: CURSOR_KEY_REFERENCE } })) {
+    delete mcp.mcpServers.jevmem;
+    if (Object.keys(mcp.mcpServers).length || Object.keys(mcp).some((k) => k !== "mcpServers")) fs.writeFileSync(mcpFile, JSON.stringify(mcp, null, 2) + "\n");
+    else fs.unlinkSync(mcpFile);
+    changed.push(".cursor/mcp.json");
+  }
+  return changed;
 }
 
 /**

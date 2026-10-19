@@ -24,6 +24,7 @@ export type Actions = {
   wrong: (id: string, kind: string | null, where: Where) => void
   forget: (id: string, kind: string | null, where: Where) => void
   guardLog: () => void
+  missed: (where: Where) => void
   confirm: (yes: boolean) => void
   close: () => void
 }
@@ -46,7 +47,7 @@ export function draw($: EngineInterface, e: RenderInput<'Pane'>, v: View, act: A
     const p = v.pending
     if (!p || p.where !== where) return null
     if (p.kind === 'confirm') {
-      const text = p.action === 'forget' ? `Retire ${p.id}? It stays in JEVMEM.md as [retired].` : `Label ${p.id} as wrong and retire it?`
+      const text = p.action === 'forget' ? `Retire ${p.id}? It stays in JEVMEM.md as [retired].` : p.action === 'wrong' ? `Label ${p.id} as wrong and retire it?` : 'Save this turn as a memory line? jevmem missed decides the kind and adds it.'
       return (
         <Box flexDirection="column">
           <Text wrap="wrap">{text}</Text>
@@ -132,11 +133,11 @@ export function draw($: EngineInterface, e: RenderInput<'Pane'>, v: View, act: A
     else saved.push(<Text dimColor>not a memory id</Text>)
   } else {
     saved.push(<Text dimColor wrap="wrap">{plainDecision(d)}</Text>)
-    if (isHash(d.hash)) saved.push(
-      <Box flexDirection="row" gap={1}>
-        <Button key="why:last" plain onPress={() => act.why(d.hash!, 'decision')}>why</Button>
-      </Box>,
-    )
+    // 0.7.6: a skipped turn can be labelled as missed from here (the prompt as typed goes to `jevmem missed`).
+    const row: RenderElement[] = []
+    if (isHash(d.hash)) row.push(<Button key="why:last" plain onPress={() => act.why(d.hash!, 'decision')}>why</Button>)
+    if (d.action === 'skipped' && v.promptSeen) row.push(<Button key="missed:last" plain onPress={() => act.missed('decision')}>missed</Button>)
+    if (row.length) saved.push(<Box flexDirection="row" gap={1}>{row}</Box>)
   }
 
   return (

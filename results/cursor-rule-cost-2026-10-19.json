@@ -1,0 +1,41 @@
+{
+  "kind": "cursor-rule-cost",
+  "date": "2026-10-19T09:48:04.573Z",
+  "method": "the rule text as Cursor attaches it to a chat (alwaysApply: true): characters, words and non-empty lines of the whole file and of the body after the frontmatter; tokens estimated at 4 characters per token, since no tokenizer of Cursor's models runs here. Measured from the strings in src/tools.ts through the built dist/index.js.",
+  "rows": [
+    {
+      "name": "0.7.4 rule (jevmem init --tool cursor, 0.7.4 and 0.7.5)",
+      "file": {
+        "chars": 1433,
+        "words": 233,
+        "lines": 10,
+        "tokens_estimate": 358
+      },
+      "body": {
+        "chars": 1287,
+        "words": 210,
+        "lines": 6,
+        "tokens_estimate": 322
+      }
+    },
+    {
+      "name": "0.7.6 rule (the plugin's rules/jevmem.mdc and init's file)",
+      "file": {
+        "chars": 708,
+        "words": 112,
+        "lines": 7,
+        "tokens_estimate": 177
+      },
+      "body": {
+        "chars": 588,
+        "words": 96,
+        "lines": 3,
+        "tokens_estimate": 147
+      }
+    }
+  ],
+  "body_texts": {
+    "0.7.4 rule (jevmem init --tool cursor, 0.7.4 and 0.7.5)": "\n# Jevmem project memory\n\nThis project keeps durable memory in `JEVMEM.md` (one line per decision, constraint, preference, bug, architecture fact, to-do or dead end), managed by the `jevmem` MCP server. Since jevmem 0.7.4 the hooks in `.cursor/hooks.json` save the decisions, rules and failed approaches from each finished agent turn on their own.\n\n- Before any non-trivial task, call `search_memory` with a one-line description of the task and read the results. They are decisions and constraints from earlier sessions; follow them unless the user overrides.\n- `add_memory` is only for something the user asks to record that the conversation does not state (one line, at most 200 characters, with the right kind: decision | constraint | preference | bug | architecture | todo | dead-end). jevmem scrubs secrets and asks Jev first; it may refuse the line (injection, small talk, duplicate) or correct the kind, and says why. What the user says in the chat is saved by the hooks: do not add it again.\n- If something you learned contradicts a memory, tell the user which line it contradicts; jevmem supersedes the old line when the user states the change.\n- Never add, edit or remove lines in `JEVMEM.md` directly: record memories only through `add_memory`, which checks and formats them.\n",
+    "0.7.6 rule (the plugin's rules/jevmem.mdc and init's file)": "\n# jevmem project memory\n\nThis rule applies only in a project that has a `jevmem.config.json` file. Without that file, jevmem is off here: do not call its tools.\n\nWhere it is on: before a non-trivial task, call `search_memory` with a one-line description of the task and follow what it returns (decisions, rules and failed approaches from earlier sessions; the user's word overrides them). jevmem's hooks save each finished turn on their own, so call `add_memory` only for something the user asks to record that the chat does not state. Never edit `JEVMEM.md` directly: jevmem writes it.\n"
+  }
+}
