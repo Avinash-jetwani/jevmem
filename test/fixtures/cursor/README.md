@@ -16,3 +16,10 @@ hook's arguments and Cursor's variables, nothing else) in a scratch copy of eval
   `beforeSubmitPrompt`, `afterAgentResponse` or `stop`, and no Claude-format hook.
 
 The probe that produced them is described in `.reports/release-0.7.4.md` (Part 1).
+- `app-followup/`: the Cursor app 3.25.9 (model `grok-4.7-xhigh`), 2026-10-16, 0.7.4's live check in `~/cursor-check`:
+  the one captured chat where Cursor's own follow-up line ("Briefly inform the user about the task result and perform
+  any follow-up actions…", written by Cursor after the agent's background search was killed) came **after** the turn
+  had ended (`turn_ended`, then the follow-up as a user line of its own, then its one-line answer and another
+  `turn_ended`); the held-out set's example has the same line inside an open turn. Shortened for the fixture: of turn 2's
+  22 assistant lines only its first text, two tool lines and its final text are kept; paths are `<home>`, the account's
+  email `user@example.com`, long tool inputs `<shortened>`. The fix it measures is 0.7.6's fix d (`src/cursor.ts`).

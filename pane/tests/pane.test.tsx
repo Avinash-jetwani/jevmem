@@ -30,7 +30,7 @@ function lookup(files: Files, path: string): string | undefined {
   return key === undefined ? undefined : files[key]
 }
 /** The world beneath the pane: a clock, an environment, the files, the engine's ui and session nouns, the command. */
-function world(on: On, files: Files, opts: { now?: string; answer?: Answer; surfaces?: Surface[] } = {}): World {
+function world(on: On, files: Files, opts: { now?: string; answer?: Answer; surfaces?: Surface[]; session?: string } = {}): World {
   const w: World = { files, runs: [], opens: 0, placed: false, placeNext: true, surfaces: opts.surfaces ?? ['terminal'], clock: mock.clock(on, { now: AT(opts.now ?? '2026-10-17T10:22:40.000Z') }) }
   mock.env(on, { PATH: '/usr/bin:/bin', HOME: '/home/t' })
   on('fs.read', (_$, e) => {
@@ -42,7 +42,7 @@ function world(on: On, files: Files, opts: { now?: string; answer?: Answer; surf
     const text = lookup(w.files, e.path)
     return text === undefined ? { deny: `ENOENT: ${e.path}` } : { value: { kind: 'file' as const, size: text.length, mtimeMs: 0, isLink: false } }
   })
-  on('session.id', () => ({ value: 's1' })) // the session the hand-written decision fixtures name
+  on('session.id', () => ({ value: opts.session ?? 's1' })) // the session the hand-written decision fixtures name; a recall fixture's own id is passed where one is used
   on('fs.list', () => ({ value: [] }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('ui.open', () => {
@@ -69,6 +69,8 @@ function world(on: On, files: Files, opts: { now?: string; answer?: Answer; surf
   on('command.run', () => ({ text: '' }))
   return w
 }
+/** The session id a captured recall file carries, so the pane reads it as this session's (0.7.6). */
+const sessionOf = (name: string): string => String((JSON.parse(fixtures[name]!) as { session_id?: string }).session_id ?? 's1')
 const start = ($: Engine, surface: Surface) => $.session.start({ cwd: '/proj', surface, isInteractive: true })
 const prompt = ($: Engine, text: string) => $.prompt.submit({ text, wait: false, origin: { kind: 'composer' } })
 const toolCall = ($: Engine, tool_use_id: string, tool: 'Bash' | 'Write' = 'Bash') =>
@@ -87,7 +89,7 @@ const each = (name: string, body: ($: Engine, on: On, surface: Surface) => Promi
 
 // 1. Each block filled, from real captures: two lines served, the guard's deny, a saved decision that supersedes one.
 each('draws the three blocks from the captured files', async ($, on, surface) => {
-  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-2.json']!, [GUARD]: fixtures['guard-deny.jsonl']!, [DECISION]: fixtures['decision-saved-supersedes.json']! })
+  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-2.json']!, [GUARD]: fixtures['guard-deny.jsonl']!, [DECISION]: fixtures['decision-saved-supersedes.json']! }, { session: sessionOf('recall-served-2.json') })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-served-2.json']!)
@@ -124,7 +126,7 @@ each('before any prompt every block says so', async ($, on, surface) => {
   await ui.unmount()
 })
 each('a prompt that got no line', async ($, on, surface) => {
-  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-0.json']! })
+  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-0.json']! }, { session: sessionOf('recall-served-0.json') })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-served-0.json']!)
@@ -133,7 +135,7 @@ each('a prompt that got no line', async ($, on, surface) => {
   await ui.unmount()
 })
 each('a project with no memory line yet', async ($, on, surface) => {
-  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-no-lines.json']! })
+  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-no-lines.json']! }, { session: sessionOf('recall-no-lines.json') })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-no-lines.json']!)
@@ -141,7 +143,7 @@ each('a project with no memory line yet', async ($, on, surface) => {
   await ui.unmount()
 })
 each("a file that is another prompt's, or no file", async ($, on, surface) => {
-  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! })
+  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! }, { session: sessionOf('recall-served-1.json') })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, 'Something the file is not about.')
@@ -199,7 +201,7 @@ each('in a project that is not on, an attach opens nothing either', async ($, on
 
 // 4. forget: a confirm first, a cancel that runs nothing, a yes that runs the command once.
 each('forget asks for a confirm, no puts the buttons back, yes runs jevmem forget once', async ($, on, surface) => {
-  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! }, { answer: () => ({ stdout: 'retired nxuerq: [decision] The extension ships as a sideload zip only, no Chrome Web Store yet.\n' }) })
+  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! }, { session: sessionOf('recall-served-1.json'), answer: () => ({ stdout: 'retired nxuerq: [decision] The extension ships as a sideload zip only, no Chrome Web Store yet.\n' }) })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-served-1.json']!)
@@ -219,7 +221,7 @@ each('forget asks for a confirm, no puts the buttons back, yes runs jevmem forge
   await ui.unmount()
 })
 each('wrong asks for a confirm and runs jevmem wrong --should-be none', async ($, on, surface) => {
-  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! })
+  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! }, { session: sessionOf('recall-served-1.json') })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-served-1.json']!)
@@ -249,7 +251,7 @@ each("a rule's forget and wrong are terminal-only: no confirm, a hint, nothing r
 
 // 5. A wrong id is refused before anything runs.
 each('a served line whose id is not an id gets no button and runs nothing', async ($, on, surface) => {
-  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-bad-id.json']! })
+  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-bad-id.json']! }, { session: sessionOf('recall-bad-id.json') })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-bad-id.json']!)
@@ -359,7 +361,7 @@ each('a call the log has not got yet', async ($, on, surface) => {
 
 // 9. why, and how the command is found.
 each('why runs jevmem why and shows its output', async ($, on, surface) => {
-  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! }, { answer: () => ({ stdout: 'SAVED as decision (tier 1)\ncontains_decision 0.95\n' }) })
+  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! }, { session: sessionOf('recall-served-1.json'), answer: () => ({ stdout: 'SAVED as decision (tier 1)\ncontains_decision 0.95\n' }) })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-served-1.json']!)
@@ -372,7 +374,7 @@ each('why runs jevmem why and shows its output', async ($, on, surface) => {
   await ui.unmount()
 })
 each("finds the CLI through a jevmem init project's hook command when none is on PATH", async ($, on, surface) => {
-  const w = world(on, { ...ON, [RECALL]: fixtures['recall-served-1.json']!, '.claude/settings.local.json': fixtures['settings-init.json']! })
+  const w = world(on, { ...ON, [RECALL]: fixtures['recall-served-1.json']!, '.claude/settings.local.json': fixtures['settings-init.json']! }, { session: sessionOf('recall-served-1.json') })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-served-1.json']!)
@@ -381,7 +383,7 @@ each("finds the CLI through a jevmem init project's hook command when none is on
   await ui.unmount()
 })
 each('with no jevmem command the button says so and nothing runs', async ($, on, surface) => {
-  const w = world(on, { ...ON, [RECALL]: fixtures['recall-served-1.json']! })
+  const w = world(on, { ...ON, [RECALL]: fixtures['recall-served-1.json']! }, { session: sessionOf('recall-served-1.json') })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-served-1.json']!)
@@ -391,7 +393,7 @@ each('with no jevmem command the button says so and nothing runs', async ($, on,
   await ui.unmount()
 })
 each('a command that fails shows its error', async ($, on, surface) => {
-  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! }, { answer: () => ({ exitCode: 1, stdout: '', stderr: 'jevmem forget: no line with id nxuerq in JEVMEM.md\n' }) })
+  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-1.json']! }, { session: sessionOf('recall-served-1.json'), answer: () => ({ exitCode: 1, stdout: '', stderr: 'jevmem forget: no line with id nxuerq in JEVMEM.md\n' }) })
   await start($, surface)
   const ui = await mount($, surface)
   await prompt($, prompts['recall-served-1.json']!)
@@ -445,4 +447,64 @@ each('/jevmem closes a placed pane and opens a waiting one', async ($, on, surfa
   w.placeNext = true
   expect((await command($)).text).toMatch(/opened/)
   expect(w.placed).toBe(true)
+})
+
+// 0.7.6: a skipped turn gets a `missed` button: a confirm first, then `jevmem missed "<the prompt as typed>"` once. The
+// pane keeps the prompt's text from prompt.submit, so the command gets what was typed, never a reconstruction.
+each('a skipped turn offers missed: a confirm, no runs nothing, yes runs jevmem missed with the prompt as typed', async ($, on, surface) => {
+  const w = world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-0.json']!, [DECISION]: fixtures['decision-skipped-minor.json']! }, { session: sessionOf('recall-served-0.json') })
+  await start($, surface)
+  const ui = await mount($, surface)
+  await prompt($, prompts['recall-served-0.json']!)
+  await turn($)
+  await shows(ui, /skipped:/)
+  await button(ui, 'missed:last')
+  await ui.press({ key: 'missed:last' })
+  await shows(ui, /Save this turn as a memory line\? jevmem missed decides the kind and adds it\./)
+  await button(ui, 'confirm:yes')
+  await button(ui, 'confirm:no')
+  await ui.press({ key: 'confirm:no' })
+  expect(w.runs).toEqual([])
+  await button(ui, 'missed:last')
+  await ui.press({ key: 'missed:last' })
+  await ui.press({ key: 'confirm:yes' })
+  expect(w.runs).toEqual([['/usr/bin/jevmem', 'missed', prompts['recall-served-0.json']!]])
+  await shows(ui, /jevmem missed/)
+  await ui.unmount()
+})
+
+each('a saved turn and a turn still saving have no missed button', async ($, on, surface) => {
+  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-0.json']!, [DECISION]: fixtures['decision-saved.json']! }, { session: sessionOf('recall-served-0.json') })
+  await start($, surface)
+  const ui = await mount($, surface)
+  await noButton(ui, 'missed:last')
+  await prompt($, prompts['recall-served-0.json']!)
+  await noButton(ui, 'missed:last')
+  await turn($)
+  await shows(ui, /nxuerq/)
+  await noButton(ui, 'missed:last')
+  await ui.unmount()
+})
+
+// 0.7.6: two sessions in one project. The recall file names the session that wrote it; the pane shows it only when
+// that is this session, so two sessions sending the same prompt never show each other's recall.
+each("the recall block shows nothing from another session's recall file, even for the same prompt", async ($, on, surface) => {
+  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-2.json']! }, { session: 'another-session' })
+  await start($, surface)
+  const ui = await mount($, surface)
+  await prompt($, prompts['recall-served-2.json']!)
+  await shows(ui, /^nothing for this prompt$/)
+  await hides(ui, /u5btfw/)
+  await noButton(ui, 'why:u5btfw')
+  await ui.unmount()
+})
+
+each("the recall block shows this session's recall file for this prompt", async ($, on, surface) => {
+  world(on, { ...ON, ...CLI, [RECALL]: fixtures['recall-served-2.json']! }, { session: sessionOf('recall-served-2.json') })
+  await start($, surface)
+  const ui = await mount($, surface)
+  await prompt($, prompts['recall-served-2.json']!)
+  await shows(ui, /u5btfw/)
+  await button(ui, 'why:u5btfw')
+  await ui.unmount()
 })

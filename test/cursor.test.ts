@@ -8,7 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import { CURSOR_HOOK_EVENTS, cursorHooksStatus, readCursorTranscript, registerCursorHooks, stripCursorPrompt, unregisterCursorHooks } from "../src/cursor.js";
+import { CURSOR_HOOK_EVENTS, cursorHooksStatus, isCursorAutomaticPrompt, readCursorTranscript, registerCursorHooks, stashPrompt, stripCursorPrompt, takeStash, unregisterCursorHooks } from "../src/cursor.js";
 import { main } from "../src/cli-main.js";
 import { init } from "../src/init.js";
 import { readQueue } from "../src/queue.js";
@@ -456,5 +456,80 @@ describe("jevmem doctor and the Cursor app's MCP server", () => {
       fs.mkdirSync(path.join(home, ".cursor", "projects", slug, "mcps", "project-1a2b3c-jevmem"), { recursive: true });
       expect(await doctor(root)).toContain("MCP server in .cursor/mcp.json, started by the Cursor app");
     });
+  });
+});
+
+// 0.7.6, fix d: Cursor's own follow-up line ("Briefly inform the user about the task result and perform any follow-up
+// actions…", written by Cursor after a background task ends) after a turn has ended. 0.7.4 folded it into an open
+// turn (the held-out set's case) and read it as a turn of its own after an ended one (0.7.4's live check, turn 3: two
+// requests, skipped). The reader now folds it into the turn before it, ended or not, so the stop Cursor fires for it
+// finds that turn already decided and decides nothing; a transcript that holds nothing but Cursor's own line is not a
+// person's turn. The fixture is the one captured chat with the line after an ended turn (test/fixtures/cursor/app-followup).
+describe("fix d (0.7.6): Cursor's own follow-up line after an ended turn", () => {
+  const FOLLOWUP = path.join(FIX, "app-followup", "app-followup.transcript");
+  const AUTOMATIC = "Briefly inform the user about the task result and perform any follow-up actions that are needed.";
+  const CONVERSATION = "cf0d746d-29f9-4e5e-a3c5-7d98fab079d8";
+  const stopPayload = (transcript: string, root: string) => ({ ...appPayloads("stop")[0]!, conversation_id: CONVERSATION, session_id: CONVERSATION, generation_id: "g3", status: "completed", transcript_path: transcript, workspace_roots: [root] });
+  const logText = (root: string) => (fs.existsSync(path.join(root, ".jevmem", "log.jsonl")) ? fs.readFileSync(path.join(root, ".jevmem", "log.jsonl"), "utf8") : "");
+
+  it("the reader folds the follow-up and its answer into the turn before it, ended or not: two turns, not three", () => {
+    const turns = readCursorTranscript(FOLLOWUP);
+    expect(turns).toHaveLength(2);
+    expect(turns[0]!.user).toMatch(/^Decision for this project: we use pnpm/);
+    expect(turns[1]!.user).toMatch(/^Folder: ~\/cursor-check/);
+    expect(turns[1]!.ended).toBe(true);
+    expect(turns[1]!.status).toBe("success");
+    expect(turns[1]!.assistant).toMatch(/nothing was deleted/);
+    expect(turns[1]!.assistant).toMatch(/The wide search for that phrase was aborted/);
+    expect(turns.some((t) => /Briefly inform the user/.test(t.user))).toBe(false);
+  });
+
+  it("a stop fired for the follow-up decides nothing: the turn it reports on was decided when it ended (the queue stays at one)", async () => {
+    const root = tmp();
+    init({ root, hooks: false });
+    // The transcript as it was when turn 2 ended (the first eleven lines), then as it is after Cursor's own line.
+    const all = fs.readFileSync(FOLLOWUP, "utf8").split("\n").filter(Boolean);
+    const dir = tmp("jevmem-cursor-transcript-");
+    const t = path.join(dir, "conversation.jsonl");
+    fs.writeFileSync(t, all.slice(0, 12).join("\n") + "\n");
+    const r1 = hook(root, stopPayload(t, root));
+    expect(r1.status).toBe(0);
+    expect(readQueue(root)).toHaveLength(1);
+    expect(readQueue(root)[0]!.user).toMatch(/^Folder: ~\/cursor-check/);
+    fs.writeFileSync(t, all.join("\n") + "\n");
+    const r2 = hook(root, stopPayload(t, root));
+    expect(r2.status).toBe(0);
+    expect(readQueue(root)).toHaveLength(1);
+    expect(logText(root)).toMatch(/turn 2 already decided/);
+  });
+
+  it("a transcript that holds nothing but Cursor's own line and its answer is not a person's turn: nothing decided, nothing queued", () => {
+    const root = tmp();
+    init({ root, hooks: false });
+    const all = fs.readFileSync(FOLLOWUP, "utf8").split("\n").filter(Boolean);
+    const dir = tmp("jevmem-cursor-transcript-");
+    const t = path.join(dir, "conversation.jsonl");
+    fs.writeFileSync(t, all.slice(12).join("\n") + "\n");
+    expect(readCursorTranscript(t)).toHaveLength(1);
+    expect(readCursorTranscript(t)[0]!.automatic).toBe(true);
+    const r = hook(root, stopPayload(t, root));
+    expect(r.status).toBe(0);
+    expect(readQueue(root)).toHaveLength(0);
+    expect(logText(root)).toMatch(/Cursor's own follow-up/);
+  });
+
+  it("the stash keeps the person's prompt when Cursor's own line comes through beforeSubmitPrompt", () => {
+    const root = tmp();
+    init({ root, hooks: false });
+    stashPrompt(root, "c1", "g1", "Delete the scratch folders after the report.");
+    stashPrompt(root, "c1", "g2", AUTOMATIC);
+    expect(takeStash(root, "c1")?.prompt).toBe("Delete the scratch folders after the report.");
+  });
+
+  it("isCursorAutomaticPrompt knows the line bare, wrapped on the tag's line, and leaves a person's prompt alone", () => {
+    expect(isCursorAutomaticPrompt(AUTOMATIC)).toBe(true);
+    expect(isCursorAutomaticPrompt(`<timestamp>x</timestamp>\n\n<user_query>${AUTOMATIC}</user_query>`)).toBe(true);
+    expect(isCursorAutomaticPrompt("<user_query>\nBriefly, what does this do?\n</user_query>")).toBe(false);
+    expect(isCursorAutomaticPrompt("Briefly, what does this do?")).toBe(false);
   });
 });
