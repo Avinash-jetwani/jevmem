@@ -285,6 +285,20 @@ describe.skipIf(process.platform === "win32")("the launcher's --plugin and --mcp
     expect(fs.existsSync(path.join(r.home, ".jevmem"))).toBe(false);
   });
 
+  it("reads its version from its own folder, not from CURSOR_PLUGIN_ROOT, which the agent CLI can point at another plugin when several have hooks (measured 2026-10-19: the e2e's copy wrote the probe's 0.0.1)", () => {
+    const root = tmp();
+    const home = tmp("jevmem-cplug-home-");
+    const other = tmp("jevmem-cplug-other-");
+    fs.mkdirSync(path.join(other, ".cursor-plugin"), { recursive: true });
+    fs.writeFileSync(path.join(other, ".cursor-plugin", "plugin.json"), JSON.stringify({ name: "other-plugin", version: "0.0.1" }));
+    init({ root, hooks: false });
+    const { bin, log } = fakeCli();
+    const r = runLauncher(["--plugin", "sessionStart"], { root, home, bin, env: { CURSOR_PLUGIN_ROOT: other, CLAUDE_PLUGIN_ROOT: other }, input: '{"hook_event_name":"sessionStart"}' });
+    expect(r.status).toBe(0);
+    expect(fs.readFileSync(marker(home), "utf8").split("\n")[0]).toBe(VERSION);
+    expect(fs.readFileSync(log, "utf8")).toContain(`version: ${VERSION}`);
+  });
+
   it("--plugin sessionStart writes the marker ~/.jevmem/cursor-plugin (the version and the day) in any project, once a day, and nothing in a project that is not turned on", () => {
     const root = tmp();
     const home = tmp("jevmem-cplug-home-");

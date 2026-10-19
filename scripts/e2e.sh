@@ -2091,8 +2091,10 @@ run_cursor() {
   proxy_pid=$!
   for _ in $(seq 1 50); do [ -s "$plog.url" ] && break; sleep 0.1; done
   proxy_url="$(cat "$plog.url")"
-  echo "---- jevmem init --tool cursor (the packed CLI)"
-  ( cd "$scratch" && cli init --tool cursor 2>&1 | sed 's/^/   /' | head -12 )
+  # 0.7.6: with the jevmem plugin for Cursor on this computer (its marker in the real home), init writes no Cursor
+  # file unless asked with --files; this scenario is the project-files flow, so it asks.
+  echo "---- jevmem init --tool cursor --files (the packed CLI)"
+  ( cd "$scratch" && cli init --tool cursor --files 2>&1 | sed 's/^/   /' | head -12 )
   for f in .cursor/hooks.json .cursor/hooks/jevmem-hook.sh .cursor/mcp.json .cursor/rules/jevmem.mdc jevmem.config.json; do
     [ -f "$scratch/$f" ] || { echo "   ✗ FAIL: init did not write $f"; fail=1; }
   done

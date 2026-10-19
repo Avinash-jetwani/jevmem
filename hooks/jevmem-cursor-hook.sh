@@ -69,8 +69,10 @@ else
 fi
 
 if [ "$plugin" -eq 1 ]; then
-  # The plugin's version, from its own manifest (CURSOR_PLUGIN_ROOT, else the folder this file is in).
-  manifest="${CURSOR_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd -P)}/.cursor-plugin/plugin.json"
+  # The plugin's version, from the manifest beside this file: never from CURSOR_PLUGIN_ROOT, which the agent CLI can
+  # set to another plugin's folder when several plugins have hooks (measured on 2026.10.16: the probe's), while the
+  # placeholder in the command text is substituted per plugin.
+  manifest="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd -P)/.cursor-plugin/plugin.json"
   JEVMEM_PLUGIN_VERSION="$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$manifest" 2>/dev/null | head -n 1)"
   export JEVMEM_PLUGIN_VERSION
   if [ "$event" = sessionStart ]; then

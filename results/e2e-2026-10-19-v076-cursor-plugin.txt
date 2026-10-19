@@ -1,0 +1,75 @@
+Claude Code 2.1.303: /Users/avinashjetwani/.local/bin/claude (CLAUDE_BIN); model: not pinned (Claude Code's default)
+   jevmem CLI 0.7.6: npm install -g of the packed checkout, in a temporary prefix
+================ run 1  scenario=cursor-plugin  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  scratch=/private/tmp/jevmem-e2e.a48b9k  plugin=/tmp/jevmem-e2e-cursor-plugin.vTNBrP
+   the plugin copy's hook commands and MCP args name the packed CLI (--cli) and this Node (--node)
+---- jevmem enable (the packed CLI; no .cursor/ files: the plugin alone)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+   
+   jevmem is enabled in this project.
+---- session 1 (turned on, the plugin's hooks alone): Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else.
+   agent> model Grok 4.7 256K Extra High; ok
+   queue drained 142 ms after claude exited
+     - [decision] Invoices are archived as PDFs in S3, one file per invoice.
+   ✓ session 1: saved by the plugin's sessionEnd hook from the transcript (2 request(s) to Jev)
+   the plugin's marker: 0.0.1 2026-10-19T10:16:25Z 
+---- session 2 (a new chat, recall over the plugin's MCP server): From this project's memory only, in one sentence: where are invoices archived?
+   agent> I'll look up this project's memory for where invoices are archived.Invoices are archived as PDFs in S3, one file per invoice.
+   ✓ session 2: the agent called search_memory over the plugin's MCP server and the reply used the line
+---- a project not turned on (the plugin loaded, no jevmem.config.json): Decision: refunds go back to the original payment method only. Say ok and nothing else.
+   ✓ not turned on: 0 requests to Jev, no file in the project (the plugin's server and hooks ran and wrote nothing)
+   served by: Grok 4.7 256K Extra High, Grok 4.7  Extra High
+PASS run 1 scenario=cursor-plugin
+   served by: no claude run
+   jevmem CLI 0.7.6: npm install -g of the packed checkout, in a temporary prefix
+================ run 2  scenario=cursor-plugin  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  scratch=/private/tmp/jevmem-e2e.qJPzuY  plugin=/tmp/jevmem-e2e-cursor-plugin.LRHNjj
+   the plugin copy's hook commands and MCP args name the packed CLI (--cli) and this Node (--node)
+---- jevmem enable (the packed CLI; no .cursor/ files: the plugin alone)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+   
+   jevmem is enabled in this project.
+---- session 1 (turned on, the plugin's hooks alone): Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else.
+   agent> model Grok 4.7 256K Extra High; I'll record that invoice decision, then reply with only ok.ok
+   queue drained 49 ms after claude exited
+     - [decision] Invoices are archived as PDFs in S3, one file per invoice.
+   ✓ session 1: saved by the plugin's sessionEnd hook from the transcript (2 request(s) to Jev)
+   the plugin's marker: 0.7.6 2026-10-19T10:11:20Z 
+---- session 2 (a new chat, recall over the plugin's MCP server): From this project's memory only, in one sentence: where are invoices archived?
+   agent> I'll look up this project's memory for where invoices are archived.Invoices are archived as PDFs in S3, one file per invoice.
+   ✓ session 2: the agent called search_memory over the plugin's MCP server and the reply used the line
+---- a project not turned on (the plugin loaded, no jevmem.config.json): Decision: refunds go back to the original payment method only. Say ok and nothing else.
+   ✓ not turned on: 0 requests to Jev, no file in the project (the plugin's server and hooks ran and wrote nothing)
+   served by: Grok 4.7 256K Extra High
+PASS run 2 scenario=cursor-plugin
+   served by: no claude run
+   jevmem CLI 0.7.6: npm install -g of the packed checkout, in a temporary prefix
+================ run 3  scenario=cursor-plugin  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  scratch=/private/tmp/jevmem-e2e.3WO7mS  plugin=/tmp/jevmem-e2e-cursor-plugin.za1IYg
+   the plugin copy's hook commands and MCP args name the packed CLI (--cli) and this Node (--node)
+---- jevmem enable (the packed CLI; no .cursor/ files: the plugin alone)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+   
+   jevmem is enabled in this project.
+---- session 1 (turned on, the plugin's hooks alone): Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else.
+   agent> model Grok 4.7 256K Extra High; I'll record that invoice archive decision, then reply with only ok.ok
+   queue drained 51 ms after claude exited
+     - [decision] Invoices are archived as PDFs in S3, one file per invoice.
+   ✓ session 1: saved by the plugin's sessionEnd hook from the transcript (2 request(s) to Jev)
+   the plugin's marker: 0.7.6 2026-10-19T10:11:20Z 
+---- session 2 (a new chat, recall over the plugin's MCP server): From this project's memory only, in one sentence: where are invoices archived?
+   agent> I'll look up this project's memory for where invoices are archived.The memory file has one decision about invoices. I'll confirm it through the project's memory
+   ✓ session 2: the agent called search_memory over the plugin's MCP server and the reply used the line
+---- a project not turned on (the plugin loaded, no jevmem.config.json): Decision: refunds go back to the original payment method only. Say ok and nothing else.
+   ✓ not turned on: 0 requests to Jev, no file in the project (the plugin's server and hooks ran and wrote nothing)
+   served by: Grok 4.7 256K Extra High
+PASS run 3 scenario=cursor-plugin
+   served by: no claude run
+================ models: Claude Code 2.1.303, model not pinned (Claude Code's default)
+   no claude run

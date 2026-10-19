@@ -1,0 +1,68 @@
+Claude Code 2.1.303: /Users/avinashjetwani/.local/bin/claude (CLAUDE_BIN); model: not pinned (Claude Code's default)
+   jevmem CLI 0.7.6: npm install -g of the packed checkout, in a temporary prefix
+================ run 1  scenario=cursor  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  scratch=/private/tmp/jevmem-e2e.L9Vxoi
+---- jevmem init --tool cursor (the packed CLI)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+     kept     .cursor/ (the jevmem plugin for Cursor is installed on this computer: no hooks file, launcher, MCP entry or rule written here)
+   
+   Tools: cursor
+   
+   The jevmem plugin for Cursor (0.7.6, last ran 2026-10-19) is installed on this computer: it saves each finished agent turn, serves memory over MCP and carries the rule in every Cursor window, so this project only had to be turned on, which it now is. For a teammate without the plugin, `jevmem init --tool cursor --files` writes the hooks, the launcher, the MCP entry and the rule into the project; the plugin stands down beside them, so nothing is saved twice.
+   
+   Next: keep working. JEVMEM.md fills itself. Try `jevmem list`, `jevmem search "<query>"`, `jevmem why <id>`, `jevmem stats`.
+   ✗ FAIL: init did not write .cursor/hooks.json
+   ✗ FAIL: init did not write .cursor/hooks/jevmem-hook.sh
+   ✗ FAIL: init did not write .cursor/mcp.json
+   ✗ FAIL: init did not write .cursor/rules/jevmem.mdc
+node:fs:2437
+    return binding.writeFileUtf8(
+                   ^
+
+Error: ENOENT: no such file or directory, open '/private/tmp/jevmem-e2e.L9Vxoi/.cursor/mcp.json'
+    at Object.writeFileSync (node:fs:2437:20)
+    at [eval]:3:8
+    at runScriptInThisContext (node:internal/vm:209:10)
+    at node:internal/process/execution:446:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:444:60)
+    at evalFunction (node:internal/process/execution:279:30)
+    at evalTypeScript (node:internal/process/execution:291:3)
+    at node:internal/main/eval_string:74:3 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/private/tmp/jevmem-e2e.L9Vxoi/.cursor/mcp.json'
+}
+
+Node.js v22.22.0
+node:fs:440
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open '/private/tmp/jevmem-e2e.L9Vxoi/.cursor/hooks.json'
+    at Object.readFileSync (node:fs:440:20)
+    at [eval]:2:94
+    at runScriptInThisContext (node:internal/vm:209:10)
+    at node:internal/process/execution:446:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:444:60)
+    at evalFunction (node:internal/process/execution:279:30)
+    at evalTypeScript (node:internal/process/execution:291:3)
+    at node:internal/main/eval_string:74:3 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/private/tmp/jevmem-e2e.L9Vxoi/.cursor/hooks.json'
+}
+
+Node.js v22.22.0
+   the hook commands name the packed CLI (--cli) and this Node (--node) for the launcher
+   served by: ?
+FAIL run 1 scenario=cursor
+   served by: no claude run
+   (recorded in /Users/avinashjetwani/jevmem/test-results/e2e-failures.log)
+================ models: Claude Code 2.1.303, model not pinned (Claude Code's default)
+   no claude run
