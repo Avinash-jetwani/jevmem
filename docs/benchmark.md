@@ -1,6 +1,6 @@
 # Benchmark
 
-Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved) was measured against six LLMs on v0.4.2 on 2026-09-23; the LLMs have not been run since, and jevmem's own row is run again on each release, last for 0.7.3 on 2026-10-15 ([0.7.3 beside the six LLMs](#075-beside-the-six-llms)). The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts.
+Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved) was measured against six LLMs on v0.4.2 on 2026-09-23; the LLMs have not been run since, and jevmem's own row is run again on each release, last for 0.7.3 on 2026-10-15 ([0.7.3 beside the six LLMs](#076-beside-the-six-llms)). The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts.
 
 ## Why Jev and not an LLM
 
@@ -91,12 +91,15 @@ The 66-turn held-out set through `scripts/eval.mjs` (`decide` in-process with a 
 | 0.7.5 | `fast` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000136 (+line $0.000138) | 223 ms |
 | 0.7.5 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000179 (+line $0.000181) | 226 ms |
 | 0.7.5 | `full` | 92.4% (61/66) | 89.4% (59/66) | 5/5 | $0.000257 (+line $0.000258) | 250 ms |
+| 0.7.6 | `fast` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000136 (+line $0.000138) | 223 ms |
+| 0.7.6 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000179 (+line $0.000181) | 238 ms |
+| 0.7.6 | `full` | 92.4% (61/66) | 89.4% (59/66) | 5/5 | $0.000257 (+line $0.000258) | 258 ms |
 
-The builds miss the same turns in each mode (the debatable preference label, "no, leave it as is" saved as a decision, and in `full` two bugs and a constraint skipped). 0.6.0 costs more per decision than 0.5.9 in every mode because each tier asks one more noul (the dead-end noul) and tier 1's injection question is longer; `auto` escalated 18.2% of turns against 16.7% for 0.5.9 and 13.6% for v0.4.2. The README's figures, 0.23 s and $0.00019 per message, are 0.7.4's `auto` row here (0.7.3's run: 216 ms and $0.000175; the same turns right, and `auto` escalated 19.7% of turns against 18.2%). 0.7.4's `full` run misses one more turn than 0.7.3's: the Vitest-to-Jest reversal read as a dead end rather than a decision, as 0.7.1's did, and one more kind. 0.7.1 misses the same turns, and in `full` reads one more kind wrong: the Vitest-to-Jest reversal as a dead end rather than a decision, its contradiction still found (59 of 66 against 0.7.0's 60).
+The builds miss the same turns in each mode (the debatable preference label, "no, leave it as is" saved as a decision, and in `full` two bugs and a constraint skipped). 0.6.0 costs more per decision than 0.5.9 in every mode because each tier asks one more noul (the dead-end noul) and tier 1's injection question is longer; `auto` escalated 18.2% of turns against 16.7% for 0.5.9 and 13.6% for v0.4.2. The README's figures, 0.24 s and $0.00018 per message, are 0.7.6's `auto` row here (0.7.5's run: 226 ms and $0.000179, the same turns right; 0.7.3's: 216 ms and $0.000175, with `auto` escalating 19.7% of turns against 18.2%). 0.7.4's `full` run misses one more turn than 0.7.3's: the Vitest-to-Jest reversal read as a dead end rather than a decision, as 0.7.1's did, and one more kind. 0.7.1 misses the same turns, and in `full` reads one more kind wrong: the Vitest-to-Jest reversal as a dead end rather than a decision, its contradiction still found (59 of 66 against 0.7.0's 60).
 
-### 0.7.5 beside the six LLMs
+### 0.7.6 beside the six LLMs
 
-The table the README shows. 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](#benchmark)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is 0.7.5's run of the same set on 2026-10-17, with `jev-1.13.0` pinned ([results](../results/eval-heldout-2026-10-17-v075.json); [every mode, every build](#every-mode-every-build)), where the earlier builds score the same within a turn and cost a little less (0.7.0 on 2026-10-08: 265 ms, $0.000169):
+The table the README shows. 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](#benchmark)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is 0.7.6's run of the same set on 2026-10-19, with `jev-1.13.0` pinned ([results](../results/eval-heldout-2026-10-19-v076.json); [every mode, every build](#every-mode-every-build)), where the earlier builds score the same within a turn and cost a little less (0.7.0 on 2026-10-08: 265 ms, $0.000169):
 
 | Decider | save/skip | save+kind | contradictions | p50 | $/decision |
 |---|---|---|---|---|---|
@@ -106,13 +109,13 @@ The table the README shows. 66 held-out turns, all seven deciders given the same
 | Claude Opus 5.5 | 97.0% | 97.0% | 5/5 | 2,784 ms | $0.005186 |
 | Gemini 3.8 Flash | 92.4% | 92.4% | 5/5 | 2,850 ms | $0.001174 |
 | Grok 4.7 | 90.9% | 90.9% | 4/5 | 3,320 ms | $0.004602 |
-| **jevmem 0.7.5 `auto`** | **98.5%** | **95.5%** | **5/5** | **226 ms** | $0.000179 |
+| **jevmem 0.7.6 `auto`** | **98.5%** | **95.5%** | **5/5** | **238 ms** | $0.000179 |
 
-The 0.23 s is the Jev API decision (p95 524 ms; a saved turn's line costs one more request, $0.000181 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](../results/ops-2026-09-26-v056.json), [cost and latency](cost.md)).
+The 0.24 s is the Jev API decision (p95 553 ms; a saved turn's line costs one more request, $0.000181 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](../results/ops-2026-09-26-v056.json), [cost and latency](cost.md)).
 
-On 66 held-out turns, jevmem 0.7.5's median decision took 0.23 s (one run, 2026-10-17, the run the README's graphic shows), against 2.8–4.3 s for six current LLMs.
+On 66 held-out turns, jevmem 0.7.6's median decision took 0.24 s (one run, 2026-10-19, the run the README's graphic shows), against 2.8–4.3 s for six current LLMs.
 Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 95.5% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%) and Claude Opus 5.5 (97.0%) were more accurate on save+kind; Claude Fable 5.1 tied; GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
-GPT-6 Luna was cheaper ($0.000089 against $0.000179) but less accurate (93.9%) and about 13× slower.
+GPT-6 Luna was cheaper ($0.000089 against $0.000179) but less accurate (93.9%) and about 12× slower.
 Each row is a single run, and differences of one or two turns are within run-to-run noise; the LLM rows and jevmem's are three weeks apart. If the most accurate decision matters most, GPT-6 Astra or Claude Opus 5.5 are better, at about 28–41× the cost per decision and 13–16× the latency. jevmem is for when you want a fast, cheap decision on every message.
 
 ### Regression set (the original 50 turns; contaminated, see above)

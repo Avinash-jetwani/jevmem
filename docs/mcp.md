@@ -23,6 +23,8 @@ The `Dockerfile` at the repository root is for MCP directories that inspect a se
 
 ### Cursor
 
+**With the Cursor plugin (0.7.6)** nothing is written here: the plugin's `mcp.json` runs `jevmem mcp` through its launcher with the window's folder as the project (`--root "${workspaceFolder}"`, which the Cursor app expands per window; its `agent` CLI starts the server in the project instead), and Cursor starts it in every window on load, with no toggle ([docs/hooks.md](hooks.md#the-jevmem-plugin-for-cursor-076)). In a project that is not turned on it answers every call with one line saying so, and sends nothing. The entry below is the project's own, which `jevmem init --tool cursor` writes when the plugin is not on this computer.
+
 `jevmem init --tool cursor` writes this entry, the rule `.cursor/rules/jevmem.mdc` and, since 0.7.4, the hooks that save each finished agent turn ([docs/hooks.md](hooks.md#cursor-hooks-074)); the MCP server is how the agent reads memory (`search_memory`). `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
 
 ```json

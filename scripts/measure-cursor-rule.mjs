@@ -21,6 +21,8 @@ const result = {
   kind: "cursor-rule-cost",
   date: new Date().toISOString(),
   method: "the rule text as Cursor attaches it to a chat (alwaysApply: true): characters, words and non-empty lines of the whole file and of the body after the frontmatter; tokens estimated at 4 characters per token, since no tokenizer of Cursor's models runs here. Measured from the strings in src/tools.ts through the built dist/index.js.",
+  // The aggregates check-claims reads (it skips per-row data): the body's size per rule, the numbers the docs cite.
+  summary: { rule_074_body_chars: rows[0].body.chars, rule_074_body_words: rows[0].body.words, rule_074_body_tokens: rows[0].body.tokens_estimate, rule_076_body_chars: rows[1].body.chars, rule_076_body_words: rows[1].body.words, rule_076_body_tokens: rows[1].body.tokens_estimate },
   rows: rows.map(({ body_text, ...r }) => r),
   body_texts: Object.fromEntries(rows.map((r) => [r.name, r.body_text])),
 };

@@ -1,0 +1,87 @@
+claude plugin validate --strict pane && claude plugin test pane, on the Claude Code installed on this Mac (2.1.303 (Claude Code)), 2026-10-19T10:03Z, the pane of 0.7.6 (the missed button and the recall file's session check added four cases to 0.7.5's 52)
+
+Validating plugin manifest: /Users/avinashjetwani/jevmem/pane/.claude-plugin/plugin.json
+
+  ❯ types ./types/index.d.ts declares on $: nothing (no EngineInterface member)
+  ❯ types ./types/index.d.ts declares state: jevmem-pane.on, jevmem-pane.opened, jevmem-pane.cli, jevmem-pane.prompt, jevmem-pane.recall, jevmem-pane.recallState, jevmem-pane.guard, jevmem-pane.lastCall, jevmem-pane.decision, jevmem-pane.saving, jevmem-pane.savingNote, jevmem-pane.pending
+
+Validating hooks: /Users/avinashjetwani/jevmem/pane/hooks/hooks.json
+
+  ❯ ./register.tsx hooks: session.start, session.attach, command.run{command=jevmem}, prompt.submit, tool.call, turn.complete, ui.render{component=Pane, requestId=jevmem}
+  ❯ ./register.tsx answers its own command: command.run{command=jevmem}
+  ❯ ./register.tsx gating hook without .catch: prompt.submit
+  ❯ ./register.tsx gating hook without .catch: tool.call
+  ❯ ./register.tsx calls: $.clock.now, $.clock.sleep (via pollForDecision), $.command.register, $.env.get (via findCli), $.fs.exists (via exists), $.fs.list (via findCli), $.fs.read (via findCli, readText), $.process.run (via runCli), $.session.id (via sessionId), $.session.surfaces, $.state.get, $.state.set, $.ui.close, $.ui.invalidate (via redraw), $.ui.open, $.ui.panes, $.ui.resolve (via draw)
+  ❯ ./register.tsx env writes: nothing
+  ❯ ./register.tsx env reads: HOME, PATH
+  ❯ ./register.tsx state writes: jevmem-pane.cli, jevmem-pane.decision, jevmem-pane.guard, jevmem-pane.lastCall, jevmem-pane.on, jevmem-pane.opened, jevmem-pane.pending, jevmem-pane.prompt, jevmem-pane.recall, jevmem-pane.recallState, jevmem-pane.saving, jevmem-pane.savingNote
+  ❯ ./register.tsx state reads: jevmem-pane.cli, jevmem-pane.decision, jevmem-pane.guard, jevmem-pane.lastCall, jevmem-pane.on, jevmem-pane.opened, jevmem-pane.pending, jevmem-pane.prompt, jevmem-pane.recall, jevmem-pane.recallState, jevmem-pane.saving, jevmem-pane.savingNote
+
+✔ Validation passed
+
+
+tests/pane.test.tsx:
+(pass) draws the three blocks from the captured files (terminal) [75.59ms]
+(pass) draws the three blocks from the captured files (desktop) [32.36ms]
+(pass) before any prompt every block says so (terminal) [22.88ms]
+(pass) before any prompt every block says so (desktop) [21.39ms]
+(pass) a prompt that got no line (terminal) [107.43ms]
+(pass) a prompt that got no line (desktop) [30.85ms]
+(pass) a project with no memory line yet (terminal) [27.39ms]
+(pass) a project with no memory line yet (desktop) [32.52ms]
+(pass) a file that is another prompt's, or no file (terminal) [30.10ms]
+(pass) a file that is another prompt's, or no file (desktop) [29.41ms]
+(pass) in a project that is not turned on it opens nothing and /jevmem says why (terminal) [20.40ms]
+(pass) in a project that is not turned on it opens nothing and /jevmem says why (desktop) [21.90ms]
+(pass) with no surface at session.start it opens when one attaches, once (terminal) [21.53ms]
+(pass) with no surface at session.start it opens when one attaches, once (desktop) [20.22ms]
+(pass) with no surface and no attach it opens at the first prompt, once (terminal) [24.31ms]
+(pass) with no surface and no attach it opens at the first prompt, once (desktop) [29.21ms]
+(pass) in a project that is not on, an attach opens nothing either (terminal) [27.15ms]
+(pass) in a project that is not on, an attach opens nothing either (desktop) [18.73ms]
+(pass) forget asks for a confirm, no puts the buttons back, yes runs jevmem forget once (terminal) [30.80ms]
+(pass) forget asks for a confirm, no puts the buttons back, yes runs jevmem forget once (desktop) [26.87ms]
+(pass) wrong asks for a confirm and runs jevmem wrong --should-be none (terminal) [26.96ms]
+(pass) wrong asks for a confirm and runs jevmem wrong --should-be none (desktop) [23.99ms]
+(pass) a rule's forget and wrong are terminal-only: no confirm, a hint, nothing runs (terminal) [23.49ms]
+(pass) a rule's forget and wrong are terminal-only: no confirm, a hint, nothing runs (desktop) [28.77ms]
+(pass) a served line whose id is not an id gets no button and runs nothing (terminal) [21.17ms]
+(pass) a served line whose id is not an id gets no button and runs nothing (desktop) [19.65ms]
+(pass) shows saving… at the end of the turn and the decision once the file is this turn's (terminal) [28.62ms]
+(pass) shows saving… at the end of the turn and the decision once the file is this turn's (desktop) [27.42ms]
+(pass) after 15 s with no decision: queued for retry, from the queue (terminal) [37.21ms]
+(pass) after 15 s with no decision: queued for retry, from the queue (desktop) [34.13ms]
+(pass) after 15 s with no decision: failed, from the log (terminal) [34.13ms]
+(pass) after 15 s with no decision: failed, from the log (desktop) [33.14ms]
+(pass) after 15 s with nothing in the queue or the log: not decided yet (terminal) [45.51ms]
+(pass) after 15 s with nothing in the queue or the log: not decided yet (desktop) [37.29ms]
+(pass) a turn the Stop hook skipped or kept for its subagents says so at once (terminal) [23.49ms]
+(pass) a turn the Stop hook skipped or kept for its subagents says so at once (desktop) [25.43ms]
+(pass) an ask under an unverified rule, then a call that passed (terminal) [21.25ms]
+(pass) an ask under an unverified rule, then a call that passed (desktop) [18.77ms]
+(pass) a call the log has not got yet (terminal) [24.22ms]
+(pass) a call the log has not got yet (desktop) [19.47ms]
+(pass) why runs jevmem why and shows its output (terminal) [20.37ms]
+(pass) why runs jevmem why and shows its output (desktop) [23.59ms]
+(pass) finds the CLI through a jevmem init project's hook command when none is on PATH (terminal) [26.59ms]
+(pass) finds the CLI through a jevmem init project's hook command when none is on PATH (desktop) [29.35ms]
+(pass) with no jevmem command the button says so and nothing runs (terminal) [31.74ms]
+(pass) with no jevmem command the button says so and nothing runs (desktop) [19.69ms]
+(pass) a command that fails shows its error (terminal) [24.46ms]
+(pass) a command that fails shows its error (desktop) [22.17ms]
+(pass) a skipped turn shows the reason with why alone; a duplicate names its line (terminal) [25.48ms]
+(pass) a skipped turn shows the reason with why alone; a duplicate names its line (desktop) [27.00ms]
+(pass) /jevmem closes a placed pane and opens a waiting one (terminal) [18.44ms]
+(pass) /jevmem closes a placed pane and opens a waiting one (desktop) [15.19ms]
+(pass) a skipped turn offers missed: a confirm, no runs nothing, yes runs jevmem missed with the prompt as typed (terminal) [24.84ms]
+(pass) a skipped turn offers missed: a confirm, no runs nothing, yes runs jevmem missed with the prompt as typed (desktop) [28.38ms]
+(pass) a saved turn and a turn still saving have no missed button (terminal) [17.14ms]
+(pass) a saved turn and a turn still saving have no missed button (desktop) [20.11ms]
+(pass) the recall block shows nothing from another session's recall file, even for the same prompt (terminal) [20.25ms]
+(pass) the recall block shows nothing from another session's recall file, even for the same prompt (desktop) [18.37ms]
+(pass) the recall block shows this session's recall file for this prompt (terminal) [21.68ms]
+(pass) the recall block shows this session's recall file for this prompt (desktop) [28.32ms]
+
+ 60 pass
+ 0 fail
+Ran 60 tests across 1 file. [1.87s]

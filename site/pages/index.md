@@ -5,7 +5,7 @@ order: 1
 ---
 # What is jevmem?
 
-**Say it once.** jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session. Before Claude runs a command or edits a file, it checks the call against your saved rules. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry. Since 0.7.4 it saves from Cursor chats the same way, and it works with Codex and Claude Desktop over MCP.
+**Say it once.** jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session. Before Claude runs a command or edits a file, it checks the call against your saved rules. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry. Since 0.7.4 it saves from Cursor chats the same way, as a Cursor plugin since 0.7.6, and it works with Codex and Claude Desktop over MCP.
 
 [Watch the film](https://github.com/user-attachments/assets/c8a7eced-c427-4ef6-85f2-124eb34ad291)
 
@@ -17,7 +17,7 @@ order: 1
 
 - **The sessions above:** 24 tasks in three small projects, 3 runs each, in real Claude Code 2.1.281 sessions with `claude-sonnet-5`, on 2026-09-28 and 2026-09-29 ([no memory and CLAUDE.md](../../results/ab-2026-09-28.json), [jevmem](../../results/ab-jevmem-2026-09-29-3b.json)).
 - **The guard** caught 66 of 68 rule breaks, with 3–4 false asks in 206 fine calls, on a held-out set of 274 tool calls, run once on 0.6.0 and once on 0.6.1 on 2026-09-30 ([0.6.0](../../results/guard-heldout-v2-2026-09-30.json), [0.6.1](../../results/guard-heldout-v2-2026-09-30-v061.json)).
-- **Deciding what to save** takes 0.23 s and costs $0.00018 per message, and was right on save or skip for 98.5% of 66 held-out turns (jevmem 0.7.5, one run, 2026-10-17, [results](../../results/eval-heldout-2026-10-17-v075.json)).
+- **Deciding what to save** takes 0.24 s and costs $0.00018 per message, and was right on save or skip for 98.5% of 66 held-out turns (jevmem 0.7.5, one run, 2026-10-17, [results](../../results/eval-heldout-2026-10-19-v076.json)).
 - **A local model in Jev's place** was tried once, on 2026-10-02, with Ollaya 0.9.0 on an Apple M4 with 16 GB: on the same 66 turns Jev was right on save or skip for 65/66 at a median of 0.23 s a turn, `winnow:e4b` for 60/66 at 28.5 s, and `laya:typed-decisions` for 19/66. One run each, on one Mac ([Jev](../../results/local-model-2026-10-02-jev.json), [winnow:e4b](../../results/local-model-2026-10-02-winnow-e4b.json), [laya:typed-decisions](../../results/local-model-2026-10-02-laya-typed-decisions.json); [more in the FAQ](faq.md#can-jevmem-run-on-a-local-model)).
 
 The method and the limits of each number: [Does jevmem work?](results.md)
