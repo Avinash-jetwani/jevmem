@@ -1,0 +1,15 @@
+The rule's token cost in Cursor's own count: two agent -p runs of "Say ok and nothing else." in a project not turned on (probe-b), one with the jevmem plugin's rule file in place and one with it moved aside, reading the input and cache tokens the agent CLI's stream reports. Both attempts on 2026-10-19 (agent CLI 2026.10.16-e3cb207, grok-4.7-xhigh) ended before any model request: the CLI answered that the Cursor plan's monthly additional-usage limit was reached. No request was made and nothing was measured; the rule's cost stays the estimate in cursor-rule-cost-2026-10-19.json until the runs can be made.
+
+== rule-cost with-rule  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  start=2026-10-19T13:44:06Z  rule present: yes
+   exit=1 end=2026-10-19T13:44:23Z
+   model Grok 4.7 256K Extra High; result: ; usage: null; tool calls: none; duration_ms undefined
+== rule-cost without-rule  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  start=2026-10-19T13:44:27Z  rule present: no
+   exit=1 end=2026-10-19T13:44:44Z
+   model Grok 4.7 256K Extra High; result: ; usage: null; tool calls: none; duration_ms undefined
+
+== with-rule stderr
+ActionRequiredError: You've reached your monthly additional usage limit You've reached your $1 monthly additional usage limit. Any remaining prepaid credits are still available, but can't be used until you raise this limit or it resets on the 1st of the month (UTC).
+
+== without-rule stderr
+ActionRequiredError: You've reached your monthly additional usage limit You've reached your $1 monthly additional usage limit. Any remaining prepaid credits are still available, but can't be used until you raise this limit or it resets on the 1st of the month (UTC).
+

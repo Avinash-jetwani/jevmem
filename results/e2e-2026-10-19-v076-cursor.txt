@@ -1,0 +1,30 @@
+Claude Code 2.1.303: /Users/avinashjetwani/.local/bin/claude (CLAUDE_BIN); model: not pinned (Claude Code's default)
+   jevmem CLI 0.7.6: npm install -g of the packed checkout, in a temporary prefix
+================ run 1  scenario=cursor  agent=2026.10.16-e3cb207  model=grok-4.7-xhigh  scratch=/private/tmp/jevmem-e2e.VKMULr
+---- jevmem init --tool cursor --files (the packed CLI)
+     created  JEVMEM.md
+     created  jevmem.config.json
+     created  .jevmem/
+     created  .gitignore (+ .jevmem/)
+     created  .cursor/mcp.json (jevmem server)
+     created  .cursor/rules/jevmem.mdc
+     created  .cursor/hooks.json (jevmem's sessionStart, beforeSubmitPrompt, afterAgentResponse, stop and sessionEnd hooks) and .cursor/hooks/jevmem-hook.sh
+     created  .gitignore (+ .cursor/hooks/state/)
+   
+   Tools: cursor
+   
+   The jevmem plugin for Cursor (0.7.6) is installed on this computer too: beside these project hooks it stands down, so nothing is saved twice.
+   the hook commands name the packed CLI (--cli) and this Node (--node) for the launcher
+---- session 1 (turned on, the hooks alone): Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else.
+   agent> model Grok 4.7 256K Extra High; 
+   ✗ queue did not drain within 60 s
+     state: 0 decision(s); queue: empty; drain.lock: none; daemon.json: none; state.json: none
+     log 2026-10-19T13:45:01.662Z cursor ok=true sessionStart: noop: no always-on lines to serve
+     log 2026-10-19T13:45:03.252Z cursor ok=true sessionEnd: reason error: nothing decided
+   ✗ FAIL session 1: expected 1 line, got 0; no request reached Jev
+   served by: Grok 4.7 256K Extra High
+FAIL run 1 scenario=cursor
+   served by: no claude run
+   (recorded in /Users/avinashjetwani/jevmem/test-results/e2e-failures.log)
+================ models: Claude Code 2.1.303, model not pinned (Claude Code's default)
+   no claude run
