@@ -1,0 +1,33 @@
+The jevmem plugin for Cursor, 0.7.6, checked live in the Cursor app by hand on 2026-10-23 (Cursor 3.27.6, which updated itself from the 3.26.9 of the release's measures; Grok 4.7 Extra High in every chat; the global jevmem CLI 0.7.6 under node v22.22.0; the plugin as the unpatched copy of cursor-plugin/ at v0.7.6 in ~/.cursor/plugins/local/jevmem, the shipped files).
+Read afterwards from: the two scratch projects' files, jevmem's own .jevmem/log.jsonl, the marker ~/.jevmem/cursor-plugin, Cursor's hooks output logs for the two windows (each hook's duration and exit code), Cursor's MCP server log, and the chats' transcripts (the author's own scratch projects, read with permission). Times are UTC.
+
+== live-a (turned on with `jevmem enable` on 2026-10-19: jevmem.config.json, a header-only JEVMEM.md, no .cursor/ files: the plugin alone)
+   window reloaded 10:54:14Z; the plugin loaded as a user-local plugin; the plugin's MCP server "jevmem" (plugin-jevmem-jevmem) connected over stdio 10:54:25Z, four tools listed (add_memory, audit_memory, list_memory, search_memory)
+---- chat 1 (10:54:33Z to 10:55:00Z): Decision: invoices are archived as PDFs in S3, one file per invoice. Say ok and nothing else.
+   agent> Glob jevmem.config.json; search_memory over the plugin's server (the store empty: "No memories yet.", no request); ok
+   hooks: sessionStart 798 ms, beforeSubmitPrompt 363 ms, afterAgentResponse 260 ms, stop 64 ms; all exit 0
+   marker written by sessionStart: 0.7.6 2026-10-23T10:54:33Z
+   stop → queued: daemon starting; decide tier 1 (14 questions, 305 ms, $0.000113) → line (180 ms)
+   ✓ JEVMEM.md 10:55:01Z: - [decision] Invoices are archived as PDFs in S3, one file per invoice.  (id ii5nax, conf 0.99; provenance via hook)
+---- chat 2 (10:56:27Z to 10:56:34Z): the same decision prompt sent once more
+   agent> ok (no tool call)
+   hooks: sessionStart 308 ms, beforeSubmitPrompt 123 ms, afterAgentResponse 120 ms, stop 45 ms; all exit 0
+   ✓ stop → noop: turn already captured (the same turn hash; no request, nothing written)
+---- chat 3 (10:56:49Z to 10:57:03Z): From this project's memory only, in one sentence: where are invoices archived?
+   agent> Glob jevmem.config.json; search_memory("where are invoices archived", limit 10) over the plugin's server → the search at 10:56:59Z (2 questions, 296 ms, 582 input tokens, $0.000024); reply: Invoices are archived as PDFs in S3, one file per invoice.
+   hooks: sessionStart 260 ms, beforeSubmitPrompt 115 ms, afterAgentResponse 110 ms, stop 40 ms; all exit 0
+   stop → queued to the daemon; decide tier 1 then tier 2 (escalated; kind architecture, content 0.73, importance useful, source assistant_reply) → line → duplicate of ii5nax: "the line written for the turn is the same as that line" → skipped
+   ✓ recalled over the plugin's MCP server; the restated line not saved twice (JEVMEM.md holds one line)
+   requests to Jev in live-a over the three chats: 6 (decide 3, of which one tier 2; line 2; search 1); cost $0.000603
+
+== probe-b (not turned on: no jevmem.config.json, no JEVMEM.md, no .jevmem/)
+   window 10:57:43Z; the plugin loaded; its MCP server connected 10:57:50Z (a plugin's server starts in every window; not called in the chat)
+---- chat (10:57:54Z to 10:57:59Z): say ok and nothing else.
+   agent> ok (no tool call)
+   hooks: sessionStart 61 ms, beforeSubmitPrompt 31 ms and 21 ms, afterAgentResponse 15 ms, stop 21 ms and 17 ms (Cursor 3.27.6 fired beforeSubmitPrompt and stop twice around the submit); all exit 0; the launcher answers before starting the CLI in a project without jevmem.config.json
+   ✓ not turned on: no file in the project afterwards (its .cursor/hooks/state/continual-learning.json is Cursor's own); no request (the CLI never ran)
+
+== summary
+   PASS: saved by the plugin's stop hook, recalled over the plugin's MCP server, silent in a project not turned on; every hook exit 0; the slowest hook 798 ms against timeouts of 5 s (sessionStart, beforeSubmitPrompt, afterAgentResponse) and 20 s (stop, sessionEnd); the plugin's hooks ran beside four other plugins' hooks in the same windows
+   observed, not a defect: on a trivial turn in the turned-on project the agent called search_memory and a Glob for jevmem.config.json once (chat 1) and no tool in chat 2; the rule's "before a non-trivial task" is the model's call
+   Cursor's hooks log of the live-a window before the reload shows "Failed to load plugin hooks / Canceled" at 10:54:11Z: the Reload Window cancelled the first load; the reloaded window loaded every plugin
