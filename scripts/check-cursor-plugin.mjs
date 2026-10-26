@@ -85,6 +85,8 @@ if (m) {
   if ("mcpServers" in m || "hooks" in m || "rules" in m) problems.push(`${manifestFile}: names component paths (the folders are discovered: hooks/hooks.json, mcp.json, rules/)`);
   for (const [k, v] of Object.entries(m)) if (typeof v === "string" && /[\\/]/.test(v) && !/^https?:/.test(v) && !safeRelative(v)) problems.push(`${manifestFile}: ${k} is not a safe relative path: ${v}`);
   if (/Claude Code/.test(String(m.description))) problems.push(`${manifestFile}: the description names Claude Code`);
+  // 0.7.7: the description is the cursor.directory listing's, which names the paid key and what a project not turned on does.
+  if (!/a paid TypeSafe API key/.test(String(m.description)) || !/elsewhere it saves and sends nothing/.test(String(m.description))) problems.push(`${manifestFile}: the description is not the listing's (the paid TypeSafe API key; elsewhere it saves and sends nothing)`);
 }
 
 // The repository's marketplace manifest.
@@ -100,6 +102,7 @@ if (mk) {
     if (e.source !== `./${DIR}`) problems.push(`${mkFile}: the entry's source must be ./${DIR}, got ${e.source}`);
     if (typeof e.description !== "string" || !e.description) problems.push(`${mkFile}: the entry's description missing`);
     if (m && e.name !== m.name) problems.push(`${mkFile}: the entry's name differs from the plugin manifest's`);
+    if (m && e.description !== m.description) problems.push(`${mkFile}: the entry's description differs from the plugin manifest's (the listing's text goes in both)`);
   }
 }
 
