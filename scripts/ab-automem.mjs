@@ -5,7 +5,11 @@
 //   node scripts/ab-automem.mjs [--arms none,auto,jevmem,both,claudemd] [--tasks all|id,id] [--long all|none|id,id]
 //                               [--runs 3] [--concurrency 4] [--model claude-fable-5-1] [--expect-claude 2.1.306]
 //                               [--out results/ab-automem-<date>.json] [--transcripts <dir>] [--keep] [--resume]
-//                               [--max-turns 25] [--teach-turns 12] [--timeout-ms 600000]
+//                               [--max-turns 25] [--teach-turns 12] [--timeout-ms 600000] [--max-jobs N]
+//
+// --max-jobs N runs at most N of the planned jobs in this invocation and writes the output as usual, so a long run goes
+// in blocks: `--resume` with the same --out and --transcripts carries on from the partial file (the plan is the same
+// list each time, in the same order). The usage of a subscription plan is read between blocks, not by this script.
 //
 // Arms (every arm: `--permission-mode acceptEdits`, the same allowed tools, the same pinned model):
 //   none      no memory: auto memory off (CLAUDE_CODE_DISABLE_AUTO_MEMORY=1), no jevmem, no CLAUDE.md
@@ -60,6 +64,8 @@ const KEEP = flag("--keep");
 const MAX_TURNS = Number(opt("--max-turns", "25"));
 const TEACH_TURNS = Number(opt("--teach-turns", "12"));
 const TIMEOUT_MS = Number(opt("--timeout-ms", String(10 * 60_000)));
+// --max-jobs N caps the jobs this invocation runs (0: plan only, nothing runs); absent, every planned job runs.
+const MAX_JOBS = args.includes("--max-jobs") ? Math.max(0, Number(opt("--max-jobs")) || 0) : Infinity;
 const NODE = process.execPath;
 
 const TASKS_FILE = path.join(ROOT, "eval/ab/tasks-automem.mjs");
@@ -377,12 +383,14 @@ if (flag("--resume") && fs.existsSync(partial)) {
   console.error(`resuming: ${done.length} jobs already recorded, ${before - jobs.length} of them in this plan`);
 }
 const sessionsPlanned = jobs.reduce((a, j) => a + 1 + (!j.task.long && LEARNING_ARMS.has(j.arm) ? j.task.teach.length : 0), 0);
-console.error(`${jobs.length} jobs, ${sessionsPlanned} sessions, ${CONCURRENCY} at a time; ${CLAUDE_VERSION}; model ${MODEL}; jevmem ${COMMIT}; transcripts in ${TRANSCRIPTS}`);
+const thisBlock = jobs.slice(0, Math.min(jobs.length, MAX_JOBS));
+const sessionsThisBlock = thisBlock.reduce((a, j) => a + 1 + (!j.task.long && LEARNING_ARMS.has(j.arm) ? j.task.teach.length : 0), 0);
+console.error(`${jobs.length} jobs, ${sessionsPlanned} sessions left${MAX_JOBS !== Infinity ? ` (this block: ${thisBlock.length} jobs, ${sessionsThisBlock} sessions)` : ""}, ${CONCURRENCY} at a time; ${CLAUDE_VERSION}; model ${MODEL}; jevmem ${COMMIT}; transcripts in ${TRANSCRIPTS}`);
 
 let next = 0;
 let count = 0;
 async function worker() {
-  while (next < jobs.length) {
+  while (next < jobs.length && next < MAX_JOBS) {
     const job = jobs[next++];
     let { records, stray } = await runJob(job, 1);
     let strays = [];
@@ -405,7 +413,7 @@ async function worker() {
     const c = t.check ?? {};
     const teach = records.filter((x) => x.kind === "teach");
     const savedNote = teach.length ? ` saved=${["auto", "jevmem"].filter((k) => t.saved?.[k] !== null).map((k) => `${k}:${t.saved?.[k]}`).join(",")}` : t.seeded ? " seeded" : "";
-    console.error(`[${count}/${jobs.length}] ${t.task} ${t.arm} run ${t.run}: followed=${c.followed} done=${c.done}${c.stale !== undefined ? ` stale=${c.stale}` : ""}${c.repeated !== undefined ? ` repeated=${c.repeated}` : ""}${c.attempted !== undefined ? ` attempted=${c.attempted} landed=${c.landed}` : ""}${savedNote}${t.memoryAtStart.lineInLoadedIndex !== undefined ? ` loaded=${t.memoryAtStart.lineInLoadedIndex}` : ""}${t.lineInPromptContext !== null ? ` injected=${t.lineInPromptContext || t.lineInStartContext}` : ""}${t.guard.length ? ` guard=${t.guard.map((g) => g.decision).join(",")}` : ""} (${Math.round(t.ms / 1000)} s, ${t.turns} turns, ${teach.length} teach${t.model !== MODEL ? `, MODEL ${t.model}` : ""}${c.error ? `, CHECK ERROR ${c.error.split("\n")[0]}` : ""}) ${c.note ?? ""}`);
+    console.error(`[${count}/${thisBlock.length}${MAX_JOBS !== Infinity ? ` of ${jobs.length} left` : ""}] ${t.task} ${t.arm} run ${t.run}: followed=${c.followed} done=${c.done}${c.stale !== undefined ? ` stale=${c.stale}` : ""}${c.repeated !== undefined ? ` repeated=${c.repeated}` : ""}${c.attempted !== undefined ? ` attempted=${c.attempted} landed=${c.landed}` : ""}${savedNote}${t.memoryAtStart.lineInLoadedIndex !== undefined ? ` loaded=${t.memoryAtStart.lineInLoadedIndex}` : ""}${t.lineInPromptContext !== null ? ` injected=${t.lineInPromptContext || t.lineInStartContext}` : ""}${t.guard.length ? ` guard=${t.guard.map((g) => g.decision).join(",")}` : ""} (${Math.round(t.ms / 1000)} s, ${t.turns} turns, ${teach.length} teach${t.model !== MODEL ? `, MODEL ${t.model}` : ""}${c.error ? `, CHECK ERROR ${c.error.split("\n")[0]}` : ""}) ${c.note ?? ""}`);
   }
 }
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
@@ -427,6 +435,7 @@ const out = {
   max_turns: MAX_TURNS,
   teach_turns: TEACH_TURNS,
   jobs: done.length,
+  jobs_left: jobs.length - thisBlock.length,
   sessions: records.length,
   stray_sessions: strays.length,
   excluded_slots: [...new Set(records.filter((r) => r.excluded).map((r) => `${r.task}|${r.arm}|${r.run}`))],
