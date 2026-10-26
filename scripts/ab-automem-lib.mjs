@@ -136,6 +136,25 @@ export function readMemoryDir(dir) {
 export const indexTextOf = (snap) => snap.files.find((f) => f.name === "MEMORY.md")?.text ?? "";
 export const memoryTextOf = (snap) => snap.files.map((f) => f.text).join("\n");
 
+/**
+ * What became of the notes an earlier snapshot held, in a later one: index lines still present verbatim, and topic
+ * files kept as they were, rewritten, or gone (how auto memory treats an old note when a decision changes).
+ */
+export function noteFate(before, after) {
+  const lines = (snap) => new Set(indexTextOf(snap).split("\n").filter((l) => l.startsWith("- ")));
+  const was = lines(before);
+  const now = lines(after);
+  const files = { kept: [], rewritten: [], deleted: [] };
+  for (const f of before.files) {
+    if (f.name === "MEMORY.md") continue;
+    const cur = after.files.find((x) => x.name === f.name);
+    if (!cur) files.deleted.push(f.name);
+    else if (cur.text === f.text) files.kept.push(f.name);
+    else files.rewritten.push(f.name);
+  }
+  return { indexLinesBefore: was.size, indexLinesKept: [...was].filter((l) => now.has(l)).length, files };
+}
+
 /** The `projects/*` directories under a Claude Code config directory (which project slugs got a memory directory). */
 export function projectDirsOf(configDir) {
   const p = path.join(configDir, "projects");
@@ -221,10 +240,12 @@ export function callsUnder(calls, dir, snapshot) {
   for (const c of calls) {
     const i = c.input ?? {};
     const p = String(i.file_path ?? i.notebook_path ?? "");
+    const hook = c.hooked ? { hook: c.hook } : {};
     if (c.name === "Read" && under(p)) reads.push({ name: path.relative(dir, p), bytes: sizeOf(p), error: c.error });
-    else if ((c.name === "Write" || c.name === "Edit" || c.name === "MultiEdit") && under(p)) writes.push({ tool: c.name, name: path.relative(dir, p), error: c.error });
-    else if (c.name === "Bash" && String(i.command ?? "").includes(dir)) writes.push({ tool: "Bash", name: String(i.command).slice(0, 160), error: c.error });
+    else if ((c.name === "Write" || c.name === "Edit" || c.name === "MultiEdit") && under(p)) writes.push({ tool: c.name, name: path.relative(dir, p), error: c.error, ...hook });
+    else if (c.name === "Bash" && String(i.command ?? "").includes(dir)) writes.push({ tool: "Bash", name: String(i.command).slice(0, 160), error: c.error, ...hook });
     else if ((c.name === "Glob" || c.name === "Grep") && under(String(i.path ?? ""))) reads.push({ name: `${c.name} ${String(i.pattern ?? "")}`.slice(0, 80), bytes: null, error: c.error });
   }
-  return { reads, writes, readBytes: reads.reduce((a, r) => a + (r.bytes ?? 0), 0) };
+  // A write the guard asked about or denied did not run (nobody answers an ask in `claude -p`).
+  return { reads, writes, readBytes: reads.reduce((a, r) => a + (r.bytes ?? 0), 0), writeAsks: writes.filter((w) => w.hook === "ask" || w.hook === "deny").length };
 }

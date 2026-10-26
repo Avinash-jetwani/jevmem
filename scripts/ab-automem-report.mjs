@@ -54,14 +54,18 @@ function armSummary(arm, long) {
     if (arm === "auto" || arm === "both") {
       out.saved.auto_memory_saved_the_line = frac(lastTeach, (r) => r.saved?.auto === true);
       out.saved.auto_memory_index_carries_the_line = frac(lastTeach, (r) => r.saved?.autoIndex === true);
-      if (changed.length) out.saved.auto_memory_old_line_gone_from_index = frac(changed, (r) => r.saved?.oldInAutoIndex === false);
-      if (changed.length) out.saved.auto_memory_old_line_gone_from_files = frac(changed, (r) => r.saved?.oldInAutoFiles === false);
+      if (changed.length) out.saved.auto_memory_old_index_line_rewritten_or_gone = frac(changed, (r) => r.saved?.oldNoteAuto && r.saved.oldNoteAuto.indexLinesKept === 0);
+      if (changed.length) out.saved.auto_memory_old_note_file_rewritten = frac(changed, (r) => (r.saved?.oldNoteAuto?.files.rewritten ?? []).length > 0);
+      if (changed.length) out.saved.auto_memory_old_note_file_deleted = frac(changed, (r) => (r.saved?.oldNoteAuto?.files.deleted ?? []).length > 0);
+      if (changed.length) out.saved.auto_memory_old_words_still_in_index = frac(changed, (r) => r.saved?.oldInAutoIndex === true);
+      if (arm === "both") out.saved.guard_asked_on_an_auto_memory_write = frac(teach, (r) => (r.memoryWriteAsks ?? 0) > 0);
       out.saved.auto_memory_files_after_teaching = median(lastTeach.map((r) => r.saved?.autoFiles?.length));
       out.saved.auto_memory_bytes_after_teaching = median(lastTeach.map((r) => (r.saved?.autoFiles ?? []).reduce((a, f) => a + f.bytes, 0)));
     }
     if (arm === "jevmem" || arm === "both") {
       out.saved.jevmem_saved_the_line = frac(lastTeach, (r) => r.saved?.jevmem === true);
-      if (changed.length) out.saved.jevmem_old_line_superseded = frac(changed, (r) => r.saved?.oldInJevmemLive === false);
+      if (changed.length) out.saved.jevmem_old_line_superseded = frac(changed, (r) => r.saved?.oldNoteJevmem && r.saved.oldNoteJevmem.lines > 0 && r.saved.oldNoteJevmem.stillLive === 0);
+      if (changed.length) out.saved.jevmem_old_words_still_live = frac(changed, (r) => r.saved?.oldInJevmemLive === true);
       out.saved.jevmem_lines_after_teaching = median(lastTeach.map((r) => r.saved?.jevmemLines?.length));
     }
     out.saved.teaching_wrote_into_the_repo = frac(teach, (r) => (r.wroteIntoRepo ?? []).length > 0);
@@ -79,6 +83,7 @@ function armSummary(arm, long) {
     ctx.memory_files_read_during_task = frac(ok, (r) => (r.memoryReads ?? []).length > 0);
     ctx.memory_bytes_read_during_task = median(ok.map((r) => r.memoryReadBytes));
     ctx.memory_written_during_task = frac(ok, (r) => (r.memoryWrites ?? []).length > 0 || r.memoryAfter?.changed === true);
+    ctx.guard_asked_on_an_auto_memory_write_during_task = frac(ok, (r) => (r.memoryWriteAsks ?? 0) > 0);
     ctx.followed_when_line_loaded = frac(ok.filter((r) => r.memoryAtStart?.lineInLoadedIndex === true), (r) => r.check.followed === true);
     ctx.followed_when_line_not_loaded = frac(ok.filter((r) => r.memoryAtStart?.lineInLoadedIndex !== true), (r) => r.check.followed === true);
     ctx.followed_when_memory_read = frac(ok.filter((r) => (r.memoryReads ?? []).length > 0), (r) => r.check.followed === true);
@@ -158,7 +163,8 @@ else if (args.includes("--md")) {
     row("Built what a changed decision replaced", (s) => (s.by_category.changed ? pct(s.by_category.changed.built_the_replaced) : "–"));
     row("Saved the taught line (auto memory)", (s) => (s.saved?.auto_memory_saved_the_line ? pct(s.saved.auto_memory_saved_the_line) : "–"));
     row("Saved the taught line (jevmem)", (s) => (s.saved?.jevmem_saved_the_line ? pct(s.saved.jevmem_saved_the_line) : "–"));
-    row("Old line gone after a change (auto memory index)", (s) => (s.saved?.auto_memory_old_line_gone_from_index ? pct(s.saved.auto_memory_old_line_gone_from_index) : "–"));
+    row("Old note rewritten or gone after a change (auto memory)", (s) => (s.saved?.auto_memory_old_index_line_rewritten_or_gone ? pct(s.saved.auto_memory_old_index_line_rewritten_or_gone) : "–"));
+    row("jevmem's guard asked on an auto-memory write (teaching sessions)", (s) => (s.saved?.guard_asked_on_an_auto_memory_write && s.context.guard_asks !== undefined ? pct(s.saved.guard_asked_on_an_auto_memory_write) : "–"));
     row("Old line superseded after a change (jevmem)", (s) => (s.saved?.jevmem_old_line_superseded ? pct(s.saved.jevmem_old_line_superseded) : "–"));
     row("Memory text at session start (median bytes)", (s) => s.context.index_bytes_loaded ?? s.context.start_context_chars ?? s.context.claude_md_bytes ?? (s.sessions ? "0" : null));
     row("Memory text per prompt (median chars)", (s) => s.context.prompt_context_chars ?? (s.context.memory_bytes_read_during_task !== undefined ? `${s.context.memory_bytes_read_during_task} read` : s.sessions ? "0" : null));

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The guard on its eval sets, with the real Jev.
 //
-//   node scripts/eval-guard.mjs [path/to/dist/index.js] --set dev|heldout|heldout-v2|git-dev|shell-dev [--out results/guard-<set>-<date>.json] [--tuning]
+//   node scripts/eval-guard.mjs [path/to/dist/index.js] --set dev|heldout|heldout-v2|git-dev|shell-dev|design-notes-heldout|design-notes-dev [--out results/guard-<set>-<date>.json] [--tuning]
 //
 // For each project in eval/guard-<set>.jsonl: a scratch git repository whose JEVMEM.md holds the project's rules as
 // verified [constraint] lines (the poisoning gate is not what is measured here), committed with jevmem's config and a
@@ -43,9 +43,9 @@ const SET = opt("--set", "dev");
 const TUNING = args.includes("--tuning");
 const today = new Date().toISOString().slice(0, 10);
 const OUT = opt("--out", `results/guard-${SET}-${today}.json`);
-const SETS = ["dev", "heldout", "heldout-v2", "git-dev", "shell-dev"];
+const SETS = ["dev", "heldout", "heldout-v2", "git-dev", "shell-dev", "design-notes-heldout", "design-notes-dev"];
 if (!SETS.includes(SET)) throw new Error(`--set ${SETS.join("|")}`);
-const HELD_OUT = SET.startsWith("heldout");
+const HELD_OUT = /heldout/.test(SET);
 if (TUNING && HELD_OUT) throw new Error("--tuning is for the dev sets only: a held-out set is run once, with the shipped settings");
 if (!process.env.TYPESAFE_API_KEY) throw new Error("TYPESAFE_API_KEY is required");
 const DIST = args[0] && !args[0].startsWith("--") ? args[0] : "dist/index.js";

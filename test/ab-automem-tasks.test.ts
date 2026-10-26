@@ -244,6 +244,16 @@ describe("scripts/ab-automem-lib.mjs", () => {
       expect(touched.readBytes).toBe(snap.files.find((f: any) => f.name === "a.md").bytes);
       expect(touched.writes.map((w: any) => w.tool)).toEqual(["Edit", "Bash"]);
       expect(lib.readMemoryDir(path.join(dir, "missing")).exists).toBe(false);
+      // What became of the notes: the index line rewritten, the file rewritten, one deleted.
+      fs.writeFileSync(path.join(dir, "b.md"), "---\nname: b\n---\n\ntwo\n");
+      const before = lib.readMemoryDir(dir);
+      fs.writeFileSync(path.join(dir, "MEMORY.md"), "- [A](a.md) — one, updated\n- [B](b.md) — two\n");
+      fs.writeFileSync(path.join(dir, "a.md"), "---\nname: a\n---\n\none, updated\n");
+      fs.rmSync(path.join(dir, "b.md"));
+      const fate = lib.noteFate(before, lib.readMemoryDir(dir));
+      expect(fate).toEqual({ indexLinesBefore: 2, indexLinesKept: 1, files: { kept: [], rewritten: ["a.md"], deleted: ["b.md"] } });
+      const hooked = lib.callsUnder([{ name: "Write", input: { file_path: path.join(dir, "a.md") }, error: false, hooked: true, hook: "ask" }], dir, before);
+      expect(hooked.writeAsks).toBe(1);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

@@ -37,7 +37,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { hookSummary, makeContext, readEvents, toolCallsOf } from "./ab-lib.mjs";
-import { callsUnder, claudeMdFor, hookContextTexts, indexTextOf, jevmemLinesOf, jevmemMemories, loadedIndexText, longNotes, memoryDirFor, memoryTextOf, projectDirsOf, readMemoryDir, renderAutoMemory, renderClaudeMd, resetRepo } from "./ab-automem-lib.mjs";
+import { callsUnder, claudeMdFor, hookContextTexts, indexTextOf, jevmemLinesOf, jevmemMemories, loadedIndexText, longNotes, memoryDirFor, memoryTextOf, noteFate, projectDirsOf, readMemoryDir, renderAutoMemory, renderClaudeMd, resetRepo } from "./ab-automem-lib.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -192,7 +192,9 @@ function jevmemLogs(root) {
   const guardLog = read("guard-log.jsonl") ?? [];
   const log = read("log.jsonl");
   const recall = log ? log.filter((e) => e.label === "recall" && !e.event).map((e) => ({ ok: e.ok, ms: e.latencyMs, inputTokens: e.inputTokens, error: e.error })) : null;
-  return { guardLog, recall };
+  // The Stop hook's decide calls and outcomes (what jevmem made of the teaching statement).
+  const decide = log ? log.filter((e) => e.label === "decide").map((e) => ({ ok: e.ok, ms: e.latencyMs, tier: e.tier ?? null, event: e.event ?? null, detail: e.detail ?? null, memoryId: e.memoryId ?? null, error: e.error ?? null })) : null;
+  return { guardLog, recall, decide };
 }
 
 /** The common part of a session's record, from its transcript. */
@@ -233,7 +235,7 @@ function sessionRecord(transcript, r) {
 }
 
 /** Did each tool save the line (its words in what the tool wrote), and for a change, is the old line gone? */
-function savedMeasures(task, arm, memDir, root, step) {
+function savedMeasures(task, arm, memDir, root, step, first) {
   const out = { auto: null, autoIndex: null, jevmem: null };
   const words = task.savedWords;
   const old = task.oldWords ?? null;
@@ -243,9 +245,13 @@ function savedMeasures(task, arm, memDir, root, step) {
     out.auto = words.test(memoryTextOf(snap));
     out.autoIndex = words.test(indexTextOf(snap));
     if (old && last) {
+      // The old words may still be mentioned by the new note ("X-Api-Key is out"); what became of the old note itself
+      // is read from the first teaching session's snapshot: its index line kept verbatim, its file kept, rewritten or gone.
       out.oldInAutoIndex = old.test(indexTextOf(snap));
       out.oldInAutoFiles = old.test(memoryTextOf(snap));
+      if (first?.auto) out.oldNoteAuto = noteFate(first.auto, snap);
     }
+    if (step === 0) first.auto = snap;
     out.autoFiles = snap.files.map((f) => ({ name: f.name, bytes: f.bytes, lines: f.lines }));
     out.autoText = snap.files.map((f) => `=== ${f.name}\n${f.text}`).join("\n");
   }
@@ -262,7 +268,10 @@ function savedMeasures(task, arm, memDir, root, step) {
     if (old && last) {
       out.oldInJevmemLive = old.test(lines.liveText);
       out.oldInJevmemSuperseded = old.test(lines.supersededText);
+      // The lines the first teaching session saved: still live, superseded, or gone, by id.
+      if (first?.jevmemIds) out.oldNoteJevmem = { lines: first.jevmemIds.length, superseded: first.jevmemIds.filter((id) => lines.superseded.some((m) => m.id === id)).length, stillLive: first.jevmemIds.filter((id) => lines.live.some((m) => m.id === id)).length, gone: first.jevmemIds.filter((id) => !lines.all.some((m) => m.id === id)).length };
     }
+    if (step === 0) first.jevmemIds = lines.live.map((m) => m.id);
   }
   return out;
 }
@@ -275,16 +284,18 @@ async function runJob(job, attempt) {
   const records = [];
   const common = { task: task.id, project: task.project, category: task.category, arm, run, attempt, long: Boolean(task.long), seeded: Boolean(task.long) && arm !== "none" };
   let saved = null;
+  const first = {};
   if (!task.long && LEARNING_ARMS.has(arm)) {
     for (let step = 0; step < task.teach.length; step++) {
       const transcript = path.join(TRANSCRIPTS, `${task.id}.${arm}.${run}.teach${step + 1}${attempt > 1 ? `.a${attempt}` : ""}.jsonl`);
       const r = await runClaude({ root, home, config, arm, prompt: task.teach[step], task, transcript, maxTurns: TEACH_TURNS });
       if (JEVMEM_ARMS.has(arm)) await waitForDrain(root);
       const s = sessionRecord(transcript, r);
-      saved = savedMeasures(task, arm, memDir, root, step);
-      const logs = JEVMEM_ARMS.has(arm) ? jevmemLogs(root) : { guardLog: [], recall: null };
+      saved = savedMeasures(task, arm, memDir, root, step, first);
+      const logs = JEVMEM_ARMS.has(arm) ? jevmemLogs(root) : { guardLog: [], recall: null, decide: null };
+      const touched = AUTO_ARMS.has(arm) ? callsUnder(s.calls, memDir, readMemoryDir(memDir)) : { reads: [], writes: [], readBytes: 0, writeAsks: 0 };
       const { undone } = resetRepo(root);
-      records.push({ id: `${task.id}.teach${step + 1}`, kind: "teach", step: step + 1, statement: task.teach[step], ...common, ...s.base, saved, wroteIntoRepo: undone, recall: logs.recall, memoryDirs: projectDirsOf(config) });
+      records.push({ id: `${task.id}.teach${step + 1}`, kind: "teach", step: step + 1, statement: task.teach[step], ...common, ...s.base, saved, wroteIntoRepo: undone, memoryWrites: touched.writes, memoryWriteAsks: touched.writeAsks, recall: logs.recall, decide: logs.decide, guardLog: logs.guardLog.map((g) => ({ tool: g.tool, route: g.route, decision: g.decision, action: String(g.action ?? "").slice(0, 160) })), memoryDirs: projectDirsOf(config) });
       if (JEVMEM_ARMS.has(arm)) stopDaemon(root, home);
     }
   }
@@ -311,9 +322,9 @@ async function runJob(job, attempt) {
   } catch (err) {
     check = { error: String(err?.stack ?? err) };
   }
-  const logs = JEVMEM_ARMS.has(arm) ? jevmemLogs(root) : { guardLog: [], recall: null };
+  const logs = JEVMEM_ARMS.has(arm) ? jevmemLogs(root) : { guardLog: [], recall: null, decide: null };
   const after = AUTO_ARMS.has(arm) ? readMemoryDir(memDir) : null;
-  const touched = AUTO_ARMS.has(arm) ? callsUnder(s.calls, memDir, after) : { reads: [], writes: [], readBytes: 0 };
+  const touched = AUTO_ARMS.has(arm) ? callsUnder(s.calls, memDir, after) : { reads: [], writes: [], readBytes: 0, writeAsks: 0 };
   const taskRecord = {
     id: task.id,
     kind: "task",
@@ -325,6 +336,7 @@ async function runJob(job, attempt) {
     memoryReads: touched.reads,
     memoryReadBytes: touched.readBytes,
     memoryWrites: touched.writes,
+    memoryWriteAsks: touched.writeAsks,
     memoryAfter: after ? { files: after.files.map((f) => ({ name: f.name, bytes: f.bytes, lines: f.lines })), bytes: after.totalBytes, changed: JSON.stringify(after.files.map((f) => [f.name, f.text])) !== JSON.stringify((before?.files ?? []).map((f) => [f.name, f.text])) } : null,
     memoryDirs: projectDirsOf(config),
     lineInPromptContext: JEVMEM_ARMS.has(arm) ? task.savedWords.test(s.contexts.prompt) : null,
@@ -332,6 +344,7 @@ async function runJob(job, attempt) {
     oldInPromptContext: JEVMEM_ARMS.has(arm) && task.oldWords ? task.oldWords.test(s.contexts.prompt) : null,
     guardLog: logs.guardLog.map((g) => ({ tool: g.tool, route: g.route, decision: g.decision, action: String(g.action ?? "").slice(0, 160), rules: (g.rules ?? []).map((x) => ({ id: x.id, p: x.p })) })),
     recall: logs.recall,
+    decide: logs.decide,
     openedJevmemMd: s.calls.some((c) => !c.error && /JEVMEM\.md/.test(String(c.input?.file_path ?? c.input?.command ?? ""))),
     agentUsed: s.calls.some((c) => (c.name === "Task" || c.name === "Agent") && !c.parent),
   };

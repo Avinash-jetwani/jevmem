@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 // Score a jevmem build's `decide` against a hand-labelled eval set.
-// usage: node scripts/eval.mjs [path/to/dist/index.js] [--set heldout|regression] [--modes fast,auto,full] [--json] [--out results/eval-….json]
+// usage: node scripts/eval.mjs [path/to/dist/index.js] [--set heldout|regression|design-notes-heldout|todo-instructions-heldout|design-notes-dev|todo-instructions-dev] [--modes fast,auto,full] [--json] [--out results/eval-….json]
 //   --set heldout     eval/heldout.jsonl: 66 turns written after v0.3.8, sharing no text with src/questions.ts (default)
 //   --set regression  eval/transcript.jsonl: the original 50 turns; many overlap jevmem's own few-shot examples
+//   --set design-notes-heldout      eval/design-notes-heldout.jsonl (0.7.7): 24 turns, design notes in rule-like words (architecture) beside genuine rules (constraint)
+//   --set todo-instructions-heldout  eval/todo-instructions-heldout.jsonl (0.7.7): 30 turns, instructions to the agent (skip) beside genuine to-dos and instructions that carry a decision
+//   --set design-notes-dev, todo-instructions-dev   the dev sets those two were tuned on, if a fix was needed
 // Runs each tier mode with a warm in-process client (same as the daemon path), no cache.
 // Cost = input tokens × $0.042/M (Jev output tokens are free), the same method as `jevmem stats` and bench-llm.mjs.
 // A saved turn's line is written as the hook writes it (writeMemory with jevmem's own writer, given the client: from
@@ -24,7 +27,7 @@ const distArg = args[0] && !args[0].startsWith("--") ? args[0] : path.resolve("d
 const asJson = args.includes("--json");
 const OUT = opt("--out", null);
 const SET = opt("--set", "heldout");
-const SET_FILE = { heldout: "eval/heldout.jsonl", regression: "eval/transcript.jsonl" }[SET];
+const SET_FILE = { heldout: "eval/heldout.jsonl", regression: "eval/transcript.jsonl", "design-notes-heldout": "eval/design-notes-heldout.jsonl", "todo-instructions-heldout": "eval/todo-instructions-heldout.jsonl", "design-notes-dev": "eval/design-notes-dev.jsonl", "todo-instructions-dev": "eval/todo-instructions-dev.jsonl" }[SET];
 if (!SET_FILE) throw new Error(`unknown --set ${SET}`);
 const lib = await import(pathToFileURL(path.resolve(distArg)).href);
 const modes = opt("--modes", "fast,auto,full").split(",");
