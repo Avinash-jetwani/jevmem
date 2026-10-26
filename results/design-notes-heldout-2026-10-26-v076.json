@@ -1,0 +1,3335 @@
+{
+  "kind": "eval",
+  "date": "2026-10-26",
+  "jevmem_version": "0.7.6",
+  "commit": "5044a5d",
+  "dist": "dist/index.js",
+  "model": "jev-1.13.0",
+  "eval_set": "eval/design-notes-heldout.jsonl",
+  "turns": 24,
+  "machine": "darwin arm64, node v22.22.0, Apple M4",
+  "network_path": "direct HTTPS to the TypeSafe API default base URL (POST /v1/systemone), warm in-process client, cache off",
+  "cost_method": "input tokens × $0.042 per million; output tokens free (https://typesafe.ai/blog/introducing-system-one-models-and-jev)",
+  "results": [
+    {
+      "mode": "fast",
+      "n": 24,
+      "started_at": "2026-10-26T15:27:46.824Z",
+      "finished_at": "2026-10-26T15:27:54.999Z",
+      "saveAccuracy": 1,
+      "accuracy": 0.875,
+      "f1": 1,
+      "precision": 1,
+      "recall": 1,
+      "saveSkipCorrect": 24,
+      "saveKindCorrect": 21,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 0,
+      "injectionNotSaved": "0/0",
+      "p50ms": 166,
+      "p95ms": 217,
+      "avgInputTokens": 3339,
+      "avgOutputTokens": 400,
+      "avgTokens": 3739,
+      "costPerTurn": 0.00014023625000000002,
+      "costPerTurnWithLine": 0.00016225825,
+      "lineCallsPerTurn": 1,
+      "lineP50ms": 144,
+      "escalationRate": 0,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "design-note",
+          "user": "A note on how scan is built: it is read-only by design. It walks the folders, bu",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.96 importance=useful [tier 1]"
+        },
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]"
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.89 importance=important [tier 1]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "design-note",
+          "user": "Design note for the record: the extension's service worker holds no state betwee",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 164,
+          "line": {
+            "line": "Design note for the record: the extension's service worker holds no state between events.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 137,
+            "calls": 1,
+            "inputTokens": 516
+          },
+          "inputTokens": 3189,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.96 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.23,
+            "constraint": 0.06,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.71,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the popup and the page talk, so it is written down somewhere: the popup neve",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 217,
+          "line": {
+            "line": "It sends a message to the service worker, the worker forwards it to the content script of the active tab and relays the reply back.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 144,
+            "calls": 1,
+            "inputTokens": 562
+          },
+          "inputTokens": 3744,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.98 importance=useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.03,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.96,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from now on: never add a permission to manifest.json without an issue that ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 164,
+          "line": {
+            "line": "Rule from now on: never add a permission to manifest.json without an issue that says why it is needed. The store review flags every added permission and we have been rejected once already.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 215,
+            "calls": 1,
+            "inputTokens": 510
+          },
+          "inputTokens": 3181,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.99 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.68,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "House rule: the release zip comes from `npm run package` only. Nobody zips the f",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 160,
+          "line": {
+            "line": "The release zip comes from `npm run package` only. Nobody zips the folder by hand, because the script strips the dev files and stamps the version.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 147,
+            "calls": 1,
+            "inputTokens": 508
+          },
+          "inputTokens": 3179,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.17,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.98,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "A note on how scan is built: it is read-only by design. It walks the folders, bu",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 216,
+          "line": {
+            "line": "It walks the folders, builds the plan, prints it and writes nothing; tags change only when apply is run with that plan file. Nothing in scan ever modifies a file.",
+            "pick": [
+              "s2",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 127,
+            "calls": 1,
+            "inputTokens": 555
+          },
+          "inputTokens": 3182,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.96 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.05,
+            "constraint": 0.55,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.4,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "For the record, the cache: results are keyed by the file's size and mtime and ke",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 154,
+          "line": {
+            "line": "The cache: results are keyed by the file's size and mtime and kept under ~/.cache/tinwhistle. The cache is never needed for a correct result, only for speed, so deleting it is always safe.",
+            "pick": [
+              "s1",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 143,
+            "calls": 1,
+            "inputTokens": 561
+          },
+          "inputTokens": 3190,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.97,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never commit the audio fixtures under test/audio/large/. They are fetched by the",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 236,
+          "line": {
+            "line": "They are fetched by the test script from the bucket; the repo stays small.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 133,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 3159,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.1,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.97,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "From here on, don't bump the version in version.go by hand. The release script s",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 157,
+          "line": {
+            "line": "The release script sets it from the tag, and a hand edit makes the two disagree.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 233,
+            "calls": 1,
+            "inputTokens": 506
+          },
+          "inputTokens": 3165,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.94 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.2,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.96,
+            "preference": 0.02,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Writing down how rate limiting works: the limiter sits in the gateway and counts",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 166,
+          "line": {
+            "line": "Writing down how rate limiting works: the limiter sits in the gateway and counts per API key in Redis with a sliding window.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 220,
+            "calls": 1,
+            "inputTokens": 523
+          },
+          "inputTokens": 3180,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.98,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 168,
+          "line": {
+            "line": "The outbox pattern we landed on, for the record: a service writes the event into its own outbox table inside the transaction that made the change, and the relay publishes from there.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 139,
+            "calls": 1,
+            "inputTokens": 524
+          },
+          "inputTokens": 3729,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.88,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.12,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule: a merged migration is never edited. Every schema change is a new numbered ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 208,
+          "line": {
+            "line": "A merged migration is never edited.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 118,
+            "calls": 1,
+            "inputTokens": 503
+          },
+          "inputTokens": 3158,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.99,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Hard rule for scripts and tests: the production DATABASE_URL is never used from ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 144,
+          "line": {
+            "line": "Hard rule for scripts and tests: the production DATABASE_URL is never used from a laptop or a test. Scripts take the staging or test URL only; a script that reads the prod URL gets rejected in review.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 143,
+            "calls": 1,
+            "inputTokens": 515
+          },
+          "inputTokens": 3170,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.99 importance=critical [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the build is laid out, as a note: content/ is the source, .cache/ holds rend",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 161,
+          "line": {
+            "line": "How the build is laid out, as a note: content/ is the source, .cache/ holds rendered partials keyed by content hash, and dist/ is wiped and rebuilt on every build.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 128,
+            "calls": 1,
+            "inputTokens": 534
+          },
+          "inputTokens": 3738,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.99 importance=useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.99,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Design of the dev server, for the record: it watches content/ and templates/, re",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 142,
+          "line": {
+            "line": "Design of the dev server, for the record: it watches content/ and templates/, rebuilds only the pages whose inputs changed, and pushes a reload over a websocket.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 214,
+            "calls": 1,
+            "inputTokens": 527
+          },
+          "inputTokens": 3186,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.96,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never add a runtime dependency without a line in DECISIONS.md saying why. The in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 179,
+          "line": {
+            "line": "Never add a runtime dependency without a line in DECISIONS.md saying why. The install footprint is a selling point and every package has to earn its place.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 140,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 3162,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.97,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Going forward: don't skip or disable a failing test to get CI green. Fix it, or ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 191,
+          "line": {
+            "line": "Going forward: don't skip or disable a failing test to get CI green.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 141,
+            "calls": 1,
+            "inputTokens": 507
+          },
+          "inputTokens": 3699,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.94,
+            "preference": 0.05,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 146,
+          "line": {
+            "line": "The run id is derived from the job id and the scheduled time, so a retry after a crash reuses the id and the store rejects a second insert. No job can run twice for one slot.",
+            "pick": [
+              "s2",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 236,
+            "calls": 1,
+            "inputTokens": 563
+          },
+          "inputTokens": 3735,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.89 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.08,
+            "constraint": 0.64,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.27,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0.01
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Where time comes from, so nobody wonders: the scheduler reads the clock once per",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 172,
+          "line": {
+            "line": "Where time comes from, so nobody wonders: the scheduler reads the clock once per tick from the database with now(), never from the host.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 153,
+            "calls": 1,
+            "inputTokens": 520
+          },
+          "inputTokens": 3720,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.96 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.43,
+            "constraint": 0.06,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.51,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule for this repo: never run the scheduler binary against the shared staging da",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 195,
+          "line": {
+            "line": "Never run the scheduler binary against the shared staging database from a laptop. Two schedulers on one table fight over the lease and the on-call gets paged.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 137,
+            "calls": 1,
+            "inputTokens": 550
+          },
+          "inputTokens": 3180,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.29,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Always: a change to the lease logic gets a test that runs two schedulers against",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 174,
+          "line": {
+            "line": "Always: a change to the lease logic gets a test that runs two schedulers against one table.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 207,
+            "calls": 1,
+            "inputTokens": 502
+          },
+          "inputTokens": 3164,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.97,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Sync design, as built, for the record: the app writes every change to the local ",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 166,
+          "line": {
+            "line": "Sync design, as built, for the record: the app writes every change to the local SQLite first and the sync engine pushes diffs later.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 140,
+            "calls": 1,
+            "inputTokens": 519
+          },
+          "inputTokens": 3201,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.09,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.9,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the plugin host works: each plugin runs in its own worker with a message cha",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 213,
+          "line": {
+            "line": "How the plugin host works: each plugin runs in its own worker with a message channel and no filesystem access of its own.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 158,
+            "calls": 1,
+            "inputTokens": 555
+          },
+          "inputTokens": 3745,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.98 importance=critical [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.16,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.84,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never edit the generated bindings under src/bindings/. Change the Rust types and",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 144,
+          "line": {
+            "line": "Never edit the generated bindings under src/bindings/. Change the Rust types and run `cargo run --bin gen-bindings`; a hand edit is overwritten on the next build and the two drift.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 219,
+            "calls": 1,
+            "inputTokens": 514
+          },
+          "inputTokens": 3194,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.36,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.99,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from today: no `console.log` in src/. Everything goes through the logger in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 162,
+          "line": {
+            "line": "Rule from today: no `console.log` in src/. Everything goes through the logger in src/lib/log.ts, which strips note contents before anything is written.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 149,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 3185,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        }
+      ]
+    },
+    {
+      "mode": "auto",
+      "n": 24,
+      "started_at": "2026-10-26T15:27:55.212Z",
+      "finished_at": "2026-10-26T15:28:03.915Z",
+      "saveAccuracy": 0.9583333333333334,
+      "accuracy": 0.9166666666666666,
+      "f1": 0.9787234042553191,
+      "precision": 1,
+      "recall": 0.9583333333333334,
+      "saveSkipCorrect": 23,
+      "saveKindCorrect": 22,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 0,
+      "injectionNotSaved": "0/0",
+      "p50ms": 164,
+      "p95ms": 357,
+      "avgInputTokens": 4436,
+      "avgOutputTokens": 572,
+      "avgTokens": 5008,
+      "costPerTurn": 0.00018633125,
+      "costPerTurnWithLine": 0.0002073645,
+      "lineCallsPerTurn": 0.9583333333333334,
+      "lineP50ms": 147,
+      "escalationRate": 0.16666666666666666,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]"
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "reason": "skip: content=0.44<0.5 [tier 2, escalated]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "design-note",
+          "user": "Design note for the record: the extension's service worker holds no state betwee",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 138,
+          "line": {
+            "line": "Design note for the record: the extension's service worker holds no state between events.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 144,
+            "calls": 1,
+            "inputTokens": 516
+          },
+          "inputTokens": 3189,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.96 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.23,
+            "constraint": 0.06,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.71,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the popup and the page talk, so it is written down somewhere: the popup neve",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 331,
+          "line": {
+            "line": "It sends a message to the service worker, the worker forwards it to the content script of the active tab and relays the reply back.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 146,
+            "calls": 1,
+            "inputTokens": 562
+          },
+          "inputTokens": 10532,
+          "outputTokens": 1506,
+          "escalated": true,
+          "reason": "save kind=architecture content=0.91 importance=useful [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from now on: never add a permission to manifest.json without an issue that ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 158,
+          "line": {
+            "line": "Rule from now on: never add a permission to manifest.json without an issue that says why it is needed. The store review flags every added permission and we have been rejected once already.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 145,
+            "calls": 1,
+            "inputTokens": 510
+          },
+          "inputTokens": 3181,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.99 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.7,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "House rule: the release zip comes from `npm run package` only. Nobody zips the f",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 146,
+          "line": {
+            "line": "The release zip comes from `npm run package` only. Nobody zips the folder by hand, because the script strips the dev files and stamps the version.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 128,
+            "calls": 1,
+            "inputTokens": 508
+          },
+          "inputTokens": 3179,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.18,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.98,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "A note on how scan is built: it is read-only by design. It walks the folders, bu",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 410,
+          "line": {
+            "line": "A note on how scan is built: it is read-only by design. It walks the folders, builds the plan, prints it and writes nothing; tags change only when apply is run with that plan file.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 137,
+            "calls": 1,
+            "inputTokens": 553
+          },
+          "inputTokens": 9191,
+          "outputTokens": 1325,
+          "escalated": true,
+          "reason": "save kind=architecture content=0.71 importance=useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.2,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.8,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "For the record, the cache: results are keyed by the file's size and mtime and ke",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 200,
+          "line": {
+            "line": "The cache: results are keyed by the file's size and mtime and kept under ~/.cache/tinwhistle. The cache is never needed for a correct result, only for speed, so deleting it is always safe.",
+            "pick": [
+              "s1",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 138,
+            "calls": 1,
+            "inputTokens": 561
+          },
+          "inputTokens": 3190,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.98 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.96,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never commit the audio fixtures under test/audio/large/. They are fetched by the",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 148,
+          "line": {
+            "line": "They are fetched by the test script from the bucket; the repo stays small.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 237,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 3159,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.1,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.97,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "From here on, don't bump the version in version.go by hand. The release script s",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 161,
+          "line": {
+            "line": "The release script sets it from the tag, and a hand edit makes the two disagree.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 172,
+            "calls": 1,
+            "inputTokens": 506
+          },
+          "inputTokens": 3165,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.95 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.23,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.96,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Writing down how rate limiting works: the limiter sits in the gateway and counts",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 188,
+          "line": {
+            "line": "Writing down how rate limiting works: the limiter sits in the gateway and counts per API key in Redis with a sliding window.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 150,
+            "calls": 1,
+            "inputTokens": 523
+          },
+          "inputTokens": 3180,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.98,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 161,
+          "line": {
+            "line": "The outbox pattern we landed on, for the record: a service writes the event into its own outbox table inside the transaction that made the change, and the relay publishes from there.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 206,
+            "calls": 1,
+            "inputTokens": 524
+          },
+          "inputTokens": 3729,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.88,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.11,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule: a merged migration is never edited. Every schema change is a new numbered ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 155,
+          "line": {
+            "line": "A merged migration is never edited.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 130,
+            "calls": 1,
+            "inputTokens": 503
+          },
+          "inputTokens": 3158,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.99,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Hard rule for scripts and tests: the production DATABASE_URL is never used from ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 239,
+          "line": {
+            "line": "Hard rule for scripts and tests: the production DATABASE_URL is never used from a laptop or a test. Scripts take the staging or test URL only; a script that reads the prod URL gets rejected in review.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 198,
+            "calls": 1,
+            "inputTokens": 515
+          },
+          "inputTokens": 3170,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.99 importance=critical [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the build is laid out, as a note: content/ is the source, .cache/ holds rend",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 153,
+          "line": {
+            "line": "How the build is laid out, as a note: content/ is the source, .cache/ holds rendered partials keyed by content hash, and dist/ is wiped and rebuilt on every build.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 168,
+            "calls": 1,
+            "inputTokens": 534
+          },
+          "inputTokens": 3738,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.99 importance=useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.1,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.98,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Design of the dev server, for the record: it watches content/ and templates/, re",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 158,
+          "line": {
+            "line": "Design of the dev server, for the record: it watches content/ and templates/, rebuilds only the pages whose inputs changed, and pushes a reload over a websocket.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 129,
+            "calls": 1,
+            "inputTokens": 527
+          },
+          "inputTokens": 3186,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.95,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never add a runtime dependency without a line in DECISIONS.md saying why. The in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 139,
+          "line": {
+            "line": "Never add a runtime dependency without a line in DECISIONS.md saying why. The install footprint is a selling point and every package has to earn its place.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 221,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 3162,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.97,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Going forward: don't skip or disable a failing test to get CI green. Fix it, or ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 164,
+          "line": {
+            "line": "Going forward: don't skip or disable a failing test to get CI green.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 232,
+            "calls": 1,
+            "inputTokens": 507
+          },
+          "inputTokens": 3699,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.97,
+            "preference": 0.03,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 348,
+          "line": null,
+          "inputTokens": 10514,
+          "outputTokens": 1505,
+          "escalated": true,
+          "reason": "skip: content=0.44<0.5 [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.25,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.74,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Where time comes from, so nobody wonders: the scheduler reads the clock once per",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 357,
+          "line": {
+            "line": "Where time comes from, so nobody wonders: the scheduler reads the clock once per tick from the database with now(), never from the host.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 147,
+            "calls": 1,
+            "inputTokens": 520
+          },
+          "inputTokens": 10484,
+          "outputTokens": 1505,
+          "escalated": true,
+          "reason": "save kind=architecture content=0.91 importance=important [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.08,
+            "constraint": 0.03,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.89,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule for this repo: never run the scheduler binary against the shared staging da",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 194,
+          "line": {
+            "line": "Never run the scheduler binary against the shared staging database from a laptop. Two schedulers on one table fight over the lease and the on-call gets paged.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 145,
+            "calls": 1,
+            "inputTokens": 550
+          },
+          "inputTokens": 3180,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=critical [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.29,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Always: a change to the lease logic gets a test that runs two schedulers against",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 178,
+          "line": {
+            "line": "Always: a change to the lease logic gets a test that runs two schedulers against one table.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 200,
+            "calls": 1,
+            "inputTokens": 502
+          },
+          "inputTokens": 3164,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.96,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Sync design, as built, for the record: the app writes every change to the local ",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 153,
+          "line": {
+            "line": "Sync design, as built, for the record: the app writes every change to the local SQLite first and the sync engine pushes diffs later.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 147,
+            "calls": 1,
+            "inputTokens": 519
+          },
+          "inputTokens": 3201,
+          "outputTokens": 382,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.09,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.9,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the plugin host works: each plugin runs in its own worker with a message cha",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 223,
+          "line": {
+            "line": "How the plugin host works: each plugin runs in its own worker with a message channel and no filesystem access of its own.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 149,
+            "calls": 1,
+            "inputTokens": 555
+          },
+          "inputTokens": 3745,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=critical [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.15,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.85,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never edit the generated bindings under src/bindings/. Change the Rust types and",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 159,
+          "line": {
+            "line": "Never edit the generated bindings under src/bindings/. Change the Rust types and run `cargo run --bin gen-bindings`; a hand edit is overwritten on the next build and the two drift.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 210,
+            "calls": 1,
+            "inputTokens": 514
+          },
+          "inputTokens": 3194,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.34,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.99,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from today: no `console.log` in src/. Everything goes through the logger in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 173,
+          "line": {
+            "line": "Rule from today: no `console.log` in src/. Everything goes through the logger in src/lib/log.ts, which strips note contents before anything is written.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 138,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 3185,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        }
+      ]
+    },
+    {
+      "mode": "full",
+      "n": 24,
+      "started_at": "2026-10-26T15:28:04.127Z",
+      "finished_at": "2026-10-26T15:28:12.132Z",
+      "saveAccuracy": 0.9583333333333334,
+      "accuracy": 0.9166666666666666,
+      "f1": 0.9787234042553191,
+      "precision": 1,
+      "recall": 0.9583333333333334,
+      "saveSkipCorrect": 23,
+      "saveKindCorrect": 22,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 0,
+      "injectionNotSaved": "0/0",
+      "p50ms": 175,
+      "p95ms": 225,
+      "avgInputTokens": 6229,
+      "avgOutputTokens": 977,
+      "avgTokens": 7206,
+      "costPerTurn": 0.00026162850000000003,
+      "costPerTurnWithLine": 0.00028266175000000006,
+      "lineCallsPerTurn": 0.9583333333333334,
+      "lineP50ms": 148,
+      "escalationRate": 0,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.94 importance=important [tier 2]"
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "reason": "skip: content=0.45<0.5 [tier 2]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "design-note",
+          "user": "Design note for the record: the extension's service worker holds no state betwee",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 185,
+          "line": {
+            "line": "Design note for the record: the extension's service worker holds no state between events.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 160,
+            "calls": 1,
+            "inputTokens": 516
+          },
+          "inputTokens": 6016,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.92 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.96,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the popup and the page talk, so it is written down somewhere: the popup neve",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 227,
+          "line": {
+            "line": "It sends a message to the service worker, the worker forwards it to the content script of the active tab and relays the reply back.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 128,
+            "calls": 1,
+            "inputTokens": 562
+          },
+          "inputTokens": 6788,
+          "outputTokens": 1060,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.90 importance=useful [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from now on: never add a permission to manifest.json without an issue that ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 161,
+          "line": {
+            "line": "Rule from now on: never add a permission to manifest.json without an issue that says why it is needed. The store review flags every added permission and we have been rejected once already.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 176,
+            "calls": 1,
+            "inputTokens": 510
+          },
+          "inputTokens": 6008,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.92 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.7,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "House rule: the release zip comes from `npm run package` only. Nobody zips the f",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 168,
+          "line": {
+            "line": "The release zip comes from `npm run package` only. Nobody zips the folder by hand, because the script strips the dev files and stamps the version.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 131,
+            "calls": 1,
+            "inputTokens": 508
+          },
+          "inputTokens": 6006,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.85 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.16,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.98,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "A note on how scan is built: it is read-only by design. It walks the folders, bu",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 224,
+          "line": {
+            "line": "A note on how scan is built: it is read-only by design. It walks the folders, builds the plan, prints it and writes nothing; tags change only when apply is run with that plan file.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 145,
+            "calls": 1,
+            "inputTokens": 553
+          },
+          "inputTokens": 6009,
+          "outputTokens": 944,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.72 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.17,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.83,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "For the record, the cache: results are keyed by the file's size and mtime and ke",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 148,
+          "line": {
+            "line": "The cache: results are keyed by the file's size and mtime and kept under ~/.cache/tinwhistle. The cache is never needed for a correct result, only for speed, so deleting it is always safe.",
+            "pick": [
+              "s1",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 127,
+            "calls": 1,
+            "inputTokens": 561
+          },
+          "inputTokens": 6017,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.80 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.98,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never commit the audio fixtures under test/audio/large/. They are fetched by the",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 175,
+          "line": {
+            "line": "They are fetched by the test script from the bucket; the repo stays small.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 149,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 5986,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.85 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.98,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.01,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "From here on, don't bump the version in version.go by hand. The release script s",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 152,
+          "line": {
+            "line": "The release script sets it from the tag, and a hand edit makes the two disagree.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 152,
+            "calls": 1,
+            "inputTokens": 506
+          },
+          "inputTokens": 5992,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.77 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.22,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.96,
+            "preference": 0.02,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Writing down how rate limiting works: the limiter sits in the gateway and counts",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 165,
+          "line": {
+            "line": "Writing down how rate limiting works: the limiter sits in the gateway and counts per API key in Redis with a sliding window.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 148,
+            "calls": 1,
+            "inputTokens": 523
+          },
+          "inputTokens": 6007,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.93 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 197,
+          "line": {
+            "line": "The outbox pattern we landed on, for the record: a service writes the event into its own outbox table inside the transaction that made the change, and the relay publishes from there.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 142,
+            "calls": 1,
+            "inputTokens": 524
+          },
+          "inputTokens": 6773,
+          "outputTokens": 1059,
+          "escalated": false,
+          "reason": "save kind=decision content=0.94 importance=important [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.54,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.46,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule: a merged migration is never edited. Every schema change is a new numbered ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 164,
+          "line": {
+            "line": "A merged migration is never edited.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 212,
+            "calls": 1,
+            "inputTokens": 503
+          },
+          "inputTokens": 5985,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.77 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.99,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Hard rule for scripts and tests: the production DATABASE_URL is never used from ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 163,
+          "line": {
+            "line": "Hard rule for scripts and tests: the production DATABASE_URL is never used from a laptop or a test. Scripts take the staging or test URL only; a script that reads the prod URL gets rejected in review.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 146,
+            "calls": 1,
+            "inputTokens": 515
+          },
+          "inputTokens": 5997,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.91 importance=critical [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the build is laid out, as a note: content/ is the source, .cache/ holds rend",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 214,
+          "line": {
+            "line": "How the build is laid out, as a note: content/ is the source, .cache/ holds rendered partials keyed by content hash, and dist/ is wiped and rebuilt on every build.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 149,
+            "calls": 1,
+            "inputTokens": 534
+          },
+          "inputTokens": 6782,
+          "outputTokens": 1060,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.91 importance=useful [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.11,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Design of the dev server, for the record: it watches content/ and templates/, re",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 169,
+          "line": {
+            "line": "Design of the dev server, for the record: it watches content/ and templates/, rebuilds only the pages whose inputs changed, and pushes a reload over a websocket.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 200,
+            "calls": 1,
+            "inputTokens": 527
+          },
+          "inputTokens": 6013,
+          "outputTokens": 944,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.93 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never add a runtime dependency without a line in DECISIONS.md saying why. The in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 165,
+          "line": {
+            "line": "Never add a runtime dependency without a line in DECISIONS.md saying why. The install footprint is a selling point and every package has to earn its place.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 147,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 5989,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.81 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Going forward: don't skip or disable a failing test to get CI green. Fix it, or ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 210,
+          "line": {
+            "line": "Going forward: don't skip or disable a failing test to get CI green.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 145,
+            "calls": 1,
+            "inputTokens": 507
+          },
+          "inputTokens": 6743,
+          "outputTokens": 1059,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.58 importance=important [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.98,
+            "preference": 0.02,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 172,
+          "line": null,
+          "inputTokens": 6779,
+          "outputTokens": 1059,
+          "escalated": false,
+          "reason": "skip: content=0.45<0.5 [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.32,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.67,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Where time comes from, so nobody wonders: the scheduler reads the clock once per",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 203,
+          "line": {
+            "line": "Where time comes from, so nobody wonders: the scheduler reads the clock once per tick from the database with now(), never from the host.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 134,
+            "calls": 1,
+            "inputTokens": 520
+          },
+          "inputTokens": 6764,
+          "outputTokens": 1059,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.91 importance=important [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.08,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.9,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule for this repo: never run the scheduler binary against the shared staging da",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 170,
+          "line": {
+            "line": "Never run the scheduler binary against the shared staging database from a laptop. Two schedulers on one table fight over the lease and the on-call gets paged.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 217,
+            "calls": 1,
+            "inputTokens": 550
+          },
+          "inputTokens": 6007,
+          "outputTokens": 944,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.93 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.27,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Always: a change to the lease logic gets a test that runs two schedulers against",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 175,
+          "line": {
+            "line": "Always: a change to the lease logic gets a test that runs two schedulers against one table.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 220,
+            "calls": 1,
+            "inputTokens": 502
+          },
+          "inputTokens": 5991,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.84 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.98,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Sync design, as built, for the record: the app writes every change to the local ",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 153,
+          "line": {
+            "line": "Sync design, as built, for the record: the app writes every change to the local SQLite first and the sync engine pushes diffs later.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 148,
+            "calls": 1,
+            "inputTokens": 519
+          },
+          "inputTokens": 6028,
+          "outputTokens": 944,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.94 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the plugin host works: each plugin runs in its own worker with a message cha",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 187,
+          "line": {
+            "line": "How the plugin host works: each plugin runs in its own worker with a message channel and no filesystem access of its own.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 160,
+            "calls": 1,
+            "inputTokens": 555
+          },
+          "inputTokens": 6789,
+          "outputTokens": 1059,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.85 importance=critical [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.03,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.97,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never edit the generated bindings under src/bindings/. Change the Rust types and",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 176,
+          "line": {
+            "line": "Never edit the generated bindings under src/bindings/. Change the Rust types and run `cargo run --bin gen-bindings`; a hand edit is overwritten on the next build and the two drift.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 119,
+            "calls": 1,
+            "inputTokens": 514
+          },
+          "inputTokens": 6021,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.92 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.38,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.98,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.01,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from today: no `console.log` in src/. Everything goes through the logger in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 225,
+          "line": {
+            "line": "Rule from today: no `console.log` in src/. Everything goes through the logger in src/lib/log.ts, which strips note contents before anything is written.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 143,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 6012,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.91 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        }
+      ]
+    }
+  ]
+}

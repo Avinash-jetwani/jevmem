@@ -1,0 +1,3924 @@
+{
+  "kind": "eval",
+  "date": "2026-10-26",
+  "jevmem_version": "0.7.6",
+  "commit": "5044a5d",
+  "dist": "dist/index.js",
+  "model": "jev-1.13.0",
+  "eval_set": "eval/todo-instructions-heldout.jsonl",
+  "turns": 30,
+  "machine": "darwin arm64, node v22.22.0, Apple M4",
+  "network_path": "direct HTTPS to the TypeSafe API default base URL (POST /v1/systemone), warm in-process client, cache off",
+  "cost_method": "input tokens × $0.042 per million; output tokens free (https://typesafe.ai/blog/introducing-system-one-models-and-jev)",
+  "results": [
+    {
+      "mode": "fast",
+      "n": 30,
+      "started_at": "2026-10-26T15:28:12.696Z",
+      "finished_at": "2026-10-26T15:28:19.851Z",
+      "saveAccuracy": 0.9666666666666667,
+      "accuracy": 0.8666666666666667,
+      "f1": 0.972972972972973,
+      "precision": 0.9473684210526315,
+      "recall": 1,
+      "saveSkipCorrect": 29,
+      "saveKindCorrect": 26,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 0,
+      "injectionNotSaved": "0/0",
+      "p50ms": 174,
+      "p95ms": 212,
+      "avgInputTokens": 3274,
+      "avgOutputTokens": 391,
+      "avgTokens": 3665,
+      "costPerTurn": 0.0001374926,
+      "costPerTurnWithLine": 0.00014515340000000003,
+      "lineCallsPerTurn": 0.36666666666666664,
+      "lineP50ms": 144,
+      "escalationRate": 0,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "instruction",
+          "user": "Answers to your three questions: 1) yes, keep the current name; 2) no, don't tou",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.96 importance=useful [tier 1]"
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Keep the unpacked copy of the extension under tools/unpacked for every release f",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.92 importance=important [tier 1]"
+        },
+        {
+          "tag": "todo",
+          "user": "Pending: the scanner should learn FLAC picture blocks. The plan file skips them ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "reason": "save kind=bug content=0.89 importance=useful [tier 1]"
+        },
+        {
+          "tag": "todo",
+          "user": "We'll move the thumbnails to WebP once the old Safari share drops under 2 percen",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.98 importance=important [tier 1] [reply question: 0.02, the reply not read]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "instruction",
+          "user": "Go with option 2, then run the test suite and paste the failures, if any.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 174,
+          "line": null,
+          "inputTokens": 3163,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "skip: kind=none [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.08,
+          "kindProbabilities": {
+            "decision": 0.3,
+            "constraint": 0,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.23,
+            "dead-end": 0,
+            "none": 0.46
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Answers to your three questions: 1) yes, keep the current name; 2) no, don't tou",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 165,
+          "line": {
+            "line": "Answers to your three questions: 1) yes, keep the current name; 2) no, don't touch the manifest version; 3) the scratch folder can go once the store check has run.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 5,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3187,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=decision content=0.96 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.91,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.03,
+            "dead-end": 0,
+            "none": 0.06
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Later: localise the popup. The strings are hard-coded English for the first stor",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 153,
+          "line": {
+            "line": "The strings are hard-coded English for the first store release and that has to change before the EU listing.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 148,
+            "calls": 1,
+            "inputTokens": 495
+          },
+          "inputTokens": 3173,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Open item from the review: the popup has no empty state when a page has no links",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 212,
+          "line": {
+            "line": "Open item from the review: the popup has no empty state when a page has no links at all. Not for this release, but it is on the list.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 144,
+            "calls": 1,
+            "inputTokens": 499
+          },
+          "inputTokens": 3177,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Keep the unpacked copy of the extension under tools/unpacked for every release f",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 160,
+          "line": {
+            "line": "Keep the unpacked copy of the extension under tools/unpacked for every release from now on, that is the one the store check loads; then run the store check and tell me what it says.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3186,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.92 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.23,
+            "constraint": 0.35,
+            "preference": 0.19,
+            "bug": 0,
+            "architecture": 0.04,
+            "todo": 0.15,
+            "dead-end": 0,
+            "none": 0.04
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Start on part 2 now. Skip the optional install step; the replay covers it.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 218,
+          "line": null,
+          "inputTokens": 3150,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0.14,
+            "constraint": 0.05,
+            "preference": 0.12,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.18,
+            "dead-end": 0,
+            "none": 0.51
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Please rerun the benchmark with the new build and put the numbers in the report ",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 165,
+          "line": null,
+          "inputTokens": 3153,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "skip: kind=none [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0.06,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.38,
+            "dead-end": 0,
+            "none": 0.56
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Pending: the scanner should learn FLAC picture blocks. The plan file skips them ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "ms": 146,
+          "line": {
+            "line": "The plan file skips them today and people with cover art get an incomplete plan.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 211,
+            "calls": 1,
+            "inputTokens": 506
+          },
+          "inputTokens": 3159,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=bug content=0.89 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.25,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.55,
+            "architecture": 0,
+            "todo": 0.45,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Follow-up for a later release: add a --dry-run flag to apply. People keep asking",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 177,
+          "line": {
+            "line": "People keep asking for it, and today they have to read the plan file by hand.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 138,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 3166,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "The export format is JSON Lines from now on, not CSV, one object per file; chang",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 208,
+          "line": {
+            "line": "The export format is JSON Lines from now on, not CSV, one object per file; change the writer and update the docs, then show me a sample line.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3165,
+          "outputTokens": 382,
+          "escalated": false,
+          "reason": "save kind=decision content=0.89 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.6,
+            "constraint": 0.03,
+            "preference": 0.07,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.28,
+            "dead-end": 0,
+            "none": 0.02
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Hand this to a subagent: find why the settlement export is slow and fix it. Repo",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 165,
+          "line": null,
+          "inputTokens": 3718,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "skip: source=assistant_reply kind=todo (only bug, architecture and dead-end may come from the assistant) [tier 1]",
+          "assistantIncluded": true,
+          "source": "assistant_reply",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.26,
+            "architecture": 0,
+            "todo": 0.46,
+            "dead-end": 0,
+            "none": 0.28
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Hold on, don't commit yet. I want to read the diff first.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 167,
+          "line": null,
+          "inputTokens": 3144,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.01,
+            "preference": 0.21,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.21,
+            "dead-end": 0,
+            "none": 0.5700000000000001
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Before the enterprise pilot we still need a per-tenant override in the gateway's",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 188,
+          "line": {
+            "line": "Before the enterprise pilot we still need a per-tenant override in the gateway's rate limiter. Not now, but it has to be in before the pilot starts.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 154,
+            "calls": 1,
+            "inputTokens": 499
+          },
+          "inputTokens": 3161,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Not this sprint, but the CSV export has to stream. It loads the whole table toda",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 173,
+          "line": {
+            "line": "It loads the whole table today and will fall over at a million rows.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 191,
+            "calls": 1,
+            "inputTokens": 493
+          },
+          "inputTokens": 3155,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.94 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.5,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.4,
+            "preference": 0,
+            "bug": 0.06,
+            "architecture": 0.01,
+            "todo": 0.51,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Decision made: refunds always go back to the original payment method, no store c",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 206,
+          "line": {
+            "line": "Decision made: refunds always go back to the original payment method, no store credit; build the refund endpoint that way and remove the credit option from the schema.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 0,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3160,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=decision content=0.99 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 1,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Next, open the PR when CI is green and paste me the link. Nothing else on this b",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 160,
+          "line": null,
+          "inputTokens": 3151,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.19,
+            "preference": 0.08,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.29,
+            "dead-end": 0,
+            "none": 0.44
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Yes to both. Go ahead and delete the two stale branches.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 169,
+          "line": null,
+          "inputTokens": 3682,
+          "outputTokens": 445,
+          "escalated": false,
+          "reason": "skip: source=none (neither side states anything for the project), kind=none, importance=minor<useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "none",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.16,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.05,
+            "dead-end": 0,
+            "none": 0.79
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "The dev server's websocket reload breaks behind the corporate proxy at the clien",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 163,
+          "line": {
+            "line": "The dev server's websocket reload breaks behind the corporate proxy at the client. Fix after the launch, not before; it only affects their office network.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 144,
+            "calls": 1,
+            "inputTokens": 496
+          },
+          "inputTokens": 3698,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.13,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0.19,
+            "architecture": 0,
+            "todo": 0.79,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Still to do before 1.0: a migration guide from the old config format, and a depr",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 201,
+          "line": {
+            "line": "Still to do before 1.0: a migration guide from the old config format, and a deprecation warning in the CLI that points at it.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3162,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.96 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "We're standardising on uv for the workspace from now on, across the repos; redo ",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 179,
+          "line": {
+            "line": "We're standardising on uv for the workspace from now on, across the repos; redo the install with it and commit the lockfile.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3159,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=decision content=0.96 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.8,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.18,
+            "dead-end": 0,
+            "none": 0.02
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Switch to the staging config for this test only and change it back when you are ",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 195,
+          "line": null,
+          "inputTokens": 3684,
+          "outputTokens": 405,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 1] [reply question: 0.15, the reply not read]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0.02,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.28,
+            "dead-end": 0,
+            "none": 0.7
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Read the failing log first, then propose a fix. Don't change anything until I ha",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 153,
+          "line": null,
+          "inputTokens": 3709,
+          "outputTokens": 448,
+          "escalated": false,
+          "reason": "skip: source=assistant_reply kind=preference (only bug, architecture and dead-end may come from the assistant) [tier 1]",
+          "assistantIncluded": true,
+          "source": "assistant_reply",
+          "deadEndNoul": 0.1,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.09,
+            "preference": 0.68,
+            "bug": 0.03,
+            "architecture": 0,
+            "todo": 0.02,
+            "dead-end": 0,
+            "none": 0.17
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Leave a note: the leader lease should move from Postgres advisory locks to a pro",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 175,
+          "line": {
+            "line": "Leave a note: the leader lease should move from Postgres advisory locks to a proper lease table when we add the third replica. Advisory locks have been fine with two.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 160,
+            "calls": 1,
+            "inputTokens": 502
+          },
+          "inputTokens": 3169,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.92 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.18,
+          "kindProbabilities": {
+            "decision": 0.04,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.02,
+            "todo": 0.94,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "After the audit we need to rotate the database role passwords and add the rotati",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 164,
+          "line": {
+            "line": "Not before the audit closes.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 149,
+            "calls": 1,
+            "inputTokens": 492
+          },
+          "inputTokens": 3161,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.95 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.17,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.83,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Go ahead: the scheduler reads its clock from the database, not the host, decided",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 185,
+          "line": {
+            "line": "Go ahead: the scheduler reads its clock from the database, not the host, decided today; implement it and add a test with a skewed host clock.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3167,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=decision content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.08,
+          "kindProbabilities": {
+            "decision": 0.55,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.02,
+            "architecture": 0,
+            "todo": 0.39,
+            "dead-end": 0,
+            "none": 0.03
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "I'm sending the vendor the signed form first and will upload the certificate aft",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 185,
+          "line": null,
+          "inputTokens": 3184,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.04,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.37,
+            "dead-end": 0,
+            "none": 0.58
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "I'll take it from here: I'm filling in the store listing myself tonight and will",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 179,
+          "line": null,
+          "inputTokens": 3178,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.36,
+            "dead-end": 0,
+            "none": 0.61
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "To do later: the sync engine needs a conflict UI. Right now the newer file silen",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 148,
+          "line": {
+            "line": "To do later: the sync engine needs a conflict UI.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 196,
+            "calls": 1,
+            "inputTokens": 492
+          },
+          "inputTokens": 3179,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.98 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.11,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "We'll move the thumbnails to WebP once the old Safari share drops under 2 percen",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 174,
+          "line": {
+            "line": "We'll move the thumbnails to WebP once the old Safari share drops under 2 percent; keep the PNG path until then.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3721,
+          "outputTokens": 405,
+          "escalated": false,
+          "reason": "save kind=decision content=0.98 importance=important [tier 1] [reply question: 0.02, the reply not read]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0.52,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.47,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Answering your question: yes, the sync token lives in the OS keychain, never in ",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 146,
+          "line": {
+            "line": "Answering your question: yes, the sync token lives in the OS keychain, never in a file.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 199,
+            "calls": 1,
+            "inputTokens": 498
+          },
+          "inputTokens": 3188,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=decision content=0.95 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.14,
+          "kindProbabilities": {
+            "decision": 0.47,
+            "constraint": 0.06,
+            "preference": 0,
+            "bug": 0.02,
+            "architecture": 0.23,
+            "todo": 0.2,
+            "dead-end": 0,
+            "none": 0.02
+          }
+        }
+      ]
+    },
+    {
+      "mode": "auto",
+      "n": 30,
+      "started_at": "2026-10-26T15:28:20.021Z",
+      "finished_at": "2026-10-26T15:28:30.466Z",
+      "saveAccuracy": 0.9,
+      "accuracy": 0.8,
+      "f1": 0.923076923076923,
+      "precision": 0.8571428571428571,
+      "recall": 1,
+      "saveSkipCorrect": 27,
+      "saveKindCorrect": 24,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 0,
+      "injectionNotSaved": "0/0",
+      "p50ms": 313,
+      "p95ms": 397,
+      "avgInputTokens": 6695,
+      "avgOutputTokens": 930,
+      "avgTokens": 7624,
+      "costPerTurn": 0.0002811746,
+      "costPerTurnWithLine": 0.000289611,
+      "lineCallsPerTurn": 0.4,
+      "lineP50ms": 133,
+      "escalationRate": 0.5666666666666667,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "instruction",
+          "user": "Go with option 2, then run the test suite and paste the failures, if any.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.86 importance=useful [tier 2, escalated]"
+        },
+        {
+          "tag": "instruction",
+          "user": "Answers to your three questions: 1) yes, keep the current name; 2) no, don't tou",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.96 importance=useful [tier 1]"
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Keep the unpacked copy of the extension under tools/unpacked for every release f",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.70 importance=important [tier 2, escalated]"
+        },
+        {
+          "tag": "todo",
+          "user": "Pending: the scanner should learn FLAC picture blocks. The plan file skips them ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "reason": "save kind=bug content=0.86 importance=useful [tier 2, escalated]"
+        },
+        {
+          "tag": "instruction",
+          "user": "Hand this to a subagent: find why the settlement export is slow and fix it. Repo",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "reason": "save kind=bug content=0.93 importance=useful source=assistant_reply [tier 2, escalated]"
+        },
+        {
+          "tag": "todo",
+          "user": "Not this sprint, but the CSV export has to stream. It loads the whole table toda",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.92 importance=important [tier 2, escalated]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "instruction",
+          "user": "Go with option 2, then run the test suite and paste the failures, if any.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 356,
+          "line": {
+            "line": "Go with option 2, then run the test suite and paste the failures, if any.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9153,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "save kind=decision content=0.86 importance=useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.59,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.21,
+            "dead-end": 0,
+            "none": 0.2
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Answers to your three questions: 1) yes, keep the current name; 2) no, don't tou",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 206,
+          "line": {
+            "line": "Answers to your three questions: 1) yes, keep the current name; 2) no, don't touch the manifest version; 3) the scratch folder can go once the store check has run.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3187,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=decision content=0.96 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.91,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.03,
+            "dead-end": 0,
+            "none": 0.06
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Later: localise the popup. The strings are hard-coded English for the first stor",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 147,
+          "line": {
+            "line": "The strings are hard-coded English for the first store release and that has to change before the EU listing.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 155,
+            "calls": 1,
+            "inputTokens": 495
+          },
+          "inputTokens": 3173,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Open item from the review: the popup has no empty state when a page has no links",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 253,
+          "line": {
+            "line": "Open item from the review: the popup has no empty state when a page has no links at all. Not for this release, but it is on the list.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 287,
+            "calls": 1,
+            "inputTokens": 499
+          },
+          "inputTokens": 3177,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.98 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.08,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Keep the unpacked copy of the extension under tools/unpacked for every release f",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 343,
+          "line": {
+            "line": "Keep the unpacked copy of the extension under tools/unpacked for every release from now on, that is the one the store check loads; then run the store check and tell me what it says.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 0,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9199,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "save kind=constraint content=0.70 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.24,
+            "constraint": 0.55,
+            "preference": 0.07,
+            "bug": 0,
+            "architecture": 0.02,
+            "todo": 0.11,
+            "dead-end": 0,
+            "none": 0.01
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Start on part 2 now. Skip the optional install step; the replay covers it.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 315,
+          "line": null,
+          "inputTokens": 9127,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0.15,
+            "constraint": 0.03,
+            "preference": 0.05,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.16,
+            "dead-end": 0,
+            "none": 0.61
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Please rerun the benchmark with the new build and put the numbers in the report ",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 371,
+          "line": null,
+          "inputTokens": 9133,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0.08,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.34,
+            "dead-end": 0,
+            "none": 0.58
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Pending: the scanner should learn FLAC picture blocks. The plan file skips them ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "ms": 311,
+          "line": {
+            "line": "The plan file skips them today and people with cover art get an incomplete plan.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 210,
+            "calls": 1,
+            "inputTokens": 506
+          },
+          "inputTokens": 9145,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "save kind=bug content=0.86 importance=useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.24,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.59,
+            "architecture": 0,
+            "todo": 0.41,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Follow-up for a later release: add a --dry-run flag to apply. People keep asking",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 149,
+          "line": {
+            "line": "People keep asking for it, and today they have to read the plan file by hand.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 149,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 3166,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "The export format is JSON Lines from now on, not CSV, one object per file; chang",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 438,
+          "line": {
+            "line": "The export format is JSON Lines from now on, not CSV, one object per file; change the writer and update the docs, then show me a sample line.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 3,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9157,
+          "outputTokens": 1326,
+          "escalated": true,
+          "reason": "save kind=decision content=0.89 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.73,
+            "constraint": 0.08,
+            "preference": 0.04,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.14,
+            "dead-end": 0.01,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Hand this to a subagent: find why the settlement export is slow and fix it. Repo",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "ms": 352,
+          "line": {
+            "line": "The subagent found an N+1 query in the export and batched it: 41 s to 3 s on the sample.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 152,
+            "calls": 1,
+            "inputTokens": 547
+          },
+          "inputTokens": 10480,
+          "outputTokens": 1505,
+          "escalated": true,
+          "reason": "save kind=bug content=0.93 importance=useful source=assistant_reply [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "assistant_reply",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.95,
+            "architecture": 0,
+            "todo": 0.03,
+            "dead-end": 0,
+            "none": 0.02
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Hold on, don't commit yet. I want to read the diff first.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 328,
+          "line": null,
+          "inputTokens": 9115,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.01,
+            "preference": 0.15,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.18,
+            "dead-end": 0,
+            "none": 0.65
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Before the enterprise pilot we still need a per-tenant override in the gateway's",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 168,
+          "line": {
+            "line": "Before the enterprise pilot we still need a per-tenant override in the gateway's rate limiter. Not now, but it has to be in before the pilot starts.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 145,
+            "calls": 1,
+            "inputTokens": 499
+          },
+          "inputTokens": 3161,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.98 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Not this sprint, but the CSV export has to stream. It loads the whole table toda",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 353,
+          "line": {
+            "line": "It loads the whole table today and will fall over at a million rows.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 141,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 9137,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "save kind=constraint content=0.92 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.53,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.53,
+            "preference": 0,
+            "bug": 0.06,
+            "architecture": 0,
+            "todo": 0.4,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Decision made: refunds always go back to the original payment method, no store c",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 230,
+          "line": {
+            "line": "Decision made: refunds always go back to the original payment method, no store credit; build the refund endpoint that way and remove the credit option from the schema.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3160,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=decision content=0.99 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 1,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Next, open the PR when CI is green and paste me the link. Nothing else on this b",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 309,
+          "line": null,
+          "inputTokens": 9129,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.11,
+            "preference": 0.08,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.15,
+            "dead-end": 0,
+            "none": 0.66
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Yes to both. Go ahead and delete the two stale branches.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 202,
+          "line": null,
+          "inputTokens": 3682,
+          "outputTokens": 445,
+          "escalated": false,
+          "reason": "skip: source=none (neither side states anything for the project), kind=none, importance=minor<useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "none",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.18,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.04,
+            "dead-end": 0,
+            "none": 0.78
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "The dev server's websocket reload breaks behind the corporate proxy at the clien",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 172,
+          "line": {
+            "line": "The dev server's websocket reload breaks behind the corporate proxy at the client. Fix after the launch, not before; it only affects their office network.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 133,
+            "calls": 1,
+            "inputTokens": 496
+          },
+          "inputTokens": 3698,
+          "outputTokens": 446,
+          "escalated": false,
+          "reason": "save kind=todo content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.1,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0.16,
+            "architecture": 0,
+            "todo": 0.82,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Still to do before 1.0: a migration guide from the old config format, and a depr",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 219,
+          "line": {
+            "line": "Still to do before 1.0: a migration guide from the old config format, and a deprecation warning in the CLI that points at it.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3162,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.96 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "We're standardising on uv for the workspace from now on, across the repos; redo ",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 160,
+          "line": {
+            "line": "We're standardising on uv for the workspace from now on, across the repos; redo the install with it and commit the lockfile.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 0,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3159,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=decision content=0.96 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.83,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.15,
+            "dead-end": 0,
+            "none": 0.02
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Switch to the staging config for this test only and change it back when you are ",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 363,
+          "line": null,
+          "inputTokens": 9664,
+          "outputTokens": 1348,
+          "escalated": true,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2, escalated] [reply question: 0.16, the reply not read]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.01,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.25,
+            "dead-end": 0,
+            "none": 0.72
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Read the failing log first, then propose a fix. Don't change anything until I ha",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 146,
+          "line": null,
+          "inputTokens": 3709,
+          "outputTokens": 448,
+          "escalated": false,
+          "reason": "skip: source=assistant_reply kind=preference (only bug, architecture and dead-end may come from the assistant) [tier 1]",
+          "assistantIncluded": true,
+          "source": "assistant_reply",
+          "deadEndNoul": 0.11,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.09,
+            "preference": 0.7,
+            "bug": 0.03,
+            "architecture": 0,
+            "todo": 0.02,
+            "dead-end": 0,
+            "none": 0.16
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Leave a note: the leader lease should move from Postgres advisory locks to a pro",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 138,
+          "line": {
+            "line": "Leave a note: the leader lease should move from Postgres advisory locks to a proper lease table when we add the third replica. Advisory locks have been fine with two.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 141,
+            "calls": 1,
+            "inputTokens": 502
+          },
+          "inputTokens": 3169,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.93 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.15,
+          "kindProbabilities": {
+            "decision": 0.04,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.02,
+            "todo": 0.93,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "After the audit we need to rotate the database role passwords and add the rotati",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 397,
+          "line": {
+            "line": "Not before the audit closes.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 217,
+            "calls": 1,
+            "inputTokens": 492
+          },
+          "inputTokens": 9149,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "save kind=todo content=0.87 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.24,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.76,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Go ahead: the scheduler reads its clock from the database, not the host, decided",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 313,
+          "line": {
+            "line": "Go ahead: the scheduler reads its clock from the database, not the host, decided today; implement it and add a test with a skewed host clock.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9161,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "save kind=decision content=0.90 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.7,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.03,
+            "architecture": 0,
+            "todo": 0.26,
+            "dead-end": 0,
+            "none": 0.01
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "I'm sending the vendor the signed form first and will upload the certificate aft",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 391,
+          "line": null,
+          "inputTokens": 9195,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.3,
+            "dead-end": 0,
+            "none": 0.68
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "I'll take it from here: I'm filling in the store listing myself tonight and will",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 338,
+          "line": null,
+          "inputTokens": 9183,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "skip: kind=none, content=0.44<0.5, importance=minor<useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.43,
+            "dead-end": 0,
+            "none": 0.56
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "To do later: the sync engine needs a conflict UI. Right now the newer file silen",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 178,
+          "line": {
+            "line": "Right now the newer file silently wins and people lose edits without knowing.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 140,
+            "calls": 1,
+            "inputTokens": 492
+          },
+          "inputTokens": 3179,
+          "outputTokens": 381,
+          "escalated": false,
+          "reason": "save kind=todo content=0.98 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.11,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.01,
+            "architecture": 0,
+            "todo": 0.99,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "We'll move the thumbnails to WebP once the old Safari share drops under 2 percen",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 382,
+          "line": {
+            "line": "We'll move the thumbnails to WebP once the old Safari share drops under 2 percent; keep the PNG path until then.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9727,
+          "outputTokens": 1348,
+          "escalated": true,
+          "reason": "save kind=todo content=0.90 importance=important [tier 2, escalated] [reply question: 0.02, the reply not read]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0.25,
+            "constraint": 0.04,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.71,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Answering your question: yes, the sync token lives in the OS keychain, never in ",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 345,
+          "line": {
+            "line": "Answering your question: yes, the sync token lives in the OS keychain, never in a file.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 127,
+            "calls": 1,
+            "inputTokens": 498
+          },
+          "inputTokens": 9203,
+          "outputTokens": 1324,
+          "escalated": true,
+          "reason": "save kind=decision content=0.90 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.15,
+          "kindProbabilities": {
+            "decision": 0.44,
+            "constraint": 0.1,
+            "preference": 0,
+            "bug": 0.03,
+            "architecture": 0.33,
+            "todo": 0.1,
+            "dead-end": 0,
+            "none": 0
+          }
+        }
+      ]
+    },
+    {
+      "mode": "full",
+      "n": 30,
+      "started_at": "2026-10-26T15:28:30.644Z",
+      "finished_at": "2026-10-26T15:28:38.202Z",
+      "saveAccuracy": 0.8666666666666667,
+      "accuracy": 0.7666666666666667,
+      "f1": 0.9,
+      "precision": 0.8181818181818182,
+      "recall": 1,
+      "saveSkipCorrect": 26,
+      "saveKindCorrect": 23,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 0,
+      "injectionNotSaved": "0/0",
+      "p50ms": 175,
+      "p95ms": 229,
+      "avgInputTokens": 6130,
+      "avgOutputTokens": 960,
+      "avgTokens": 7090,
+      "costPerTurn": 0.0002574418,
+      "costPerTurnWithLine": 0.0002666328,
+      "lineCallsPerTurn": 0.43333333333333335,
+      "lineP50ms": 142,
+      "escalationRate": 0,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "instruction",
+          "user": "Go with option 2, then run the test suite and paste the failures, if any.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.86 importance=useful [tier 2]"
+        },
+        {
+          "tag": "instruction",
+          "user": "Answers to your three questions: 1) yes, keep the current name; 2) no, don't tou",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.78 importance=useful [tier 2]"
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Keep the unpacked copy of the extension under tools/unpacked for every release f",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.69 importance=important [tier 2]"
+        },
+        {
+          "tag": "todo",
+          "user": "Pending: the scanner should learn FLAC picture blocks. The plan file skips them ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "reason": "save kind=bug content=0.86 importance=useful [tier 2]"
+        },
+        {
+          "tag": "instruction",
+          "user": "Hand this to a subagent: find why the settlement export is slow and fix it. Repo",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "reason": "save kind=bug content=0.91 importance=useful source=assistant_reply [tier 2]"
+        },
+        {
+          "tag": "todo",
+          "user": "Not this sprint, but the CSV export has to stream. It loads the whole table toda",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.93 importance=important [tier 2]"
+        },
+        {
+          "tag": "instruction",
+          "user": "Read the failing log first, then propose a fix. Don't change anything until I ha",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "reason": "save kind=bug content=0.86 importance=important source=assistant_reply [tier 2]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "instruction",
+          "user": "Go with option 2, then run the test suite and paste the failures, if any.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 217,
+          "line": {
+            "line": "Go with option 2, then run the test suite and paste the failures, if any.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 5990,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=decision content=0.86 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.08,
+          "kindProbabilities": {
+            "decision": 0.61,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.18,
+            "dead-end": 0,
+            "none": 0.21
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Answers to your three questions: 1) yes, keep the current name; 2) no, don't tou",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 167,
+          "line": {
+            "line": "Answers to your three questions: 1) yes, keep the current name; 2) no, don't touch the manifest version; 3) the scratch folder can go once the store check has run.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 6014,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=decision content=0.78 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.95,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.04,
+            "dead-end": 0,
+            "none": 0.01
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Later: localise the popup. The strings are hard-coded English for the first stor",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 152,
+          "line": {
+            "line": "The strings are hard-coded English for the first store release and that has to change before the EU listing.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 196,
+            "calls": 1,
+            "inputTokens": 495
+          },
+          "inputTokens": 6000,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=todo content=0.94 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.99,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Open item from the review: the popup has no empty state when a page has no links",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 148,
+          "line": {
+            "line": "Open item from the review: the popup has no empty state when a page has no links at all. Not for this release, but it is on the list.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 133,
+            "calls": 1,
+            "inputTokens": 499
+          },
+          "inputTokens": 6004,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=todo content=0.94 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Keep the unpacked copy of the extension under tools/unpacked for every release f",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 242,
+          "line": {
+            "line": "Keep the unpacked copy of the extension under tools/unpacked for every release from now on, that is the one the store check loads; then run the store check and tell me what it says.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 6013,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.69 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.2,
+            "constraint": 0.6,
+            "preference": 0.07,
+            "bug": 0,
+            "architecture": 0.01,
+            "todo": 0.11,
+            "dead-end": 0,
+            "none": 0.01
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Start on part 2 now. Skip the optional install step; the replay covers it.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 171,
+          "line": null,
+          "inputTokens": 5977,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "skip: kind=none [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.08,
+          "kindProbabilities": {
+            "decision": 0.14,
+            "constraint": 0.03,
+            "preference": 0.07,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.16,
+            "dead-end": 0,
+            "none": 0.6
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Please rerun the benchmark with the new build and put the numbers in the report ",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 170,
+          "line": null,
+          "inputTokens": 5980,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "skip: kind=none [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0.08,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.31,
+            "dead-end": 0,
+            "none": 0.61
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Pending: the scanner should learn FLAC picture blocks. The plan file skips them ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "ms": 178,
+          "line": {
+            "line": "The plan file skips them today and people with cover art get an incomplete plan.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 142,
+            "calls": 1,
+            "inputTokens": 506
+          },
+          "inputTokens": 5986,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=bug content=0.86 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.24,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.5,
+            "architecture": 0,
+            "todo": 0.5,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Follow-up for a later release: add a --dry-run flag to apply. People keep asking",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 174,
+          "line": {
+            "line": "People keep asking for it, and today they have to read the plan file by hand.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 206,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 5993,
+          "outputTokens": 944,
+          "escalated": false,
+          "reason": "save kind=todo content=0.93 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "The export format is JSON Lines from now on, not CSV, one object per file; chang",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 161,
+          "line": {
+            "line": "The export format is JSON Lines from now on, not CSV, one object per file; change the writer and update the docs, then show me a sample line.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 5992,
+          "outputTokens": 944,
+          "escalated": false,
+          "reason": "save kind=decision content=0.89 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.74,
+            "constraint": 0.07,
+            "preference": 0.05,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.13,
+            "dead-end": 0.01,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Hand this to a subagent: find why the settlement export is slow and fix it. Repo",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "ms": 167,
+          "line": {
+            "line": "The subagent found an N+1 query in the export and batched it: 41 s to 3 s on the sample.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 192,
+            "calls": 1,
+            "inputTokens": 547
+          },
+          "inputTokens": 6762,
+          "outputTokens": 1059,
+          "escalated": false,
+          "reason": "save kind=bug content=0.91 importance=useful source=assistant_reply [tier 2]",
+          "assistantIncluded": true,
+          "source": "assistant_reply",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.94,
+            "architecture": 0,
+            "todo": 0.04,
+            "dead-end": 0,
+            "none": 0.02
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Hold on, don't commit yet. I want to read the diff first.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 178,
+          "line": null,
+          "inputTokens": 5971,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.01,
+            "preference": 0.14,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.15,
+            "dead-end": 0,
+            "none": 0.69
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Before the enterprise pilot we still need a per-tenant override in the gateway's",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 167,
+          "line": {
+            "line": "Before the enterprise pilot we still need a per-tenant override in the gateway's rate limiter. Not now, but it has to be in before the pilot starts.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 176,
+            "calls": 1,
+            "inputTokens": 499
+          },
+          "inputTokens": 5988,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=todo content=0.94 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Not this sprint, but the CSV export has to stream. It loads the whole table toda",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 183,
+          "line": {
+            "line": "Not this sprint, but the CSV export has to stream. It loads the whole table today and will fall over at a million rows.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 140,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 5982,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.93 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.51,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.48,
+            "preference": 0,
+            "bug": 0.05,
+            "architecture": 0,
+            "todo": 0.46,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Decision made: refunds always go back to the original payment method, no store c",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 198,
+          "line": {
+            "line": "Decision made: refunds always go back to the original payment method, no store credit; build the refund endpoint that way and remove the credit option from the schema.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 5987,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=decision content=0.89 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.97,
+            "constraint": 0.03,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Next, open the PR when CI is green and paste me the link. Nothing else on this b",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 186,
+          "line": null,
+          "inputTokens": 5978,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.13,
+            "preference": 0.05,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.2,
+            "dead-end": 0,
+            "none": 0.62
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Yes to both. Go ahead and delete the two stale branches.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 229,
+          "line": null,
+          "inputTokens": 6726,
+          "outputTokens": 1058,
+          "escalated": false,
+          "reason": "skip: source=none (neither side states anything for the project), kind=none, content=0.44<0.5, importance=minor<useful [tier 2]",
+          "assistantIncluded": true,
+          "source": "none",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.15,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.02,
+            "dead-end": 0,
+            "none": 0.83
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "The dev server's websocket reload breaks behind the corporate proxy at the clien",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 156,
+          "line": {
+            "line": "The dev server's websocket reload breaks behind the corporate proxy at the client. Fix after the launch, not before; it only affects their office network.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 145,
+            "calls": 1,
+            "inputTokens": 496
+          },
+          "inputTokens": 6742,
+          "outputTokens": 1059,
+          "escalated": false,
+          "reason": "save kind=todo content=0.95 importance=useful [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.11,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.14,
+            "architecture": 0,
+            "todo": 0.85,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Still to do before 1.0: a migration guide from the old config format, and a depr",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 168,
+          "line": {
+            "line": "Still to do before 1.0: a migration guide from the old config format, and a deprecation warning in the CLI that points at it.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 5989,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=todo content=0.93 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "We're standardising on uv for the workspace from now on, across the repos; redo ",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 175,
+          "line": {
+            "line": "We're standardising on uv for the workspace from now on, across the repos; redo the install with it and commit the lockfile.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 2,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 5986,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=decision content=0.91 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.95,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.05,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Switch to the staging config for this test only and change it back when you are ",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 192,
+          "line": null,
+          "inputTokens": 6511,
+          "outputTokens": 967,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2] [reply question: 0.14, the reply not read]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.01,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.21,
+            "dead-end": 0,
+            "none": 0.76
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Read the failing log first, then propose a fix. Don't change anything until I ha",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "ms": 182,
+          "line": {
+            "line": "The lease renewal races the tick at the second boundary; my proposal is to renew half a tick early.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 154,
+            "calls": 1,
+            "inputTokens": 539
+          },
+          "inputTokens": 6753,
+          "outputTokens": 1059,
+          "escalated": false,
+          "reason": "save kind=bug content=0.86 importance=important source=assistant_reply [tier 2]",
+          "assistantIncluded": true,
+          "source": "assistant_reply",
+          "deadEndNoul": 0.1,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0,
+            "preference": 0.17,
+            "bug": 0.78,
+            "architecture": 0.01,
+            "todo": 0.01,
+            "dead-end": 0,
+            "none": 0.02
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Leave a note: the leader lease should move from Postgres advisory locks to a pro",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 181,
+          "line": {
+            "line": "Leave a note: the leader lease should move from Postgres advisory locks to a proper lease table when we add the third replica. Advisory locks have been fine with two.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 167,
+            "calls": 1,
+            "inputTokens": 502
+          },
+          "inputTokens": 5996,
+          "outputTokens": 944,
+          "escalated": false,
+          "reason": "save kind=todo content=0.76 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.16,
+          "kindProbabilities": {
+            "decision": 0.04,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.01,
+            "todo": 0.95,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "After the audit we need to rotate the database role passwords and add the rotati",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 182,
+          "line": {
+            "line": "After the audit we need to rotate the database role passwords and add the rotation to the release checklist. Not before the audit closes.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 152,
+            "calls": 1,
+            "inputTokens": 492
+          },
+          "inputTokens": 5988,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=todo content=0.86 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.26,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.74,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Go ahead: the scheduler reads its clock from the database, not the host, decided",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 174,
+          "line": {
+            "line": "Go ahead: the scheduler reads its clock from the database, not the host, decided today; implement it and add a test with a skewed host clock.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 5994,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=decision content=0.90 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.72,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.02,
+            "architecture": 0,
+            "todo": 0.25,
+            "dead-end": 0,
+            "none": 0.01
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "I'm sending the vendor the signed form first and will upload the certificate aft",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 156,
+          "line": null,
+          "inputTokens": 6011,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "skip: kind=none, importance=minor<useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.25,
+            "dead-end": 0,
+            "none": 0.73
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "I'll take it from here: I'm filling in the store listing myself tonight and will",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 176,
+          "line": null,
+          "inputTokens": 6005,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "skip: kind=none, content=0.42<0.5, importance=minor<useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.38,
+            "dead-end": 0,
+            "none": 0.61
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "To do later: the sync engine needs a conflict UI. Right now the newer file silen",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 198,
+          "line": {
+            "line": "To do later: the sync engine needs a conflict UI. Right now the newer file silently wins and people lose edits without knowing.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 151,
+            "calls": 1,
+            "inputTokens": 492
+          },
+          "inputTokens": 6006,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=todo content=0.94 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.13,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.02,
+            "architecture": 0,
+            "todo": 0.98,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "We'll move the thumbnails to WebP once the old Safari share drops under 2 percen",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 169,
+          "line": {
+            "line": "We'll move the thumbnails to WebP once the old Safari share drops under 2 percent; keep the PNG path until then.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 6548,
+          "outputTokens": 967,
+          "escalated": false,
+          "reason": "save kind=todo content=0.90 importance=important [tier 2] [reply question: 0.02, the reply not read]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0.25,
+            "constraint": 0.04,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.71,
+            "dead-end": 0,
+            "none": 0
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Answering your question: yes, the sync token lives in the OS keychain, never in ",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 173,
+          "line": {
+            "line": "Answering your question: yes, the sync token lives in the OS keychain, never in a file.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 165,
+            "calls": 1,
+            "inputTokens": 498
+          },
+          "inputTokens": 6015,
+          "outputTokens": 943,
+          "escalated": false,
+          "reason": "save kind=decision content=0.90 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.14,
+          "kindProbabilities": {
+            "decision": 0.51,
+            "constraint": 0.09,
+            "preference": 0,
+            "bug": 0.03,
+            "architecture": 0.29000000000000004,
+            "todo": 0.08,
+            "dead-end": 0,
+            "none": 0
+          }
+        }
+      ]
+    }
+  ]
+}
