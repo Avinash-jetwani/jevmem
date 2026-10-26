@@ -25,6 +25,7 @@
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { noul, type Questions } from "@typesafe-ai/sdk";
 import { CONFIG_FILE, isJevmemHookCommand, parseConfig } from "./config.js";
@@ -108,6 +109,49 @@ export function guardRoot(input: GuardInput, env: NodeJS.ProcessEnv = process.en
 
 function str(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined;
+}
+
+/**
+ * Claude Code's own auto memory for the project (0.7.7): the notes Claude writes about the project live outside it,
+ * under `<config dir>/projects/<slug>/memory/` (the config dir is `CLAUDE_CONFIG_DIR` or `~/.claude`) or under the
+ * `autoMemoryDirectory` of the settings, and a change there is not a change to the project, so the rules do not
+ * apply. The comparison harness's small pass of 2026-10-26 saw the guard ask four times on Claude updating its note
+ * after a decision changed, naming the line that change had replaced; nobody answers an ask in `claude -p`, so the
+ * note stayed stale. Paths are compared as given and as real paths (a temp dir on macOS has both forms).
+ */
+export function isAutoMemoryPath(file: string, root: string, env: NodeJS.ProcessEnv = process.env): boolean {
+  if (!file) return false;
+  const home = env.HOME || os.homedir();
+  const expand = (p: string) => (p.startsWith("~/") ? path.join(home, p.slice(2)) : p);
+  const real = (p: string) => {
+    try {
+      return fs.realpathSync(p);
+    } catch {
+      return path.resolve(p);
+    }
+  };
+  const abs = path.resolve(root, file);
+  const forms = [abs, path.join(real(path.dirname(abs)), path.basename(abs))];
+  const under = (p: string, dir: string) => p === dir || p.startsWith(dir + path.sep);
+  const configDir = env.CLAUDE_CONFIG_DIR ? expand(env.CLAUDE_CONFIG_DIR) : path.join(home, ".claude");
+  for (const projects of [path.resolve(configDir, "projects"), real(path.resolve(configDir, "projects"))]) {
+    for (const p of forms) {
+      const rel = path.relative(projects, p);
+      if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) continue;
+      const parts = rel.split(path.sep);
+      if (parts.length >= 3 && parts[1] === "memory") return true;
+    }
+  }
+  for (const f of [path.join(root, ".claude", "settings.local.json"), path.join(root, ".claude", "settings.json"), path.join(configDir, "settings.json")]) {
+    try {
+      const v = JSON.parse(fs.readFileSync(f, "utf8"))?.autoMemoryDirectory;
+      if (typeof v !== "string" || !v) continue;
+      for (const dir of [path.resolve(root, expand(v)), real(path.resolve(root, expand(v)))]) for (const p of forms) if (under(p, dir)) return true;
+    } catch {
+      /* no such settings file, or not JSON */
+    }
+  }
+  return false;
 }
 
 /** A path as the guard reports and sends it: relative to the project root when it is inside it. */
@@ -825,6 +869,12 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps = {}): Pr
     if (!guarded) return done();
     logGuard(root, log, { ok: false, error: `malformed ${input.tool_name} input` });
     return failedCall();
+  }
+  if (action.tool !== "Bash" && isAutoMemoryPath(str((input.tool_input ?? {}).file_path) ?? "", root, env)) {
+    trace.notes.push("a note in Claude Code's own memory folder, outside the project: not a change to the project, so the rules do not apply");
+    trace.route = "claude-memory";
+    if (log) recordGuardCall(root, { ts: startedAt, tool: action.tool, ...(input.tool_use_id ? { tool_use_id: input.tool_use_id } : {}), route: "claude-memory", decision: "none" });
+    return done();
   }
 
   const mem = readMemoryText(root, cfg);

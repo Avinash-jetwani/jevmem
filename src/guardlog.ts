@@ -17,7 +17,8 @@ import { scrubSecrets } from "./scrub.js";
  * answered; `jev-failed`: sent, with no answer (timeout or error); `no-key` and `no-time`: not sent; `error`: a bad
  * config, malformed input, or an unreadable `JEVMEM.md` or index. The tamper check runs on every route.
  */
-export type GuardRoute = "no-rules" | "no-candidate" | "cache" | "jev" | "jev-failed" | "no-key" | "no-time" | "error";
+/** `claude-memory` (0.7.7): a write to Claude Code's own memory folder for the project, outside it, which the rules do not cover. */
+export type GuardRoute = "no-rules" | "no-candidate" | "cache" | "jev" | "jev-failed" | "no-key" | "no-time" | "error" | "claude-memory";
 
 export interface GuardLogEntry {
   ts: string;
