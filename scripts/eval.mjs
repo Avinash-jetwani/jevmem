@@ -81,6 +81,10 @@ async function runMode(mode) {
       source: d.source,
       deadEndNoul: d.tier1?.nouls?.contains_dead_end ?? d.tier2?.nouls?.tried_an_approach_that_failed_or_was_dropped ?? null,
       kindProbabilities: d.kindProbabilities,
+      // 0.7.7: the family scores and the tier that decided, so a tuning run shows why a turn went the way it did.
+      families: d.families,
+      tier: d.tier ?? null,
+      instructionNouls: Object.fromEntries(Object.entries(d.nouls ?? {}).filter(([k]) => /instruction|answers_or_picks|directs_the_assistants|states_nothing_that_outlasts/.test(k))),
     });
   }
   const finishedAt = new Date().toISOString();

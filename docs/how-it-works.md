@@ -37,10 +37,11 @@ State sent: `{ user_message, assistant_reply?, previous_turns, existing_memories
 | `contains_architecture_fact` | architecture |
 | `contains_todo` | todo |
 | `is_only_chit_chat` | chit_chat |
+| `is_an_instruction_for_this_conversation` | instruction (0.7.7) |
 | `contradicts_existing_memory` | contradiction |
 | `contains_instructions_aimed_at_an_automated_system` | injection |
 
-**Tier 2 runs only when tier 1 is unsure**: 30 atomic nouls in the same nine families, each with structured `what` / `examples` criteria, combined in code with a logistic score per family. 4,915–5,040 input tokens per call in the v0.4.2 evals. The borderline rule (configurable under `tiers.borderline`) escalates when:
+**Tier 2 runs only when tier 1 is unsure**: 34 atomic nouls in the same twelve families (the three instruction nouls since 0.7.7), each with structured `what` / `examples` criteria, combined in code with a logistic score per family. 4,915–5,040 input tokens per call in the v0.4.2 evals. The borderline rule (configurable under `tiers.borderline`) escalates when:
 
 - the strongest kind noul is in `[0.3, 0.7]` (set `kindNoulScope: "any"` to test every kind noul; that fires on most real turns because secondary kinds often score 0.3–0.7), or
 - the `kind` choice confidence is under 0.6, or
@@ -93,6 +94,7 @@ content       = max(decision, constraint, preference, bug, architecture, todo)  
 reversal      = contradiction >= contradictionMin (0.7) AND touches_memory_id != none
 save          = kind != none AND (content >= contentMin (0.5) OR reversal) AND round(importance) >= useful
              AND chit_chat < chitChatMax (0.5) AND injection < injectionMax (0.5)
+             AND NOT (source == user_message AND instruction >= instructionMax (0.5) AND NOT reversal)   # 0.7.7: an answer, pick or hand-off for this conversation
              AND NOT (source == assistant_reply AND (meta >= metaMax (0.5) OR kind ∉ {bug, architecture}))
 contradiction = save AND reversal
 ```

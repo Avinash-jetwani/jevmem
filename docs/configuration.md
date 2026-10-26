@@ -12,6 +12,7 @@
     "chitChatMax": 0.5,
     "injectionMax": 0.5,
     "metaMax": 0.5,
+    "instructionMax": 0.5,
     "contradictionMin": 0.7,
     "staleBelow": 0.4,
     "duplicateMin": 0.7,

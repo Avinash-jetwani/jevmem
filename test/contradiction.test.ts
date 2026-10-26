@@ -134,7 +134,7 @@ describe("reversal satisfies the content gate (v0.4.2)", () => {
     const { evaluatePolicy } = await import("../src/combine.js");
     const { DEFAULT_CONFIG } = await import("../src/types.js");
     const t = DEFAULT_CONFIG.thresholds;
-    const fam = (content: number, contradiction: number) => ({ decision: content, constraint: 0, preference: 0, bug: 0, architecture: 0, todo: 0, "dead-end": 0, chit_chat: 0.05, injection: 0.05, contradiction, meta: 0 });
+    const fam = (content: number, contradiction: number) => ({ decision: content, constraint: 0, preference: 0, bug: 0, architecture: 0, todo: 0, "dead-end": 0, chit_chat: 0.05, injection: 0.05, contradiction, meta: 0 , instruction: 0});
     const reversal = evaluatePolicy({ kindChoice: "decision", importanceScore: 3, families: fam(0.3, 0.85), touchesMemoryId: "l3" }, t);
     expect(reversal.save).toBe(true);
     expect(reversal.contradiction).toBe(true);

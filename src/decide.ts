@@ -288,6 +288,8 @@ export function borderlineReasons(t1: Pick<TierAnswers, "nouls" | "importanceCon
   if (t1.importanceConfidence < rule.importanceConfidenceMin) reasons.push(`importance confidence=${t1.importanceConfidence.toFixed(2)} < ${rule.importanceConfidenceMin}`);
   const inj = inj0;
   if (inj >= rule.injectionLow && inj <= rule.injectionHigh) reasons.push(`injection=${inj.toFixed(2)} in [${rule.injectionLow}, ${rule.injectionHigh}]`);
+  // The instruction noul (0.7.7) is not an escalation reason: a band of 0.3 to 0.7 changed no outcome on its dev set and
+  // changed six on eval/stops-heldout-v4.jsonl (two better, four worse) with 6 more decide calls on 33 turns, so it was dropped.
   return reasons;
 }
 
@@ -388,7 +390,7 @@ export function buildDecideState(input: DecideInput, opts: Pick<DecideOptions, "
 }
 
 /**
- * Two-tier decide. Tier 1 (10 broad nouls) runs every turn; tier 2 (31 atomic nouls) runs only when the
+ * Two-tier decide. Tier 1 (11 broad nouls) runs every turn; tier 2 (34 atomic nouls) runs only when the
  * borderline rule says tier 1 is unsure. `tiers.mode` forces `fast` (tier 1 only) or `full` (always tier 2).
  *
  * The reply question (0.6.6, docs/how-it-works.md): on a turn with a reply the state would not hold (the user made a
@@ -528,7 +530,7 @@ export const ALWAYS_KINDS = ["constraint", "preference", "decision", "architectu
 
 /** The decision recorded for a text that restates a live line word for word: skipped before any request (src/dupe.ts). */
 export function localDuplicateDecision(id: string, thresholds: Thresholds): Decision {
-  const families = Object.fromEntries(["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end", "chit_chat", "injection", "contradiction", "meta"].map((f) => [f, 0])) as Record<Family, number>;
+  const families = Object.fromEntries(["decision", "constraint", "preference", "bug", "architecture", "todo", "dead-end", "chit_chat", "injection", "contradiction", "meta", "instruction"].map((f) => [f, 0])) as Record<Family, number>;
   return {
     save: false, kind: "none", importance: "trivial", importanceScore: 0, contradiction: false, touchesMemoryId: id, worksNow: null, retest: null,
     duplicate: { noul: 1, id, applied: true }, duplicateOf: id, alwaysNoul: 0, always: false, nouls: {}, families, content: 0, kindProbabilities: {}, confidence: 1,

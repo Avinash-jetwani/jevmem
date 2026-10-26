@@ -39,6 +39,8 @@ export function defaultWeights(): Weights {
     contradiction: { bias: -3, w: { reverses_or_replaces_a_listed_memory: 4, uses_change_of_plan_instead_or_actually: 1.5, is_about_the_same_topic_as_a_listed_memory: 1 } },
     // A self-summary alone never crosses 0.5 (a fix description is a self-summary); menus and hook/memory commentary do.
     meta: { bias: -2.5, w: { assistant_lists_options_or_next_steps: 3.0, assistant_summarises_its_own_work: 1.0, assistant_comments_on_memory_hooks_or_tooling: 3.0 } },
+    // 0.7.7: three nouls at 0.9 give 0.97, at 0.5 give 0.68, at 0.3 give 0.37.
+    instruction: { bias: -2.5, w: { answers_or_picks_among_the_assistants_options: 2.5, directs_the_assistants_next_step_only: 2.0, states_nothing_that_outlasts_the_conversation: 2.0 } },
   };
   // Every atomic noul must be covered by its family so `fit` has a full feature set.
   for (const f of FAMILIES) for (const n of familyNouls(f)) W[f].w[n.name] ??= 2 * n.sign;
@@ -172,6 +174,15 @@ export function evaluatePolicy(a: PolicyInput, t: Thresholds): { save: boolean; 
   if (content < t.contentMin && !reversal) reasons.push(`content=${content.toFixed(2)}<${t.contentMin}`);
   if (levelIdx < importanceIndex(t.importanceMin)) reasons.push(`importance=${importance}<${t.importanceMin}`);
   if (a.families.chit_chat >= t.chitChatMax) reasons.push(`chit_chat=${a.families.chit_chat.toFixed(2)}`);
+  // An instruction for this conversation (0.7.7): an answer to the assistant's questions, a pick among its options, a
+  // hand-off or a step to take next, with nothing for the project to keep, is not saved whatever the kind choice reads
+  // into it ("go with option 2" is not a project decision). Only when the memory would come from the user's own words:
+  // a request is an instruction too, and what its reply found (a failed attempt, a fact) is saved from the reply as
+  // before (the first build gated every source and lost 20 of 40 dead ends on eval/attempts-heldout.jsonl). A reversal
+  // still is saved: a change of plan is often phrased as an order. A config written before 0.7.7 has no `instructionMax`:
+  // the default applies.
+  const instructionMax = t.instructionMax ?? 0.5;
+  if (!reversal && (a.source === undefined || a.source === "user_message") && (a.families.instruction ?? 0) >= instructionMax) reasons.push(`instruction=${(a.families.instruction ?? 0).toFixed(2)} (an answer, pick or hand-off for this conversation, nothing to keep)`);
   if (a.families.injection >= t.injectionMax) reasons.push(`injection=${a.families.injection.toFixed(2)}`);
   // The meta gate only matters when the assistant reply is what would be saved; a user statement stays the memory.
   if (a.source === "assistant_reply" && (a.families.meta ?? 0) >= t.metaMax) reasons.push(`assistant_meta=${a.families.meta.toFixed(2)}`);

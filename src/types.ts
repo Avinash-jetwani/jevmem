@@ -62,6 +62,12 @@ export interface Thresholds {
   injectionMax: number;
   /** Skip when the assistant reply is in the state and the meta family (options / self-summary / memory commentary) is at or above this. */
   metaMax: number;
+  /**
+   * Skip when the instruction family (0.7.7: an answer to the assistant's questions, a pick among its options, a hand-off
+   * or a step to take next, with nothing for the project to keep) is at or above this, unless the turn reverses a listed
+   * line. Chosen on eval/todo-instructions-dev.jsonl (docs/benchmark.md). A config written before 0.7.7 has no key: 0.5.
+   */
+  instructionMax: number;
   /** Mark a contradiction when `contradicts_existing_memory` is at or above this. */
   contradictionMin: number;
   /** `jevmem audit` marks memories below this as `[stale?]`. */
@@ -156,7 +162,7 @@ export interface JevmemConfig {
   };
   /** Logistic weights over the atomic nouls, per family. Hand-set defaults; `jevmem fit` overwrites them from labels. */
   weights?: Record<string, { bias: number; w: Record<string, number> }>;
-  /** Two-tier decide: tier 1 (10 broad nouls) every turn, tier 2 (31 atomic nouls) only on borderline turns. */
+  /** Two-tier decide: tier 1 (11 broad nouls) every turn, tier 2 (34 atomic nouls) only on borderline turns. */
   tiers: TiersConfig;
   /** The PreToolUse guard: checks Bash, Edit and Write calls against the project's saved `[constraint]` lines. */
   guard: GuardConfig;
@@ -248,6 +254,7 @@ export const DEFAULT_CONFIG: JevmemConfig = {
     chitChatMax: 0.5,
     injectionMax: 0.5,
     metaMax: 0.5,
+    instructionMax: 0.5,
     contradictionMin: 0.7,
     staleBelow: 0.4,
     duplicateMin: 0.7,

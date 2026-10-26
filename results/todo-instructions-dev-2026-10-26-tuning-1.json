@@ -1,0 +1,1883 @@
+{
+  "kind": "eval",
+  "date": "2026-10-26",
+  "jevmem_version": "0.7.6",
+  "commit": "f21087e+dirty",
+  "dist": "dist/index.js",
+  "model": "jev-1.13.0",
+  "eval_set": "eval/todo-instructions-dev.jsonl",
+  "turns": 30,
+  "machine": "darwin arm64, node v22.22.0, Apple M4",
+  "network_path": "direct HTTPS to the TypeSafe API default base URL (POST /v1/systemone), warm in-process client, cache off",
+  "cost_method": "input tokens × $0.042 per million; output tokens free (https://typesafe.ai/blog/introducing-system-one-models-and-jev)",
+  "results": [
+    {
+      "mode": "auto",
+      "n": 30,
+      "started_at": "2026-10-26T15:50:28.016Z",
+      "finished_at": "2026-10-26T15:50:37.641Z",
+      "saveAccuracy": 0.9333333333333333,
+      "accuracy": 0.8333333333333334,
+      "f1": 0.9444444444444444,
+      "precision": 0.9444444444444444,
+      "recall": 0.9444444444444444,
+      "saveSkipCorrect": 28,
+      "saveKindCorrect": 25,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 2,
+      "injectionNotSaved": "0/0",
+      "p50ms": 328,
+      "p95ms": 386,
+      "avgInputTokens": 7267,
+      "avgOutputTokens": 1004,
+      "avgTokens": 8271,
+      "costPerTurn": 0.0003052224,
+      "costPerTurnWithLine": 0.0003059098,
+      "lineCallsPerTurn": 0.03333333333333333,
+      "lineP50ms": 1,
+      "escalationRate": 0.5666666666666667,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "instruction",
+          "user": "Answers to your questions: 1) yes, keep the Tera templates; 2) no, don't add a c",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]"
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Reviews are blind from now on: drop the author's name from the review template a",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "reason": "skip: content=0.36<0.5 [tier 2, escalated]"
+        },
+        {
+          "tag": "todo",
+          "user": "We still need the end-of-day report to work offline; today it needs the server, ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "reason": "save kind=bug content=0.87 importance=important [tier 1]"
+        },
+        {
+          "tag": "todo",
+          "user": "Still open: boats over 15 metres need the harbour master's approval before a boo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "reason": "save kind=bug content=0.54 importance=important [tier 2, escalated]"
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "The deposit is 20% from now on, not 10%; change the invoice and the confirmation",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.69 importance=important [tier 2, escalated]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "instruction",
+          "user": "Go with the second option, then run the tests and paste any failures.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 386,
+          "line": null,
+          "inputTokens": 9925,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "skip: instruction=0.95 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.63,
+            "constraint": 0,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.06,
+            "dead-end": 0,
+            "none": 0.3
+          },
+          "families": {
+            "decision": 0.8375349374193038,
+            "constraint": 0.09885607317816938,
+            "preference": 0.2192572520878717,
+            "bug": 0.14307272348008082,
+            "architecture": 0.15909194771428195,
+            "todo": 0.19781611144141822,
+            "dead-end": 0.09534946489910949,
+            "chit_chat": 0.14368683275882915,
+            "injection": 0.10861179667022107,
+            "contradiction": 0.08907352773556326,
+            "meta": 0.07585818002124355,
+            "instruction": 0.945576564403109
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.04,
+            "answers_or_picks_among_the_assistants_options": 0.95,
+            "directs_the_assistants_next_step_only": 0.85,
+            "states_nothing_that_outlasts_the_conversation": 0.64
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Answers to your questions: 1) yes, keep the Tera templates; 2) no, don't add a c",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 162,
+          "line": {
+            "line": "Answers to your questions: 1) yes, keep the Tera templates; 2) no, don't add a cache; 3) the samples folder can stay.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 3,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3441,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.99,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0.01
+          },
+          "families": {
+            "decision": 0.98,
+            "constraint": 0.64,
+            "preference": 0.76,
+            "bug": 0.04,
+            "architecture": 0.35,
+            "todo": 0.06,
+            "dead-end": 0.05,
+            "chit_chat": 0.01,
+            "injection": 0.05,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.38
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.05,
+            "is_an_instruction_for_this_conversation": 0.38
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Before the beta we still need an import for existing notes from the old wiki; th",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 357,
+          "line": {
+            "line": "Before the beta we still need an import for existing notes from the old wiki; the export format is HTML, so that is a converter too.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 2,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3434,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=todo content=0.83 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.04,
+            "todo": 0.95,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.32,
+            "constraint": 0.42,
+            "preference": 0.15,
+            "bug": 0.06,
+            "architecture": 0.55,
+            "todo": 0.83,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.03,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.08
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.03,
+            "is_an_instruction_for_this_conversation": 0.08
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Still to do before launch: the RSS feed. The templates for it exist, the rendere",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 164,
+          "line": {
+            "line": "Still to do before launch: the RSS feed. The templates for it exist, the renderer just does not write it yet.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 167,
+            "calls": 1,
+            "inputTokens": 491
+          },
+          "inputTokens": 3430,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=todo content=0.90 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.08,
+            "constraint": 0.07,
+            "preference": 0.06,
+            "bug": 0.32,
+            "architecture": 0.74,
+            "todo": 0.9,
+            "dead-end": 0.06,
+            "chit_chat": 0.01,
+            "injection": 0.03,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.05
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.03,
+            "is_an_instruction_for_this_conversation": 0.05
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "The output goes to dist/ from now on, not site/; change the renderer and the REA",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "fl1"
+          },
+          "ms": 338,
+          "line": {
+            "line": "The output goes to dist/ from now on, not site/; change the renderer and the README.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9937,
+          "outputTokens": 1427,
+          "escalated": true,
+          "reason": "save kind=decision content=0.81 importance=important supersedes=fl1 [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.54,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.4,
+            "todo": 0.04,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.8130573860319537,
+            "constraint": 0.11815697780926952,
+            "preference": 0.16589558609851357,
+            "bug": 0.10386491551226963,
+            "architecture": 0.6963549298238342,
+            "todo": 0.17580959708892896,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.08203599991368223,
+            "injection": 0.15446526508353475,
+            "contradiction": 0.9015884520526233,
+            "meta": 0.07585818002124355,
+            "instruction": 0.12078684339420942
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.14,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.06,
+            "states_nothing_that_outlasts_the_conversation": 0.16
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "I'll handle the DNS change for the new domain myself tomorrow; nothing for you t",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 365,
+          "line": null,
+          "inputTokens": 9891,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "skip: kind=none, importance=minor<useful, instruction=0.76 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.43,
+            "dead-end": 0,
+            "none": 0.55
+          },
+          "families": {
+            "decision": 0.7047456979980911,
+            "constraint": 0.1038649155122696,
+            "preference": 0.2788848219771369,
+            "bug": 0.0932147230818236,
+            "architecture": 0.15446526508353467,
+            "todo": 0.6479408020806503,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.2201143709992742,
+            "injection": 0.12455335818741645,
+            "contradiction": 0.06446476583758966,
+            "meta": 0.07585818002124355,
+            "instruction": 0.7604230019887311
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.07,
+            "answers_or_picks_among_the_assistants_options": 0.23,
+            "directs_the_assistants_next_step_only": 0.66,
+            "states_nothing_that_outlasts_the_conversation": 0.88
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Paste the diff before you commit anything, I want to read it first.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 314,
+          "line": null,
+          "inputTokens": 9879,
+          "outputTokens": 1429,
+          "escalated": true,
+          "reason": "skip: instruction=0.80 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.15,
+            "preference": 0.47,
+            "bug": 0,
+            "architecture": 0.01,
+            "todo": 0.01,
+            "dead-end": 0,
+            "none": 0.35
+          },
+          "families": {
+            "decision": 0.12455335818741639,
+            "constraint": 0.11405238127979088,
+            "preference": 0.5584811124381613,
+            "bug": 0.09279295311715702,
+            "architecture": 0.1915453485614675,
+            "todo": 0.3917409692534856,
+            "dead-end": 0.08317269649392238,
+            "chit_chat": 0.24787088856042985,
+            "injection": 0.11105596671140756,
+            "contradiction": 0.059245075582265654,
+            "meta": 0.07585818002124355,
+            "instruction": 0.7965711270909327
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.21,
+            "directs_the_assistants_next_step_only": 0.85,
+            "states_nothing_that_outlasts_the_conversation": 0.82
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "We still have to add the reviewer reminder email before the autumn round opens; ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 213,
+          "line": {
+            "line": "We still have to add the reviewer reminder email before the autumn round opens; the template is drafted, the job isn't.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 0,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3407,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=todo content=0.94 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 1,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.28,
+            "constraint": 0.33,
+            "preference": 0.13,
+            "bug": 0.06,
+            "architecture": 0.3,
+            "todo": 0.94,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.03,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.08
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.03,
+            "is_an_instruction_for_this_conversation": 0.08
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Open item: manuscripts over 50 MB fail the upload; we need chunked uploads at so",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 169,
+          "line": {
+            "line": "Open item: manuscripts over 50 MB fail the upload; we need chunked uploads at some point before the illustrated series.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 0,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3952,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=todo content=0.96 importance=useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.38,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.03,
+            "architecture": 0,
+            "todo": 0.97,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.36,
+            "constraint": 0.62,
+            "preference": 0.25,
+            "bug": 0.88,
+            "architecture": 0.17,
+            "todo": 0.96,
+            "dead-end": 0.38,
+            "chit_chat": 0.01,
+            "injection": 0.03,
+            "contradiction": 0.07,
+            "meta": 0.1,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.03,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Reviews are blind from now on: drop the author's name from the review template a",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 349,
+          "line": null,
+          "inputTokens": 9893,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "skip: content=0.36<0.5 [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.32,
+            "constraint": 0.61,
+            "preference": 0.03,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.04,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.3554884462937054,
+            "constraint": 0.15446526508353473,
+            "preference": 0.15058757974584394,
+            "bug": 0.10065209356410691,
+            "architecture": 0.21585281082251456,
+            "todo": 0.14741766105380752,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.1047993794128244,
+            "injection": 0.1570954688854527,
+            "contradiction": 0.10621499167517556,
+            "meta": 0.07585818002124355,
+            "instruction": 0.10861179667022107
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.09,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.06,
+            "states_nothing_that_outlasts_the_conversation": 0.1
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Rename it as you suggested, then stop there; I want to look before the next step",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 314,
+          "line": null,
+          "inputTokens": 10482,
+          "outputTokens": 1449,
+          "escalated": true,
+          "reason": "skip: instruction=0.90 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 2, escalated] [reply question: 0.02, the reply not read]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.07,
+            "constraint": 0.01,
+            "preference": 0.04,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.51,
+            "dead-end": 0,
+            "none": 0.37
+          },
+          "families": {
+            "decision": 0.40251423417298393,
+            "constraint": 0.10716807048652817,
+            "preference": 0.46257015465625045,
+            "bug": 0.11304583007207897,
+            "architecture": 0.1750862681640398,
+            "todo": 0.9275735146384823,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.1772633035782569,
+            "injection": 0.12346704756522399,
+            "contradiction": 0.08166025546159467,
+            "meta": 0.07585818002124355,
+            "instruction": 0.8970621741828279
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.06,
+            "answers_or_picks_among_the_assistants_options": 0.73,
+            "directs_the_assistants_next_step_only": 0.77,
+            "states_nothing_that_outlasts_the_conversation": 0.65
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "I'm sending the council the signed data agreement first and will upload the new ",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 368,
+          "line": null,
+          "inputTokens": 9985,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "skip: instruction=0.61 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.6,
+            "dead-end": 0,
+            "none": 0.36
+          },
+          "families": {
+            "decision": 0.5274723043445937,
+            "constraint": 0.12131883789173686,
+            "preference": 0.2819114248166502,
+            "bug": 0.09029814470291984,
+            "architecture": 0.20020717819927933,
+            "todo": 0.8474836831387063,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.0957816280963277,
+            "injection": 0.1394338729616501,
+            "contradiction": 0.0779882351293664,
+            "meta": 0.07585818002124355,
+            "instruction": 0.6130141761393355
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.06,
+            "answers_or_picks_among_the_assistants_options": 0.08,
+            "directs_the_assistants_next_step_only": 0.71,
+            "states_nothing_that_outlasts_the_conversation": 0.67
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "The plot map still needs the new boundaries once the council sends the file; the",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 227,
+          "line": {
+            "line": "The plot map still needs the new boundaries once the council sends the file; the import script is ready, the file is not.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 0,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3441,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=todo content=0.95 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.98,
+            "dead-end": 0,
+            "none": 0.02
+          },
+          "families": {
+            "decision": 0.12,
+            "constraint": 0.16,
+            "preference": 0.09,
+            "bug": 0.3,
+            "architecture": 0.52,
+            "todo": 0.95,
+            "dead-end": 0.06,
+            "chit_chat": 0.01,
+            "injection": 0.02,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.13
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.02,
+            "is_an_instruction_for_this_conversation": 0.13
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "After the season: the waiting list needs a cancel link in the email, people emai",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 328,
+          "line": {
+            "line": "After the season: the waiting list needs a cancel link in the email, people email the secretary to be taken off.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9963,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "save kind=todo content=0.71 importance=useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.01,
+            "preference": 0.02,
+            "bug": 0.1,
+            "architecture": 0,
+            "todo": 0.86,
+            "dead-end": 0,
+            "none": 0.01
+          },
+          "families": {
+            "decision": 0.15058757974584394,
+            "constraint": 0.1443031340905187,
+            "preference": 0.12509958153381529,
+            "bug": 0.13943387296165005,
+            "architecture": 0.17872642365885047,
+            "todo": 0.7119759194127935,
+            "dead-end": 0.09534946489910949,
+            "chit_chat": 0.11007257436250302,
+            "injection": 0.10020039019101071,
+            "contradiction": 0.08279221526615305,
+            "meta": 0.07585818002124355,
+            "instruction": 0.15976199694366908
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.08,
+            "directs_the_assistants_next_step_only": 0.07,
+            "states_nothing_that_outlasts_the_conversation": 0.25
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Bookings are per half-plot from now on, not per plot; change the booking form an",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": "ab2"
+          },
+          "ms": 140,
+          "line": {
+            "line": "Bookings are per half-plot from now on, not per plot; change the booking form and the plots table.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3440,
+          "outputTokens": 405,
+          "escalated": false,
+          "reason": "save kind=decision content=0.94 importance=important supersedes=ab2 [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.72,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.25,
+            "dead-end": 0,
+            "none": 0.01
+          },
+          "families": {
+            "decision": 0.94,
+            "constraint": 0.81,
+            "preference": 0.16,
+            "bug": 0.06,
+            "architecture": 0.47,
+            "todo": 0.07,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.04,
+            "contradiction": 0.91,
+            "meta": 0,
+            "instruction": 0.06
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.04,
+            "is_an_instruction_for_this_conversation": 0.06
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Use the shorter version of the sync error message, the one without the server na",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 364,
+          "line": null,
+          "inputTokens": 11158,
+          "outputTokens": 1610,
+          "escalated": true,
+          "reason": "skip: importance=minor<useful, instruction=0.60 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.32,
+            "constraint": 0,
+            "preference": 0.53,
+            "bug": 0.02,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0.13
+          },
+          "families": {
+            "decision": 0.7130001627522816,
+            "constraint": 0.10669059394565115,
+            "preference": 0.51499550161941,
+            "bug": 0.6637386974043527,
+            "architecture": 0.10812866676200357,
+            "todo": 0.10110560441045455,
+            "dead-end": 0.09534946489910949,
+            "chit_chat": 0.10110560441045452,
+            "injection": 0.1273050380753717,
+            "contradiction": 0.10156092789763664,
+            "meta": 0.1480471980316895,
+            "instruction": 0.595078473866134
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.07,
+            "answers_or_picks_among_the_assistants_options": 0.57,
+            "directs_the_assistants_next_step_only": 0.31,
+            "states_nothing_that_outlasts_the_conversation": 0.42
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Leave the failing test for now and just show me the error it prints.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 350,
+          "line": null,
+          "inputTokens": 11170,
+          "outputTokens": 1606,
+          "escalated": true,
+          "reason": "skip: instruction=0.85 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.2,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0,
+            "preference": 0.04,
+            "bug": 0.05,
+            "architecture": 0,
+            "todo": 0.63,
+            "dead-end": 0.02,
+            "none": 0.25
+          },
+          "families": {
+            "decision": 0.37402214223339625,
+            "constraint": 0.10065209356410687,
+            "preference": 0.2911098274338801,
+            "bug": 0.44398610945538003,
+            "architecture": 0.10958374540630003,
+            "todo": 0.8061210621761402,
+            "dead-end": 0.19000156601531298,
+            "chit_chat": 0.1938789378238599,
+            "injection": 0.1192029220221176,
+            "contradiction": 0.07656219735181218,
+            "meta": 0.15058757974584394,
+            "instruction": 0.8474836831387063
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.07,
+            "answers_or_picks_among_the_assistants_options": 0.39,
+            "directs_the_assistants_next_step_only": 0.78,
+            "states_nothing_that_outlasts_the_conversation": 0.84
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Next sprint: receipts by email from the sale screen, the vendor keeps getting as",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 145,
+          "line": {
+            "line": "Next sprint: receipts by email from the sale screen, the vendor keeps getting asked for them.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 4,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3398,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=todo content=0.96 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.08,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0.04,
+            "architecture": 0,
+            "todo": 0.96,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.72,
+            "constraint": 0.16,
+            "preference": 0.46,
+            "bug": 0.56,
+            "architecture": 0.36,
+            "todo": 0.96,
+            "dead-end": 0.08,
+            "chit_chat": 0.01,
+            "injection": 0.03,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.1
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.03,
+            "is_an_instruction_for_this_conversation": 0.1
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "We still need the end-of-day report to work offline; today it needs the server, ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "ms": 153,
+          "line": {
+            "line": "We still need the end-of-day report to work offline; today it needs the server, which is exactly when it is not there.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3406,
+          "outputTokens": 405,
+          "escalated": false,
+          "reason": "save kind=bug content=0.87 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.33,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.23,
+            "preference": 0,
+            "bug": 0.7,
+            "architecture": 0.01,
+            "todo": 0.05,
+            "dead-end": 0,
+            "none": 0.01
+          },
+          "families": {
+            "decision": 0.08,
+            "constraint": 0.69,
+            "preference": 0.48,
+            "bug": 0.87,
+            "architecture": 0.56,
+            "todo": 0.22,
+            "dead-end": 0.33,
+            "chit_chat": 0.01,
+            "injection": 0.03,
+            "contradiction": 0.27,
+            "meta": 0,
+            "instruction": 0.11
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.03,
+            "is_an_instruction_for_this_conversation": 0.11
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Sync every five minutes from now on instead of on launch only; change the schedu",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 375,
+          "line": {
+            "line": "Sync every five minutes from now on instead of on launch only; change the scheduler.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9877,
+          "outputTokens": 1427,
+          "escalated": true,
+          "reason": "save kind=decision content=0.80 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.6,
+            "constraint": 0.02,
+            "preference": 0.16,
+            "bug": 0,
+            "architecture": 0.02,
+            "todo": 0.19,
+            "dead-end": 0,
+            "none": 0.01
+          },
+          "families": {
+            "decision": 0.8029761144061539,
+            "constraint": 0.6931739493259501,
+            "preference": 0.13238887354206538,
+            "bug": 0.09796880429755396,
+            "architecture": 0.1978161114414182,
+            "todo": 0.1289808521462357,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.10764742639517667,
+            "injection": 0.13883499354730713,
+            "contradiction": 0.41217046151748854,
+            "meta": 0.07585818002124355,
+            "instruction": 0.12346704756522402
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.09,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.05,
+            "states_nothing_that_outlasts_the_conversation": 0.17
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Yes to both of your suggestions; skip the third one.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 361,
+          "line": null,
+          "inputTokens": 9915,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "skip: instruction=0.85 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.08,
+          "kindProbabilities": {
+            "decision": 0.97,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0.03
+          },
+          "families": {
+            "decision": 0.7170752854929726,
+            "constraint": 0.10669059394565115,
+            "preference": 0.3351462695940264,
+            "bug": 0.10669059394565118,
+            "architecture": 0.14246080221548793,
+            "todo": 0.4650570548417856,
+            "dead-end": 0.10433122311900131,
+            "chit_chat": 0.22183581507529954,
+            "injection": 0.12564785651534566,
+            "contradiction": 0.10812866676200357,
+            "meta": 0.07585818002124355,
+            "instruction": 0.8544576710630347
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.08,
+            "answers_or_picks_among_the_assistants_options": 0.94,
+            "directs_the_assistants_next_step_only": 0.5,
+            "states_nothing_that_outlasts_the_conversation": 0.46
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Hold off on the migration until I say; run everything else.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 161,
+          "line": null,
+          "inputTokens": 3416,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "skip: instruction=0.67 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.08,
+            "constraint": 0.06,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.81,
+            "dead-end": 0,
+            "none": 0.05
+          },
+          "families": {
+            "decision": 0.78,
+            "constraint": 0.77,
+            "preference": 0.35,
+            "bug": 0.03,
+            "architecture": 0.16,
+            "todo": 0.96,
+            "dead-end": 0.03,
+            "chit_chat": 0.02,
+            "injection": 0.08,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.67
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.08,
+            "is_an_instruction_for_this_conversation": 0.67
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "We still have to backfill the January readings from the paper forms; the ops tea",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 162,
+          "line": {
+            "line": "We still have to backfill the January readings from the paper forms; the ops team is typing them up and the upload needs a `source` column for them.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3436,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=todo content=0.76 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.03,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.01,
+            "todo": 0.9,
+            "dead-end": 0,
+            "none": 0.06
+          },
+          "families": {
+            "decision": 0.23,
+            "constraint": 0.4,
+            "preference": 0.12,
+            "bug": 0.11,
+            "architecture": 0.64,
+            "todo": 0.76,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.02,
+            "contradiction": 0.07,
+            "meta": 0,
+            "instruction": 0.14
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.02,
+            "is_an_instruction_for_this_conversation": 0.14
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Open item before the audit: a report of every reading changed since the previous",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 375,
+          "line": {
+            "line": "Open item before the audit: a report of every reading changed since the previous audit, with who changed it.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 2,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9935,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "save kind=todo content=0.75 importance=useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.99,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.14307272348008088,
+            "constraint": 0.1202568624677508,
+            "preference": 0.10293782581717223,
+            "bug": 0.10020039019101071,
+            "architecture": 0.259225100817846,
+            "todo": 0.7511957822308615,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.15187116365665929,
+            "injection": 0.10669059394565118,
+            "contradiction": 0.09796880429755393,
+            "meta": 0.07585818002124355,
+            "instruction": 0.20751005855963559
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.12,
+            "directs_the_assistants_next_step_only": 0.15,
+            "states_nothing_that_outlasts_the_conversation": 0.28
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "Readings come in as integer litres from now on, not decimal cubic metres; change",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 332,
+          "line": {
+            "line": "Readings come in as integer litres from now on, not decimal cubic metres; change the parser and the column.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 0,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9939,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "save kind=decision content=0.68 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.56,
+            "constraint": 0.26,
+            "preference": 0,
+            "bug": 0.02,
+            "architecture": 0.09,
+            "todo": 0.06,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.6824383021930648,
+            "constraint": 0.1750862681640398,
+            "preference": 0.1155768446755336,
+            "bug": 0.11204703855699032,
+            "architecture": 0.38461624360881785,
+            "todo": 0.17580959708892896,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.09665121094159101,
+            "injection": 0.13883499354730713,
+            "contradiction": 0.18694261396804632,
+            "meta": 0.07585818002124355,
+            "instruction": 0.11254546685079975
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.09,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.07,
+            "states_nothing_that_outlasts_the_conversation": 0.11
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Just the summary, no code; I'll read the code tomorrow.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 148,
+          "line": null,
+          "inputTokens": 3409,
+          "outputTokens": 406,
+          "escalated": false,
+          "reason": "skip: instruction=0.90 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.01,
+            "preference": 0.67,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0.04,
+            "dead-end": 0,
+            "none": 0.27
+          },
+          "families": {
+            "decision": 0.24,
+            "constraint": 0.4,
+            "preference": 0.93,
+            "bug": 0.03,
+            "architecture": 0.2,
+            "todo": 0.83,
+            "dead-end": 0.02,
+            "chit_chat": 0.13,
+            "injection": 0.03,
+            "contradiction": 0.04,
+            "meta": 0,
+            "instruction": 0.9
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.03,
+            "is_an_instruction_for_this_conversation": 0.9
+          }
+        },
+        {
+          "tag": "instruction",
+          "user": "Do the rename across all three files, then run the formatter.",
+          "want": {
+            "save": false,
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 374,
+          "line": null,
+          "inputTokens": 11188,
+          "outputTokens": 1604,
+          "escalated": true,
+          "reason": "skip: source=none (neither side states anything for the project), kind=none, content=0.25<0.5, importance=minor<useful, instruction=0.84 (an answer, pick or hand-off for this conversation, nothing to keep) [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "none",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0.03,
+            "bug": 0,
+            "architecture": 0.01,
+            "todo": 0.18,
+            "dead-end": 0,
+            "none": 0.78
+          },
+          "families": {
+            "decision": 0.1486789545839074,
+            "constraint": 0.11763699212507706,
+            "preference": 0.25350601666233785,
+            "bug": 0.12292695083285751,
+            "architecture": 0.15381336397920678,
+            "todo": 0.10293782581717223,
+            "dead-end": 0.08317269649392238,
+            "chit_chat": 0.14741766105380757,
+            "injection": 0.0957816280963277,
+            "contradiction": 0.06356601833505528,
+            "meta": 0.14063812573413417,
+            "instruction": 0.8402380030563309
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.32,
+            "directs_the_assistants_next_step_only": 0.79,
+            "states_nothing_that_outlasts_the_conversation": 0.89
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Before next season the office wants invoices as PDF; the HTML invoice is there, ",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "ms": 152,
+          "line": {
+            "line": "Before next season the office wants invoices as PDF; the HTML invoice is there, the PDF step isn't.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 0,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 3417,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=todo content=0.77 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.01,
+            "preference": 0.03,
+            "bug": 0.06,
+            "architecture": 0,
+            "todo": 0.89,
+            "dead-end": 0,
+            "none": 0.01
+          },
+          "families": {
+            "decision": 0.51,
+            "constraint": 0.41,
+            "preference": 0.37,
+            "bug": 0.46,
+            "architecture": 0.66,
+            "todo": 0.77,
+            "dead-end": 0.07,
+            "chit_chat": 0.01,
+            "injection": 0.03,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.14
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.03,
+            "is_an_instruction_for_this_conversation": 0.14
+          }
+        },
+        {
+          "tag": "todo",
+          "user": "Still open: boats over 15 metres need the harbour master's approval before a boo",
+          "want": {
+            "save": true,
+            "kind": "todo",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "bug",
+            "contradicts": null
+          },
+          "ms": 1421,
+          "line": {
+            "line": "Still open: boats over 15 metres need the harbour master's approval before a booking confirms; nothing enforces that yet.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 0,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9929,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "save kind=bug content=0.54 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.1,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.36,
+            "preference": 0,
+            "bug": 0.59,
+            "architecture": 0,
+            "todo": 0.05,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.08706577244027125,
+            "constraint": 0.5049998333399998,
+            "preference": 0.09796880429755396,
+            "bug": 0.542397940774351,
+            "architecture": 0.27289178365887046,
+            "todo": 0.5262259093720688,
+            "dead-end": 0.11920292202211755,
+            "chit_chat": 0.0862741944959167,
+            "injection": 0.11007257436250302,
+            "contradiction": 0.0779882351293664,
+            "meta": 0.07585818002124355,
+            "instruction": 0.12954361891967836
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.03,
+            "answers_or_picks_among_the_assistants_options": 0.07,
+            "directs_the_assistants_next_step_only": 0.08,
+            "states_nothing_that_outlasts_the_conversation": 0.13
+          }
+        },
+        {
+          "tag": "instruction-with-decision",
+          "user": "The deposit is 20% from now on, not 10%; change the invoice and the confirmation",
+          "want": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 323,
+          "line": {
+            "line": "The deposit is 20% from now on, not 10%; change the invoice and the confirmation email.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 1,
+            "pickError": null,
+            "ms": 1,
+            "calls": 0,
+            "inputTokens": 0
+          },
+          "inputTokens": 9923,
+          "outputTokens": 1425,
+          "escalated": true,
+          "reason": "save kind=constraint content=0.69 importance=important [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.02,
+          "kindProbabilities": {
+            "decision": 0.39,
+            "constraint": 0.38,
+            "preference": 0,
+            "bug": 0.01,
+            "architecture": 0,
+            "todo": 0.19,
+            "dead-end": 0,
+            "none": 0.03
+          },
+          "families": {
+            "decision": 0.6921095043017882,
+            "constraint": 0.2621158988083652,
+            "preference": 0.09796880429755396,
+            "bug": 0.10110560441045452,
+            "architecture": 0.14741766105380755,
+            "todo": 0.14867895458390742,
+            "dead-end": 0.08317269649392238,
+            "chit_chat": 0.11056331311630425,
+            "injection": 0.1318156181131952,
+            "contradiction": 0.11405238127979088,
+            "meta": 0.07585818002124355,
+            "instruction": 0.11711899087578057
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.08,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.08,
+            "states_nothing_that_outlasts_the_conversation": 0.11
+          }
+        }
+      ]
+    }
+  ]
+}
