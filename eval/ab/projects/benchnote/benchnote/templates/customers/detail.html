@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ customer['name'] }} · benchnote{% endblock %}
+{% block content %}
+<h1>{{ customer['name'] }}</h1>
+<p>{{ customer['phone'] or 'no phone' }} · {{ customer['email'] or 'no email' }}</p>
+<p>{{ customer['address'] or 'no address' }}</p>
+<h2>Orders</h2>
+<ul>
+  {% for o in orders %}<li><a href="{{ url_for('orders.show_order', order_id=o['id']) }}">{{ o['device'] }}</a> · {{ o['status'] }}</li>{% endfor %}
+</ul>
+{% endblock %}

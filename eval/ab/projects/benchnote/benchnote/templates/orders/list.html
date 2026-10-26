@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Orders · benchnote{% endblock %}
+{% block content %}
+<h1>Work orders</h1>
+<table>
+  <thead><tr><th>Customer</th><th>Device</th><th>Problem</th><th>Status</th><th>Created</th></tr></thead>
+  <tbody>
+  {% for o in orders %}
+    <tr>
+      <td><a href="{{ url_for('orders.show_order', order_id=o['id']) }}">{{ o['customer_name'] }}</a></td>
+      <td>{{ o['device'] }}</td>
+      <td>{{ o['problem'] }}</td>
+      <td class="status status-{{ o['status'] }}">{{ o['status'] }}</td>
+      <td>{{ o['created_at'] }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

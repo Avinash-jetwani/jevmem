@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}New order · benchnote{% endblock %}
+{% block content %}
+<h1>New work order</h1>
+<form method="post" action="{{ url_for('orders.create_order') }}">
+  <label>Customer
+    <select name="customer_id" required>
+      {% for c in customers %}<option value="{{ c['id'] }}">{{ c['name'] }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Device <input name="device" required></label>
+  <label>Problem <textarea name="problem" required></textarea></label>
+  <label>Labour rate per hour <input name="labour_rate" type="number" step="0.5" value="60"></label>
+  <button type="submit">Create</button>
+</form>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Customers · benchnote{% endblock %}
+{% block content %}
+<h1>Customers</h1>
+<ul>
+  {% for c in customers %}<li><a href="{{ url_for('customers.show_customer', customer_id=c['id']) }}">{{ c['name'] }}</a></li>{% endfor %}
+</ul>
+<form method="post" action="{{ url_for('customers.create_customer') }}">
+  <input name="name" placeholder="Name" required>
+  <input name="phone" placeholder="Phone">
+  <input name="email" placeholder="Email">
+  <input name="address" placeholder="Address">
+  <button type="submit">Add customer</button>
+</form>
+{% endblock %}

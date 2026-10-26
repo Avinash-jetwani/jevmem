@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}benchnote{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <header>
+    <a href="{{ url_for('orders.list_orders') }}">Orders</a>
+    <a href="{{ url_for('customers.list_customers') }}">Customers</a>
+    <a href="{{ url_for('orders.new_order') }}">New order</a>
+  </header>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}<ul class="flash">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
+  {% endwith %}
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>
