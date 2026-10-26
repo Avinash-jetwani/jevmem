@@ -142,7 +142,7 @@ cd your-project
 jevmem init --tool claude    # or cursor, codex, claude-desktop, all
 ```
 
-In Cursor, the jevmem plugin (0.7.6) carries the hooks, the MCP server and the rule for every window: install it from the Cursor Marketplace once it is listed there, or copy this repository's `cursor-plugin/` folder to `~/.cursor/plugins/local/jevmem` and reload the window; then `jevmem setup` in each project ([the steps](docs/install.md#the-cursor-plugin-076)).
+In Cursor, the jevmem plugin (0.7.6) carries the hooks, the MCP server and the rule for every window: install it from the Cursor Marketplace once it is listed there, or copy this repository's `cursor-plugin/` folder to `~/.cursor/plugins/local/jevmem` and reload the window; then `jevmem setup` in each project ([the steps](docs/install.md#the-cursor-plugin-076)). jevmem is also listed on [cursor.directory](https://cursor.directory/plugins/jevmem); its **Add to Cursor** button installs the MCP server alone (recall, with the entry in [docs/mcp.md](docs/mcp.md#cursor)), so saving still needs the plugin folder or `jevmem init --tool cursor`.
 
 Already have a `CLAUDE.md`? `jevmem import` shows what it would add from it; `--apply` writes it.
 
