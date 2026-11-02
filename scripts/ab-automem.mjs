@@ -6,6 +6,7 @@
 //                               [--runs 3] [--concurrency 4] [--model claude-fable-5-1] [--expect-claude 2.1.306]
 //                               [--out results/ab-automem-<date>.json] [--transcripts <dir>] [--keep] [--resume]
 //                               [--max-turns 25] [--teach-turns 12] [--timeout-ms 600000] [--max-jobs N]
+//                               [--auth api|oauth] [--build-commit <sha>]
 //
 // --max-jobs N runs at most N of the planned jobs in this invocation and writes the output as usual, so a long run goes
 // in blocks: `--resume` with the same --out and --transcripts carries on from the partial file (the plan is the same
@@ -30,8 +31,16 @@
 // The served model and Claude Code version are read from each session's init event. A job with any session served by
 // another model, or another version when --expect-claude is given, is a stray: it is rerun once in the same slot (task,
 // arm, run); if the rerun is a stray too, the slot is left out (`excluded`) and counted. The first attempt's records
-// are kept under `strays`. Claude Code authenticates with CLAUDE_CODE_OAUTH_TOKEN (or ~/.jevmem/e2e-oauth-token); the
-// TypeSafe key goes into the session HOME's ~/.jevmem/env in the jevmem arms only.
+// are kept under `strays`. Claude Code authenticates with one credential per invocation: `--auth api` passes only
+// ANTHROPIC_API_KEY (from the environment or ~/.jevmem/e2e-api-key, API credit), `--auth oauth` only
+// CLAUDE_CODE_OAUTH_TOKEN (from the environment or ~/.jevmem/e2e-oauth-token, the subscription); without the flag, the
+// token when there is one, else the key. Every session's record carries `auth` and the `apiKeySource` Claude Code's
+// init event reported. The TypeSafe key goes into the session HOME's ~/.jevmem/env in the jevmem arms only.
+//
+// An account error in any session of a job (a refused key, no credit, the spend limit, a rate or plan limit Claude
+// Code's retries did not pass; scripts/ab-automem-lib.mjs accountStop) stops the invocation cleanly: that job is not
+// recorded (so `--resume` runs it again), no new job starts, the jobs already running finish, the output is written
+// with `stopped`, and the exit code is 3.
 //
 // Judging: each task's `check` reads the final files, the diff since the first commit and the tool calls; no LLM
 // judges anything. Raw stream-json transcripts go to --transcripts (default: a folder in the OS temp dir).
@@ -41,7 +50,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { hookSummary, makeContext, readEvents, toolCallsOf } from "./ab-lib.mjs";
-import { callsUnder, claudeMdFor, hookContextTexts, indexTextOf, jevmemLinesOf, jevmemMemories, loadedIndexText, longNotes, memoryDirFor, memoryTextOf, noteFate, projectDirsOf, readMemoryDir, renderAutoMemory, renderClaudeMd, resetRepo } from "./ab-automem-lib.mjs";
+import { accountStop, apiErrorsOf, callsUnder, claudeMdFor, hookContextTexts, indexTextOf, jevmemLinesOf, jevmemMemories, loadedIndexText, longNotes, memoryDirFor, memoryTextOf, noteFate, projectDirsOf, readMemoryDir, renderAutoMemory, renderClaudeMd, resetRepo } from "./ab-automem-lib.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -80,10 +89,21 @@ const AUTO_ARMS = new Set(["auto", "both"]);
 const LEARNING_ARMS = new Set(["auto", "jevmem", "both"]);
 
 const CLAUDE = process.env.CLAUDE_BIN ?? "claude";
-let TOKEN = process.env.CLAUDE_CODE_OAUTH_TOKEN ?? null;
+const AUTH_ASKED = opt("--auth", null);
+if (AUTH_ASKED && !["api", "oauth"].includes(AUTH_ASKED)) throw new Error("--auth is api or oauth");
 const tokenFile = process.env.E2E_TOKEN_FILE ?? path.join(os.homedir(), ".jevmem/e2e-oauth-token");
-if (!TOKEN && !process.env.ANTHROPIC_API_KEY && fs.existsSync(tokenFile)) TOKEN = fs.readFileSync(tokenFile, "utf8").trim();
-if (!TOKEN && !process.env.ANTHROPIC_API_KEY) throw new Error("set CLAUDE_CODE_OAUTH_TOKEN (claude setup-token) or put it in ~/.jevmem/e2e-oauth-token");
+const keyFile = process.env.E2E_API_KEY_FILE ?? path.join(os.homedir(), ".jevmem/e2e-api-key");
+const readSecret = (file) => (fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() || null : null);
+let TOKEN = null;
+let API_KEY = null;
+if (AUTH_ASKED === "api") API_KEY = process.env.ANTHROPIC_API_KEY ?? readSecret(keyFile);
+else if (AUTH_ASKED === "oauth") TOKEN = process.env.CLAUDE_CODE_OAUTH_TOKEN ?? readSecret(tokenFile);
+else {
+  TOKEN = process.env.CLAUDE_CODE_OAUTH_TOKEN ?? (process.env.ANTHROPIC_API_KEY ? null : readSecret(tokenFile));
+  if (!TOKEN) API_KEY = process.env.ANTHROPIC_API_KEY ?? null;
+}
+if (!TOKEN && !API_KEY) throw new Error(AUTH_ASKED === "api" ? "--auth api: set ANTHROPIC_API_KEY or put the key in ~/.jevmem/e2e-api-key" : "set CLAUDE_CODE_OAUTH_TOKEN (claude setup-token) or put it in ~/.jevmem/e2e-oauth-token");
+const AUTH = TOKEN ? "oauth" : "api";
 if (ARMS.some((a) => JEVMEM_ARMS.has(a)) && !process.env.TYPESAFE_API_KEY) throw new Error("TYPESAFE_API_KEY is required (the jevmem arms)");
 const CLAUDE_VERSION = execFileSync(CLAUDE, ["--version"], { encoding: "utf8", env: { ...process.env, DISABLE_AUTOUPDATER: "1" } }).trim();
 const CLAUDE_VERSION_NUMBER = (CLAUDE_VERSION.match(/\d+\.\d+\.\d+/) ?? [null])[0];
@@ -153,8 +173,8 @@ function runClaude({ root, home, config, arm, prompt, task, transcript, maxTurns
   return new Promise((resolve) => {
     const env = { HOME: home, USER: process.env.USER ?? "user", PATH: `${path.dirname(NODE)}:/usr/bin:/bin:/usr/sbin:/sbin`, TERM: "dumb", CLAUDE_CONFIG_DIR: config, DISABLE_AUTOUPDATER: "1" };
     if (!AUTO_ARMS.has(arm)) env.CLAUDE_CODE_DISABLE_AUTO_MEMORY = "1";
-    if (TOKEN) env.CLAUDE_CODE_OAUTH_TOKEN = TOKEN;
-    else env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    if (AUTH === "oauth") env.CLAUDE_CODE_OAUTH_TOKEN = TOKEN;
+    else env.ANTHROPIC_API_KEY = API_KEY;
     const a = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--include-hook-events", "--permission-mode", "acceptEdits", "--max-turns", String(maxTurns), "--model", MODEL, "--allowedTools", ...allowedTools(task)];
     const t0 = Date.now();
     const child = spawn(CLAUDE, a, { cwd: root, env, stdio: ["ignore", "pipe", "pipe"] });
@@ -211,6 +231,7 @@ function sessionRecord(transcript, r) {
   const hooks = hookSummary(events);
   const calls = toolCallsOf(events);
   const usage = result.usage ?? {};
+  const apiErrors = apiErrorsOf(events);
   return {
     events,
     calls,
@@ -219,6 +240,9 @@ function sessionRecord(transcript, r) {
     base: {
       model: init.model ?? null,
       claudeCode: init.claude_code_version ?? null,
+      auth: AUTH,
+      apiKeySource: init.apiKeySource ?? null,
+      ...(apiErrors.length ? { apiErrors } : {}),
       exit: r.code,
       signal: r.signal,
       ms: r.ms,
@@ -288,6 +312,12 @@ async function runJob(job, attempt) {
   const config = fs.mkdtempSync(path.join(os.tmpdir(), "jevmem-abm-config-"));
   const { root, base, memDir } = setupProject(task, arm, home, config);
   const records = [];
+  const cleanup = () => {
+    if (KEEP) return;
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(config, { recursive: true, force: true });
+    fs.rmSync(home, { recursive: true, force: true });
+  };
   const common = { task: task.id, project: task.project, category: task.category, arm, run, attempt, long: Boolean(task.long), seeded: Boolean(task.long) && arm !== "none" };
   let saved = null;
   const first = {};
@@ -297,6 +327,12 @@ async function runJob(job, attempt) {
       const r = await runClaude({ root, home, config, arm, prompt: task.teach[step], task, transcript, maxTurns: TEACH_TURNS });
       if (JEVMEM_ARMS.has(arm)) await waitForDrain(root);
       const s = sessionRecord(transcript, r);
+      const stop = accountStop(s.events);
+      if (stop) {
+        if (JEVMEM_ARMS.has(arm)) stopDaemon(root, home);
+        cleanup();
+        return { records, stray: [], stop: { ...stop, session: `${task.id}.teach${step + 1}` } };
+      }
       saved = savedMeasures(task, arm, memDir, root, step, first);
       const logs = JEVMEM_ARMS.has(arm) ? jevmemLogs(root) : { guardLog: [], recall: null, decide: null };
       const touched = AUTO_ARMS.has(arm) ? callsUnder(s.calls, memDir, readMemoryDir(memDir)) : { reads: [], writes: [], readBytes: 0, writeAsks: 0 };
@@ -321,6 +357,11 @@ async function runJob(job, attempt) {
     stopDaemon(root, home);
   }
   const s = sessionRecord(transcript, r);
+  const stop = accountStop(s.events);
+  if (stop) {
+    cleanup();
+    return { records, stray: [], stop: { ...stop, session: task.id } };
+  }
   const ctx = makeContext(root, base, s.events);
   let check;
   try {
@@ -357,12 +398,8 @@ async function runJob(job, attempt) {
   records.push(taskRecord);
   const stray = records.filter((x) => x.model !== null && (x.model !== MODEL || (EXPECT_VERSION && x.claudeCode !== EXPECT_VERSION))).map((x) => `${x.id}: ${x.model} ${x.claudeCode}`);
   if (KEEP) for (const x of records) Object.assign(x, { scratch: root, configDir: config, home });
-  else {
-    fs.rmSync(root, { recursive: true, force: true });
-    fs.rmSync(config, { recursive: true, force: true });
-    fs.rmSync(home, { recursive: true, force: true });
-  }
-  return { records, stray };
+  cleanup();
+  return { records, stray, stop: null };
 }
 
 // ------------------------------------------------------------------ plan
@@ -385,20 +422,33 @@ if (flag("--resume") && fs.existsSync(partial)) {
 const sessionsPlanned = jobs.reduce((a, j) => a + 1 + (!j.task.long && LEARNING_ARMS.has(j.arm) ? j.task.teach.length : 0), 0);
 const thisBlock = jobs.slice(0, Math.min(jobs.length, MAX_JOBS));
 const sessionsThisBlock = thisBlock.reduce((a, j) => a + 1 + (!j.task.long && LEARNING_ARMS.has(j.arm) ? j.task.teach.length : 0), 0);
-console.error(`${jobs.length} jobs, ${sessionsPlanned} sessions left${MAX_JOBS !== Infinity ? ` (this block: ${thisBlock.length} jobs, ${sessionsThisBlock} sessions)` : ""}, ${CONCURRENCY} at a time; ${CLAUDE_VERSION}; model ${MODEL}; jevmem ${COMMIT}; transcripts in ${TRANSCRIPTS}`);
+console.error(`${jobs.length} jobs, ${sessionsPlanned} sessions left${MAX_JOBS !== Infinity ? ` (this block: ${thisBlock.length} jobs, ${sessionsThisBlock} sessions)` : ""}, ${CONCURRENCY} at a time; ${CLAUDE_VERSION}; model ${MODEL}; auth ${AUTH}; jevmem ${COMMIT}; transcripts in ${TRANSCRIPTS}`);
 
 let next = 0;
 let count = 0;
+let STOPPED = null;
+const stopHere = (job, stop) => {
+  STOPPED ??= { ...stop, job: keyOf(job), at: new Date().toISOString() };
+  console.error(`   stopped: ${keyOf(job)} met an account error in ${stop.session} (${stop.status ?? "-"} ${stop.error ?? "-"}: ${stop.text}); the job is not recorded and no new job starts`);
+};
 async function worker() {
-  while (next < jobs.length && next < MAX_JOBS) {
+  while (!STOPPED && next < jobs.length && next < MAX_JOBS) {
     const job = jobs[next++];
-    let { records, stray } = await runJob(job, 1);
+    let { records, stray, stop } = await runJob(job, 1);
+    if (stop) {
+      stopHere(job, stop);
+      break;
+    }
     let strays = [];
     let excluded = false;
     if (stray.length) {
       console.error(`   stray (${stray.join("; ")}), rerunning ${keyOf(job)}`);
       strays = records;
-      ({ records, stray } = await runJob(job, 2));
+      ({ records, stray, stop } = await runJob(job, 2));
+      if (stop) {
+        stopHere(job, stop);
+        break;
+      }
       if (stray.length) {
         excluded = true;
         console.error(`   stray again (${stray.join("; ")}): slot ${keyOf(job)} left out`);
@@ -434,8 +484,10 @@ const out = {
   permission_mode: "acceptEdits",
   max_turns: MAX_TURNS,
   teach_turns: TEACH_TURNS,
+  auth: AUTH,
+  stopped: STOPPED,
   jobs: done.length,
-  jobs_left: jobs.length - thisBlock.length,
+  jobs_left: jobs.length - count,
   sessions: records.length,
   stray_sessions: strays.length,
   excluded_slots: [...new Set(records.filter((r) => r.excluded).map((r) => `${r.task}|${r.arm}|${r.run}`))],
@@ -445,3 +497,7 @@ const out = {
 };
 fs.writeFileSync(OUT, JSON.stringify(out, null, 2) + "\n");
 console.error(`wrote ${OUT}`);
+if (STOPPED) {
+  console.error(`stopped cleanly on an account error: ${count} jobs recorded in this invocation, ${jobs.length - count} left`);
+  process.exitCode = 3;
+}

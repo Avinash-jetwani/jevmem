@@ -258,6 +258,36 @@ describe("scripts/ab-automem-lib.mjs", () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("tells an account error (key, credit, spend limit, plan limit) from other API errors and from a task's own words", () => {
+    // The shape Claude Code 2.1.306 printed on 2026-11-02 for an invalid key under `-p --output-format stream-json`.
+    const apiError = (status: number, error: string, text: string) => [
+      { type: "system", subtype: "init", apiKeySource: "ANTHROPIC_API_KEY", model: "claude-fable-5-1" },
+      { type: "assistant", error, is_api_error_message: true, api_error_status: status, message: { model: "<synthetic>", content: [{ type: "text", text }] } },
+      { type: "result", subtype: "success", is_error: true, api_error_status: status, result: text },
+    ];
+    const stops = (events: any[]) => lib.accountStop(events);
+    expect(stops(apiError(401, "authentication_failed", "Invalid API key · Fix external API key"))).toMatchObject({ status: 401, error: "authentication_failed" });
+    expect(stops(apiError(402, "billing_error", "Credit balance is too low"))).toMatchObject({ status: 402 });
+    expect(stops(apiError(400, "invalid_request", "You have reached your specified API usage limits. You will regain access on 2026-12-01 at 00:00 UTC."))).toMatchObject({ status: 400 });
+    expect(stops(apiError(429, "rate_limit", "You've hit your limit · resets 11am"))).toMatchObject({ status: 429 });
+    // The result event alone is enough when no error message came first.
+    expect(stops([{ type: "result", subtype: "success", is_error: true, api_error_status: 402, result: "Credit balance is too low" }])).toMatchObject({ status: 402 });
+    // Not account errors: an overloaded or failing server, a request the API refused for its size; they stay in the record.
+    expect(stops(apiError(529, "server_error", "Overloaded"))).toBeNull();
+    expect(stops(apiError(500, "server_error", "Internal server error"))).toBeNull();
+    expect(stops(apiError(400, "invalid_request", "Prompt is too long"))).toBeNull();
+    // A task about rate limits or billing says those words in ordinary messages and results.
+    const ordinary = [
+      { type: "assistant", message: { model: "claude-fable-5-1", content: [{ type: "text", text: "Added the rate limit; billing now checks the credit balance and the spend limit." }] } },
+      { type: "result", subtype: "success", is_error: false, result: "Done: rate limit reached handling and usage limits are in." },
+    ];
+    expect(stops(ordinary)).toBeNull();
+    // Every API error of a session is listed for its record, the account error among them.
+    const mixed = [...apiError(529, "server_error", "Overloaded").slice(1, 2), ...apiError(402, "billing_error", "Credit balance is too low")];
+    expect(lib.apiErrorsOf(mixed).map((e: any) => e.status)).toEqual([529, 402, 402]);
+    expect(stops(mixed)).toMatchObject({ status: 402 });
+  });
 });
 
 describe("every check tells a result that follows the line from one that does not", () => {

@@ -249,3 +249,30 @@ export function callsUnder(calls, dir, snapshot) {
   // A write the guard asked about or denied did not run (nobody answers an ask in `claude -p`).
   return { reads, writes, readBytes: reads.reduce((a, r) => a + (r.bytes ?? 0), 0), writeAsks: writes.filter((w) => w.hook === "ask" || w.hook === "deny").length };
 }
+
+/**
+ * The API errors a session met, from its stream-json events: Claude Code prints each as a synthetic assistant message
+ * (`is_api_error_message`, `error`, `api_error_status`) and marks the result `is_error` with the status. Ordinary
+ * messages are never read here, so a task's own words about limits or billing do not count.
+ */
+export function apiErrorsOf(events) {
+  const out = [];
+  for (const e of events) {
+    if (e.type === "assistant" && (e.is_api_error_message || e.isApiErrorMessage || e.error)) out.push({ status: e.api_error_status ?? null, error: e.error ?? null, text: (e.message?.content ?? []).map((c) => c.text ?? "").join(" ").slice(0, 300) });
+    else if (e.type === "result" && e.is_error && e.api_error_status) out.push({ status: e.api_error_status, error: null, text: String(e.result ?? "").slice(0, 300) });
+  }
+  return out;
+}
+
+const ACCOUNT_STATUS = new Set([401, 402, 403, 429]);
+const ACCOUNT_ERROR = new Set(["authentication_failed", "billing_error", "rate_limit"]);
+const ACCOUNT_TEXT = /credit balance|billing|spend limit|usage limit|hit your limit|limit reached|out of extra usage/i;
+
+/**
+ * The first API error that says the account cannot serve sessions now: a refused key, no credit, the spend limit, a
+ * rate or plan limit Claude Code's retries did not get past. The comparison stops cleanly on one (the job is not
+ * recorded, so a later block runs it again); an overloaded or failing server or a refused request stays in the record.
+ */
+export function accountStop(events) {
+  return apiErrorsOf(events).find((e) => ACCOUNT_STATUS.has(e.status) || ACCOUNT_ERROR.has(e.error) || ACCOUNT_TEXT.test(e.text)) ?? null;
+}
