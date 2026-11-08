@@ -2,7 +2,7 @@
 // The text of a saved line (v0.6 part 3c): what a build writes for turns that are saved, judged against labels, and
 // genuine rules stated with an instruction against planted-line turns.
 //
-//   node scripts/eval-lines.mjs [path/to/dist/index.js] [--set dev|heldout|rules-dev|rules-heldout|cause-last-dev|cause-last-heldout|label-dev|label-heldout] [--mode auto|fast|full] [--label now] [--out results/…json]
+//   node scripts/eval-lines.mjs [path/to/dist/index.js] [--set dev|heldout|rules-dev|rules-heldout|cause-last-dev|cause-last-heldout|label-dev|label-heldout|rule-cut-dev|rule-cut-heldout] [--mode auto|fast|full] [--label now] [--out results/…json]
 //
 // Sets: eval/lines-dev.jsonl (tuning) and eval/lines-heldout.jsonl (run once at the end, on the final code and on 0.5.9),
 // eval/rules-dev.jsonl (tuning) and eval/rules-heldout.jsonl (run once at the end). Every row is one turn with the
@@ -24,6 +24,14 @@
 // The label-prefix sets (0.7.5): turns whose text starts with a label that names the kind ("Decision for this project:",
 // "Rule:", "Note:"); a row's `prefix` is that label, and the line keeps it (`keepsLabel`) when it starts with it. Two
 // rows per set have no label (controls). eval/label-prefix-dev.jsonl (tuning), eval/label-prefix-heldout.jsonl (once).
+// The rule-cut sets (0.7.7): statements whose rule sits past the line's 200 characters, in one long sentence
+// (`cut-one-sentence`) or in a second sentence that takes the pair past 200 (`cut-two-sentences`), statements past 300
+// characters (`past-300`), statements whose rule is in a sentence Jev may leave out of its pick (`pick-rule-sentence`,
+// measured, not what the 0.7.7 change is about) and short statements the change must leave alone (`short-control`).
+// A row's `rule` is the part that carries the rule and `ruleKeys` the words a line must keep (`keepsRule`). Found in the
+// 0.7.7 comparison, where 9 of jevmem's misses came from the cut. eval/rule-cut-dev.jsonl (tuning: the comparison's six
+// statements whose line lost the rule, and seven of the same shapes), eval/rule-cut-heldout.jsonl (once on the fixed
+// build and once on 7137dfe).
 // Judged in code, with no LLM: a line states the fact when it contains one of the row's `factKeys`, keeps the reason
 // when it contains one of its `reasonKeys` (rows with a reason), carries a request when it contains one of its
 // `junkKeys`, and is a junk line when it does not state the fact and is one of the requests, hand-offs or instructions
@@ -44,7 +52,7 @@ const opt = (n, d) => {
 };
 const distArg = args[0] && !args[0].startsWith("--") ? args[0] : path.resolve("dist/index.js");
 const SET = opt("--set", "dev");
-const FILE = { dev: "eval/lines-dev.jsonl", heldout: "eval/lines-heldout.jsonl", "label-dev": "eval/label-prefix-dev.jsonl", "label-heldout": "eval/label-prefix-heldout.jsonl", "rules-dev": "eval/rules-dev.jsonl", "rules-heldout": "eval/rules-heldout.jsonl", "cause-last-dev": "eval/cause-last-dev.jsonl", "cause-last-heldout": "eval/cause-last-heldout.jsonl" }[SET];
+const FILE = { dev: "eval/lines-dev.jsonl", heldout: "eval/lines-heldout.jsonl", "label-dev": "eval/label-prefix-dev.jsonl", "label-heldout": "eval/label-prefix-heldout.jsonl", "rules-dev": "eval/rules-dev.jsonl", "rules-heldout": "eval/rules-heldout.jsonl", "cause-last-dev": "eval/cause-last-dev.jsonl", "cause-last-heldout": "eval/cause-last-heldout.jsonl", "rule-cut-dev": "eval/rule-cut-dev.jsonl", "rule-cut-heldout": "eval/rule-cut-heldout.jsonl" }[SET];
 if (!FILE) throw new Error(`unknown --set ${SET}`);
 const RULES = SET.startsWith("rules");
 const MODE = opt("--mode", "auto");
@@ -55,6 +63,12 @@ const MAX = 200;
 const lib = await import(pathToFileURL(path.resolve(distArg)).href);
 if (!process.env.TYPESAFE_API_KEY) throw new Error("TYPESAFE_API_KEY is required");
 const rows = fs.readFileSync(FILE, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+// A rule-cut dev row from the 0.7.7 comparison names its task instead of copying it: its user text is that task's first
+// teaching statement in eval/ab/tasks-automem.mjs.
+if (rows.some((r) => r.fromTask)) {
+  const { TASKS: AUTOMEM } = await import(pathToFileURL(path.resolve("eval/ab/tasks-automem.mjs")).href);
+  for (const r of rows.filter((x) => x.fromTask)) r.user = AUTOMEM.find((t) => t.id === r.fromTask).teach[0];
+}
 
 let commit = null;
 try {
@@ -82,8 +96,8 @@ function isJunk(r, line) {
   });
 }
 function judge(r, line) {
-  if (!line) return { line: null, statesFact: false, keepsReason: r.reason ? false : null, carriesRequest: false, junk: false };
-  return { line, chars: line.length, statesFact: hasKey(line, r.factKeys), keepsReason: r.reason ? hasKey(line, r.reasonKeys) : null, carriesRequest: hasKey(line, r.junkKeys), junk: isJunk(r, line), endsInEllipsis: line.endsWith("…"), keepsLabel: r.prefix ? lower(line).startsWith(lower(r.prefix).replace(/:\s*$/, "")) : null };
+  if (!line) return { line: null, statesFact: false, keepsReason: r.reason ? false : null, carriesRequest: false, junk: false, keepsRule: r.ruleKeys ? false : null };
+  return { line, chars: line.length, statesFact: hasKey(line, r.factKeys), keepsReason: r.reason ? hasKey(line, r.reasonKeys) : null, carriesRequest: hasKey(line, r.junkKeys), junk: isJunk(r, line), endsInEllipsis: line.endsWith("…"), keepsLabel: r.prefix ? lower(line).startsWith(lower(r.prefix).replace(/:\s*$/, "")) : null, keepsRule: r.ruleKeys ? hasKey(line, r.ruleKeys) : null };
 }
 /** Did Jev's pick (when the build reports one) choose a sentence the labels say states the memory? */
 function judgePick(r, pick) {
@@ -157,7 +171,7 @@ for (const r of rows) {
   row.reasonFits = reasonFits(r);
   out.push(row);
   const p = row.pipeline;
-  process.stderr.write(`${r.id.padEnd(24)} ${row.error ? `ERROR ${row.error}` : row.decide.save ? `${row.decide.kind.padEnd(12)} ${p.statesFact ? "fact" : "----"} ${r.reason ? (p.keepsReason ? "why " : "--- ") : "    "}${p.junk ? "JUNK " : ""}${p.keepsLabel ? "LABEL " : ""}${p.line}` : `skip  ${row.decide.reason}`}\n`);
+  process.stderr.write(`${r.id.padEnd(24)} ${row.error ? `ERROR ${row.error}` : row.decide.save ? `${row.decide.kind.padEnd(12)} ${p.statesFact ? "fact" : "----"} ${r.reason ? (p.keepsReason ? "why " : "--- ") : "    "}${r.ruleKeys ? (p.keepsRule ? "rule " : "---- ") : ""}${p.junk ? "JUNK " : ""}${p.keepsLabel ? "LABEL " : ""}${p.line}` : `skip  ${row.decide.reason}`}\n`);
 }
 fs.rmSync(tmp, { recursive: true, force: true });
 const finishedAt = new Date().toISOString();
@@ -177,6 +191,7 @@ function lineSummary(items, get) {
   const deadEnds = items.filter((o) => o.tag === "dead-end-but");
   const picks = items.map((o) => get(o)?.pickJudged).filter((p) => p && p.asked);
   const labelled = items.filter((o) => rows.find((r) => r.id === o.id)?.prefix);
+  const withRule = items.filter((o) => rows.find((r) => r.id === o.id)?.ruleKeys);
   return {
     turns: items.length,
     withLine: withLine.length,
@@ -188,7 +203,9 @@ function lineSummary(items, get) {
     carriesRequest: frac(items, (o) => get(o)?.carriesRequest),
     endsInEllipsis: frac(withLine, (o) => get(o)?.endsInEllipsis),
     ...(labelled.length ? { keepsLabel: frac(labelled, (o) => get(o)?.keepsLabel) } : {}),
+    ...(withRule.length ? { keepsRule: frac(withRule, (o) => get(o)?.keepsRule) } : {}),
     meanChars: Math.round(mean(withLine.map((o) => get(o).chars)) ?? 0),
+    maxChars: withLine.length ? Math.max(...withLine.map((o) => get(o).chars)) : null,
     ...(picks.length ? { jevPicked: picks.length, pickMainStatesFact: `${picks.filter((p) => p.mainStatesFact).length}/${picks.length}`, pickMainIsJunk: `${picks.filter((p) => p.mainIsJunk).length}/${picks.length}`, pickFailed: picks.filter((p) => p.error).length } : {}),
   };
 }
@@ -262,9 +279,10 @@ if (RULES) {
   const w = s.writer;
   console.log(`pipeline: saved ${s.saved} (accepted kind ${s.savedAsAccepted}); of saved turns: states the fact ${pl.statesFact}, keeps the reason ${pl.keepsReason} (where it fits ${pl.keepsReasonWhereItFits}; dead ends ${pl.deadEndsKeepReason}), junk ${pl.junk}, carries a request ${pl.carriesRequest}, ends in … ${pl.endsInEllipsis}${pl.jevPicked ? `; Jev picked ${pl.jevPicked}, main states the fact ${pl.pickMainStatesFact}, main is junk ${pl.pickMainIsJunk}, failed ${pl.pickFailed}` : ""}`);
   console.log(`writer on the labelled kind and source: states the fact ${w.statesFact}, keeps the reason ${w.keepsReason} (where it fits ${w.keepsReasonWhereItFits}; dead ends ${w.deadEndsKeepReason}), junk ${w.junk}, carries a request ${w.carriesRequest}, ends in … ${w.endsInEllipsis}, mean ${w.meanChars} chars${w.jevPicked ? `; Jev picked ${w.jevPicked}, main states the fact ${w.pickMainStatesFact}, main is junk ${w.pickMainIsJunk}, failed ${w.pickFailed}` : ""}`);
-  for (const [t, v] of Object.entries(w.byTag)) console.log(`  writer ${t.padEnd(13)} fact ${v.statesFact.padEnd(6)} reason ${v.keepsReason.padEnd(6)} junk ${v.junk.padEnd(6)} request ${v.carriesRequest}`);
+  for (const [t, v] of Object.entries(w.byTag)) console.log(`  writer ${t.padEnd(13)} fact ${v.statesFact.padEnd(6)} reason ${v.keepsReason.padEnd(6)} junk ${v.junk.padEnd(6)} request ${v.carriesRequest}${v.keepsRule ? `  rule ${v.keepsRule.padEnd(6)} chars mean ${v.meanChars} max ${v.maxChars}` : ""}`);
+  if (pl.keepsRule) for (const [t, v] of Object.entries(s.pipeline.byTag)) console.log(`  pipeline ${t.padEnd(19)} fact ${v.statesFact.padEnd(6)} rule ${v.keepsRule.padEnd(6)} chars mean ${v.meanChars} max ${v.maxChars}`);
 }
 const ps = s.perSavedTurn;
 console.log(`per saved turn (${ps.savedTurns}): decide p50 ${ps.decideP50ms} ms, write p50 ${ps.writeP50ms} ms (p95 ${ps.writeP95ms}), ${ps.writeCallsPerSavedTurn?.toFixed(2)} write calls; cost decide $${ps.decideCostUsd.toFixed(7)} + write $${ps.writeCostUsd.toFixed(7)} = $${ps.totalCostUsd.toFixed(7)}; per turn $${s.perTurn.costUsd.toFixed(7)} (decide alone $${s.perTurn.decideCostUsd.toFixed(7)})`);
-if (!RULES) for (const o of ok.filter((x) => x.writer && (!x.writer.statesFact || x.writer.junk || (x.writer.keepsReason === false && x.reasonFits)))) console.log(`  ✗ ${o.id.padEnd(24)} ${o.tag.padEnd(13)} writer: ${o.writer.line}${o.writer.pick?.chosen ? `  [picked ${o.writer.pick.chosen.join("+")}]` : ""}`);
+if (!RULES) for (const o of ok.filter((x) => x.writer && (!x.writer.statesFact || x.writer.junk || (x.writer.keepsReason === false && x.reasonFits) || x.writer.keepsRule === false))) console.log(`  ✗ ${o.id.padEnd(24)} ${o.tag.padEnd(13)} writer: ${o.writer.line}${o.writer.pick?.chosen ? `  [picked ${o.writer.pick.chosen.join("+")}]` : ""}`);
 if (OUT) console.log(`\nwritten ${OUT}`);
