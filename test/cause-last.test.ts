@@ -49,12 +49,16 @@ describe("the pick: a runner-up is not a reason", () => {
 describe("a dead end keeps its reason when the reply puts the cause last", () => {
   it("the gate's replies: the line is the attempt with its cause, not the verdict and half the attempt", async () => {
     const r1 = await composeLine(RUN1, "dead-end", { writer, jev: picks("s2", { s2: 0.89, s1: 0.07, none: 0.04 }) }, { fromReply: true });
-    expect(r1.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node 22, and it failed immediately because the file declares a TypeScript enum");
+    // 0.7.7: the picked sentence (233 characters) is kept whole, up to the line's ceiling of 300.
+    expect(r1.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node 22, and it failed immediately because the file declares a TypeScript enum, which strip-only mode rejects since enums need real transformation rather than type erasure.");
+    // Past the ceiling (maxChars 150, ceiling 225) the cut keeps the cause, as it did at 200 before 0.7.7.
+    const tight = await composeLine(RUN1, "dead-end", { writer: { ...writer, maxChars: 150 }, jev: picks("s2", { s2: 0.89, s1: 0.07, none: 0.04 }) }, { fromReply: true });
+    expect(tight.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node 22, and it failed immediately because the file declares a TypeScript enum");
     // RUN2_SHORT opens with a plan line ("I'll run the file once …"), which is no candidate since 0.6.6: the verdict is s1, the attempt s2.
     const r2 = await composeLine(RUN2_SHORT, "dead-end", { writer, jev: picks("s2", { s2: 0.89, s1: 0.07, none: 0.04 }) }, { fromReply: true });
-    expect(r2.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node 22, and it failed immediately with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` because the file declares a TypeScript `enum`");
+    expect(r2.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node 22, and it failed immediately with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` because the file declares a TypeScript `enum`, which strip-only mode cannot handle.");
     for (const r of [r1, r2]) {
-      expect(r.line.length).toBeLessThanOrEqual(200);
+      expect(r.line.length).toBeLessThanOrEqual(300);
       expect(r.line).not.toMatch(/dropping the idea|…$/);
     }
   });
@@ -81,7 +85,11 @@ describe("a dead end keeps its reason when the reply puts the cause last", () =>
     // The second run's long reply: 232 characters in the attempt's sentence, the cause last, no clause end inside it.
     // RUN2_LONG's plan line is no candidate since 0.6.6: the attempt is s2 and the sentence after it s3.
     const long = await composeLine(RUN2_LONG, "dead-end", { writer, jev: picks("s2", { s2: 0.7, s3: 0.25, none: 0.03, s1: 0.02 }) }, { fromReply: true });
-    expect(long.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node v22.22.0 and it failed immediately with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`, because the file declares a TypeScript `enum` at line 1");
+    // 0.7.7: within the line's ceiling of 300 the sentence is kept whole.
+    expect(long.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node v22.22.0 and it failed immediately with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`, because the file declares a TypeScript `enum` at line 1 and strip-only mode cannot handle enums.");
+    // Longer than the ceiling (maxChars 150, ceiling 225): cut at the cause's own clause end, as at 200 before 0.7.7.
+    const tight = await composeLine(RUN2_LONG, "dead-end", { writer: { ...writer, maxChars: 150 }, jev: picks("s2", { s2: 0.7, s3: 0.25, none: 0.03, s1: 0.02 }) }, { fromReply: true });
+    expect(tight.line).toBe("I ran `node --experimental-strip-types src/app.ts` on Node v22.22.0 and it failed immediately with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`, because the file declares a TypeScript `enum` at line 1");
     // The same reply when Jev's first answer to the reason question is the next sentence (it was, in one run of three):
     // that sentence does not fit behind a sentence longer than the line, and the cause still stays.
     const later = await composeLine(RUN2_LONG, "dead-end", { writer, jev: picks("s2", { s3: 0.5, s2: 0.45, none: 0.03, s1: 0.02 }) }, { fromReply: true });
@@ -136,8 +144,9 @@ describe("a line that makes a dead end work keeps what was changed", () => {
     const want = "The `enum` in src/app.ts was the blocker, so I replaced it with an `as const` object plus a derived `Unit` union type";
     expect(extractWorksNow(blocker, 200, DEAD_END, [blocker], { main: 0, ownReason: true })).toBe(want);
     const r = await composeLine(`The underlying command already ran successfully above. ${blocker}`, "decision", { writer, jev: picks("s2", { s2: 0.8, s1: 0.1, none: 0.1 }) }, { fromReply: true, worksNow: true, deadEnd: DEAD_END });
-    expect(r.line).toBe(want);
-    expect(r.line.length).toBeLessThanOrEqual(200);
+    // 0.7.7: the sentence is 302 characters, past the line's ceiling of 300, so it is cut there; the ", so" clause stays.
+    expect(r.line).toBe("The `enum` in src/app.ts was the blocker, since `--experimental-strip-types` only erases type annotations and refuses to transform enums, so I replaced it with an `as const` object plus a derived `Unit` union type");
+    expect(r.line.length).toBeLessThanOrEqual(300);
     // Sentences that fit are left as they are.
     expect(extractWorksNow("x", 200, DEAD_END, ["The enum was the blocker, so I replaced it with a const object."], { main: 0, ownReason: true })).toBe("The enum was the blocker, so I replaced it with a const object.");
   });

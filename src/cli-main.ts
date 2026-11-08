@@ -20,7 +20,7 @@ import { ALWAYS_KINDS, decide } from "./decide.js";
 import { defaultMakeJev, evaluateGuard, formatGuardTrace, loadRules, projectHasInitGuardHook, readGuardConfig, runGuardHook, type GuardInput } from "./guardrail.js";
 import { applyPluginOption, cleanPastedKey, hasSavedJevKey, loadEnvFallbacks, missingKeyHelp, PLUGIN_CONFIGURE_HINT, resolveJevKey, saveJevKey } from "./env.js";
 import { canConfigure, describeInstall, hasActivePlugin, pluginInstalls, runningPlugin } from "./install.js";
-import { clampLine, isReasoningModel, resolveWriter } from "./llm/index.js";
+import { fitLine, isReasoningModel, resolveWriter } from "./llm/index.js";
 import { firstLineNotice, keyFound, missingKeyNotice, writerOptInNotice } from "./notice.js";
 import { collectCandidates, DEFAULT_IMPORT_SOURCES, formatImport, IMPORT_SOURCES, runImport, type ImportSource } from "./import.js";
 import { disableProject, enableProject, init, projectHasInitHooks, unregisterClaudeHooks } from "./init.js";
@@ -838,7 +838,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const store = new MemoryStore(root, cfg.memoryFile);
       // Typed by a person, so no Jev call, for every kind (a dead end too, since v0.6 part 2c); secrets are still scrubbed
       // because JEVMEM.md is committed. The line is unverified, so the poisoning gate checks it before recall serves it.
-      const m = store.add({ kind, text: clampLine(scrubSecrets(text), cfg.writer.maxChars), conf: 1, ...(always ? { always: true } : {}) });
+      const m = store.add({ kind, text: fitLine(scrubSecrets(text), cfg.writer.maxChars), conf: 1, ...(always ? { always: true } : {}) });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}${always ? " (always-on)" : ""}\n`);
       if (!trust && !always) return 0;
       requireKey();
@@ -1128,7 +1128,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
       const jev = createJev({ root, model: cfg.jev.model, usdPerMillionTokens: cfg.jev.usdPerMillionTokens, cache: cfg.jev.cache, zeroDataRetention: cfg.jev.zeroDataRetention });
       const { count, decision, label } = await labelMissed(jev, root, cfg, text.includes("USER:") ? text : mergeTurn(text, ""), kind, store.active());
       io.out(`labelled as missed (${label.kind}); Jev had said: ${decision.reason}. ${count} label(s) total.\n`);
-      const m = store.add({ kind: label.kind as Kind, text: clampLine(scrubSecrets(text), cfg.writer.maxChars), conf: decision.confidence });
+      const m = store.add({ kind: label.kind as Kind, text: fitLine(scrubSecrets(text), cfg.writer.maxChars), conf: decision.confidence });
       io.out(`added ${m.id}: [${m.kind}] ${m.text}\n`);
       printJevSummary(jev.log);
       return 0;

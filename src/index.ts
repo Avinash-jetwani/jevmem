@@ -55,7 +55,7 @@ export { watchCodex, findCodexRollouts, parseRolloutLines, codexSessionsDir } fr
 export type { WatchedTurn, WatchOptions } from "./watch.js";
 export { cacheKey, cacheDir, pruneCache, isVercelGateway } from "./jev.js";
 export type { LogSummary } from "./jev.js";
-export { stripFiller, clampLine, extractFirstSentence, extractDeadEnd, extractWorksNow, combineRetest, composeDeadEnd, joinPicked, isReasoningModel, callOpenAI } from "./llm/index.js";
+export { stripFiller, clampLine, fitLine, lineCeiling, roomFor, extractFirstSentence, extractDeadEnd, extractWorksNow, combineRetest, composeDeadEnd, joinPicked, isReasoningModel, callOpenAI } from "./llm/index.js";
 export { candidateSentences, pickRequest, pickSentences, pickedTexts, pickRecord, describePick, MAX_SENTENCES } from "./pick.js";
 export type { Sentence, Pick, PickRecord } from "./pick.js";
 export { main as cliMain, COMMANDS, COMMAND_HELP } from "./cli-main.js";

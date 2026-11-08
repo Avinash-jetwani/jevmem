@@ -149,10 +149,14 @@ describe("composeLine with Jev's pick", () => {
     expect(r.note).toBeUndefined();
   });
 
-  it("keeps the reason when it fits, and leaves it out when both do not fit", async () => {
+  it("keeps the reason when the two fit in the line's ceiling (300, 0.7.7), and leaves it out past it", async () => {
     const fits = await composeLine("Batches must never exceed 4 MB. The collector truncates anything bigger.", "constraint", { writer, jev: picker("s1", "s2") });
     expect(fits.line).toBe("Batches must never exceed 4 MB. The collector truncates anything bigger.");
-    const long = `Every endpoint that changes an order writes an audit row with the user and the old and new values, in the same transaction. ${"The franchise agreement says any owner may ask for the full history of an order at any time, within two days.".repeat(1)}`;
+    // 237 characters: past maxChars, within the ceiling, so both sentences stay (before 0.7.7 the first alone).
+    const both = "Every endpoint that changes an order writes an audit row with the user and the old and new values, in the same transaction. The franchise agreement says any owner may ask for the full history of an order at any time, within two days.";
+    expect((await composeLine(both, "constraint", { writer, jev: picker("s1", "s2") })).line).toBe(both);
+    const long = `${both.slice(0, -1)}, and the regional office audits a sample of orders every quarter against those rows, so a missing row is a finding.`;
+    expect(long.length).toBeGreaterThan(300);
     const r = await composeLine(long, "constraint", { writer, jev: picker("s1", "s2") });
     expect(r.line).toBe("Every endpoint that changes an order writes an audit row with the user and the old and new values, in the same transaction.");
   });

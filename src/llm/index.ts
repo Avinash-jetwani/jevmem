@@ -203,7 +203,8 @@ export function extractFirstSentence(message: string, maxChars: number, kind?: s
     }
   }
   const pick = best?.text ?? clean.replace(/(^|\n)\s*(?:USER|ASSISTANT):\s*/g, "$1").replace(/\s+/g, " ").trim();
-  return clampLine(pick, maxChars);
+  // The chosen sentence whole up to the line's ceiling (0.7.7), so its rule is not cut off at maxChars.
+  return fitLine(pick, maxChars);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -712,6 +713,27 @@ function closesItsClause(t: string, open: number): boolean {
     else if ((t[j] === ")" || t[j] === "]") && --depth === 0) return /^(?:$|[.,;:!?]|\s[—–-]\s)/.test(t.slice(j + 1));
   }
   return false;
+}
+
+/**
+ * The longest a line runs (0.7.7): one and a half times `writer.maxChars`, 300 at the default 200. A line aims at
+ * `maxChars`, but the sentences that state the memory (the ones Jev picked, the one the writer chose without Jev, or a
+ * statement typed, imported or added by an agent) are kept whole up to this ceiling instead of being cut at `maxChars`,
+ * so a rule in the second half of a long sentence, or in a second sentence, stays in the line. Past the ceiling the line
+ * is cut at a clause end, as before. The 0.7.7 comparison found the cut at 200 behind 9 of jevmem's misses.
+ */
+export function lineCeiling(maxChars: number): number {
+  return Math.round(maxChars * 1.5);
+}
+
+/** The room a line made from `text` gets: `maxChars` when it fits, its own length up to the ceiling, else the ceiling. */
+export function roomFor(text: string, maxChars: number): number {
+  return Math.min(lineCeiling(maxChars), Math.max(maxChars, text.replace(/\s+/g, " ").trim().length));
+}
+
+/** `clampLine` with the ceiling: the text whole when it fits in `lineCeiling(maxChars)`, else cut at a clause end in it. */
+export function fitLine(text: string, maxChars: number): string {
+  return clampLine(text, roomFor(text, maxChars));
 }
 
 /**

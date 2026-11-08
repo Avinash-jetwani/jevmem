@@ -1,6 +1,6 @@
 import type { Decision } from "./decide.js";
 import type { JevCaller } from "./jev.js";
-import { callAnthropic, callOpenAI, clampLine, combineRetest, composeDeadEnd, extractFirstSentence, extractWorksNow, joinPicked, resolveWriter, stripFiller, systemPrompt, type WriterConfig } from "./llm/index.js";
+import { callAnthropic, callOpenAI, clampLine, combineRetest, composeDeadEnd, extractFirstSentence, extractWorksNow, fitLine, joinPicked, resolveWriter, roomFor, stripFiller, systemPrompt, type WriterConfig } from "./llm/index.js";
 import { candidateSentences, pickedTexts, pickSentences, type Pick } from "./pick.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
@@ -50,9 +50,10 @@ export const RETEST_WRITER_NOTE =
 export const DEAD_END_NO_REASON = "a dead end must say why it failed or was dropped, and Jev found no reason in this line";
 
 /**
- * Turn a message into one memory line (max `maxChars`). Uses the configured LLM, else jevmem's own writer: with `jev`,
- * the one or two sentences Jev picks (the one that states the memory, and another that gives its reason when they fit
- * together), else one sentence chosen by the words the writer looks for per kind. `note` says why the LLM writer's line
+ * Turn a message into one memory line (aiming at `maxChars`; up to `lineCeiling(maxChars)` to keep what states the
+ * memory whole, 0.7.7). Uses the configured LLM, else jevmem's own writer: with `jev`, the one or two sentences Jev picks
+ * (the one that states the memory, and another that gives its reason), kept whole when they fit in the ceiling, else one
+ * sentence chosen by the words the writer looks for per kind. `note` says why the LLM writer's line
  * was not used, what its request needed, or why Jev's pick was not; it is absent when all went as configured.
  */
 export async function composeLine(message: string, kind: Kind, opts: WriteOptions, extra: { worksNow?: boolean; deadEnd?: string; retestOf?: string; fromReply?: boolean } = {}): Promise<{ line: string; writerUsed: WriteResult["writerUsed"]; note?: string; pick?: Pick }> {
@@ -70,7 +71,7 @@ export async function composeLine(message: string, kind: Kind, opts: WriteOption
         w.provider === "openai"
           ? await callOpenAI({ model: w.model, system, user, timeoutMs: opts.writer.timeoutMs, env, fetchImpl: opts.fetchImpl })
           : { text: await callAnthropic({ model: w.model, system, user, timeoutMs: opts.writer.timeoutMs, env, fetchImpl: opts.fetchImpl }) };
-      const line = clampLine(stripFiller(reply.text.split("\n").map((l) => l.trim()).find(Boolean) ?? ""), opts.writer.maxChars);
+      const line = fitLine(stripFiller(reply.text.split("\n").map((l) => l.trim()).find(Boolean) ?? ""), opts.writer.maxChars);
       const changed = "note" in reply ? reply.note : undefined;
       if (line.length >= 3) return { line: scrubSecrets(line), writerUsed: w.provider, ...(changed ? { note: scrubSecrets(changed) } : {}) };
       why = [changed, ("empty" in reply && reply.empty) || `${w.provider} (${w.model}) returned an empty line`].filter(Boolean).join("; ");
@@ -94,24 +95,27 @@ export async function composeLine(message: string, kind: Kind, opts: WriteOption
     }
   }
   const picked = pick?.chosen.length ? pickedTexts(pick) : null;
+  // The room the line gets (0.7.7): the picked sentences (with the earlier line of a retest) whole up to the ceiling, so
+  // a rule past maxChars, or in the second picked sentence, is not cut off; past the ceiling they are cut within it.
+  const room = picked ? roomFor([retest ?? "", ...picked].join(" "), max) : max;
   const main = pick?.main ? (pick.sentences.find((s) => s.id === pick!.main)?.text ?? "") : "";
   // Which of the picked sentences states the memory, and whether Jev said it holds its own reason.
   const roles = pick ? { main: Math.max(0, pick.chosen.indexOf(pick.main ?? "")), ownReason: Boolean(pick.ownReason) } : {};
   const local = picked
     ? retest
-      ? combineRetest(retest, message, max, picked)
+      ? combineRetest(retest, message, room, picked)
       : worksNow
-        ? extractWorksNow(message, max, extra.deadEnd, picked, roles)
+        ? extractWorksNow(message, room, extra.deadEnd, picked, roles)
         : kind === "dead-end"
-          ? composeDeadEnd(picked, max, roles)
-          : joinPicked(picked, main, max)
+          ? composeDeadEnd(picked, room, roles)
+          : joinPicked(picked, main, room)
     : retest
       ? combineRetest(retest, message, max)
       : worksNow
         ? extractWorksNow(message, max, extra.deadEnd)
         : extractFirstSentence(message, max, kind);
   const note = [why ? `the line was written locally: ${why}` : null, pickWhy].filter(Boolean).join("; ");
-  return { line: clampLine(stripFiller(local), max), writerUsed: "fallback", ...(note ? { note: scrubSecrets(note) } : {}), ...(pick ? { pick } : {}) };
+  return { line: picked ? clampLine(stripFiller(local), room) : fitLine(stripFiller(local), max), writerUsed: "fallback", ...(note ? { note: scrubSecrets(note) } : {}), ...(pick ? { pick } : {}) };
 }
 
 /**

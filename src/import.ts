@@ -18,7 +18,7 @@ import { decide, type Decision } from "./decide.js";
 import { gateLines, hiddenTextReason } from "./guard.js";
 import type { JevCaller } from "./jev.js";
 import { recordDecision } from "./labels.js";
-import { clampLine, combineRetest, stripFiller } from "./llm/index.js";
+import { combineRetest, fitLine, roomFor, stripFiller } from "./llm/index.js";
 import { findDuplicate } from "./dupe.js";
 import { recordProvenance } from "./provenance.js";
 import { scrubSecrets } from "./scrub.js";
@@ -63,7 +63,7 @@ function sentences(p: string): string[] {
  * Candidate statements from one Markdown file: every list item, and every sentence of a prose paragraph. Skipped:
  * YAML frontmatter, headings, fenced code, HTML comments, tables, `@path` imports, horizontal rules, and a section
  * headed `Jevmem project memory` (jevmem's own instructions, written by `init`). Statements under three words are
- * dropped; longer than 200 characters are clamped at a word boundary.
+ * dropped; one past 300 characters (one and a half times `maxChars`, 0.7.7) is cut at a clause end within 300.
  */
 export function splitStatements(markdown: string, maxChars = 200): { text: string; line: number }[] {
   const lines = markdown.replace(/\r\n/g, "\n").split("\n");
@@ -84,7 +84,7 @@ export function splitStatements(markdown: string, maxChars = 200): { text: strin
   const push = (raw: string, line: number) => {
     const t = cleanInline(raw);
     if (t.split(/\s+/).filter(Boolean).length < MIN_WORDS) return;
-    out.push({ text: clampLine(t, maxChars), line });
+    out.push({ text: fitLine(t, maxChars), line });
   };
   for (; i < lines.length; i++) {
     const l = lines[i]!;
@@ -266,7 +266,7 @@ export async function runImport(jev: JevCaller, store: MemoryStore, cfg: ReturnT
   let n = 0;
   for (const c of candidates) {
     opts.onProgress?.(n++, candidates.length);
-    const text = clampLine(stripFiller(scrubSecrets(c.text)), cfg.writer.maxChars);
+    const text = fitLine(stripFiller(scrubSecrets(c.text)), cfg.writer.maxChars);
     const row: ImportRow = { candidate: c, outcome: "skip", text, reason: "" };
     rows.push(row);
     const hidden = hiddenTextReason(c.text);
@@ -303,7 +303,7 @@ export async function runImport(jev: JevCaller, store: MemoryStore, cfg: ReturnT
     // A retry of a live dead end that failed for a new reason: one line with both reasons, which replaces the old one.
     const earlier = row.kind === "dead-end" && d.retest?.id && !d.retest.same ? live.find((m) => m.id === d.retest!.id) : undefined;
     if (earlier) {
-      row.text = combineRetest(earlier.text, text, cfg.writer.maxChars);
+      row.text = combineRetest(earlier.text, text, roomFor(`${earlier.text} ${text}`, cfg.writer.maxChars));
       row.supersedes = earlier.id;
     }
     // Later candidates are decided against this one too (a pending id stands in for the line not yet written).

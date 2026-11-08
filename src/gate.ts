@@ -8,7 +8,7 @@ import { decide, localDuplicateDecision, type Decision } from "./decide.js";
 import type { JevCaller } from "./jev.js";
 import { recordDecision } from "./labels.js";
 import { recordProvenance } from "./provenance.js";
-import { clampLine, combineRetest } from "./llm/index.js";
+import { combineRetest, fitLine, roomFor } from "./llm/index.js";
 import { findDuplicate } from "./dupe.js";
 import { scrubSecrets } from "./scrub.js";
 import type { MemoryStore } from "./store.js";
@@ -31,7 +31,7 @@ export type GatedAddResult =
  * the old one. Importance is not a gate here: the agent was asked (by the rule or the user) to record this line.
  */
 export async function gatedAdd(jev: JevCaller, store: MemoryStore, cfg: ReturnType<typeof loadConfig>, text: string, callerKind: Kind): Promise<GatedAddResult> {
-  const clean = clampLine(scrubSecrets(text).replace(/\s+/g, " ").trim(), cfg.writer.maxChars);
+  const clean = fitLine(scrubSecrets(text).replace(/\s+/g, " ").trim(), cfg.writer.maxChars);
   if (clean.length < 3) return { ok: false, reason: "empty line after scrubbing" };
   const existing = store.active();
   const hash = crypto.createHash("sha1").update(`add_memory\n${clean}`).digest("hex").slice(0, 16);
@@ -73,10 +73,10 @@ export async function gatedAdd(jev: JevCaller, store: MemoryStore, cfg: ReturnTy
   const retest = decision.retest;
   if (retest?.id && retest.same && (kind === "dead-end" || kind === "bug")) return refuse(`refused: ${retest.id} already says this approach failed, for this reason (a retry that failed again adds nothing)`);
   const earlier = kind === "dead-end" && retest?.id && !retest.same ? existing.find((m) => m.id === retest.id) : undefined;
-  const saved = store.add({ kind, text: earlier ? combineRetest(earlier.text, clean, cfg.writer.maxChars) : clean, conf: decision.confidence });
+  const saved = store.add({ kind, text: earlier ? combineRetest(earlier.text, clean, roomFor(`${earlier.text} ${clean}`, cfg.writer.maxChars)) : clean, conf: decision.confidence });
   recordProvenance(store.root, saved, "mcp");
   const target = earlier ? earlier.id : decision.contradiction ? decision.touchesMemoryId : null;
   const superseded = target ? store.supersede(target, saved.id) : null;
   recordDecision(store.root, { hash, memoryId: saved.id, message: clean, decision: { ...decision, save: true, kind } });
-  return { ok: true, saved, superseded, kind, kindFrom, redacted: clean !== clampLine(text.replace(/\s+/g, " ").trim(), cfg.writer.maxChars), decision };
+  return { ok: true, saved, superseded, kind, kindFrom, redacted: clean !== fitLine(text.replace(/\s+/g, " ").trim(), cfg.writer.maxChars), decision };
 }
