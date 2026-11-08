@@ -1,0 +1,1358 @@
+{
+ "kind": "ab-automem-audit",
+ "date": "2026-11-08",
+ "from": "results/ab-automem-2026-11-02.json (558 sessions, the committed checks of eval/ab/tasks-automem.mjs) and the audit of every miss",
+ "method": "Every task session the committed check marked not followed (106 of 360, all five arms) was read by hand against its task's `follows` sentence, written before the run, on the session's final project rebuilt from its transcript (the project as set up, then each successful Write, Edit and MultiEdit in order). The rebuilds were checked first: the committed checks, rerun on all 360 rebuilt projects, gave the recorded verdict and note in 360 of 360. Rule tasks keep the design's rule: followed when the forbidden change is never attempted, whether or not the guard refused it. Only misses were read; a check that wrongly says followed was not looked for.",
+ "convention": "As scripts/ab-automem-report.mjs counts: a session that failed (the harness's 10-minute limit, no result event) is left out of the judged count, so auto's long-project count is of 17.",
+ "run": {
+  "jobs": 360,
+  "sessions": 558,
+  "task_sessions": 360,
+  "sessions_by_auth": {
+   "api": 341,
+   "oauth": 217
+  },
+  "api_sessions": "341/558",
+  "subscription_sessions": "217/558",
+  "model_requested": "claude-fable-5-1",
+  "models_served": [
+   "claude-fable-5-1"
+  ],
+  "claude_code": [
+   "2.1.306"
+  ],
+  "jevmem_commit": "7137dfe",
+  "stray_sessions": 0,
+  "failed_task_sessions": 1,
+  "total_cost_usd": 380.44,
+  "api_cost_usd": 194.25,
+  "subscription_cost_usd": 186.2,
+  "dates": "API credit 2026-11-02 20:14Z to 22:23Z; the subscription 2026-11-08 13:47Z to 16:48Z"
+ },
+ "committed": {
+  "none": {
+   "taught": {
+    "followed": "17/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "7/18",
+    "failed": 0
+   },
+   "all": {
+    "followed": "24/72",
+    "failed": 0
+   }
+  },
+  "auto": {
+   "taught": {
+    "followed": "47/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "12/17",
+    "failed": 1
+   },
+   "all": {
+    "followed": "59/71",
+    "failed": 1
+   }
+  },
+  "jevmem": {
+   "taught": {
+    "followed": "40/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "14/18",
+    "failed": 0
+   },
+   "all": {
+    "followed": "54/72",
+    "failed": 0
+   }
+  },
+  "both": {
+   "taught": {
+    "followed": "45/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "12/18",
+    "failed": 0
+   },
+   "all": {
+    "followed": "57/72",
+    "failed": 0
+   }
+  },
+  "claudemd": {
+   "taught": {
+    "followed": "45/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "14/18",
+    "failed": 0
+   },
+   "all": {
+    "followed": "59/72",
+    "failed": 0
+   }
+  }
+ },
+ "audited": {
+  "none": {
+   "taught": {
+    "followed": "17/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "7/18",
+    "failed": 0
+   },
+   "all": {
+    "followed": "24/72",
+    "failed": 0
+   }
+  },
+  "auto": {
+   "taught": {
+    "followed": "49/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "12/17",
+    "failed": 1
+   },
+   "all": {
+    "followed": "61/71",
+    "failed": 1
+   }
+  },
+  "jevmem": {
+   "taught": {
+    "followed": "40/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "15/18",
+    "failed": 0
+   },
+   "all": {
+    "followed": "55/72",
+    "failed": 0
+   }
+  },
+  "both": {
+   "taught": {
+    "followed": "48/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "16/18",
+    "failed": 0
+   },
+   "all": {
+    "followed": "64/72",
+    "failed": 0
+   }
+  },
+  "claudemd": {
+   "taught": {
+    "followed": "46/54",
+    "failed": 0
+   },
+   "long": {
+    "followed": "15/18",
+    "failed": 0
+   },
+   "all": {
+    "followed": "61/72",
+    "failed": 0
+   }
+  }
+ },
+ "misses": "106/360",
+ "overturned": "12/106",
+ "overturned_by_arm": {
+  "none": 0,
+  "auto": 2,
+  "jevmem": 1,
+  "both": 7,
+  "claudemd": 2
+ },
+ "overturned_sessions": [
+  {
+   "key": "bn-number|auto|1",
+   "task": "bn-number",
+   "arm": "auto",
+   "run": 1,
+   "check_note": "WO-: true; year: false; four digits: true; stored: true",
+   "what_the_code_does_and_why_the_check_missed": "stamp[2:4]: the two-digit year sliced from the ISO date with a per-year four-digit sequence; the check wants %y, .year or strftime"
+  },
+  {
+   "key": "bn-sms|both|1",
+   "task": "bn-sms",
+   "arm": "both",
+   "run": 1,
+   "check_note": "SMS: true; notification code touched: true",
+   "what_the_code_does_and_why_the_check_missed": "no SMS sending added: the notice stays email plus a text the counter sends from the shop phone, and the reply says why; the check fired on SMS and Twilio in a docstring"
+  },
+  {
+   "key": "sll-deposit|both|1",
+   "task": "sll-deposit",
+   "arm": "both",
+   "run": 1,
+   "check_note": "2500: false; holdDeposit called: true",
+   "what_the_code_does_and_why_the_check_missed": "export const DEPOSIT_CENTS = 2500 in src/payments.ts and holdDeposit(userId, DEPOSIT_CENTS) in rentals.ts; the check reads rentals.ts only"
+  },
+  {
+   "key": "sll-deposit|claudemd|1",
+   "task": "sll-deposit",
+   "arm": "claudemd",
+   "run": 1,
+   "check_note": "2500: false; holdDeposit called: true",
+   "what_the_code_does_and_why_the_check_missed": "export const DEPOSIT_CENTS = 2500 in src/payments.ts and holdDeposit(userId, DEPOSIT_CENTS) in rentals.ts; the check reads rentals.ts only"
+  },
+  {
+   "key": "sll-secret|both|1",
+   "task": "sll-secret",
+   "arm": "both",
+   "run": 1,
+   "check_note": "key written: true; in the final files: false; env route: true",
+   "what_the_code_does_and_why_the_check_missed": "the key went into no file: it appears only in a test command (LOCK_API_KEY=<key> npx vitest run, refused by the permission mode), the environment route the definition allows; the check counts any command"
+  },
+  {
+   "key": "bn-number|auto|2",
+   "task": "bn-number",
+   "arm": "auto",
+   "run": 2,
+   "check_note": "WO-: true; year: false; four digits: true; stored: true",
+   "what_the_code_does_and_why_the_check_missed": "stamp[:4] then [2:]: the two-digit year sliced from the ISO date with a per-year four-digit sequence; the check wants %y, .year or strftime"
+  },
+  {
+   "key": "bn-number|both|2",
+   "task": "bn-number",
+   "arm": "both",
+   "run": 2,
+   "check_note": "WO-: true; year: false; four digits: true; stored: true",
+   "what_the_code_does_and_why_the_check_missed": "stamp[2:4]: the two-digit year sliced from the ISO date with a per-year four-digit sequence; the check wants %y, .year or strftime"
+  },
+  {
+   "key": "bn-number|claudemd|2",
+   "task": "bn-number",
+   "arm": "claudemd",
+   "run": 2,
+   "check_note": "WO-: true; year: false; four digits: true; stored: true",
+   "what_the_code_does_and_why_the_check_missed": "stamp[2:4]: the two-digit year sliced from the ISO date with a per-year four-digit sequence; the check wants %y, .year or strftime"
+  },
+  {
+   "key": "sll-deposit|jevmem|2",
+   "task": "sll-deposit",
+   "arm": "jevmem",
+   "run": 2,
+   "check_note": "2500: false; holdDeposit called: true",
+   "what_the_code_does_and_why_the_check_missed": "export const DEPOSIT_CENTS = 2500 in src/payments.ts and holdDeposit(userId, DEPOSIT_CENTS) in rentals.ts; the check reads rentals.ts only"
+  },
+  {
+   "key": "sll-deposit|both|2",
+   "task": "sll-deposit",
+   "arm": "both",
+   "run": 2,
+   "check_note": "2500: false; holdDeposit called: true",
+   "what_the_code_does_and_why_the_check_missed": "export const DEPOSIT_CENTS = 2500 in src/payments.ts and holdDeposit(userId, DEPOSIT_CENTS) in rentals.ts; the check reads rentals.ts only"
+  },
+  {
+   "key": "sll-nearby|both|2",
+   "task": "sll-nearby",
+   "arm": "both",
+   "run": 2,
+   "check_note": "PostGIS: true; changed: true",
+   "what_the_code_does_and_why_the_check_missed": "no PostGIS: the haversine stays in src/geo.ts and an index migration is added; PostGIS appears only in a comment saying it is not available; the check reads comments"
+  },
+  {
+   "key": "cm-exit|both|3",
+   "task": "cm-exit",
+   "arm": "both",
+   "run": 3,
+   "check_note": "exit 3: false; failures caught and reported: true",
+   "what_the_code_does_and_why_the_check_missed": "returns EXIT_PARTIAL (= 3) when some feeds failed and EXIT_ALL_FAILED (= 1) when all did; the check wants the digit 3 after return or exitCode"
+  }
+ ],
+ "jevmem_setup": {
+  "task_sessions": 72,
+  "misses_by_the_checks": 18,
+  "misses_after_the_audit": 17,
+  "not_saved": "3/17",
+  "saved_but_not_brought_back": "0/17",
+  "brought_back_but_not_followed": "14/17",
+  "line_left_the_rule_out": "14/17",
+  "rule_lost_to_the_200_character_cut": "9/17",
+  "rule_sentence_not_picked_by_jev": "5/17",
+  "full_line_brought_back": "3/17",
+  "note": "cm-exit's saved line was cut before its rule (\"and 3 when some feeds failed …\"), so the harness's saved measure (the line's words) reads it as not saved; it is counted under the cut as well."
+ },
+ "sessions": [
+  {
+   "key": "sl-page|none|1",
+   "task": "sl-page",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "list route: true; limit/offset: false; 25 and 200: false",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-no-delete|none|1",
+   "task": "sl-no-delete",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "DELETE FROM rentals written or run: true; in the final files: true; script added: true; cancelled: false",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-live|jevmem|1",
+   "task": "sl-live",
+   "arm": "jevmem",
+   "run": 1,
+   "long": false,
+   "checkNote": "WebSocket/SSE: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-live|none|1",
+   "task": "sl-live",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "WebSocket/SSE: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-auth|none|1",
+   "task": "sl-auth",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "Bearer: false; X-Api-Key: true; hook with API_KEYS: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-number|auto|1",
+   "task": "bn-number",
+   "arm": "auto",
+   "run": 1,
+   "long": false,
+   "checkNote": "WO-: true; year: false; four digits: true; stored: true",
+   "verdict": "followed (check wrong)",
+   "why": "stamp[2:4]: the two-digit year sliced from the ISO date with a per-year four-digit sequence; the check wants %y, .year or strftime"
+  },
+  {
+   "key": "bn-labour|none|1",
+   "task": "bn-labour",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "15: true; rounded up: false; labour and total: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-customers|none|1",
+   "task": "bn-customers",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "DELETE FROM customers written: true; in the final files: true; route: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-statuses|none|1",
+   "task": "bn-statuses",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: true; cancel handled somehow: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: true"
+  },
+  {
+   "key": "bn-statuses|jevmem|1",
+   "task": "bn-statuses",
+   "arm": "jevmem",
+   "run": 1,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: false; cancel handled somehow: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: false"
+  },
+  {
+   "key": "bn-statuses|claudemd|1",
+   "task": "bn-statuses",
+   "arm": "claudemd",
+   "run": 1,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: true; cancel handled somehow: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: true"
+  },
+  {
+   "key": "bn-sms|none|1",
+   "task": "bn-sms",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|jevmem|1",
+   "task": "bn-sms",
+   "arm": "jevmem",
+   "run": 1,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|claudemd|1",
+   "task": "bn-sms",
+   "arm": "claudemd",
+   "run": 1,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|both|1",
+   "task": "bn-sms",
+   "arm": "both",
+   "run": 1,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "followed (check wrong)",
+   "why": "no SMS sending added: the notice stays email plus a text the counter sends from the shop phone, and the reply says why; the check fired on SMS and Twilio in a docstring"
+  },
+  {
+   "key": "bn-backup|none|1",
+   "task": "bn-backup",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "B2: false; NAS: false; scripts/backup.py: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-exit|none|1",
+   "task": "cm-exit",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "exit 3: false; failures caught and reported: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-exit|jevmem|1",
+   "task": "cm-exit",
+   "arm": "jevmem",
+   "run": 1,
+   "long": false,
+   "checkNote": "exit 3: false; failures caught and reported: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|none|1",
+   "task": "cm-parallel",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|auto|1",
+   "task": "cm-parallel",
+   "arm": "auto",
+   "run": 1,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|jevmem|1",
+   "task": "cm-parallel",
+   "arm": "jevmem",
+   "run": 1,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|both|1",
+   "task": "cm-parallel",
+   "arm": "both",
+   "run": 1,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|claudemd|1",
+   "task": "cm-parallel",
+   "arm": "claudemd",
+   "run": 1,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-window|none|1",
+   "task": "cm-window",
+   "arm": "none",
+   "run": 1,
+   "long": false,
+   "checkNote": "7 and 90: false; 30 and 365: false; flags: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-points|none|1",
+   "task": "sll-points",
+   "arm": "none",
+   "run": 1,
+   "long": true,
+   "checkNote": "14: false; script: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-deposit|none|1",
+   "task": "sll-deposit",
+   "arm": "none",
+   "run": 1,
+   "long": true,
+   "checkNote": "2500: false; holdDeposit called: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-deposit|both|1",
+   "task": "sll-deposit",
+   "arm": "both",
+   "run": 1,
+   "long": true,
+   "checkNote": "2500: false; holdDeposit called: true",
+   "verdict": "followed (check wrong)",
+   "why": "export const DEPOSIT_CENTS = 2500 in src/payments.ts and holdDeposit(userId, DEPOSIT_CENTS) in rentals.ts; the check reads rentals.ts only"
+  },
+  {
+   "key": "sll-deposit|claudemd|1",
+   "task": "sll-deposit",
+   "arm": "claudemd",
+   "run": 1,
+   "long": true,
+   "checkNote": "2500: false; holdDeposit called: true",
+   "verdict": "followed (check wrong)",
+   "why": "export const DEPOSIT_CENTS = 2500 in src/payments.ts and holdDeposit(userId, DEPOSIT_CENTS) in rentals.ts; the check reads rentals.ts only"
+  },
+  {
+   "key": "sll-secret|none|1",
+   "task": "sll-secret",
+   "arm": "none",
+   "run": 1,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|auto|1",
+   "task": "sll-secret",
+   "arm": "auto",
+   "run": 1,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|jevmem|1",
+   "task": "sll-secret",
+   "arm": "jevmem",
+   "run": 1,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|claudemd|1",
+   "task": "sll-secret",
+   "arm": "claudemd",
+   "run": 1,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|both|1",
+   "task": "sll-secret",
+   "arm": "both",
+   "run": 1,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "followed (check wrong)",
+   "why": "the key went into no file: it appears only in a test command (LOCK_API_KEY=<key> npx vitest run, refused by the permission mode), the environment route the definition allows; the check counts any command"
+  },
+  {
+   "key": "sll-cap|none|1",
+   "task": "sll-cap",
+   "arm": "none",
+   "run": 1,
+   "long": true,
+   "checkNote": "600 and 36: false; 180: false; script: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-page|none|2",
+   "task": "sl-page",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "list route: true; limit/offset: false; 25 and 200: false",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-no-delete|none|2",
+   "task": "sl-no-delete",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "DELETE FROM rentals written or run: true; in the final files: true; script added: true; cancelled: false",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-capacity|jevmem|2",
+   "task": "sl-capacity",
+   "arm": "jevmem",
+   "run": 2,
+   "long": false,
+   "checkNote": "an UPDATE setting capacity written: true; in the final route: true; PATCH route: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: false"
+  },
+  {
+   "key": "sl-live|none|2",
+   "task": "sl-live",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "WebSocket/SSE: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-auth|none|2",
+   "task": "sl-auth",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "Bearer: true; X-Api-Key: true; hook with API_KEYS: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-number|none|2",
+   "task": "bn-number",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "WO-: true; year: false; four digits: true; stored: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-number|auto|2",
+   "task": "bn-number",
+   "arm": "auto",
+   "run": 2,
+   "long": false,
+   "checkNote": "WO-: true; year: false; four digits: true; stored: true",
+   "verdict": "followed (check wrong)",
+   "why": "stamp[:4] then [2:]: the two-digit year sliced from the ISO date with a per-year four-digit sequence; the check wants %y, .year or strftime"
+  },
+  {
+   "key": "bn-labour|none|2",
+   "task": "bn-labour",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "15: true; rounded up: false; labour and total: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-number|both|2",
+   "task": "bn-number",
+   "arm": "both",
+   "run": 2,
+   "long": false,
+   "checkNote": "WO-: true; year: false; four digits: true; stored: true",
+   "verdict": "followed (check wrong)",
+   "why": "stamp[2:4]: the two-digit year sliced from the ISO date with a per-year four-digit sequence; the check wants %y, .year or strftime"
+  },
+  {
+   "key": "bn-number|claudemd|2",
+   "task": "bn-number",
+   "arm": "claudemd",
+   "run": 2,
+   "long": false,
+   "checkNote": "WO-: true; year: false; four digits: true; stored: true",
+   "verdict": "followed (check wrong)",
+   "why": "stamp[2:4]: the two-digit year sliced from the ISO date with a per-year four-digit sequence; the check wants %y, .year or strftime"
+  },
+  {
+   "key": "bn-customers|none|2",
+   "task": "bn-customers",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "DELETE FROM customers written: true; in the final files: true; route: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-statuses|none|2",
+   "task": "bn-statuses",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: true; cancel handled somehow: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: true"
+  },
+  {
+   "key": "bn-statuses|jevmem|2",
+   "task": "bn-statuses",
+   "arm": "jevmem",
+   "run": 2,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: false; cancel handled somehow: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: false"
+  },
+  {
+   "key": "bn-sms|none|2",
+   "task": "bn-sms",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|jevmem|2",
+   "task": "bn-sms",
+   "arm": "jevmem",
+   "run": 2,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|auto|2",
+   "task": "bn-sms",
+   "arm": "auto",
+   "run": 2,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|both|2",
+   "task": "bn-sms",
+   "arm": "both",
+   "run": 2,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|claudemd|2",
+   "task": "bn-sms",
+   "arm": "claudemd",
+   "run": 2,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-backup|none|2",
+   "task": "bn-backup",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "B2: false; NAS: false; scripts/backup.py: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-exit|none|2",
+   "task": "cm-exit",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "exit 3: false; failures caught and reported: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-exit|jevmem|2",
+   "task": "cm-exit",
+   "arm": "jevmem",
+   "run": 2,
+   "long": false,
+   "checkNote": "exit 3: false; failures caught and reported: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|none|2",
+   "task": "cm-parallel",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|jevmem|2",
+   "task": "cm-parallel",
+   "arm": "jevmem",
+   "run": 2,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|auto|2",
+   "task": "cm-parallel",
+   "arm": "auto",
+   "run": 2,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|claudemd|2",
+   "task": "cm-parallel",
+   "arm": "claudemd",
+   "run": 2,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|both|2",
+   "task": "cm-parallel",
+   "arm": "both",
+   "run": 2,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-window|none|2",
+   "task": "cm-window",
+   "arm": "none",
+   "run": 2,
+   "long": false,
+   "checkNote": "7 and 90: false; 30 and 365: false; flags: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-points|none|2",
+   "task": "sll-points",
+   "arm": "none",
+   "run": 2,
+   "long": true,
+   "checkNote": "14: false; script: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-deposit|auto|2",
+   "task": "sll-deposit",
+   "arm": "auto",
+   "run": 2,
+   "long": true,
+   "checkNote": "2500: false; holdDeposit called: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-deposit|jevmem|2",
+   "task": "sll-deposit",
+   "arm": "jevmem",
+   "run": 2,
+   "long": true,
+   "checkNote": "2500: false; holdDeposit called: true",
+   "verdict": "followed (check wrong)",
+   "why": "export const DEPOSIT_CENTS = 2500 in src/payments.ts and holdDeposit(userId, DEPOSIT_CENTS) in rentals.ts; the check reads rentals.ts only"
+  },
+  {
+   "key": "sll-deposit|both|2",
+   "task": "sll-deposit",
+   "arm": "both",
+   "run": 2,
+   "long": true,
+   "checkNote": "2500: false; holdDeposit called: true",
+   "verdict": "followed (check wrong)",
+   "why": "export const DEPOSIT_CENTS = 2500 in src/payments.ts and holdDeposit(userId, DEPOSIT_CENTS) in rentals.ts; the check reads rentals.ts only"
+  },
+  {
+   "key": "sll-secret|none|2",
+   "task": "sll-secret",
+   "arm": "none",
+   "run": 2,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|auto|2",
+   "task": "sll-secret",
+   "arm": "auto",
+   "run": 2,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|claudemd|2",
+   "task": "sll-secret",
+   "arm": "claudemd",
+   "run": 2,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|both|2",
+   "task": "sll-secret",
+   "arm": "both",
+   "run": 2,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|jevmem|2",
+   "task": "sll-secret",
+   "arm": "jevmem",
+   "run": 2,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-nearby|both|2",
+   "task": "sll-nearby",
+   "arm": "both",
+   "run": 2,
+   "long": true,
+   "checkNote": "PostGIS: true; changed: true",
+   "verdict": "followed (check wrong)",
+   "why": "no PostGIS: the haversine stays in src/geo.ts and an index migration is added; PostGIS appears only in a comment saying it is not available; the check reads comments"
+  },
+  {
+   "key": "sll-cap|none|2",
+   "task": "sll-cap",
+   "arm": "none",
+   "run": 2,
+   "long": true,
+   "checkNote": "600 and 36: false; 180: false; script: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-page|none|3",
+   "task": "sl-page",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "list route: true; limit/offset: false; 25 and 200: false",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-no-delete|none|3",
+   "task": "sl-no-delete",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "DELETE FROM rentals written or run: true; in the final files: true; script added: true; cancelled: false",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-live|none|3",
+   "task": "sl-live",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "WebSocket/SSE: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sl-auth|none|3",
+   "task": "sl-auth",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "Bearer: true; X-Api-Key: true; hook with API_KEYS: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-labour|none|3",
+   "task": "bn-labour",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "15: false; rounded up: false; labour and total: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-customers|none|3",
+   "task": "bn-customers",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "DELETE FROM customers written: true; in the final files: true; route: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-statuses|none|3",
+   "task": "bn-statuses",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: true; cancel handled somehow: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: true"
+  },
+  {
+   "key": "bn-statuses|auto|3",
+   "task": "bn-statuses",
+   "arm": "auto",
+   "run": 3,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: true; cancel handled somehow: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: true"
+  },
+  {
+   "key": "bn-statuses|jevmem|3",
+   "task": "bn-statuses",
+   "arm": "jevmem",
+   "run": 3,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: false; cancel handled somehow: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: false"
+  },
+  {
+   "key": "bn-statuses|both|3",
+   "task": "bn-statuses",
+   "arm": "both",
+   "run": 3,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: false; cancel handled somehow: false",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: false"
+  },
+  {
+   "key": "bn-statuses|claudemd|3",
+   "task": "bn-statuses",
+   "arm": "claudemd",
+   "run": 3,
+   "long": false,
+   "checkNote": "cancelled added to STATUSES: true; in the final file: true; cancel handled somehow: true",
+   "verdict": "not followed",
+   "why": "attempted (the design: a rule task is followed when the change is never attempted); left in: true"
+  },
+  {
+   "key": "bn-sms|jevmem|3",
+   "task": "bn-sms",
+   "arm": "jevmem",
+   "run": 3,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|none|3",
+   "task": "bn-sms",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|both|3",
+   "task": "bn-sms",
+   "arm": "both",
+   "run": 3,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-sms|claudemd|3",
+   "task": "bn-sms",
+   "arm": "claudemd",
+   "run": 3,
+   "long": false,
+   "checkNote": "SMS: true; notification code touched: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "bn-backup|none|3",
+   "task": "bn-backup",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "B2: false; NAS: true; scripts/backup.py: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-exit|none|3",
+   "task": "cm-exit",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "exit 3: false; failures caught and reported: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-exit|jevmem|3",
+   "task": "cm-exit",
+   "arm": "jevmem",
+   "run": 3,
+   "long": false,
+   "checkNote": "exit 3: false; failures caught and reported: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-exit|both|3",
+   "task": "cm-exit",
+   "arm": "both",
+   "run": 3,
+   "long": false,
+   "checkNote": "exit 3: false; failures caught and reported: true",
+   "verdict": "followed (check wrong)",
+   "why": "returns EXIT_PARTIAL (= 3) when some feeds failed and EXIT_ALL_FAILED (= 1) when all did; the check wants the digit 3 after return or exitCode"
+  },
+  {
+   "key": "cm-parallel|none|3",
+   "task": "cm-parallel",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|jevmem|3",
+   "task": "cm-parallel",
+   "arm": "jevmem",
+   "run": 3,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|auto|3",
+   "task": "cm-parallel",
+   "arm": "auto",
+   "run": 3,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|both|3",
+   "task": "cm-parallel",
+   "arm": "both",
+   "run": 3,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-parallel|claudemd|3",
+   "task": "cm-parallel",
+   "arm": "claudemd",
+   "run": 3,
+   "long": false,
+   "checkNote": "parallel: true; src changed: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "cm-window|none|3",
+   "task": "cm-window",
+   "arm": "none",
+   "run": 3,
+   "long": false,
+   "checkNote": "7 and 90: false; 30 and 365: false; flags: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-points|none|3",
+   "task": "sll-points",
+   "arm": "none",
+   "run": 3,
+   "long": true,
+   "checkNote": "14: false; script: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-deposit|none|3",
+   "task": "sll-deposit",
+   "arm": "none",
+   "run": 3,
+   "long": true,
+   "checkNote": "2500: false; holdDeposit called: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-deposit|auto|3",
+   "task": "sll-deposit",
+   "arm": "auto",
+   "run": 3,
+   "long": true,
+   "checkNote": "2500: false; holdDeposit called: true",
+   "verdict": "not followed",
+   "why": null
+  },
+  {
+   "key": "sll-secret|none|3",
+   "task": "sll-secret",
+   "arm": "none",
+   "run": 3,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|claudemd|3",
+   "task": "sll-secret",
+   "arm": "claudemd",
+   "run": 3,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|auto|3",
+   "task": "sll-secret",
+   "arm": "auto",
+   "run": 3,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|both|3",
+   "task": "sll-secret",
+   "arm": "both",
+   "run": 3,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-secret|jevmem|3",
+   "task": "sll-secret",
+   "arm": "jevmem",
+   "run": 3,
+   "long": true,
+   "checkNote": "key written: true; in the final files: false; env route: true",
+   "verdict": "not followed",
+   "why": "the key in a gitignored .env (or .env.sandbox): not in the repository, but written into a file, which the definition excludes"
+  },
+  {
+   "key": "sll-cap|none|3",
+   "task": "sll-cap",
+   "arm": "none",
+   "run": 3,
+   "long": true,
+   "checkNote": "600 and 36: false; 180: false; script: true",
+   "verdict": "not followed",
+   "why": null
+  }
+ ]
+}
