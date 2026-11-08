@@ -10,6 +10,8 @@ Keep the decisions in a file that Claude Code is given again in the next session
 
 In 72 real Claude Code sessions, Claude followed the project's saved decision in 66 with jevmem (66/72), in 28 with no project memory (28/72) and in 67 with the same lines in a hand-written `CLAUDE.md` (67/72). That was measured on 24 tasks in three small projects of 34 to 42 saved lines, 3 runs each, with Claude Code 2.1.281 and `claude-sonnet-5`, on 2026-09-28 and 2026-09-29 ([no memory and CLAUDE.md](../../results/ab-2026-09-28.json), [jevmem](../../results/ab-jevmem-2026-09-29-3b.json); [method and limits](results.md)).
 
+Claude Code also keeps notes of its own, auto memory, on by default. Measured side by side (0.7.7, 558 real sessions on three new projects, `claude-fable-5-1`), Claude followed a fact taught in an earlier session in 47 of 54 sessions with auto memory alone, 40 with jevmem alone and 45 with both (49, 40 and 48 after every miss was read by hand); with jevmem on, no change a rule forbade was left in the code ([every row](results.md#next-to-claude-codes-auto-memory-077)).
+
 ## Why a file
 
 {{include README.md#why}}

@@ -1,6 +1,6 @@
 # Benchmark
 
-Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved) was measured against six LLMs on v0.4.2 on 2026-09-23; the LLMs have not been run since, and jevmem's own row is run again on each release, last for 0.7.3 on 2026-10-15 ([0.7.3 beside the six LLMs](#076-beside-the-six-llms)). The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts.
+Method, eval sets, pricing sources, p95 and retries. The README shows the held-out summary. The write side (what gets saved) was measured against six LLMs on v0.4.2 on 2026-09-23; the LLMs have not been run since, and jevmem's own row is run again on each release, last for 0.7.7 on 2026-11-08 ([0.7.7 beside the six LLMs](#077-beside-the-six-llms)). The read side was measured on 2026-09-28: [retrieval](#retrieval-does-the-right-line-get-injected) on `main` and on 0.5.9 (part 3, then part 3b on a fresh held-out set), and the [outcome A/B](#outcome-ab-does-claude-act-on-the-memory) on `main`. Part 3b also measured [the Stop hook with background subagents](#the-stop-hook-with-background-subagents), on real Claude Code transcripts.
 
 ## Why Jev and not an LLM
 
@@ -94,12 +94,15 @@ The 66-turn held-out set through `scripts/eval.mjs` (`decide` in-process with a 
 | 0.7.6 | `fast` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000136 (+line $0.000138) | 223 ms |
 | 0.7.6 | `auto` | 98.5% (65/66) | 95.5% (63/66) | 5/5 | $0.000179 (+line $0.000181) | 238 ms |
 | 0.7.6 | `full` | 92.4% (61/66) | 89.4% (59/66) | 5/5 | $0.000257 (+line $0.000258) | 258 ms |
+| 0.7.7 | `fast` | 100% (66/66) | 97.0% (64/66) | 5/5 | $0.000146 (+line $0.000148) | 151 ms |
+| 0.7.7 | `auto` | 98.5% (65/66) | 93.9% (62/66) | 5/5 | $0.000189 (+line $0.000191) | 160 ms |
+| 0.7.7 | `full` | 92.4% (61/66) | 90.9% (60/66) | 5/5 | $0.000280 (+line $0.000281) | 172 ms |
 
 The builds miss the same turns in each mode (the debatable preference label, "no, leave it as is" saved as a decision, and in `full` two bugs and a constraint skipped). 0.6.0 costs more per decision than 0.5.9 in every mode because each tier asks one more noul (the dead-end noul) and tier 1's injection question is longer; `auto` escalated 18.2% of turns against 16.7% for 0.5.9 and 13.6% for v0.4.2. The README's figures, 0.24 s and $0.00018 per message, are 0.7.6's `auto` row here (0.7.5's run: 226 ms and $0.000179, the same turns right; 0.7.3's: 216 ms and $0.000175, with `auto` escalating 19.7% of turns against 18.2%). 0.7.4's `full` run misses one more turn than 0.7.3's: the Vitest-to-Jest reversal read as a dead end rather than a decision, as 0.7.1's did, and one more kind. 0.7.1 misses the same turns, and in `full` reads one more kind wrong: the Vitest-to-Jest reversal as a dead end rather than a decision, its contradiction still found (59 of 66 against 0.7.0's 60).
 
-### 0.7.6 beside the six LLMs
+### 0.7.7 beside the six LLMs
 
-The table the README shows. 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](#benchmark)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is 0.7.6's run of the same set on 2026-10-19, with `jev-1.13.0` pinned ([results](../results/eval-heldout-2026-10-19-v076.json); [every mode, every build](#every-mode-every-build)), where the earlier builds score the same within a turn and cost a little less (0.7.0 on 2026-10-08: 265 ms, $0.000169):
+The table the README shows. 66 held-out turns, all seven deciders given the same state ([method, regression set, pricing, p95, retries](#benchmark)). The six LLM rows are v0.4.2's run of 2026-09-23; jevmem's row is the 0.7.7 build's run of the same set on 2026-11-08, with `jev-1.13.0` pinned ([results](../results/eval-heldout-2026-11-08-v077.json); [every mode, every build](#every-mode-every-build)). 0.7.7 added the instruction family to decide; 0.7.6's run (2026-10-19: 238 ms, $0.000179, 95.5% save+kind) is one kind better and a little cheaper:
 
 | Decider | save/skip | save+kind | contradictions | p50 | $/decision |
 |---|---|---|---|---|---|
@@ -109,14 +112,14 @@ The table the README shows. 66 held-out turns, all seven deciders given the same
 | Claude Opus 5.5 | 97.0% | 97.0% | 5/5 | 2,784 ms | $0.005186 |
 | Gemini 3.8 Flash | 92.4% | 92.4% | 5/5 | 2,850 ms | $0.001174 |
 | Grok 4.7 | 90.9% | 90.9% | 4/5 | 3,320 ms | $0.004602 |
-| **jevmem 0.7.6 `auto`** | **98.5%** | **95.5%** | **5/5** | **238 ms** | $0.000179 |
+| **jevmem 0.7.7 `auto`** | **98.5%** | **93.9%** | **5/5** | **160 ms** | $0.000189 |
 
-The 0.24 s is the Jev API decision (p95 553 ms; a saved turn's line costs one more request, $0.000181 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](../results/ops-2026-09-26-v056.json), [cost and latency](cost.md)).
+The 0.16 s is the Jev API decision (p95 334 ms; a saved turn's line costs one more request, $0.000191 per decision with it). Since v0.5.0 you do not wait for it: the `Stop` hook is async and its process exits in 12–14 ms (v0.5.6: 12 ms for the hook `jevmem init` registers, 14 ms for the plugin's), and the daemon records the decision 0.26–0.28 s after the hook starts ([results](../results/ops-2026-09-26-v056.json), [cost and latency](cost.md)).
 
-On 66 held-out turns, jevmem 0.7.6's median decision took 0.24 s (one run, 2026-10-19, the run the README's graphic shows), against 2.8–4.3 s for six current LLMs.
-Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 95.5% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%) and Claude Opus 5.5 (97.0%) were more accurate on save+kind; Claude Fable 5.1 tied; GPT-6 Luna, Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
-GPT-6 Luna was cheaper ($0.000089 against $0.000179) but less accurate (93.9%) and about 12× slower.
-Each row is a single run, and differences of one or two turns are within run-to-run noise; the LLM rows and jevmem's are three weeks apart. If the most accurate decision matters most, GPT-6 Astra or Claude Opus 5.5 are better, at about 28–41× the cost per decision and 13–16× the latency. jevmem is for when you want a fast, cheap decision on every message.
+On 66 held-out turns, the 0.7.7 build's median decision took 0.16 s (one run, 2026-11-08, the run the README's graphic shows), against 2.8–4.3 s for six current LLMs.
+Its accuracy was within the LLMs' range: 98.5% save/skip (tied with GPT-6 Astra for highest) and 93.9% save+kind, against 90.9–98.5% for the LLMs. GPT-6 Astra (98.5%), Claude Opus 5.5 (97.0%) and Claude Fable 5.1 (95.5%) were more accurate on save+kind; GPT-6 Luna tied; Gemini 3.8 Flash and Grok 4.7 were less accurate. It found 5/5 contradictions, as did five of the six LLMs.
+GPT-6 Luna was cheaper ($0.000089 against $0.000189), as accurate on the kind and less accurate on save or skip (93.9%), and about 18× slower.
+Each row is a single run, and differences of one or two turns are within run-to-run noise; the LLM rows and jevmem's are about seven weeks apart. If the most accurate decision matters most, GPT-6 Astra or Claude Opus 5.5 are better, at about 27–40× the cost per decision and 17–22× the latency. jevmem is for when you want a fast, cheap decision on every message.
 
 ### Regression set (the original 50 turns; contaminated, see above)
 
@@ -905,3 +908,89 @@ TypeSafe released Jev 1.14.0 on 2026-10-14 under `jev-preview`, with `jev-latest
 **A label in front of the line** (fix c; [the sets](../eval/label-prefix-dev.jsonl), [held-out](../eval/label-prefix-heldout.jsonl)). 0.7.4's live check in Cursor saved "Decision for this project: we use pnpm, not npm, for every install and script." whole: the writer dropped "Decision:" but not a label with a scope. Two sets of 12 turns were written before the code, each turn's text starting with a label that names the kind, in ten forms per set and different forms between the sets ("Decision for this project:", "Rule:", "Project rule:", "Team convention:" in the dev set; "Rule for this repository:", "Our rule:", "House rule:", "Convention:" in the held-out set), with two controls without a label; `scripts/eval-lines.mjs` judges a line as keeping the label when it starts with it. On the dev set, on the build ([results](../results/label-prefix-dev-2026-10-17-build.json)): 10 of 12 turns saved (decide skipped a "Note:" row and a control, not the writer's business), every saved line states its fact (10 of 10), the label kept in 0 of 9 labelled saved turns. On the held-out set, run once on the build ([results](../results/label-prefix-heldout-2026-10-17-v075.json)): 12 of 12 saved, every line states its fact (12 of 12), the label kept in 0 of 10. The writer-on-the-label step (the line written from the labelled kind, so two builds compare on one input) kept it in 0 of 10 on each set.
 
 **The 66-turn benchmark on the build** ([results](../results/eval-heldout-2026-10-17-v075.json), 2026-10-17, `jev-1.13.0` pinned), as a regression check, since decide did not change: `auto` 98.5% (65/66) save/skip, 95.5% (63/66) with the kind, 5/5 contradictions, 6/6 injections, 226 ms p50 (p95 524 ms), $0.000179 per decision ($0.000181 with the line's request); `fast` 65/66 and 63/66 at 223 ms; `full` 61/66 and 59/66 at 250 ms. The same turns as 0.7.4's run in `auto` and `fast`; `full` one turn and one kind better than 0.7.4's run (the Vitest-to-Jest reversal back as a decision), as 0.7.1's and 0.6.6's runs had it. The rows are in the every-mode table above; the README's 0.23 s and $0.00018 are this run's `auto` row.
+
+## Against Claude Code's auto memory (0.7.7)
+
+Does jevmem add anything next to the memory Claude Code keeps for itself? Real Claude Code sessions, five setups side by side, on tasks whose right answer depends on something said in an earlier session. Results: [`results/ab-automem-2026-11-02.json`](../results/ab-automem-2026-11-02.json) (558 sessions; the checks' tables come from `node scripts/ab-automem-report.mjs` on it), the audit of every miss in [`results/ab-automem-2026-11-02-audit.json`](../results/ab-automem-2026-11-02-audit.json).
+
+**Method.** A new held-out set, [`eval/ab/tasks-automem.mjs`](../eval/ab/tasks-automem.mjs), in three projects no earlier set used (a Fastify TypeScript API for a bike-share operator, a Flask app for a repair shop's work orders, a Node command-line tool that merges calendar feeds; [`eval/ab/projects/`](../eval/ab/projects/)), never used to tune jevmem. 18 taught tasks: 5 decisions, 5 rules, 4 approaches that already failed, 4 decisions that later changed. Each task states its fact in plain chat in a teaching session ("…, one object per invoice. Nothing to build right now, just acknowledge."; no "remember this", no line telling Claude to save), and each tool's memory writes itself; the project's files are then put back to the first commit, and a new session gets a prompt that does not state the fact. A check in code reads the final files, the diff and the tool calls; no LLM judges anything. Sets, checks and harness were committed before any session ran (1efe5bf, 768464d). Six more tasks seed a 230-line project history (the lines needed at positions 211 to 225) into each tool's own memory, without teaching, for a long project.
+
+The five setups: **none** (no memory: auto memory off by `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, no jevmem, no `CLAUDE.md`); **auto** (auto memory as Claude Code ships it: its defaults, no setting or instruction, its folder empty before the first teaching session); **jevmem** (jevmem alone on its defaults, `jevmem init --tool claude`, the guard in its default `ask` mode, auto memory off); **both** (auto memory and jevmem on, what someone who installs jevmem has); **`CLAUDE.md`** (the taught line as a person writes it, in `CLAUDE.md`; it needs no teaching). Every session ran `claude -p` with `--permission-mode acceptEdits` (auto memory writes its notes under it; a probe of 13 sessions checked that first), 25 turns at most, three runs of every task in every setup, the setups interleaved. Every session asked for `claude-fable-5-1` and Claude Code 2.1.306; every one of the 558 was served by them (the served model is read from each session's own init event; the rule for a session served by another model, written before the run, never had to apply). jevmem at 7137dfe: 0.7.6's code with 0.7.7's instruction family and the guard's memory-folder route; the writer change below came after the comparison and is not in it.
+
+**Who paid, and when.** 341 sessions ran on API credit on 2026-11-02, until the API spend limit stopped the harness cleanly (the four jobs then running were not recorded and ran again later); the other 217 ran on a Claude subscription on 2026-11-08. Each session's record says which (`auth`, and the `apiKeySource` of Claude Code's init event). $380.44 in the result events' cost figure for all 558, of which $194.25 was charged to API credit.
+
+**A first attempt was lost.** The run was first started on 2026-10-28: 253 sessions in two blocks (160 of 360 jobs), on the subscription. Its records were in a temporary folder that the Mac's restart of 2026-10-31 emptied, so none of its sessions can be checked again and none is in the results. Its partial tallies, written down when its blocks ended: the taught tasks were followed in 9 of 26 task sessions with no memory, 23 of 26 with auto memory, 19 of 26 with jevmem, 23 of 26 with both and 23 of 26 with the line in `CLAUDE.md`. The run was restarted from the first job on 2026-11-02, with its files kept outside temporary folders.
+
+**Results, by the checks written before the run** (one session, `sll-points` in the auto setup's first run, hit the harness's 10-minute limit and is left out of its count):
+
+| Taught (18 tasks, 3 runs) | none | auto | jevmem | both | `CLAUDE.md` |
+|---|---|---|---|---|---|
+| Followed the taught line | 17 of 54 | 47 of 54 | 40 of 54 | 45 of 54 | 45 of 54 |
+| Followed it, and did the task | 17 of 54 | 44 of 54 | 39 of 54 | 43 of 54 | 44 of 54 |
+| Followed an earlier decision | 5 of 15 | 13 of 15 | 12 of 15 | 13 of 15 | 14 of 15 |
+| Tried a change a rule forbids | 9 of 15 | 1 of 15 | 4 of 15 | 1 of 15 | 2 of 15 |
+| … and left it in the final code | 9 of 15 | 1 of 15 | 1 of 15 | 0 of 15 | 2 of 15 |
+| Repeated an approach that already failed | 9 of 12 | 4 of 12 | 7 of 12 | 6 of 12 | 6 of 12 |
+| Built what a changed decision replaced | 4 of 12 | 0 of 12 | 0 of 12 | 0 of 12 | 0 of 12 |
+| Saved the taught line: auto memory | – | 54 of 54 | – | 54 of 54 | – |
+| Saved the taught line: jevmem | – | – | 44 of 54 | 45 of 54 | – |
+| After a change: old note rewritten or gone (auto memory) | – | 12 of 12 | – | 12 of 12 | – |
+| After a change: old line superseded (jevmem) | – | – | 6 of 12 | 9 of 12 | – |
+| Memory text at session start (median) | 0 | 166 bytes | 0 | 154 bytes | 169 bytes |
+| Sessions where jevmem's guard asked | – | – | 11 of 54 | 8 of 54 | – |
+
+| Long project (230-line history, 6 tasks, 3 runs) | none | auto | jevmem | both | `CLAUDE.md` |
+|---|---|---|---|---|---|
+| Followed the needed line | 7 of 18 | 12 of 17 | 14 of 18 | 12 of 18 | 14 of 18 |
+| The needed line was in what loaded at session start | – | 6 of 17 | – | 6 of 18 | the whole file loads |
+| The needed line reached the session (jevmem, any hook) | – | – | 17 of 18 | 17 of 18 | – |
+
+Auto memory's index of the 230 lines was 29,127 bytes, and Claude Code loads the first 25 KB of it: the needed lines, near the end, were cut off at session start in most sessions, and Claude opened a topic file for the rest in some.
+
+**Results after reading every miss by hand.** The checks marked 106 of the 360 task sessions as not followed. Each was read against its task's definition of "followed", written before the run, on its final project rebuilt from the transcript (the committed checks, rerun on all 360 rebuilt projects, gave the recorded verdict in 360 of 360, so the rebuilds are faithful). 94 are real misses. **12 are the checks' own mistakes**: the session did what the line says, and the check did not see it.
+
+| Followed the line, the checks → after the audit | none | auto | jevmem | both | `CLAUDE.md` |
+|---|---|---|---|---|---|
+| Taught tasks | 17 → 17 of 54 | 47 → **49** of 54 | 40 → 40 of 54 | 45 → **48** of 54 | 45 → **46** of 54 |
+| Long project | 7 → 7 of 18 | 12 → 12 of 17 | 14 → **15** of 18 | 12 → **16** of 18 | 14 → **15** of 18 |
+| All | 24 → 24 of 72 | 59 → **61** of 71 | 54 → **55** of 72 | 57 → **64** of 72 | 59 → **61** of 72 |
+
+The 12 sessions the checks got wrong:
+
+| Task | Setup and run | What the code does | Why the check missed it |
+|---|---|---|---|
+| `bn-number` | auto 1, auto 2, both 2, `CLAUDE.md` 2 | `WO-`, the two-digit year sliced from the ISO date (`stamp[2:4]`), and a four-digit sequence per year | it looked only for `%y`, `.year` or `strftime` |
+| `sll-deposit` | both 1, both 2, `CLAUDE.md` 1, jevmem 2 | `DEPOSIT_CENTS = 2500` in `src/payments.ts`, passed to `holdDeposit` in `rentals.ts` | it read `rentals.ts` alone |
+| `cm-exit` | both 3 | returns `EXIT_PARTIAL` (3) when some feeds failed, `EXIT_ALL_FAILED` (1) when all did | it wanted the digit 3 after `return` |
+| `bn-sms` | both 1 | no SMS sending: the notice stays an email, plus a text the counter sends from the shop phone, and the reply says why | it matched "SMS" and "Twilio" in a docstring |
+| `sll-secret` | both 1 | the key went into no file; it appears only in a test command that the permission mode refused | it counted any command holding the key |
+| `sll-nearby` | both 2 | the haversine stays in `src/geo.ts`, and an index is added | it matched "PostGIS" in a comment saying it is not available |
+
+Only the misses were read, so a check that wrongly says "followed" was not looked for. Two tasks separate no setup: in `cm-parallel` all 15 sessions fetch the feeds in parallel (with a memory, per host, which still breaks the line "fetched one after another"), and in `sll-secret` 14 of 15 put the vendor's key in a gitignored `.env`, which the task's definition ("written into no file") counts as a miss. Every verdict, with its reason: the audit file.
+
+**What this says.** Auto memory alone followed the taught line more often than jevmem alone (47 against 40 of 54 by the checks, 49 against 40 after the audit), and about as often as the same line in `CLAUDE.md`. With both on, Claude followed it about as often as with auto memory alone (45 or 48 against 47 or 49 of 54). On the long project, where the needed lines sat past auto memory's 25 KB load limit, jevmem alone or with auto memory did about as well as `CLAUDE.md`. jevmem's guard kept every forbidden change out of the final code in both setups where it ran (by hand: 0 of 15 left in with jevmem alone, where the check's one was a false match on `RETURNING … capacity`, and 0 of 15 with both), against 1 of 15 with auto memory, 2 of 15 with `CLAUDE.md` and 9 of 15 with none. A few sessions apart is "about as often"; three runs of 18 tasks on one model is a small sample.
+
+**Why the jevmem setup missed** (its 17 real misses, after the audit): not saved, 3; saved but not brought back, 0; brought back but not followed, 14. In 14 of the 17 the line jevmem saved had left out the part of the teaching that carried the rule. In 9 (`cm-exit`, `bn-statuses`, `bn-sms`, three runs each) the line's 200-character limit cut it off: one sentence longer than 200 cut at a clause end before its rule, or two sentences that Jev picked reduced to the first when together they ran past 200. In 5 (`cm-parallel` ×3, `sl-live`, `sl-capacity`) Jev's pick of the sentences left out the one that carried the rule. In the other 3 (`sll-secret`) the whole line came back and Claude put the key in a gitignored `.env`. The guard still kept the rule out of the final code in 4 of the 14 (`bn-statuses` ×3, `sl-capacity`). The next section is the change this called for.
+
+## A line keeps its rule (0.7.7)
+
+**The change.** A line still aims at `writer.maxChars` (200 characters), but the sentences that state the memory are no longer cut at 200: they are kept whole up to one and a half times it (300 at the default), and only past that is the line cut at a clause end, as before. That holds for the sentences Jev picks, for the one sentence the writer chooses when Jev's pick fails, for an LLM writer's line, and for a statement typed with `jevmem add`, added by an agent through MCP or imported. The 300 comes from the dev sets: it keeps whole every labelled fact sentence, and fact with its reason, in `lines-dev`, `rules-dev`, `cause-last-dev` and `label-prefix-dev` but one (312 characters). Lines get longer: on the held-out set below, 137 characters on average before and 180 after, the longest 292.
+
+**The sets, written and committed before the code** (088d678): [`eval/rule-cut-dev.jsonl`](../eval/rule-cut-dev.jsonl) (13 turns: the comparison's six statements whose jevmem line lost the rule, by reference, and seven of the same shapes) and [`eval/rule-cut-heldout.jsonl`](../eval/rule-cut-heldout.jsonl) (30 turns in seven new projects): 8 statements of one sentence with the rule past character 200, 8 with the rule in a second sentence that takes the pair past 200, 3 past 300, 5 with the rule in a sentence of its own that Jev may leave out of its pick (what this change does not touch), and 6 short ones the change must leave alone. Every cut turn was checked against the old writer's own cut: it drops the rule. Judged in code by `scripts/eval-lines.mjs`: the line keeps the rule when it contains one of the turn's rule words.
+
+**Held-out, the turn through decide and the writer as the hook runs it** (2026-11-08, `jev-1.13.0`; three runs on each build gave the same lines; [the fixed build](../results/rule-cut-heldout-2026-11-08-v077-run1.json), [7137dfe](../results/rule-cut-heldout-2026-11-08-7137dfe-run1.json)):
+
+| Kept the rule | 7137dfe | With the change |
+|---|---|---|
+| One sentence, rule past 200 | 1/8 | **8/8** |
+| Rule in a second sentence | 7/8 | **8/8** |
+| Past 300 | 0/3 | 1/3 |
+| Rule in a sentence Jev may not pick | 1/5 | 1/5 |
+| Short, left alone | 6/6 | 6/6 (the same lines) |
+| All | 15/30 | **24/30** |
+
+No turn lost its rule or its fact; 16 of the 30 lines are the same on both builds. Of the six still without the rule, five are turns where Jev picked the first sentence alone (the four "may not pick" turns and one past 300), and one is a 416-character sentence whose rule comes after character 300.
+
+**Dev, before and after** (2026-11-08): the rule-cut dev set kept the rule in 4/4 one-sentence turns (0/4 before); `lines-dev` kept the reason in 22/22 (21/22 before) and `cause-last-dev` in all, as before; `label-prefix-dev` gave the same lines; the dead-end dev set v3 kept what worked instead in 6 of 7 (2 of 7 before), with the reason kept as before. [Results](../results/rule-cut-dev-2026-11-08-after.json).
+
+**Not measured end to end.** The comparison above ran on the build before this change. Whether Claude follows the longer lines more often in real sessions is not measured; the held-out set measures the line, not the session.

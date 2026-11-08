@@ -1,12 +1,14 @@
 ---
 path: /results/
 nav: Results
-description: In 72 real Claude Code sessions, Claude followed the project's saved decision in 66 with jevmem, 28 with no project memory and 67 with a hand-written CLAUDE.md. Every result, with its method and limits.
+description: In 558 real Claude Code sessions, Claude followed a line taught in an earlier session in 47 of 54 with Claude Code's auto memory, 40 with jevmem and 45 with both; in 72 earlier sessions, 66 with jevmem, 28 with no project memory and 67 with a hand-written CLAUDE.md. Every result, with its method.
 order: 11
 ---
 # Does jevmem work?
 
 In 72 real Claude Code sessions, Claude followed the project's saved decision in 66 with jevmem (66/72), against 28 with no project memory (28/72) and 67 with the same lines in a hand-written `CLAUDE.md` (67/72): jevmem does about as well as a hand-written `CLAUDE.md`, without you writing it.
+
+Next to Claude Code's own auto memory (0.7.7), in 558 real sessions on three new projects: Claude followed a line taught in an earlier session in 47 of 54 sessions with auto memory alone, 40 with jevmem alone and 45 with both, by the checks written before the run (49, 40 and 48 after every miss was read by hand), and with jevmem on, no change a rule forbade was left in the code. The table and its method are below.
 
 Every test set here was written by the author, and none is an independent benchmark. Each result below says what it was measured on, links its results file in the repository, and says what it does not show. To try it yourself: [install](install.md).
 

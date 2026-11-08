@@ -55,6 +55,8 @@ Recall (since 0.6.0): each prompt's call names every live line, up to `jev.maxRe
 
 `writer.provider` is `"none"` by default: jevmem writes each line itself from the turn, and no text goes to OpenAI or Anthropic (since 0.6.0: from the sentences Jev picks, one more request per saved turn with the same TypeSafe key, within `jev.timeoutMs`; [How it works](how-it-works.md#the-line-srcpickts-srcwritets)). Set `"openai"` or `"anthropic"` (or the shorthand `"writer": "openai"`) to have that provider condense the turn into the line; it then also needs `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Nothing else turns the LLM writer on: a key in your environment is not enough, and `JEVMEM_WRITER` can only turn it off. Projects set up before v0.5.4 have `"provider": "auto"`, which now means `"none"`; jevmem says so once. `jevmem doctor` and `jevmem stats` show the active writer and why.
 
+`writer.maxChars` (200) is the length a line aims at. Since 0.7.7 the sentences that state the memory, from any writer and from `jevmem add`, `add_memory` or `jevmem import`, are kept whole up to one and a half times it (300 at the default), and only a longer line is cut at a clause end; a smaller `maxChars` lowers both ([why](benchmark.md#a-line-keeps-its-rule-077)).
+
 #### OpenAI-compatible endpoints
 
 With `"writer": "openai"`, `OPENAI_BASE_URL` points the writer at any OpenAI-compatible chat-completions endpoint instead of api.openai.com, with `OPENAI_API_KEY` as that endpoint's key and `JEVMEM_WRITER_MODEL` as its model id (for example `openai/gpt-5-mini` on OpenRouter). Since 0.6.0:

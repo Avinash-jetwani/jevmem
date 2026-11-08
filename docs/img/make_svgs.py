@@ -2,9 +2,9 @@
 Light and dark of each.
 usage: python3 make_svgs.py <outdir>   (writes docs/img/*.svg under it)
 Every measured number drawn here is from README.md: the A/B results and the guard as at commit 471bc41 (v0.6.3), the
-same since; the benchmark's jevmem row is 0.7.4's run of 2026-10-16 (results/eval-heldout-2026-10-16-v074.json) and
+same since; the benchmark's jevmem row is the 0.7.7 build's run of 2026-11-08 (results/eval-heldout-2026-11-08-v077.json) and
 its LLM rows v0.4.2's run of 2026-09-23 (results/bench-heldout-2026-09-23-v042.json). The benchmark's times are the
-results files' milliseconds drawn as seconds, to two places, rounded half up (238 ms is 0.24 s, as the README says)."""
+results files' milliseconds drawn as seconds, to two places, rounded half up (160 ms is 0.16 s, as the README says)."""
 import sys, os
 from decimal import Decimal, ROUND_HALF_UP
 from xml.sax.saxutils import escape as esc
@@ -158,7 +158,7 @@ steps = [
     ("Scrub", ["Secrets, emails and", "card-shaped numbers", "are removed before", "the turn leaves", "your machine."]),
     ("Ask Jev", ["A decision? A rule?", "A bug? Small talk?", "An injection? Said", "already? A rule for", "every change? Which", "saved line does it", "change?"]),
     ("Thresholds", ["Plain rules over the", "probabilities decide", "save or skip, in", "jevmem.config.json,", "not in a prompt.", "A restated line is", "not saved again."]),
-    ("Write a line", ["At most 200", "characters, from the", "sentence with the", "fact and the one", "with its reason."]),
+    ("Write a line", ["The sentence with", "the fact and the one", "with its reason,", "whole up to 300", "characters."]),
     ("Supersede", ["The old line is", "tagged [superseded]", "and stays in the", "file, for history."]),
     ("Always-on", ["A rule every change", "must follow is", "marked, and reaches", "Claude at the start", "of every session,", "whatever the prompt."]),
 ]
@@ -174,7 +174,7 @@ for i, (x, (t, body)) in enumerate(zip(xs, steps)):
 write("how-it-decides", W, H, "".join(b), "How jevmem decides: scrub secrets, ask Jev typed questions, apply thresholds in code (a restated line is not saved again), write one line, supersede the old line, and mark a rule for every change always-on.")
 
 # ------------------------------------------------------------------ 5. the benchmark
-rows = [("jevmem 0.7.6", 238, "98.5%", "$0.000179", True), ("Claude Opus 5.5", 2784, "97.0%", "$0.005186", False),
+rows = [("jevmem 0.7.7", 160, "98.5%", "$0.000189", True), ("Claude Opus 5.5", 2784, "97.0%", "$0.005186", False),
         ("Gemini 3.8 Flash", 2850, "92.4%", "$0.001174", False), ("GPT-6 Luna", 2927, "93.9%", "$0.000089", False),
         ("Grok 4.7", 3320, "90.9%", "$0.004602", False), ("GPT-6 Astra", 3469, "98.5%", "$0.007489", False),
         ("Claude Fable 5.1", 4290, "95.5%", "$0.013256", False)]
@@ -194,7 +194,7 @@ for name, ms, acc, cost, me in rows:
     b.append(text(C1, y + 17, acc, 16, w8, "ink", "end"))
     b.append(text(C2 + 110, y + 17, cost, 16, w8, "ink", "end"))
     y += 38
-b.append(text(10, y + 14, "Each row is a single run: the LLM rows on 2026-09-23, jevmem's on 2026-10-17. Two LLMs were better at picking the kind of line.", 14, 400, "muted"))
+b.append(text(10, y + 14, "Each row is a single run: the LLM rows on 2026-09-23, jevmem's on 2026-11-08. Three LLMs were better at picking the kind of line.", 14, 400, "muted"))
 H = y + 30
-write("benchmark", W, H, "".join(b), "Median time to decide one message on 66 held-out turns: jevmem 0.24 s, six current LLMs 2.78 to 4.29 s; save/skip accuracy and cost per decision alongside.")
+write("benchmark", W, H, "".join(b), "Median time to decide one message on 66 held-out turns: jevmem 0.16 s, six current LLMs 2.78 to 4.29 s; save/skip accuracy and cost per decision alongside.")
 print("ok2", sorted(os.listdir(OUT)))
