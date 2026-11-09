@@ -1,0 +1,4774 @@
+{
+  "kind": "eval",
+  "date": "2026-11-09",
+  "jevmem_version": "0.7.7",
+  "commit": "775ea53",
+  "dist": "dist/index.js",
+  "model": "jev-1.13.0",
+  "eval_set": "eval/design-notes-heldout.jsonl",
+  "turns": 24,
+  "machine": "darwin arm64, node v22.22.0, Apple M4",
+  "network_path": "direct HTTPS to the TypeSafe API default base URL (POST /v1/systemone), warm in-process client, cache off",
+  "cost_method": "input tokens × $0.042 per million; output tokens free (https://typesafe.ai/blog/introducing-system-one-models-and-jev)",
+  "results": [
+    {
+      "mode": "fast",
+      "n": 24,
+      "started_at": "2026-11-09T10:09:55.960Z",
+      "finished_at": "2026-11-09T10:10:04.096Z",
+      "saveAccuracy": 1,
+      "accuracy": 0.8333333333333334,
+      "f1": 1,
+      "precision": 1,
+      "recall": 1,
+      "saveSkipCorrect": 24,
+      "saveKindCorrect": 20,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 0,
+      "injectionNotSaved": "0/0",
+      "p50ms": 173,
+      "p95ms": 211,
+      "avgInputTokens": 3584,
+      "avgOutputTokens": 423,
+      "avgTokens": 4007,
+      "costPerTurn": 0.00015052625,
+      "costPerTurnWithLine": 0.00017253425000000004,
+      "lineCallsPerTurn": 1,
+      "lineP50ms": 150,
+      "escalationRate": 0,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "design-note",
+          "user": "A note on how scan is built: it is read-only by design. It walks the folders, bu",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.96 importance=useful [tier 1]"
+        },
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]"
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "reason": "save kind=constraint content=0.89 importance=important [tier 1]"
+        },
+        {
+          "tag": "design-note",
+          "user": "Where time comes from, so nobody wonders: the scheduler reads the clock once per",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.96 importance=important [tier 1]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "design-note",
+          "user": "Design note for the record: the extension's service worker holds no state betwee",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 205,
+          "line": {
+            "line": "Design note for the record: the extension's service worker holds no state between events. Everything it needs is read from chrome.storage.local when an event arrives and written back before the handler returns, so a worker restart loses nothing.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 145,
+            "calls": 1,
+            "inputTokens": 516
+          },
+          "inputTokens": 3434,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.96 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.26,
+            "constraint": 0.06,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.68,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.83,
+            "constraint": 0.44,
+            "preference": 0.15,
+            "bug": 0.07,
+            "architecture": 0.96,
+            "todo": 0.05,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.09,
+            "contradiction": 0.07,
+            "meta": 0,
+            "instruction": 0.06
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.09,
+            "is_an_instruction_for_this_conversation": 0.06
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the popup and the page talk, so it is written down somewhere: the popup neve",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 199,
+          "line": {
+            "line": "It sends a message to the service worker, the worker forwards it to the content script of the active tab and relays the reply back.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 165,
+            "calls": 1,
+            "inputTokens": 562
+          },
+          "inputTokens": 3989,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.98 importance=useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.03,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.96,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.65,
+            "constraint": 0.88,
+            "preference": 0.11,
+            "bug": 0.04,
+            "architecture": 0.98,
+            "todo": 0.03,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.05,
+            "contradiction": 0.06,
+            "meta": 0.03,
+            "instruction": 0.17
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.05,
+            "is_an_instruction_for_this_conversation": 0.17
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from now on: never add a permission to manifest.json without an issue that ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 162,
+          "line": {
+            "line": "Rule from now on: never add a permission to manifest.json without an issue that says why it is needed. The store review flags every added permission and we have been rejected once already.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 153,
+            "calls": 1,
+            "inputTokens": 510
+          },
+          "inputTokens": 3426,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.99 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.68,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.91,
+            "constraint": 0.99,
+            "preference": 0.21,
+            "bug": 0.46,
+            "architecture": 0.25,
+            "todo": 0.24,
+            "dead-end": 0.68,
+            "chit_chat": 0.01,
+            "injection": 0.12,
+            "contradiction": 0.04,
+            "meta": 0,
+            "instruction": 0.03
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.12,
+            "is_an_instruction_for_this_conversation": 0.03
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "House rule: the release zip comes from `npm run package` only. Nobody zips the f",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 173,
+          "line": {
+            "line": "The release zip comes from `npm run package` only. Nobody zips the folder by hand, because the script strips the dev files and stamps the version.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 143,
+            "calls": 1,
+            "inputTokens": 508
+          },
+          "inputTokens": 3424,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.17,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.98,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.94,
+            "constraint": 0.97,
+            "preference": 0.22,
+            "bug": 0.05,
+            "architecture": 0.61,
+            "todo": 0.05,
+            "dead-end": 0.17,
+            "chit_chat": 0.01,
+            "injection": 0.06,
+            "contradiction": 0.04,
+            "meta": 0,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.06,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "A note on how scan is built: it is read-only by design. It walks the folders, bu",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 205,
+          "line": {
+            "line": "It walks the folders, builds the plan, prints it and writes nothing; tags change only when apply is run with that plan file. Nothing in scan ever modifies a file.",
+            "pick": [
+              "s2",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 142,
+            "calls": 1,
+            "inputTokens": 555
+          },
+          "inputTokens": 3427,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.96 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.06,
+            "constraint": 0.56,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.38,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.83,
+            "constraint": 0.93,
+            "preference": 0.1,
+            "bug": 0.05,
+            "architecture": 0.96,
+            "todo": 0.04,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.06,
+            "contradiction": 0.08,
+            "meta": 0,
+            "instruction": 0.08
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.06,
+            "is_an_instruction_for_this_conversation": 0.08
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "For the record, the cache: results are keyed by the file's size and mtime and ke",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 163,
+          "line": {
+            "line": "The cache: results are keyed by the file's size and mtime and kept under ~/.cache/tinwhistle. The cache is never needed for a correct result, only for speed, so deleting it is always safe.",
+            "pick": [
+              "s1",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 214,
+            "calls": 1,
+            "inputTokens": 561
+          },
+          "inputTokens": 3435,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.98 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.97,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.79,
+            "constraint": 0.73,
+            "preference": 0.08,
+            "bug": 0.05,
+            "architecture": 0.98,
+            "todo": 0.03,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.06,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.09
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.06,
+            "is_an_instruction_for_this_conversation": 0.09
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never commit the audio fixtures under test/audio/large/. They are fetched by the",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 173,
+          "line": {
+            "line": "They are fetched by the test script from the bucket; the repo stays small.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 136,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 3404,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.11,
+          "kindProbabilities": {
+            "decision": 0.04,
+            "constraint": 0.96,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.93,
+            "constraint": 0.97,
+            "preference": 0.28,
+            "bug": 0.08,
+            "architecture": 0.93,
+            "todo": 0.08,
+            "dead-end": 0.11,
+            "chit_chat": 0.01,
+            "injection": 0.07,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.06
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.07,
+            "is_an_instruction_for_this_conversation": 0.06
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "From here on, don't bump the version in version.go by hand. The release script s",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 211,
+          "line": {
+            "line": "The release script sets it from the tag, and a hand edit makes the two disagree.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 206,
+            "calls": 1,
+            "inputTokens": 506
+          },
+          "inputTokens": 3410,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.95 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.21,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.96,
+            "preference": 0.02,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.87,
+            "constraint": 0.95,
+            "preference": 0.43,
+            "bug": 0.66,
+            "architecture": 0.75,
+            "todo": 0.12,
+            "dead-end": 0.21,
+            "chit_chat": 0.01,
+            "injection": 0.11,
+            "contradiction": 0.07,
+            "meta": 0,
+            "instruction": 0.07
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.11,
+            "is_an_instruction_for_this_conversation": 0.07
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Writing down how rate limiting works: the limiter sits in the gateway and counts",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 152,
+          "line": {
+            "line": "Writing down how rate limiting works: the limiter sits in the gateway and counts per API key in Redis with a sliding window. The services behind it never see a request over the limit; they assume the gateway did its job and have no limiter of their own.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 164,
+            "calls": 1,
+            "inputTokens": 523
+          },
+          "inputTokens": 3425,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.97,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.83,
+            "constraint": 0.34,
+            "preference": 0.16,
+            "bug": 0.04,
+            "architecture": 0.97,
+            "todo": 0.06,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.04,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.11
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.04,
+            "is_an_instruction_for_this_conversation": 0.11
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 175,
+          "line": {
+            "line": "The outbox pattern we landed on, for the record: a service writes the event into its own outbox table inside the transaction that made the change, and the relay publishes from there.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 143,
+            "calls": 1,
+            "inputTokens": 524
+          },
+          "inputTokens": 3974,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.87,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.12,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.98,
+            "constraint": 0.83,
+            "preference": 0.2,
+            "bug": 0.1,
+            "architecture": 0.98,
+            "todo": 0.04,
+            "dead-end": 0.07,
+            "chit_chat": 0.01,
+            "injection": 0.04,
+            "contradiction": 0.05,
+            "meta": 0.04,
+            "instruction": 0.06
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.04,
+            "is_an_instruction_for_this_conversation": 0.06
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule: a merged migration is never edited. Every schema change is a new numbered ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 198,
+          "line": {
+            "line": "A merged migration is never edited.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 133,
+            "calls": 1,
+            "inputTokens": 503
+          },
+          "inputTokens": 3403,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.99 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.91,
+            "constraint": 0.99,
+            "preference": 0.17,
+            "bug": 0.05,
+            "architecture": 0.78,
+            "todo": 0.04,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.08,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.08,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Hard rule for scripts and tests: the production DATABASE_URL is never used from ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 148,
+          "line": {
+            "line": "Hard rule for scripts and tests: the production DATABASE_URL is never used from a laptop or a test. Scripts take the staging or test URL only; a script that reads the prod URL gets rejected in review.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 135,
+            "calls": 1,
+            "inputTokens": 515
+          },
+          "inputTokens": 3415,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.99 importance=critical [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.92,
+            "constraint": 0.99,
+            "preference": 0.13,
+            "bug": 0.05,
+            "architecture": 0.64,
+            "todo": 0.05,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.09,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.09,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the build is laid out, as a note: content/ is the source, .cache/ holds rend",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 153,
+          "line": {
+            "line": "How the build is laid out, as a note: content/ is the source, .cache/ holds rendered partials keyed by content hash, and dist/ is wiped and rebuilt on every build. That is why nothing in dist/ is ever edited by hand: an edit there would not survive the next build.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 135,
+            "calls": 1,
+            "inputTokens": 534
+          },
+          "inputTokens": 3983,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.99 importance=useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.99,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.68,
+            "constraint": 0.9,
+            "preference": 0.13,
+            "bug": 0.06,
+            "architecture": 0.99,
+            "todo": 0.03,
+            "dead-end": 0.09,
+            "chit_chat": 0.01,
+            "injection": 0.05,
+            "contradiction": 0.08,
+            "meta": 0.07,
+            "instruction": 0.07
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.05,
+            "is_an_instruction_for_this_conversation": 0.07
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Design of the dev server, for the record: it watches content/ and templates/, re",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 162,
+          "line": {
+            "line": "Design of the dev server, for the record: it watches content/ and templates/, rebuilds only the pages whose inputs changed, and pushes a reload over a websocket.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 197,
+            "calls": 1,
+            "inputTokens": 527
+          },
+          "inputTokens": 3431,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.95,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.92,
+            "constraint": 0.92,
+            "preference": 0.3,
+            "bug": 0.04,
+            "architecture": 0.97,
+            "todo": 0.05,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.05,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.07
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.05,
+            "is_an_instruction_for_this_conversation": 0.07
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never add a runtime dependency without a line in DECISIONS.md saying why. The in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 184,
+          "line": {
+            "line": "Never add a runtime dependency without a line in DECISIONS.md saying why. The install footprint is a selling point and every package has to earn its place.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 170,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 3407,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.97,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.89,
+            "constraint": 0.98,
+            "preference": 0.3,
+            "bug": 0.03,
+            "architecture": 0.22,
+            "todo": 0.06,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.07,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.03
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.07,
+            "is_an_instruction_for_this_conversation": 0.03
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Going forward: don't skip or disable a failing test to get CI green. Fix it, or ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 172,
+          "line": {
+            "line": "Going forward: don't skip or disable a failing test to get CI green.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 170,
+            "calls": 1,
+            "inputTokens": 507
+          },
+          "inputTokens": 3944,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.95,
+            "preference": 0.05,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.81,
+            "constraint": 0.97,
+            "preference": 0.46,
+            "bug": 0.05,
+            "architecture": 0.06,
+            "todo": 0.24,
+            "dead-end": 0.04,
+            "chit_chat": 0.02,
+            "injection": 0.07,
+            "contradiction": 0.04,
+            "meta": 0.06,
+            "instruction": 0.09
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.07,
+            "is_an_instruction_for_this_conversation": 0.09
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 149,
+          "line": {
+            "line": "The run id is derived from the job id and the scheduled time, so a retry after a crash reuses the id and the store rejects a second insert. No job can run twice for one slot.",
+            "pick": [
+              "s2",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 178,
+            "calls": 1,
+            "inputTokens": 563
+          },
+          "inputTokens": 3980,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.89 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.07,
+            "constraint": 0.61,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.32,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.76,
+            "constraint": 0.86,
+            "preference": 0.07,
+            "bug": 0.07,
+            "architecture": 0.89,
+            "todo": 0.03,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.04,
+            "contradiction": 0.04,
+            "meta": 0.03,
+            "instruction": 0.06
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.04,
+            "is_an_instruction_for_this_conversation": 0.06
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Where time comes from, so nobody wonders: the scheduler reads the clock once per",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 184,
+          "line": {
+            "line": "Where time comes from, so nobody wonders: the scheduler reads the clock once per tick from the database with now(), never from the host. Every replica agrees on the time that way, and a replica with a skewed clock does no harm.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 141,
+            "calls": 1,
+            "inputTokens": 512
+          },
+          "inputTokens": 3965,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=decision content=0.96 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.5,
+            "constraint": 0.08,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.42,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.92,
+            "constraint": 0.88,
+            "preference": 0.11,
+            "bug": 0.1,
+            "architecture": 0.96,
+            "todo": 0.03,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.05,
+            "contradiction": 0.06,
+            "meta": 0.04,
+            "instruction": 0.07
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.05,
+            "is_an_instruction_for_this_conversation": 0.07
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule for this repo: never run the scheduler binary against the shared staging da",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 191,
+          "line": {
+            "line": "Never run the scheduler binary against the shared staging database from a laptop. Two schedulers on one table fight over the lease and the on-call gets paged.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 141,
+            "calls": 1,
+            "inputTokens": 550
+          },
+          "inputTokens": 3425,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.3,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.9,
+            "constraint": 0.98,
+            "preference": 0.14,
+            "bug": 0.58,
+            "architecture": 0.88,
+            "todo": 0.04,
+            "dead-end": 0.3,
+            "chit_chat": 0.01,
+            "injection": 0.08,
+            "contradiction": 0.07,
+            "meta": 0,
+            "instruction": 0.03
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.08,
+            "is_an_instruction_for_this_conversation": 0.03
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Always: a change to the lease logic gets a test that runs two schedulers against",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 152,
+          "line": {
+            "line": "Always: a change to the lease logic gets a test that runs two schedulers against one table.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 227,
+            "calls": 1,
+            "inputTokens": 502
+          },
+          "inputTokens": 3409,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.06,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.97,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.9,
+            "constraint": 0.98,
+            "preference": 0.29,
+            "bug": 0.07,
+            "architecture": 0.37,
+            "todo": 0.1,
+            "dead-end": 0.06,
+            "chit_chat": 0.01,
+            "injection": 0.1,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.1,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Sync design, as built, for the record: the app writes every change to the local ",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 156,
+          "line": {
+            "line": "Sync design, as built, for the record: the app writes every change to the local SQLite first and the sync engine pushes diffs later. The UI never waits on the network; offline is just the normal state with the push queued.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 138,
+            "calls": 1,
+            "inputTokens": 519
+          },
+          "inputTokens": 3446,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.09,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.9,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.91,
+            "constraint": 0.69,
+            "preference": 0.16,
+            "bug": 0.05,
+            "architecture": 0.97,
+            "todo": 0.14,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.06,
+            "contradiction": 0.11,
+            "meta": 0,
+            "instruction": 0.07
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.06,
+            "is_an_instruction_for_this_conversation": 0.07
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the plugin host works: each plugin runs in its own worker with a message cha",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 228,
+          "line": {
+            "line": "How the plugin host works: each plugin runs in its own worker with a message channel and no filesystem access of its own.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 127,
+            "calls": 1,
+            "inputTokens": 555
+          },
+          "inputTokens": 3990,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.98 importance=critical [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.17,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.83,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.75,
+            "constraint": 0.93,
+            "preference": 0.08,
+            "bug": 0.04,
+            "architecture": 0.98,
+            "todo": 0.03,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.06,
+            "contradiction": 0.06,
+            "meta": 0.06,
+            "instruction": 0.08
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.06,
+            "is_an_instruction_for_this_conversation": 0.08
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never edit the generated bindings under src/bindings/. Change the Rust types and",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 143,
+          "line": {
+            "line": "Never edit the generated bindings under src/bindings/. Change the Rust types and run `cargo run --bin gen-bindings`; a hand edit is overwritten on the next build and the two drift.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 150,
+            "calls": 1,
+            "inputTokens": 514
+          },
+          "inputTokens": 3439,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.36,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.99,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.75,
+            "constraint": 0.97,
+            "preference": 0.29,
+            "bug": 0.57,
+            "architecture": 0.86,
+            "todo": 0.07,
+            "dead-end": 0.36,
+            "chit_chat": 0.01,
+            "injection": 0.07,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.08
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.07,
+            "is_an_instruction_for_this_conversation": 0.08
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from today: no `console.log` in src/. Everything goes through the logger in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 169,
+          "line": {
+            "line": "Rule from today: no `console.log` in src/. Everything goes through the logger in src/lib/log.ts, which strips note contents before anything is written.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 208,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 3430,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.97,
+            "constraint": 0.98,
+            "preference": 0.16,
+            "bug": 0.07,
+            "architecture": 0.87,
+            "todo": 0.08,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.09,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.03
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.09,
+            "is_an_instruction_for_this_conversation": 0.03
+          }
+        }
+      ]
+    },
+    {
+      "mode": "auto",
+      "n": 24,
+      "started_at": "2026-11-09T10:10:04.337Z",
+      "finished_at": "2026-11-09T10:10:13.597Z",
+      "saveAccuracy": 0.9583333333333334,
+      "accuracy": 0.9166666666666666,
+      "f1": 0.9787234042553191,
+      "precision": 1,
+      "recall": 0.9583333333333334,
+      "saveSkipCorrect": 23,
+      "saveKindCorrect": 22,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 0,
+      "injectionNotSaved": "0/0",
+      "p50ms": 183,
+      "p95ms": 434,
+      "avgInputTokens": 4775,
+      "avgOutputTokens": 608,
+      "avgTokens": 5383,
+      "costPerTurn": 0.00020055525,
+      "costPerTurnWithLine": 0.0002215885,
+      "lineCallsPerTurn": 0.9583333333333334,
+      "lineP50ms": 145,
+      "escalationRate": 0.16666666666666666,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]"
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "reason": "skip: content=0.40<0.5 [tier 2, escalated]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "design-note",
+          "user": "Design note for the record: the extension's service worker holds no state betwee",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 229,
+          "line": {
+            "line": "Design note for the record: the extension's service worker holds no state between events. Everything it needs is read from chrome.storage.local when an event arrives and written back before the handler returns, so a worker restart loses nothing.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 204,
+            "calls": 1,
+            "inputTokens": 516
+          },
+          "inputTokens": 3434,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.96 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.25,
+            "constraint": 0.06,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.69,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.84,
+            "constraint": 0.47,
+            "preference": 0.14,
+            "bug": 0.07,
+            "architecture": 0.96,
+            "todo": 0.04,
+            "dead-end": 0.05,
+            "chit_chat": 0.01,
+            "injection": 0.09,
+            "contradiction": 0.07,
+            "meta": 0,
+            "instruction": 0.06
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.09,
+            "is_an_instruction_for_this_conversation": 0.06
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the popup and the page talk, so it is written down somewhere: the popup neve",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 434,
+          "line": {
+            "line": "It sends a message to the service worker, the worker forwards it to the content script of the active tab and relays the reply back.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 180,
+            "calls": 1,
+            "inputTokens": 562
+          },
+          "inputTokens": 11339,
+          "outputTokens": 1607,
+          "escalated": true,
+          "reason": "save kind=architecture content=0.91 importance=useful [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.2592251008178461,
+            "constraint": 0.8145725807070178,
+            "preference": 0.11304583007207897,
+            "bug": 0.0915379062933249,
+            "architecture": 0.9105199406664386,
+            "todo": 0.0932147230818236,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.14063812573413417,
+            "injection": 0.11660296916113938,
+            "contradiction": 0.14003491562777276,
+            "meta": 0.09449036895015932,
+            "instruction": 0.14430313409051876
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.08,
+            "directs_the_assistants_next_step_only": 0.08,
+            "states_nothing_that_outlasts_the_conversation": 0.18
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from now on: never add a permission to manifest.json without an issue that ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 223,
+          "line": {
+            "line": "Rule from now on: never add a permission to manifest.json without an issue that says why it is needed. The store review flags every added permission and we have been rejected once already.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 156,
+            "calls": 1,
+            "inputTokens": 510
+          },
+          "inputTokens": 3426,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.99 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.71,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.93,
+            "constraint": 0.99,
+            "preference": 0.21,
+            "bug": 0.44,
+            "architecture": 0.25,
+            "todo": 0.22,
+            "dead-end": 0.71,
+            "chit_chat": 0.01,
+            "injection": 0.13,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.03
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.13,
+            "is_an_instruction_for_this_conversation": 0.03
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "House rule: the release zip comes from `npm run package` only. Nobody zips the f",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 185,
+          "line": {
+            "line": "The release zip comes from `npm run package` only. Nobody zips the folder by hand, because the script strips the dev files and stamps the version.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 148,
+            "calls": 1,
+            "inputTokens": 508
+          },
+          "inputTokens": 3424,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.16,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.98,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.94,
+            "constraint": 0.97,
+            "preference": 0.22,
+            "bug": 0.05,
+            "architecture": 0.64,
+            "todo": 0.05,
+            "dead-end": 0.16,
+            "chit_chat": 0.01,
+            "injection": 0.06,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.06,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "A note on how scan is built: it is read-only by design. It walks the folders, bu",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 353,
+          "line": {
+            "line": "A note on how scan is built: it is read-only by design. It walks the folders, builds the plan, prints it and writes nothing; tags change only when apply is run with that plan file.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 149,
+            "calls": 1,
+            "inputTokens": 553
+          },
+          "inputTokens": 9998,
+          "outputTokens": 1426,
+          "escalated": true,
+          "reason": "save kind=architecture content=0.71 importance=useful [tier 2, escalated]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.26,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.74,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.1665886135754597,
+            "constraint": 0.7130001627522816,
+            "preference": 0.1551194226263038,
+            "bug": 0.09491904691793245,
+            "architecture": 0.6846015003234307,
+            "todo": 0.09841154794737668,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.08241331812791279,
+            "injection": 0.11007257436250302,
+            "contradiction": 0.14554232893696528,
+            "meta": 0.07585818002124355,
+            "instruction": 0.12619818782068373
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.03,
+            "answers_or_picks_among_the_assistants_options": 0.05,
+            "directs_the_assistants_next_step_only": 0.07,
+            "states_nothing_that_outlasts_the_conversation": 0.15
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "For the record, the cache: results are keyed by the file's size and mtime and ke",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 177,
+          "line": {
+            "line": "The cache: results are keyed by the file's size and mtime and kept under ~/.cache/tinwhistle. The cache is never needed for a correct result, only for speed, so deleting it is always safe.",
+            "pick": [
+              "s1",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 221,
+            "calls": 1,
+            "inputTokens": 561
+          },
+          "inputTokens": 3435,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=useful [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.96,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.8,
+            "constraint": 0.74,
+            "preference": 0.09,
+            "bug": 0.05,
+            "architecture": 0.97,
+            "todo": 0.04,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.06,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.08
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.06,
+            "is_an_instruction_for_this_conversation": 0.08
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never commit the audio fixtures under test/audio/large/. They are fetched by the",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 158,
+          "line": {
+            "line": "They are fetched by the test script from the bucket; the repo stays small.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 139,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 3404,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.1,
+          "kindProbabilities": {
+            "decision": 0.04,
+            "constraint": 0.96,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.92,
+            "constraint": 0.97,
+            "preference": 0.28,
+            "bug": 0.07,
+            "architecture": 0.93,
+            "todo": 0.07,
+            "dead-end": 0.1,
+            "chit_chat": 0.01,
+            "injection": 0.07,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.06
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.07,
+            "is_an_instruction_for_this_conversation": 0.06
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "From here on, don't bump the version in version.go by hand. The release script s",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 175,
+          "line": {
+            "line": "The release script sets it from the tag, and a hand edit makes the two disagree.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 142,
+            "calls": 1,
+            "inputTokens": 506
+          },
+          "inputTokens": 3410,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.95 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.23,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.97,
+            "preference": 0.02,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.87,
+            "constraint": 0.95,
+            "preference": 0.44,
+            "bug": 0.65,
+            "architecture": 0.76,
+            "todo": 0.13,
+            "dead-end": 0.23,
+            "chit_chat": 0.01,
+            "injection": 0.12,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.07
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.12,
+            "is_an_instruction_for_this_conversation": 0.07
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Writing down how rate limiting works: the limiter sits in the gateway and counts",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 156,
+          "line": {
+            "line": "Writing down how rate limiting works: the limiter sits in the gateway and counts per API key in Redis with a sliding window. The services behind it never see a request over the limit; they assume the gateway did its job and have no limiter of their own.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 120,
+            "calls": 1,
+            "inputTokens": 523
+          },
+          "inputTokens": 3425,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.98,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.81,
+            "constraint": 0.29,
+            "preference": 0.14,
+            "bug": 0.04,
+            "architecture": 0.97,
+            "todo": 0.06,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.04,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.12
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.04,
+            "is_an_instruction_for_this_conversation": 0.12
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 224,
+          "line": {
+            "line": "The outbox pattern we landed on, for the record: a service writes the event into its own outbox table inside the transaction that made the change, and the relay publishes from there.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 144,
+            "calls": 1,
+            "inputTokens": 524
+          },
+          "inputTokens": 3974,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=decision content=0.98 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.08,
+          "kindProbabilities": {
+            "decision": 0.83,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.16,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.98,
+            "constraint": 0.83,
+            "preference": 0.18,
+            "bug": 0.1,
+            "architecture": 0.98,
+            "todo": 0.04,
+            "dead-end": 0.08,
+            "chit_chat": 0.01,
+            "injection": 0.04,
+            "contradiction": 0.05,
+            "meta": 0.04,
+            "instruction": 0.05
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.04,
+            "is_an_instruction_for_this_conversation": 0.05
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule: a merged migration is never edited. Every schema change is a new numbered ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 147,
+          "line": {
+            "line": "A merged migration is never edited.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 138,
+            "calls": 1,
+            "inputTokens": 503
+          },
+          "inputTokens": 3403,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.99,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.91,
+            "constraint": 0.98,
+            "preference": 0.18,
+            "bug": 0.04,
+            "architecture": 0.81,
+            "todo": 0.04,
+            "dead-end": 0.03,
+            "chit_chat": 0.02,
+            "injection": 0.07,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.07,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Hard rule for scripts and tests: the production DATABASE_URL is never used from ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 155,
+          "line": {
+            "line": "Hard rule for scripts and tests: the production DATABASE_URL is never used from a laptop or a test. Scripts take the staging or test URL only; a script that reads the prod URL gets rejected in review.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 128,
+            "calls": 1,
+            "inputTokens": 515
+          },
+          "inputTokens": 3415,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.99 importance=critical [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.92,
+            "constraint": 0.99,
+            "preference": 0.13,
+            "bug": 0.05,
+            "architecture": 0.66,
+            "todo": 0.04,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.1,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.1,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the build is laid out, as a note: content/ is the source, .cache/ holds rend",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 207,
+          "line": {
+            "line": "How the build is laid out, as a note: content/ is the source, .cache/ holds rendered partials keyed by content hash, and dist/ is wiped and rebuilt on every build. That is why nothing in dist/ is ever edited by hand: an edit there would not survive the next build.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 143,
+            "calls": 1,
+            "inputTokens": 534
+          },
+          "inputTokens": 3983,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.98 importance=useful [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.09,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.98,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.68,
+            "constraint": 0.9,
+            "preference": 0.14,
+            "bug": 0.06,
+            "architecture": 0.98,
+            "todo": 0.03,
+            "dead-end": 0.09,
+            "chit_chat": 0.01,
+            "injection": 0.05,
+            "contradiction": 0.08,
+            "meta": 0.07,
+            "instruction": 0.07
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.05,
+            "is_an_instruction_for_this_conversation": 0.07
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Design of the dev server, for the record: it watches content/ and templates/, re",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 178,
+          "line": {
+            "line": "Design of the dev server, for the record: it watches content/ and templates/, rebuilds only the pages whose inputs changed, and pushes a reload over a websocket.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 199,
+            "calls": 1,
+            "inputTokens": 527
+          },
+          "inputTokens": 3431,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.05,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.95,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.92,
+            "constraint": 0.92,
+            "preference": 0.31,
+            "bug": 0.04,
+            "architecture": 0.97,
+            "todo": 0.05,
+            "dead-end": 0.05,
+            "chit_chat": 0.01,
+            "injection": 0.04,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.08
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.04,
+            "is_an_instruction_for_this_conversation": 0.08
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never add a runtime dependency without a line in DECISIONS.md saying why. The in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 169,
+          "line": {
+            "line": "Never add a runtime dependency without a line in DECISIONS.md saying why. The install footprint is a selling point and every package has to earn its place.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 140,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 3407,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.04,
+            "constraint": 0.96,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.88,
+            "constraint": 0.98,
+            "preference": 0.32,
+            "bug": 0.03,
+            "architecture": 0.23,
+            "todo": 0.06,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.07,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.07,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Going forward: don't skip or disable a failing test to get CI green. Fix it, or ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 210,
+          "line": {
+            "line": "Going forward: don't skip or disable a failing test to get CI green.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 159,
+            "calls": 1,
+            "inputTokens": 507
+          },
+          "inputTokens": 3944,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.94,
+            "preference": 0.06,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.83,
+            "constraint": 0.97,
+            "preference": 0.48,
+            "bug": 0.05,
+            "architecture": 0.07,
+            "todo": 0.25,
+            "dead-end": 0.04,
+            "chit_chat": 0.02,
+            "injection": 0.07,
+            "contradiction": 0.04,
+            "meta": 0.06,
+            "instruction": 0.08
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.07,
+            "is_an_instruction_for_this_conversation": 0.08
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 364,
+          "line": null,
+          "inputTokens": 11321,
+          "outputTokens": 1606,
+          "escalated": true,
+          "reason": "skip: content=0.40<0.5 [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.32,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.67,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.13181561811319517,
+            "constraint": 0.3751935255315707,
+            "preference": 0.09665121094159101,
+            "bug": 0.25922510081784605,
+            "architecture": 0.3989121211516303,
+            "todo": 0.09029814470291989,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.09112296101485616,
+            "injection": 0.12509958153381529,
+            "contradiction": 0.11204703855699027,
+            "meta": 0.10247703344409737,
+            "instruction": 0.11304583007207901
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.07,
+            "states_nothing_that_outlasts_the_conversation": 0.1
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Where time comes from, so nobody wonders: the scheduler reads the clock once per",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 378,
+          "line": {
+            "line": "Where time comes from, so nobody wonders: the scheduler reads the clock once per tick from the database with now(), never from the host. Every replica agrees on the time that way, and a replica with a skewed clock does no harm.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 145,
+            "calls": 1,
+            "inputTokens": 520
+          },
+          "inputTokens": 11291,
+          "outputTokens": 1606,
+          "escalated": true,
+          "reason": "save kind=architecture content=0.92 importance=important [tier 2, escalated]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.07,
+            "constraint": 0.03,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.9,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.6813537337890256,
+            "constraint": 0.7640475997974662,
+            "preference": 0.10764742639517667,
+            "bug": 0.1150667320455498,
+            "architecture": 0.9160615681024419,
+            "todo": 0.09029814470291989,
+            "dead-end": 0.09534946489910949,
+            "chit_chat": 0.0932147230818236,
+            "injection": 0.11155054018289638,
+            "contradiction": 0.12954361891967836,
+            "meta": 0.12025686246775083,
+            "instruction": 0.10716807048652821
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.05,
+            "states_nothing_that_outlasts_the_conversation": 0.09
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule for this repo: never run the scheduler binary against the shared staging da",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 599,
+          "line": {
+            "line": "Never run the scheduler binary against the shared staging database from a laptop. Two schedulers on one table fight over the lease and the on-call gets paged.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 143,
+            "calls": 1,
+            "inputTokens": 550
+          },
+          "inputTokens": 3425,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=critical [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.3,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.92,
+            "constraint": 0.98,
+            "preference": 0.14,
+            "bug": 0.6,
+            "architecture": 0.89,
+            "todo": 0.04,
+            "dead-end": 0.3,
+            "chit_chat": 0.01,
+            "injection": 0.08,
+            "contradiction": 0.07,
+            "meta": 0,
+            "instruction": 0.03
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.08,
+            "is_an_instruction_for_this_conversation": 0.03
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Always: a change to the lease logic gets a test that runs two schedulers against",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 160,
+          "line": {
+            "line": "Always: a change to the lease logic gets a test that runs two schedulers against one table.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 175,
+            "calls": 1,
+            "inputTokens": 502
+          },
+          "inputTokens": 3409,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.03,
+            "constraint": 0.96,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.91,
+            "constraint": 0.98,
+            "preference": 0.3,
+            "bug": 0.07,
+            "architecture": 0.43,
+            "todo": 0.1,
+            "dead-end": 0.07,
+            "chit_chat": 0.01,
+            "injection": 0.09,
+            "contradiction": 0.06,
+            "meta": 0,
+            "instruction": 0.04
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.09,
+            "is_an_instruction_for_this_conversation": 0.04
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Sync design, as built, for the record: the app writes every change to the local ",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 169,
+          "line": {
+            "line": "Sync design, as built, for the record: the app writes every change to the local SQLite first and the sync engine pushes diffs later. The UI never waits on the network; offline is just the normal state with the push queued.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 143,
+            "calls": 1,
+            "inputTokens": 519
+          },
+          "inputTokens": 3446,
+          "outputTokens": 405,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.09,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.91,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.91,
+            "constraint": 0.71,
+            "preference": 0.16,
+            "bug": 0.05,
+            "architecture": 0.97,
+            "todo": 0.15,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.06,
+            "contradiction": 0.11,
+            "meta": 0,
+            "instruction": 0.07
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.06,
+            "is_an_instruction_for_this_conversation": 0.07
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the plugin host works: each plugin runs in its own worker with a message cha",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 183,
+          "line": {
+            "line": "How the plugin host works: each plugin runs in its own worker with a message channel and no filesystem access of its own.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 141,
+            "calls": 1,
+            "inputTokens": 555
+          },
+          "inputTokens": 3990,
+          "outputTokens": 469,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.98 importance=critical [tier 1]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.17,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.83,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.75,
+            "constraint": 0.93,
+            "preference": 0.08,
+            "bug": 0.04,
+            "architecture": 0.98,
+            "todo": 0.03,
+            "dead-end": 0.03,
+            "chit_chat": 0.01,
+            "injection": 0.05,
+            "contradiction": 0.06,
+            "meta": 0.07,
+            "instruction": 0.07
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.05,
+            "is_an_instruction_for_this_conversation": 0.07
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never edit the generated bindings under src/bindings/. Change the Rust types and",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 158,
+          "line": {
+            "line": "Never edit the generated bindings under src/bindings/. Change the Rust types and run `cargo run --bin gen-bindings`; a hand edit is overwritten on the next build and the two drift.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 213,
+            "calls": 1,
+            "inputTokens": 514
+          },
+          "inputTokens": 3439,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.97 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.36,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.73,
+            "constraint": 0.97,
+            "preference": 0.28,
+            "bug": 0.59,
+            "architecture": 0.85,
+            "todo": 0.07,
+            "dead-end": 0.36,
+            "chit_chat": 0.01,
+            "injection": 0.07,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.08
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.07,
+            "is_an_instruction_for_this_conversation": 0.08
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from today: no `console.log` in src/. Everything goes through the logger in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 175,
+          "line": {
+            "line": "Rule from today: no `console.log` in src/. Everything goes through the logger in src/lib/log.ts, which strips note contents before anything is written.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 166,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 3430,
+          "outputTokens": 404,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.98 importance=important [tier 1]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.96,
+            "constraint": 0.98,
+            "preference": 0.15,
+            "bug": 0.07,
+            "architecture": 0.86,
+            "todo": 0.08,
+            "dead-end": 0.04,
+            "chit_chat": 0.01,
+            "injection": 0.09,
+            "contradiction": 0.05,
+            "meta": 0,
+            "instruction": 0.03
+          },
+          "tier": 1,
+          "instructionNouls": {
+            "contains_instructions_aimed_at_an_automated_system": 0.09,
+            "is_an_instruction_for_this_conversation": 0.03
+          }
+        }
+      ]
+    },
+    {
+      "mode": "full",
+      "n": 24,
+      "started_at": "2026-11-09T10:10:13.806Z",
+      "finished_at": "2026-11-09T10:10:22.710Z",
+      "saveAccuracy": 0.9583333333333334,
+      "accuracy": 0.9166666666666666,
+      "f1": 0.9787234042553191,
+      "precision": 1,
+      "recall": 0.9583333333333334,
+      "saveSkipCorrect": 23,
+      "saveKindCorrect": 22,
+      "contradictionsDetected": "0/0",
+      "falseContradictions": 0,
+      "injectionNotSaved": "0/0",
+      "p50ms": 189,
+      "p95ms": 248,
+      "avgInputTokens": 6791,
+      "avgOutputTokens": 1055,
+      "avgTokens": 7846,
+      "costPerTurn": 0.0002852325,
+      "costPerTurnWithLine": 0.00030626575000000005,
+      "lineCallsPerTurn": 0.9583333333333334,
+      "lineP50ms": 158,
+      "escalationRate": 0,
+      "lineErrors": [],
+      "errors": [
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "reason": "save kind=decision content=0.94 importance=important [tier 2]"
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "reason": "skip: content=0.41<0.5 [tier 2]"
+        }
+      ],
+      "rows": [
+        {
+          "tag": "design-note",
+          "user": "Design note for the record: the extension's service worker holds no state betwee",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 184,
+          "line": {
+            "line": "Design note for the record: the extension's service worker holds no state between events. Everything it needs is read from chrome.storage.local when an event arrives and written back before the handler returns, so a worker restart loses nothing.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 177,
+            "calls": 1,
+            "inputTokens": 516
+          },
+          "inputTokens": 6578,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.92 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.97,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.24601128355105195,
+            "constraint": 0.13528690783826305,
+            "preference": 0.11557684467553356,
+            "bug": 0.10433122311900131,
+            "architecture": 0.9175866818720871,
+            "todo": 0.09406342579180788,
+            "dead-end": 0.09112296101485616,
+            "chit_chat": 0.08866866325473327,
+            "injection": 0.14804719803168948,
+            "contradiction": 0.1388349935473072,
+            "meta": 0.07585818002124355,
+            "instruction": 0.1110559667114076
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.05,
+            "states_nothing_that_outlasts_the_conversation": 0.11
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the popup and the page talk, so it is written down somewhere: the popup neve",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 236,
+          "line": {
+            "line": "It sends a message to the service worker, the worker forwards it to the content script of the active tab and relays the reply back.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 261,
+            "calls": 1,
+            "inputTokens": 562
+          },
+          "inputTokens": 7350,
+          "outputTokens": 1138,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.91 importance=useful [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.25161827839293577,
+            "constraint": 0.826353352980995,
+            "preference": 0.11304583007207897,
+            "bug": 0.0915379062933249,
+            "architecture": 0.9105199406664386,
+            "todo": 0.0915379062933249,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.13705129257545967,
+            "injection": 0.11920292202211755,
+            "contradiction": 0.13646102381271386,
+            "meta": 0.09621554171069287,
+            "instruction": 0.1467903398013824
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.08,
+            "directs_the_assistants_next_step_only": 0.08,
+            "states_nothing_that_outlasts_the_conversation": 0.19
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from now on: never add a permission to manifest.json without an issue that ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 201,
+          "line": {
+            "line": "Rule from now on: never add a permission to manifest.json without an issue that says why it is needed. The store review flags every added permission and we have been rejected once already.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 146,
+            "calls": 1,
+            "inputTokens": 510
+          },
+          "inputTokens": 6570,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.92 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.67,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.456361312762921,
+            "constraint": 0.9248398905178734,
+            "preference": 0.29733934565526854,
+            "bug": 0.6931739493259501,
+            "architecture": 0.4762678458734389,
+            "todo": 0.16938389693401873,
+            "dead-end": 0.700567142473973,
+            "chit_chat": 0.08203599991368223,
+            "injection": 0.2699256160188812,
+            "contradiction": 0.08017291217281233,
+            "meta": 0.07585818002124355,
+            "instruction": 0.09195454993100434
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.09,
+            "answers_or_picks_among_the_assistants_options": 0.02,
+            "directs_the_assistants_next_step_only": 0.04,
+            "states_nothing_that_outlasts_the_conversation": 0.04
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "House rule: the release zip comes from `npm run package` only. Nobody zips the f",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 176,
+          "line": {
+            "line": "The release zip comes from `npm run package` only. Nobody zips the folder by hand, because the script strips the dev files and stamps the version.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 152,
+            "calls": 1,
+            "inputTokens": 508
+          },
+          "inputTokens": 6568,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.85 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.18,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.97,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.8205384805926733,
+            "constraint": 0.8538347696026181,
+            "preference": 0.31109608202304534,
+            "bug": 0.10574125857099789,
+            "architecture": 0.27587822922918137,
+            "todo": 0.10201806918913042,
+            "dead-end": 0.16798161486607552,
+            "chit_chat": 0.08548913943480654,
+            "injection": 0.161785859439544,
+            "contradiction": 0.06446476583758969,
+            "meta": 0.07585818002124355,
+            "instruction": 0.10293782581717223
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.05,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.07,
+            "states_nothing_that_outlasts_the_conversation": 0.06
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "A note on how scan is built: it is read-only by design. It walks the folders, bu",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 170,
+          "line": {
+            "line": "A note on how scan is built: it is read-only by design. It walks the folders, builds the plan, prints it and writes nothing; tags change only when apply is run with that plan file.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 155,
+            "calls": 1,
+            "inputTokens": 553
+          },
+          "inputTokens": 6571,
+          "outputTokens": 1022,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.72 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.24,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.76,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.15909194771428195,
+            "constraint": 0.70889017256612,
+            "preference": 0.15775868701896992,
+            "bug": 0.09491904691793245,
+            "architecture": 0.7211151780228631,
+            "todo": 0.09841154794737668,
+            "dead-end": 0.09112296101485616,
+            "chit_chat": 0.08241331812791279,
+            "injection": 0.1125454668507997,
+            "contradiction": 0.1518711636566593,
+            "meta": 0.07585818002124355,
+            "instruction": 0.12842016947472978
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.03,
+            "answers_or_picks_among_the_assistants_options": 0.05,
+            "directs_the_assistants_next_step_only": 0.08,
+            "states_nothing_that_outlasts_the_conversation": 0.15
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "For the record, the cache: results are keyed by the file's size and mtime and ke",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 215,
+          "line": {
+            "line": "The cache: results are keyed by the file's size and mtime and kept under ~/.cache/tinwhistle. The cache is never needed for a correct result, only for speed, so deleting it is always safe.",
+            "pick": [
+              "s1",
+              "s3"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 156,
+            "calls": 1,
+            "inputTokens": 561
+          },
+          "inputTokens": 6579,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.80 importance=useful [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.98,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.19232082157722297,
+            "constraint": 0.7576796390037048,
+            "preference": 0.13238887354206538,
+            "bug": 0.09796880429755396,
+            "architecture": 0.8013892651145572,
+            "todo": 0.09279295311715702,
+            "dead-end": 0.09112296101485616,
+            "chit_chat": 0.08393843189755813,
+            "injection": 0.12185285076961805,
+            "contradiction": 0.11405238127979088,
+            "meta": 0.07585818002124355,
+            "instruction": 0.12954361891967836
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.07,
+            "directs_the_assistants_next_step_only": 0.07,
+            "states_nothing_that_outlasts_the_conversation": 0.14
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never commit the audio fixtures under test/audio/large/. They are fetched by the",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 189,
+          "line": {
+            "line": "They are fetched by the test script from the bucket; the repo stays small.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 174,
+            "calls": 1,
+            "inputTokens": 500
+          },
+          "inputTokens": 6548,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.85 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.12,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.98,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.02,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.4900013331200346,
+            "constraint": 0.8474836831387063,
+            "preference": 0.3175616978069352,
+            "bug": 0.1052693895225098,
+            "architecture": 0.7631450157268554,
+            "todo": 0.11204703855699032,
+            "dead-end": 0.13010847436299786,
+            "chit_chat": 0.08241331812791279,
+            "injection": 0.12564785651534566,
+            "contradiction": 0.06629785135219643,
+            "meta": 0.07585818002124355,
+            "instruction": 0.10861179667022107
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.04,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.08,
+            "states_nothing_that_outlasts_the_conversation": 0.08
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "From here on, don't bump the version in version.go by hand. The release script s",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 210,
+          "line": {
+            "line": "The release script sets it from the tag, and a hand edit makes the two disagree.",
+            "pick": [
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 131,
+            "calls": 1,
+            "inputTokens": 506
+          },
+          "inputTokens": 6554,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.81 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.24,
+          "kindProbabilities": {
+            "decision": 0.02,
+            "constraint": 0.97,
+            "preference": 0.01,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.7738185742694538,
+            "constraint": 0.8053384164084221,
+            "preference": 0.3329217229043748,
+            "bug": 0.46879062662624377,
+            "architecture": 0.7613327148429104,
+            "todo": 0.13296424019782926,
+            "dead-end": 0.2141650169574414,
+            "chit_chat": 0.08203599991368223,
+            "injection": 0.18242552380635632,
+            "contradiction": 0.10716807048652821,
+            "meta": 0.07585818002124355,
+            "instruction": 0.10669059394565122
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.09,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.08,
+            "states_nothing_that_outlasts_the_conversation": 0.07
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Writing down how rate limiting works: the limiter sits in the gateway and counts",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 165,
+          "line": {
+            "line": "Writing down how rate limiting works: the limiter sits in the gateway and counts per API key in Redis with a sliding window. The services behind it never see a request over the limit; they assume the gateway did its job and have no limiter of their own.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 161,
+            "calls": 1,
+            "inputTokens": 523
+          },
+          "inputTokens": 6569,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.93 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.38461624360881785,
+            "constraint": 0.4663011645670992,
+            "preference": 0.11056331311630425,
+            "bug": 0.0932147230818236,
+            "architecture": 0.9330804329719313,
+            "todo": 0.09796880429755396,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.21332472781586043,
+            "injection": 0.09841154794737662,
+            "contradiction": 0.09752783704079257,
+            "meta": 0.07585818002124355,
+            "instruction": 0.13587289700909427
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.06,
+            "directs_the_assistants_next_step_only": 0.07,
+            "states_nothing_that_outlasts_the_conversation": 0.18
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "The outbox pattern we landed on, for the record: a service writes the event into",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "decision",
+            "contradicts": null
+          },
+          "ms": 182,
+          "line": {
+            "line": "The outbox pattern we landed on, for the record: a service writes the event into its own outbox table inside the transaction that made the change, and the relay publishes from there.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 178,
+            "calls": 1,
+            "inputTokens": 524
+          },
+          "inputTokens": 7335,
+          "outputTokens": 1137,
+          "escalated": false,
+          "reason": "save kind=decision content=0.94 importance=important [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.51,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.49,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.8715798305252702,
+            "constraint": 0.5805423048206597,
+            "preference": 0.13528690783826305,
+            "bug": 0.32849496577459414,
+            "architecture": 0.9384858183053655,
+            "todo": 0.09070970888737521,
+            "dead-end": 0.10433122311900131,
+            "chit_chat": 0.11920292202211755,
+            "injection": 0.10958374540629999,
+            "contradiction": 0.09363821223773569,
+            "meta": 0.10909682119561294,
+            "instruction": 0.10156092789763668
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.05,
+            "states_nothing_that_outlasts_the_conversation": 0.06
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule: a merged migration is never edited. Every schema change is a new numbered ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 187,
+          "line": {
+            "line": "A merged migration is never edited.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 154,
+            "calls": 1,
+            "inputTokens": 503
+          },
+          "inputTokens": 6547,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.77 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.99,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.4775151752081999,
+            "constraint": 0.7746924929149283,
+            "preference": 0.30258888560411773,
+            "bug": 0.10247703344409737,
+            "architecture": 0.5986876601124521,
+            "todo": 0.10201806918913042,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.0915379062933249,
+            "injection": 0.20751005855963564,
+            "contradiction": 0.10764742639517667,
+            "meta": 0.07585818002124355,
+            "instruction": 0.10110560441045455
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.06,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.05,
+            "states_nothing_that_outlasts_the_conversation": 0.07
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Hard rule for scripts and tests: the production DATABASE_URL is never used from ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 198,
+          "line": {
+            "line": "Hard rule for scripts and tests: the production DATABASE_URL is never used from a laptop or a test. Scripts take the staging or test URL only; a script that reads the prod URL gets rejected in review.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 168,
+            "calls": 1,
+            "inputTokens": 515
+          },
+          "inputTokens": 6559,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.90 importance=critical [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.7261149812607791,
+            "constraint": 0.9024721629592074,
+            "preference": 0.2880240805872065,
+            "bug": 0.11711899087578052,
+            "architecture": 0.3893607660507781,
+            "todo": 0.10065209356410687,
+            "dead-end": 0.09112296101485616,
+            "chit_chat": 0.08666916551086729,
+            "injection": 0.19387893782385981,
+            "contradiction": 0.09752783704079254,
+            "meta": 0.07585818002124355,
+            "instruction": 0.09752783704079257
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.05,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.05,
+            "states_nothing_that_outlasts_the_conversation": 0.05
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the build is laid out, as a note: content/ is the source, .cache/ holds rend",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 227,
+          "line": {
+            "line": "How the build is laid out, as a note: content/ is the source, .cache/ holds rendered partials keyed by content hash, and dist/ is wiped and rebuilt on every build. That is why nothing in dist/ is ever edited by hand: an edit there would not survive the next build.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 166,
+            "calls": 1,
+            "inputTokens": 534
+          },
+          "inputTokens": 7344,
+          "outputTokens": 1138,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.91 importance=useful [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.1,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 1,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.13528690783826305,
+            "constraint": 0.8754466418125836,
+            "preference": 0.25350601666233785,
+            "bug": 0.1347030519520281,
+            "architecture": 0.9133308344891328,
+            "todo": 0.1347030519520281,
+            "dead-end": 0.11920292202211755,
+            "chit_chat": 0.08393843189755813,
+            "injection": 0.11304583007207897,
+            "contradiction": 0.1525163168612938,
+            "meta": 0.11608892206899486,
+            "instruction": 0.1155768446755336
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.05,
+            "directs_the_assistants_next_step_only": 0.06,
+            "states_nothing_that_outlasts_the_conversation": 0.11
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Design of the dev server, for the record: it watches content/ and templates/, re",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 167,
+          "line": {
+            "line": "Design of the dev server, for the record: it watches content/ and templates/, rebuilds only the pages whose inputs changed, and pushes a reload over a websocket.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 290,
+            "calls": 1,
+            "inputTokens": 527
+          },
+          "inputTokens": 6575,
+          "outputTokens": 1022,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.93 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.01,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.99,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.24048908305088892,
+            "constraint": 0.7339975165215696,
+            "preference": 0.2167003150109591,
+            "bug": 0.09449036895015932,
+            "architecture": 0.9265593156415015,
+            "todo": 0.09665121094159101,
+            "dead-end": 0.09112296101485616,
+            "chit_chat": 0.08241331812791279,
+            "injection": 0.11455857923270588,
+            "contradiction": 0.11815697780926955,
+            "meta": 0.07585818002124355,
+            "instruction": 0.1155768446755336
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.05,
+            "directs_the_assistants_next_step_only": 0.06,
+            "states_nothing_that_outlasts_the_conversation": 0.11
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never add a runtime dependency without a line in DECISIONS.md saying why. The in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 210,
+          "line": {
+            "line": "Never add a runtime dependency without a line in DECISIONS.md saying why. The install footprint is a selling point and every package has to earn its place.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 127,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 6551,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.82 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.3036450701761659,
+            "constraint": 0.8227366964217431,
+            "preference": 0.35893259366518293,
+            "bug": 0.0915379062933249,
+            "architecture": 0.4061268970658573,
+            "todo": 0.10621499167517556,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.09029814470291984,
+            "injection": 0.1551194226263038,
+            "contradiction": 0.08355476698025463,
+            "meta": 0.07585818002124355,
+            "instruction": 0.09708864098649891
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.04,
+            "answers_or_picks_among_the_assistants_options": 0.02,
+            "directs_the_assistants_next_step_only": 0.05,
+            "states_nothing_that_outlasts_the_conversation": 0.06
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Going forward: don't skip or disable a failing test to get CI green. Fix it, or ",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 248,
+          "line": {
+            "line": "Going forward: don't skip or disable a failing test to get CI green.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 142,
+            "calls": 1,
+            "inputTokens": 507
+          },
+          "inputTokens": 7305,
+          "outputTokens": 1137,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.61 importance=important [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.98,
+            "preference": 0.02,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.6094497836283251,
+            "constraint": 0.21755022357688752,
+            "preference": 0.3329217229043748,
+            "bug": 0.19861073488544276,
+            "architecture": 0.10293782581717216,
+            "todo": 0.2640546060728515,
+            "dead-end": 0.09112296101485616,
+            "chit_chat": 0.21332472781586043,
+            "injection": 0.17150476997540087,
+            "contradiction": 0.061226162819907996,
+            "meta": 0.14804719803168945,
+            "instruction": 0.11660296916113944
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.07,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.08,
+            "states_nothing_that_outlasts_the_conversation": 0.12
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Note on the run model: every job run is idempotent by construction. The run id i",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": false,
+            "kind": "none",
+            "contradicts": null
+          },
+          "ms": 400,
+          "line": null,
+          "inputTokens": 7341,
+          "outputTokens": 1137,
+          "escalated": false,
+          "reason": "skip: content=0.41<0.5 [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.26,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.73,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.1278615663190813,
+            "constraint": 0.3751935255315707,
+            "preference": 0.09449036895015929,
+            "bug": 0.2544533858735974,
+            "architecture": 0.4073334000459303,
+            "todo": 0.09070970888737521,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.08988826325395899,
+            "injection": 0.12509958153381523,
+            "contradiction": 0.11354813321897783,
+            "meta": 0.09975048911968518,
+            "instruction": 0.10909682119561298
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.06,
+            "states_nothing_that_outlasts_the_conversation": 0.09
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Where time comes from, so nobody wonders: the scheduler reads the clock once per",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 197,
+          "line": {
+            "line": "Where time comes from, so nobody wonders: the scheduler reads the clock once per tick from the database with now(), never from the host. Every replica agrees on the time that way, and a replica with a skewed clock does no harm.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 240,
+            "calls": 1,
+            "inputTokens": 520
+          },
+          "inputTokens": 7326,
+          "outputTokens": 1137,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.91 importance=important [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0.07,
+            "constraint": 0.02,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.91,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.6835208937363157,
+            "constraint": 0.7798856290007258,
+            "preference": 0.11204703855699032,
+            "bug": 0.1150667320455498,
+            "architecture": 0.9129342275597286,
+            "todo": 0.08907352773556326,
+            "dead-end": 0.09112296101485616,
+            "chit_chat": 0.09491904691793245,
+            "injection": 0.1125454668507997,
+            "contradiction": 0.1318156181131952,
+            "meta": 0.12238888682304887,
+            "instruction": 0.1110559667114076
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.03,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.06,
+            "states_nothing_that_outlasts_the_conversation": 0.1
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule for this repo: never run the scheduler binary against the shared staging da",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 181,
+          "line": {
+            "line": "Never run the scheduler binary against the shared staging database from a laptop. Two schedulers on one table fight over the lease and the on-call gets paged.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 143,
+            "calls": 1,
+            "inputTokens": 550
+          },
+          "inputTokens": 6569,
+          "outputTokens": 1022,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.93 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.26,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.7941296281990525,
+            "constraint": 0.9298899437785819,
+            "preference": 0.2839402061842902,
+            "bug": 0.6910430124157227,
+            "architecture": 0.8743521434846544,
+            "todo": 0.09534946489910949,
+            "dead-end": 0.23147521650098238,
+            "chit_chat": 0.07980495924078745,
+            "injection": 0.1700885252353265,
+            "contradiction": 0.1388349935473072,
+            "meta": 0.07585818002124355,
+            "instruction": 0.10247703344409737
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.04,
+            "answers_or_picks_among_the_assistants_options": 0.02,
+            "directs_the_assistants_next_step_only": 0.07,
+            "states_nothing_that_outlasts_the_conversation": 0.07
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Always: a change to the lease logic gets a test that runs two schedulers against",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 222,
+          "line": {
+            "line": "Always: a change to the lease logic gets a test that runs two schedulers against one table.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 155,
+            "calls": 1,
+            "inputTokens": 502
+          },
+          "inputTokens": 6553,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.86 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.07,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.99,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.4158094770645927,
+            "constraint": 0.8623562923985038,
+            "preference": 0.289050497374996,
+            "bug": 0.10110560441045455,
+            "architecture": 0.6791786991753931,
+            "todo": 0.14307272348008085,
+            "dead-end": 0.10433122311900131,
+            "chit_chat": 0.08317269649392238,
+            "injection": 0.17293034989613867,
+            "contradiction": 0.13238887354206538,
+            "meta": 0.07585818002124355,
+            "instruction": 0.09930238517495783
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.04,
+            "answers_or_picks_among_the_assistants_options": 0.03,
+            "directs_the_assistants_next_step_only": 0.05,
+            "states_nothing_that_outlasts_the_conversation": 0.06
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "Sync design, as built, for the record: the app writes every change to the local ",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 177,
+          "line": {
+            "line": "Sync design, as built, for the record: the app writes every change to the local SQLite first and the sync engine pushes diffs later. The UI never waits on the network; offline is just the normal state with the push queued.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 209,
+            "calls": 1,
+            "inputTokens": 519
+          },
+          "inputTokens": 6590,
+          "outputTokens": 1022,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.94 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.99,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.4812587841214648,
+            "constraint": 0.6835208937363156,
+            "preference": 0.10861179667022103,
+            "bug": 0.0957816280963277,
+            "architecture": 0.9376141486200055,
+            "todo": 0.502499979166875,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.08588085420122661,
+            "injection": 0.13181561811319517,
+            "contradiction": 0.17799368578624652,
+            "meta": 0.07585818002124355,
+            "instruction": 0.11506673204554985
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.03,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.08,
+            "states_nothing_that_outlasts_the_conversation": 0.1
+          }
+        },
+        {
+          "tag": "design-note",
+          "user": "How the plugin host works: each plugin runs in its own worker with a message cha",
+          "want": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "architecture",
+            "contradicts": null
+          },
+          "ms": 173,
+          "line": {
+            "line": "How the plugin host works: each plugin runs in its own worker with a message channel and no filesystem access of its own.",
+            "pick": [
+              "s1"
+            ],
+            "pickOf": 3,
+            "pickError": null,
+            "ms": 158,
+            "calls": 1,
+            "inputTokens": 555
+          },
+          "inputTokens": 7351,
+          "outputTokens": 1137,
+          "escalated": false,
+          "reason": "save kind=architecture content=0.86 importance=critical [tier 2]",
+          "assistantIncluded": true,
+          "source": "user_message",
+          "deadEndNoul": 0.03,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 0.03,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.97,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.1406381257341342,
+            "constraint": 0.211651365991901,
+            "preference": 0.11405238127979088,
+            "bug": 0.09406342579180782,
+            "architecture": 0.8611650064526928,
+            "todo": 0.0915379062933249,
+            "dead-end": 0.08706577244027125,
+            "chit_chat": 0.1250995815338153,
+            "injection": 0.10909682119561294,
+            "contradiction": 0.08128607961357302,
+            "meta": 0.12786156631908135,
+            "instruction": 0.1155768446755336
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.02,
+            "answers_or_picks_among_the_assistants_options": 0.05,
+            "directs_the_assistants_next_step_only": 0.07,
+            "states_nothing_that_outlasts_the_conversation": 0.1
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Never edit the generated bindings under src/bindings/. Change the Rust types and",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 184,
+          "line": {
+            "line": "Never edit the generated bindings under src/bindings/. Change the Rust types and run `cargo run --bin gen-bindings`; a hand edit is overwritten on the next build and the two drift.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 198,
+            "calls": 1,
+            "inputTokens": 514
+          },
+          "inputTokens": 6583,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.92 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.37,
+          "kindProbabilities": {
+            "decision": 0.01,
+            "constraint": 0.98,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0.01,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.7211151780228631,
+            "constraint": 0.9205614508160216,
+            "preference": 0.3132432733560982,
+            "bug": 0.3822521252307511,
+            "architecture": 0.788348634008099,
+            "todo": 0.25350601666233785,
+            "dead-end": 0.3429895373265012,
+            "chit_chat": 0.08091346721546534,
+            "injection": 0.14492163148782283,
+            "contradiction": 0.07209129819769405,
+            "meta": 0.07585818002124355,
+            "instruction": 0.12564785651534566
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.05,
+            "answers_or_picks_among_the_assistants_options": 0.04,
+            "directs_the_assistants_next_step_only": 0.12,
+            "states_nothing_that_outlasts_the_conversation": 0.11
+          }
+        },
+        {
+          "tag": "genuine-rule",
+          "user": "Rule from today: no `console.log` in src/. Everything goes through the logger in",
+          "want": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "got": {
+            "save": true,
+            "kind": "constraint",
+            "contradicts": null
+          },
+          "ms": 166,
+          "line": {
+            "line": "Rule from today: no `console.log` in src/. Everything goes through the logger in src/lib/log.ts, which strips note contents before anything is written.",
+            "pick": [
+              "s1",
+              "s2"
+            ],
+            "pickOf": 2,
+            "pickError": null,
+            "ms": 138,
+            "calls": 1,
+            "inputTokens": 505
+          },
+          "inputTokens": 6574,
+          "outputTokens": 1021,
+          "escalated": false,
+          "reason": "save kind=constraint content=0.91 importance=important [tier 2]",
+          "assistantIncluded": false,
+          "source": "user_message",
+          "deadEndNoul": 0.04,
+          "kindProbabilities": {
+            "decision": 0,
+            "constraint": 1,
+            "preference": 0,
+            "bug": 0,
+            "architecture": 0,
+            "todo": 0,
+            "dead-end": 0,
+            "none": 0
+          },
+          "families": {
+            "decision": 0.8061210621761402,
+            "constraint": 0.38107214519980964,
+            "preference": 0.289050497374996,
+            "bug": 0.09841154794737668,
+            "architecture": 0.9101117367460411,
+            "todo": 0.12786156631908133,
+            "dead-end": 0.09112296101485616,
+            "chit_chat": 0.07980495924078745,
+            "injection": 0.29317777890643243,
+            "contradiction": 0.07412406519066317,
+            "meta": 0.07585818002124355,
+            "instruction": 0.09195454993100434
+          },
+          "tier": 2,
+          "instructionNouls": {
+            "tells_an_ai_to_ignore_or_replace_instructions": 0.1,
+            "answers_or_picks_among_the_assistants_options": 0.02,
+            "directs_the_assistants_next_step_only": 0.04,
+            "states_nothing_that_outlasts_the_conversation": 0.04
+          }
+        }
+      ]
+    }
+  ]
+}
