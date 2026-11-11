@@ -1,6 +1,8 @@
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/brand/lockup/svg/jevmem-lockup-horizontal-dark.svg"><img alt="jevmem" src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/brand/lockup/svg/jevmem-lockup-horizontal-light.svg" height="64"></picture>
 
-**Say it once.** jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session. Before Claude runs a command or edits a file, it checks the call against your saved rules. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry. Since 0.7.4 it saves from Cursor chats the same way, as a Cursor plugin since 0.7.6, and it works with Codex and Claude Desktop over MCP.
+**Claude remembers you. jevmem makes your project's rules stick, across your agents and your teammates.** jevmem saves your project's decisions, rules and failed approaches from your chats to one file in your repo, JEVMEM.md, that Claude Code, Cursor and Codex read, and checks Claude's commands against those rules before they run. Your teammates get the same file through git. It works beside Claude Code's own auto memory and adds what that doesn't have: the guard, a shared file in git, and the other tools. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry, and it works with Claude Desktop over MCP.
+
+You need a paid [TypeSafe API key](https://console.typesafe.ai/keys): your message text is sent to TypeSafe to be scored, with common secrets removed first. No telemetry. Opt-in per project.
 
 In Anthropic's Claude plugin directory · On the [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.Avinash-jetwani/jevmem) · Open source, MIT
 
@@ -14,113 +16,33 @@ The docs site, one page per question: [avinash-jetwani.github.io/jevmem](https:/
 
 https://github.com/user-attachments/assets/c8a7eced-c427-4ef6-85f2-124eb34ad291
 
-## Why
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/rulebook-dark.svg"><img alt="You chat as usual in Claude Code, Cursor or Codex; decisions, rules and failed approaches go to JEVMEM.md in your repo, shared through git; your agents read it; and in Claude Code the guard checks each command and edit against the rules before it runs." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/rulebook-light.svg"></picture>
 
-Each Claude Code session starts with a fresh context, so what you decided last week lives in last week's chat.
-A `CLAUDE.md` file helps if you keep it up to date. jevmem keeps a file like it up to date for you, as you work.
+## Three ways teams use it
 
-## In numbers
+### 1. The guard: a rule Claude checks before it acts
 
-In real Claude Code sessions on three small test projects, with jevmem and without it:
+Your team decided "don't hand-edit db/migrations/: those files are generated". Three weeks later, in a fresh session, Claude is about to edit one. Before the edit runs, jevmem checks it against the rules in JEVMEM.md, and Claude Code stops and asks you first, with the rule:
 
-- **Claude followed the project's earlier decisions:** in 66 of 72 sessions with jevmem, 28 of 72 without (about 9 in 10, against 4 in 10).
-- **Tried a change the project forbids:** in 0 of 18 sessions with jevmem, against 10 of 18 without.
-- **Repeated an approach that had already failed:** in 0 of 15, against 3 of 15.
-- **Saving:** about 19 cents per 1,000 messages and under a fifth of a second to decide, in the background: Claude doesn't wait for it.
-- **Bringing lines back:** about a third to half a second on each prompt, which Claude waits for; the time and the cost grow with the file.
-- **Next to Claude Code's own auto memory** (0.7.7, 558 sessions on three new projects): Claude followed a line taught in an earlier session in 47 of 54 sessions with auto memory alone, 40 with jevmem alone and 45 with both; after reading every miss by hand, 49, 40 and 48. With jevmem on, no change a rule forbade was left in the code (0 of 15, checked by hand, against 1 of 15 with auto memory alone). [Details](#next-to-claude-codes-auto-memory-077).
-- **To be fair:** a `CLAUDE.md` you keep up to date by hand did about as well (67 of 72), and better on one convention nothing in the prompt points at (3 of 3 against 0 of 3). jevmem keeps a file like it up to date for you, and since 0.7.1 marks such rules always-on, so they reach every session: 18 of 18 on six held-out tasks written for that gap, against 14 of 18 with 0.7.0.
-
-My own test sets, each number from one run; none is an independent benchmark. [Method and results](https://avinash-jetwani.github.io/jevmem/results/)
-
-## How it works
-
-You chat as usual. When you decide something, jevmem writes it as one line in a file in your repo, and brings the right lines back next session.
-
-<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-works-dark.svg"><img alt="You say it, Jev decides, jevmem writes one line to JEVMEM.md, and next session Claude gets the lines that matter." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-works-light.svg"></picture>
-
-1. You decide something in a chat: "We use Postgres."
-2. jevmem asks [Jev by TypeSafe AI](https://typesafe.ai), a model that answers yes/no questions with probabilities, whether it's worth keeping.
-3. If it is, jevmem writes one line to `JEVMEM.md` in your repo.
-4. Next session, the lines that matter for your prompt go back to Claude.
-
-Change your mind, and the old line is crossed out: kept for history, not sent to Claude. Your team gets the same file through git.
-
-jevmem keeps **decisions, rules, bugs, to-dos and dead ends** (an approach that was tried and failed, with the reason).
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/guard-edit-dark.svg"><img alt="Claude wants to edit a generated migration, jevmem finds the team's rule in JEVMEM.md, and Claude Code asks you before the edit runs." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/guard-edit-light.svg"></picture>
 
 ```text
-- [superseded] We'll use SQLite as the primary store for now. → id:cuasaq
-- [decision] Switch the primary store to Postgres 16.
-- [constraint] Node 20 is the minimum supported version, and CI runs Node 20 and 22.
+jevmem: this may break a saved rule: "Don't hand-edit db/migrations/: those files are generated." (JEVMEM.md)
 ```
 
-<details><summary>About these lines</summary>
+In our tests (0.7.7, checked by hand), a change a rule forbids was left in the code in 0 of 15 sessions with jevmem on. The guard checks Claude's commands, file edits and file writes in Claude Code, and `jevmem trust` lets a rule you wrote block the call instead of asking ([the guard](#the-guard)).
 
-Each line also carries a comment with its id, time and confidence, left out above. The full lines:
+### 2. The team: one file, shared through git
 
-```text
-- [superseded] We'll use SQLite as the primary store for now. → id:cuasaq  <!-- id:21ycba ts:2026-09-26T13:46:34.703Z conf:1.00 by:cuasaq -->
-- [decision] Switch the primary store to Postgres 16.  <!-- id:cuasaq ts:2026-09-26T13:46:35.240Z conf:1.00 -->
-- [constraint] Node 20 is the minimum supported version, and CI runs Node 20 and 22.  <!-- id:tollba ts:2026-09-26T13:46:35.763Z conf:0.90 -->
-```
+On Monday you tell Claude "we use pnpm, not npm". jevmem saves it as a line in JEVMEM.md, and you commit it with your code. On Tuesday your teammate pulls and opens the repo in Cursor: with the jevmem plugin, the agent looks up the project's rules before a task, and the pnpm line is there, because it travelled with the code through git. Codex reads the same file over MCP when the agent asks, and in Claude Code the guard checks an `npm install` against the rule before it runs.
 
-Real lines from 0.5.7's default writer, which 0.5.8 to 0.5.10 did not change ([the run](results/readme-example-2026-09-26.txt), 2026-09-26). It kept one sentence of each turn: the Postgres turn also said "SQLite locks up under concurrent writes", and that reason was left out. Since 0.6.0 the line is made from the sentences Jev picks, the one that states the memory and the one that gives its reason ([What's new](docs/whats-new.md)). With `writer` set, an OpenAI or Anthropic model condenses the whole turn instead.
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/team-dark.svg"><img alt="On Monday you tell Claude Code we use pnpm, not npm; jevmem saves it to JEVMEM.md, committed with your code; on Tuesday your teammate's Cursor agent looks up the rules and finds it." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/team-light.svg"></picture>
 
-</details>
+### 3. No repeated mistakes
 
-## Does it work?
+You tried caching the API responses in memory, it broke the build, and you kept Redis. jevmem saves that as a failed approach, with the reason. Next month, when a prompt comes near it, Claude gets it back as "Already tried: …" with the reason, and in Cursor and Codex the agent finds it when it looks up the project's memory, so an idea you already ruled out stays ruled out. In our tests, an approach that had already failed was repeated in 0 of 15 sessions with jevmem, against 3 of 15 without.
 
-In 72 real Claude Code sessions for each setup, Claude acted on the saved line about as often with jevmem as with the same lines in a hand-written `CLAUDE.md`, and in fewer than half the sessions with neither.
-
-<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/results-dark.svg"><img alt="A/B results: followed the project's decision 28 of 72 with no project memory, 66 of 72 with jevmem, 67 of 72 with a hand-written CLAUDE.md." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/results-light.svg"></picture>
-
-| | No project memory | jevmem | Same lines in `CLAUDE.md` |
-|---|---|---|---|
-| Followed the project's decision | 28 of 72 | **66 of 72** | 67 of 72 |
-| Tried a change the project forbids | 10 of 18 | **0 of 18** | 0 of 18 |
-| Repeated an approach that had already failed | 3 of 15 | **0 of 15** | 0 of 15 |
-
-So jevmem did about as well as a hand-written `CLAUDE.md`, without you writing it.
-`CLAUDE.md` did better on a convention nothing in the prompt points at (3 of 3 against 0 of 3), measured on 0.6, where jevmem brought a line back only for a prompt it bears on. Since 0.7.1 jevmem marks a rule every change must follow always-on and sends it at the start of every session: on six held-out tasks written for that gap, Claude followed the convention in 14 of 18 sessions with 0.7.0 and 18 of 18 with 0.7.1, as with the same lines in a hand-kept `CLAUDE.md` ([what's new](#whats-new), [limits](docs/limits.md)).
-How the sessions were run, and every row: [the benchmark page](docs/benchmark.md#outcome-ab-does-claude-act-on-the-memory).
-
-### Next to Claude Code's auto memory (0.7.7)
-
-Claude Code keeps notes of its own, auto memory, on by default. To see what jevmem adds next to it, a fact was stated in plain chat in one session, and a later session got a task that needed it, in 558 real Claude Code sessions on three new projects (one model, `claude-fable-5-1`, and Claude Code 2.1.306; three runs of each task).
-
-| Followed the taught line (18 tasks, 3 runs) | No memory | Auto memory | jevmem | Both | Same line in `CLAUDE.md` |
-|---|---|---|---|---|---|
-| By the checks written before the run | 17 of 54 | 47 of 54 | 40 of 54 | 45 of 54 | 45 of 54 |
-| After reading every miss by hand | 17 of 54 | 49 of 54 | 40 of 54 | 48 of 54 | 46 of 54 |
-| Left a change a rule forbids in the code (by hand) | 9 of 15 | 1 of 15 | 0 of 15 | 0 of 15 | 2 of 15 |
-| Long project, 230 earlier lines (checks → by hand) | 7 → 7 of 18 | 12 → 12 of 17 | 14 → 15 of 18 | 12 → 16 of 18 | 14 → 15 of 18 |
-
-So auto memory on its own followed the taught line more often than jevmem on its own, and with both on Claude did about as well as with auto memory alone; jevmem's guard kept every forbidden change out of the code. On the long project, auto memory's notes ran past the 25 KB Claude Code loads at the start of a session, and jevmem, alone or beside it, did about as well as `CLAUDE.md`.
-Reading the 106 misses by hand found 12 that the checks had scored wrong (a number kept in a constant in another file, a year written another way); both rows are shown. In 14 of jevmem's 17 misses its saved line had left out the rule: 9 cut at the line's 200-character limit, which 0.7.7 changes (a line now keeps the sentences that state it up to 300 characters; [what's new](#whats-new)), and 5 where Jev's choice of sentences left out the one with the rule, which 0.7.7 does not change. The comparison ran on the build before that change.
-How the sessions were run, the 12 sessions and every row: [the benchmark page](docs/benchmark.md#against-claude-codes-auto-memory-077).
-
-## The guard
-
-<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/guard-dark.svg"><img alt="The guard: Claude wants to run a command, jevmem checks it against your saved rules, and Claude Code asks you first." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/guard-light.svg"></picture>
-
-Before Claude runs a command or edits a file, jevmem checks it against your saved rules. If one might break, Claude Code asks you first:
-
-```text
-jevmem: this may break a saved rule: "Never commit .env files" (JEVMEM.md)
-```
-
-On a test of 274 tool calls, a set the guard was not tuned on, it caught 66 of 68 rule breaks and asked about 3 or 4 of the 206 calls that broke no rule (one run each on 0.6.0 and 0.6.1).
-It's a backstop, not a sandbox: it looks at the words a rule and a call share. Since 0.7.0, `jevmem trust` lets a rule you added by hand block a call in the guard's block mode, not only ask about it. [How the guard works](docs/guardrails.md).
-
-## Side pane
-
-A pane beside your Claude Code chat shows what jevmem just did: the memory lines it gave Claude for your prompt, what its guard said about a command, and the line it saved from the turn, each with `why`, `wrong` and `forget` buttons. The two that change `JEVMEM.md` ask first; a rule is retired in a terminal only. It reads three local files and sends nothing anywhere.
-
-```
-/plugin install jevmem-pane@jevmem
-```
-
-It is a second plugin from the jevmem marketplace (the jevmem plugin itself still ships no code), for Claude Code 2.1.299 or newer; it opens on its own in a terminal 144 columns wide or wider and in the desktop app's Code tab, and `/jevmem` opens or closes it anywhere. What each block shows, and what was measured: [docs/pane.md](docs/pane.md).
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/dead-end-dark.svg"><img alt="An in-memory cache broke the build; jevmem saves it as a failed approach with the reason; next month Claude gets it back as Already tried." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/dead-end-light.svg"></picture>
 
 ## Install
 
@@ -166,6 +88,86 @@ Every step, and what to do if the plugin can't find the CLI: [docs/install.md](d
 
 </details>
 
+## Beside Claude Code's memory
+
+Claude Code keeps notes of its own, auto memory, on your machine. jevmem runs beside it and adds the parts a team needs:
+
+| | Claude Code's auto memory | jevmem |
+|---|---|---|
+| Saves from your chats | Yes | Yes: decisions, rules, failed approaches, bugs, to-dos |
+| Where it keeps them | Notes on one machine, under `~/.claude/projects/` | `JEVMEM.md` in your repo, shared through git |
+| Checks commands and edits against your rules before they run | No | Yes, the guard |
+| Works in | Claude Code | Claude Code, Cursor, Codex, Claude Desktop |
+
+Run both: the guard leaves auto memory's own notes alone (0.7.7), and the two side by side, measured, are [below](#next-to-claude-codes-auto-memory-077).
+
+## Why
+
+Each AI coding session starts with a fresh context, and a rule your team agreed lives in one person's chat, on one machine, in one tool.
+A `CLAUDE.md` file helps if you keep it up to date. jevmem keeps a file like it up to date for you, as you work, shares it with your team through git, gives it to Claude Code, Cursor and Codex, and checks Claude's commands against it.
+
+## In numbers
+
+In real Claude Code sessions on three small test projects, with jevmem and without it:
+
+- **Tried a change the project forbids:** in 0 of 18 sessions with jevmem, against 10 of 18 without.
+- **Claude followed the project's earlier decisions:** in 66 of 72 sessions with jevmem, 28 of 72 without (about 9 in 10, against 4 in 10).
+- **Repeated an approach that had already failed:** in 0 of 15, against 3 of 15.
+- **Saving:** about 19 cents per 1,000 messages and under a fifth of a second to decide, in the background: Claude doesn't wait for it.
+- **Bringing lines back:** about a third to half a second on each prompt, which Claude waits for; the time and the cost grow with the file.
+- **Next to Claude Code's own auto memory** (0.7.7, 558 sessions on three new projects): Claude followed a line taught in an earlier session in 47 of 54 sessions with auto memory alone, 40 with jevmem alone and 45 with both; after reading every miss by hand, 49, 40 and 48. With jevmem on, no change a rule forbade was left in the code (0 of 15, checked by hand, against 1 of 15 with auto memory alone). [Details](#next-to-claude-codes-auto-memory-077).
+- **To be fair:** a `CLAUDE.md` you keep up to date by hand did about as well (67 of 72), and better on one convention nothing in the prompt points at (3 of 3 against 0 of 3). jevmem keeps a file like it up to date for you, and since 0.7.1 marks such rules always-on, so they reach every session: 18 of 18 on six held-out tasks written for that gap, against 14 of 18 with 0.7.0.
+
+My own test sets, each number from one run; none is an independent benchmark. [Method and results](https://avinash-jetwani.github.io/jevmem/results/)
+
+## How it works
+
+You chat as usual. When you decide something, jevmem writes it as one line in a file in your repo, and brings the right lines back next session.
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-works-dark.svg"><img alt="You say it, Jev decides, jevmem writes one line to JEVMEM.md, and next session Claude gets the lines that matter." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/how-it-works-light.svg"></picture>
+
+1. You decide something in a chat: "We use Postgres."
+2. jevmem asks [Jev by TypeSafe AI](https://typesafe.ai), a model that answers yes/no questions with probabilities, whether it's worth keeping.
+3. If it is, jevmem writes one line to `JEVMEM.md` in your repo.
+4. Next session, the lines that matter for your prompt go back to Claude.
+
+Change your mind, and the old line is crossed out: kept for history, not sent to Claude. Your team gets the same file through git.
+
+jevmem keeps **decisions, rules, bugs, to-dos and dead ends** (an approach that was tried and failed, with the reason).
+
+```text
+- [superseded] We'll use SQLite as the primary store for now. → id:cuasaq
+- [decision] Switch the primary store to Postgres 16.
+- [constraint] Node 20 is the minimum supported version, and CI runs Node 20 and 22.
+```
+
+<details><summary>About these lines</summary>
+
+Each line also carries a comment with its id, time and confidence, left out above. The full lines:
+
+```text
+- [superseded] We'll use SQLite as the primary store for now. → id:cuasaq  <!-- id:21ycba ts:2026-09-26T13:46:34.703Z conf:1.00 by:cuasaq -->
+- [decision] Switch the primary store to Postgres 16.  <!-- id:cuasaq ts:2026-09-26T13:46:35.240Z conf:1.00 -->
+- [constraint] Node 20 is the minimum supported version, and CI runs Node 20 and 22.  <!-- id:tollba ts:2026-09-26T13:46:35.763Z conf:0.90 -->
+```
+
+Real lines from 0.5.7's default writer, which 0.5.8 to 0.5.10 did not change ([the run](results/readme-example-2026-09-26.txt), 2026-09-26). It kept one sentence of each turn: the Postgres turn also said "SQLite locks up under concurrent writes", and that reason was left out. Since 0.6.0 the line is made from the sentences Jev picks, the one that states the memory and the one that gives its reason ([What's new](docs/whats-new.md)). With `writer` set, an OpenAI or Anthropic model condenses the whole turn instead.
+
+</details>
+
+## The guard
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/guard-dark.svg"><img alt="The guard: Claude wants to run a command, jevmem checks it against your saved rules, and Claude Code asks you first." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/guard-light.svg"></picture>
+
+Before Claude runs a command or edits a file, jevmem checks it against your saved rules. If one might break, Claude Code asks you first:
+
+```text
+jevmem: this may break a saved rule: "Never commit .env files" (JEVMEM.md)
+```
+
+On a test of 274 tool calls, a set the guard was not tuned on, it caught 66 of 68 rule breaks and asked about 3 or 4 of the 206 calls that broke no rule (one run each on 0.6.0 and 0.6.1).
+It's a backstop, not a sandbox: it looks at the words a rule and a call share. Since 0.7.0, `jevmem trust` lets a rule you added by hand block a call in the guard's block mode, not only ask about it. [How the guard works](docs/guardrails.md).
+
 ## Works with
 
 Saving is automatic in Claude Code and, since 0.7.4, in Cursor, where Cursor's hooks save each finished agent turn (since 0.7.6 from the jevmem plugin for Cursor, or from the files `jevmem init --tool cursor` writes); and in Codex while `jevmem watch` runs. Cursor, Codex and Claude Desktop reach jevmem over MCP, a standard way for an AI tool to call another program, when the agent asks for it; the Cursor plugin's server runs in every window, while a project's own `.cursor/mcp.json` server starts off until you turn it on once ([the step](docs/mcp.md#cursor)). In Cursor, on 10 held-out chats captured before the code (24 turns), the first run paired 21 of 24 turns whole, the prompt with the whole reply; a reader fix came from that run, and the second run paired 24 of 24, with what to save right in 21 of 24 ([measured](docs/hooks.md#cursor-hooks-074)).
@@ -178,6 +180,49 @@ Saving is automatic in Claude Code and, since 0.7.4, in Cursor, where Cursor's h
 | **Claude Desktop** | When you ask it to, over MCP | When you ask it to, over MCP |
 
 The MCP server is on the [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.Avinash-jetwani/jevmem) as `io.github.Avinash-jetwani/jevmem`. Client setup: [docs/mcp.md](docs/mcp.md) · [docs/install.md](docs/install.md#works-with).
+
+## Does it work?
+
+In 72 real Claude Code sessions for each setup, Claude acted on the saved line about as often with jevmem as with the same lines in a hand-written `CLAUDE.md`, and in fewer than half the sessions with neither.
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/results-dark.svg"><img alt="A/B results: followed the project's decision 28 of 72 with no project memory, 66 of 72 with jevmem, 67 of 72 with a hand-written CLAUDE.md." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/results-light.svg"></picture>
+
+| | No project memory | jevmem | Same lines in `CLAUDE.md` |
+|---|---|---|---|
+| Followed the project's decision | 28 of 72 | **66 of 72** | 67 of 72 |
+| Tried a change the project forbids | 10 of 18 | **0 of 18** | 0 of 18 |
+| Repeated an approach that had already failed | 3 of 15 | **0 of 15** | 0 of 15 |
+
+So jevmem did about as well as a hand-written `CLAUDE.md`, without you writing it.
+`CLAUDE.md` did better on a convention nothing in the prompt points at (3 of 3 against 0 of 3), measured on 0.6, where jevmem brought a line back only for a prompt it bears on. Since 0.7.1 jevmem marks a rule every change must follow always-on and sends it at the start of every session: on six held-out tasks written for that gap, Claude followed the convention in 14 of 18 sessions with 0.7.0 and 18 of 18 with 0.7.1, as with the same lines in a hand-kept `CLAUDE.md` ([what's new](#whats-new), [limits](docs/limits.md)).
+How the sessions were run, and every row: [the benchmark page](docs/benchmark.md#outcome-ab-does-claude-act-on-the-memory).
+
+### Next to Claude Code's auto memory (0.7.7)
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/beside-auto-memory-dark.svg"><img alt="Beside Claude Code's auto memory (0.7.7, by hand): a line taught earlier was followed in 17 of 54 sessions with no memory, 49 with auto memory, 40 with jevmem, 48 with both and 46 with the line in CLAUDE.md; a change a rule forbids was left in the code in 9, 1, 0, 0 and 2 of 15." src="https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/docs/img/beside-auto-memory-light.svg"></picture>
+
+Claude Code keeps notes of its own, auto memory, on by default. To see what jevmem adds next to it, a fact was stated in plain chat in one session, and a later session got a task that needed it, in 558 real Claude Code sessions on three new projects (one model, `claude-fable-5-1`, and Claude Code 2.1.306; three runs of each task).
+
+| Followed the taught line (18 tasks, 3 runs) | No memory | Auto memory | jevmem | Both | Same line in `CLAUDE.md` |
+|---|---|---|---|---|---|
+| By the checks written before the run | 17 of 54 | 47 of 54 | 40 of 54 | 45 of 54 | 45 of 54 |
+| After reading every miss by hand | 17 of 54 | 49 of 54 | 40 of 54 | 48 of 54 | 46 of 54 |
+| Left a change a rule forbids in the code (by hand) | 9 of 15 | 1 of 15 | 0 of 15 | 0 of 15 | 2 of 15 |
+| Long project, 230 earlier lines (checks → by hand) | 7 → 7 of 18 | 12 → 12 of 17 | 14 → 15 of 18 | 12 → 16 of 18 | 14 → 15 of 18 |
+
+So auto memory on its own followed the taught line more often than jevmem on its own, and with both on Claude did about as well as with auto memory alone; jevmem's guard kept every forbidden change out of the code. On the long project, auto memory's notes ran past the 25 KB Claude Code loads at the start of a session, and jevmem, alone or beside it, did about as well as `CLAUDE.md`.
+Reading the 106 misses by hand found 12 that the checks had scored wrong (a number kept in a constant in another file, a year written another way); both rows are shown. In 14 of jevmem's 17 misses its saved line had left out the rule: 9 cut at the line's 200-character limit, which 0.7.7 changes (a line now keeps the sentences that state it up to 300 characters; [what's new](#whats-new)), and 5 where Jev's choice of sentences left out the one with the rule, which 0.7.7 does not change. The comparison ran on the build before that change.
+How the sessions were run, the 12 sessions and every row: [the benchmark page](docs/benchmark.md#against-claude-codes-auto-memory-077).
+
+## Side pane
+
+A pane beside your Claude Code chat shows what jevmem just did: the memory lines it gave Claude for your prompt, what its guard said about a command, and the line it saved from the turn, each with `why`, `wrong` and `forget` buttons. The two that change `JEVMEM.md` ask first; a rule is retired in a terminal only. It reads three local files and sends nothing anywhere.
+
+```
+/plugin install jevmem-pane@jevmem
+```
+
+It is a second plugin from the jevmem marketplace (the jevmem plugin itself still ships no code), for Claude Code 2.1.299 or newer; it opens on its own in a terminal 144 columns wide or wider and in the desktop app's Code tab, and `/jevmem` opens or closes it anywhere. What each block shows, and what was measured: [docs/pane.md](docs/pane.md).
 
 ## Fast and cheap
 
@@ -226,7 +271,7 @@ jevmem is young, and these are the limits to know before you rely on it:
 - **Early:** first released on 2026-09-22, and every test set was written by the author or captured from Claude Code sessions on scratch projects built for it. None is an independent benchmark.
 - **Not the most accurate:** three LLMs scored higher at picking the kind of line. jevmem's edge is speed and cost.
 - **Answer quality isn't measured:** the tests check that the right lines reach Claude, not that its answers get better.
-- **Next to Claude Code's auto memory, jevmem alone did not do better:** auto memory followed a taught line in 47 of 54 sessions and jevmem in 40 (0.7.7, one model, three runs). Beside it, jevmem's guard kept every forbidden change out of the code, and on the long project, where auto memory's notes ran past what Claude Code loads, jevmem alone followed the line more often (14 of 18 against 12 of 17 by the checks).
+- **Use it beside Claude Code's auto memory, not instead of it:** on a line taught in an earlier session, auto memory alone was followed in 47 of 54 sessions and jevmem alone in 40 (0.7.7, one model, three runs). Beside it, jevmem's guard kept every forbidden change out of the code, and on the long project, where auto memory's notes ran past what Claude Code loads, jevmem alone followed the line more often (14 of 18 against 12 of 17 by the checks).
 - **Automatic saving is Claude Code and, since 0.7.4, Cursor** (and Codex while `jevmem watch` runs); Claude Desktop saves only when the agent calls `add_memory`, and in Cursor recall is still the agent's call. The Cursor plugin's rule sits in every chat of every project it is installed for, 588 characters of it ([limits](docs/limits.md)).
 - **The guard looks at shared words:** a rule worded far from the command it should catch can be missed.
 - **The side pane is Claude Code only** (2.1.299 or newer): Cursor has no pane, and Claude Code for VS Code draws none yet.
@@ -288,7 +333,7 @@ jevmem guard test "<command>" | --edit <path>  Dry run of the PreToolUse guard o
 jevmem guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
 ```
 
-These are 0.7.3's commands: 0.5.10's, `jevmem guard` (0.6.0), `forget`, `trust` and `add --trust` (0.7.0), `always`, `add --always` and `import --from sessions` (0.7.1), and `setup` (0.7.2); 0.7.3 added no command and changed none. Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
+These are 0.7.7's commands: 0.5.10's, `jevmem guard` (0.6.0), `forget`, `trust` and `add --trust` (0.7.0), `always`, `add --always` and `import --from sessions` (0.7.1), `setup` (0.7.2), and `init --files` (0.7.6). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
 
 </details>
 

@@ -27,8 +27,8 @@ export const SITE = "https://avinash-jetwani.github.io/jevmem";
 export const BASE = "/jevmem/";
 export const REPO = "https://github.com/Avinash-jetwani/jevmem";
 const RAW = "https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/";
-export const TAGLINE = "Automatic project memory for Claude Code. Also works with Cursor and Codex.";
-export const SHORT = "jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session.";
+export const TAGLINE = "Shared project rules and memory for AI coding agents in Claude Code, Cursor and Codex.";
+export const SHORT = "jevmem saves your project's decisions, rules and failed approaches from your chats to one file in your repo, JEVMEM.md, that Claude Code, Cursor and Codex read, and checks Claude's commands against those rules before they run.";
 // The search engines' ownership checks, for the home page's <head> only: each proves to that engine that the site's
 // owner asked for its reports (Google Search Console; Bing imports the site from Google). They are not trackers: a tag
 // loads nothing, sets no cookie and sends nothing.

@@ -33,10 +33,10 @@ describe("the docs site", () => {
       expect(p.answer.length, p.path).toBeGreaterThan(80);
       expect(html(p).match(/<h1[ >]/g), p.path).toHaveLength(1);
     }
-    // The home page opens with the long description, as the README does.
-    const long = /\*\*Say it once\.\*\* (jevmem saves .*? over MCP\.)/.exec(fs.readFileSync("README.md", "utf8"))![1]!;
-    expect(pages[0]!.answer).toBe(`Say it once. ${long}`);
-    expect(long.startsWith(SHORT)).toBe(true);
+    // The home page opens with the README's lead: the one-line pitch, then the long description.
+    const [, pitch, long] = /^\*\*(.+?)\*\* (jevmem saves .*? over MCP\.)$/m.exec(fs.readFileSync("README.md", "utf8"))!;
+    expect(pages[0]!.answer).toBe(`${pitch} ${long}`);
+    expect(long!.startsWith(SHORT)).toBe(true);
   });
 
   it("dates every page and links the install steps, the repository and the limits", () => {
