@@ -171,9 +171,12 @@ describe("the plugin's files (cursor-plugin/)", () => {
     expect(r.stdout).toMatch(/^check-cursor-plugin: 9 files/);
   });
 
-  it("the description is the cursor.directory listing's (0.7.7): it names the paid TypeSafe key and says a project not turned on saves and sends nothing; the marketplace entry carries the same text", () => {
+  it("the description is the cursor.directory listing's, word for word (as the listing read on 2026-11-11): it names the paid TypeSafe key and says a project not turned on saves and sends nothing; the marketplace entry carries the same text", () => {
     const m = JSON.parse(fs.readFileSync(path.join(PLUGIN, ".cursor-plugin", "plugin.json"), "utf8"));
     const mk = JSON.parse(fs.readFileSync(path.join(ROOT, ".cursor-plugin", "marketplace.json"), "utf8"));
+    expect(m.description).toBe(
+      "jevmem keeps your project's decisions, rules and failed approaches in JEVMEM.md in your repo, shared with your team through git, and gives them to the agent when it asks. Saves each finished agent turn on its own. Needs the jevmem CLI from npm and a paid TypeSafe API key. Opt-in per project: elsewhere it saves and sends nothing.",
+    );
     expect(m.description).toContain("Needs the jevmem CLI from npm and a paid TypeSafe API key.");
     expect(m.description).toContain("Opt-in per project: elsewhere it saves and sends nothing.");
     expect(m.description).not.toMatch(/silent elsewhere|Claude Code/);
