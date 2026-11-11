@@ -14,7 +14,8 @@ The `Stop` hook no longer loses a turn when a `claude -p` session ends, and the 
 - **The Cursor plugin's description is the cursor.directory listing's current text**, word for word, in its manifest and the Cursor marketplace entry: it keeps the decisions, rules and failed approaches in `JEVMEM.md`, shared through git, gives them to the agent when it asks and saves each finished agent turn on its own; a test pins the whole text.
 
 ### Checked
-- **The full end-to-end gate on 0.7.8's wording build** (2026-11-11, [results](results/e2e-2026-11-11-v078-full.txt)): 56 of 57 scenario runs, the lost turn above; the `guard` scenario rerun 3 of 3 ([results](results/e2e-2026-11-11-v078-guard-reruns.txt)), disclosed as reruns, not as a pass. The gate on the fixed build is below.
+- **The full end-to-end gate on 0.7.8's wording build** (2026-11-11, [results](results/e2e-2026-11-11-v078-full.txt)): 56 of 57 scenario runs, the lost turn above; the `guard` scenario rerun 3 of 3 ([results](results/e2e-2026-11-11-v078-guard-reruns.txt)), disclosed as reruns, not as a pass. The gate on the fixed build is the next line.
+- **The full end-to-end gate on the final build, with the fix** (2026-11-11, [results](results/e2e-2026-11-11-v078-full-fixed.txt)): 57 of 57 scenario runs passed, 177 real Claude Code sessions on 2.1.322, served by Claude Code's default model (`claude-fable-5-2` in 165, `claude-sonnet-5-5` in 12); every `Stop` hook event reads exit 0.
 - **0.7.7's published live check** (2026-11-11, [results](results/e2e-2026-11-11-v077-published.txt)): the plugin installed from GitHub at the tag and the 0.7.7 CLI, 3 of 3 runs, 12 Claude Code sessions on 2.1.322, all served by `claude-fable-5-2`.
 
 ## [0.7.7] - 2026-11-11
