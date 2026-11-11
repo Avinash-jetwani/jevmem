@@ -2,6 +2,10 @@
 
 # What's new
 
+**What's new in 0.7.8** (2026-11-11; [CHANGELOG](../CHANGELOG.md#078---2026-11-11)): the listings lead with what jevmem adds.
+
+- **The README, the docs site and the listings say first what jevmem adds beside Claude Code's own memory**: the guard that checks Claude's commands and edits against your rules, one `JEVMEM.md` shared with your team through git, and Claude Code, Cursor and Codex reading the same file. The npm page, the MCP Registry entry, the Claude plugin's manifest and the Cursor plugin carry the new descriptions; the Cursor plugin's is the cursor.directory listing's, word for word. Wording only: the CLI and the hooks are as in 0.7.7, and every number below is 0.7.7's.
+
 **What's new in 0.7.7** (2026-11-11; [CHANGELOG](../CHANGELOG.md#077---2026-11-11)): measured next to Claude Code's auto memory, and a line that keeps its rule.
 
 - **jevmem next to Claude Code's own auto memory, measured.** In 558 real Claude Code sessions on three new projects, a fact was stated in plain chat in one session and needed in a later one, in five setups: no memory, auto memory, jevmem, both, and the line in `CLAUDE.md`. Claude followed the taught line in 47 of 54 sessions with auto memory alone, 40 with jevmem alone, 45 with both and 45 with `CLAUDE.md` (17 with none), by checks written before the run; after reading every miss by hand, which found 12 the checks had scored wrong, 49, 40, 48 and 46. With jevmem on, no change a rule forbade was left in the code (0 of 15). On a long project with 230 earlier lines, where auto memory's notes ran past what Claude Code loads at the start of a session, jevmem alone followed the line in 14 of 18, against 12 of 17 with auto memory alone. *One model (`claude-fable-5-1`), Claude Code 2.1.306, three runs, on the build before the writer change below ([the method, the 12 sessions and every row](benchmark.md#against-claude-codes-auto-memory-077)).*

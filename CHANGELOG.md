@@ -2,10 +2,16 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.7.8] - 2026-11-11
+
+The listings lead with what jevmem adds beside Claude Code's own memory: the guard, one `JEVMEM.md` shared through git, and Claude Code, Cursor and Codex reading the same file. Wording only: the CLI, the hooks and every measured number are as in 0.7.7. Upgrade with `npm install -g jevmem@latest`.
 
 ### Changed
 - **The README, the docs site's home page and the listing descriptions lead with what jevmem adds**: the guard, one `JEVMEM.md` shared through git, and Claude Code, Cursor and Codex reading the same file, beside Claude Code's own auto memory. The README opens with three ways teams use it (the guard on an edit, a rule that reaches a teammate in Cursor, a failed approach not tried twice), a table of what jevmem adds beside auto memory, and the install steps earlier; every measured result and the 0.7.7 comparison stay as they were. New graphics from `docs/img/make_svgs.py`: `rulebook`, `guard-edit`, `team`, `dead-end` and `beside-auto-memory` (light and dark). New descriptions in `package.json` (with more keywords), `server.json`, the Claude plugin's manifest and marketplace entry, `llms.txt` and the site's tagline. Docs only; no code changed.
+- **The Cursor plugin's description is the cursor.directory listing's current text**, word for word, in its manifest and the Cursor marketplace entry: it keeps the decisions, rules and failed approaches in `JEVMEM.md`, shared through git, gives them to the agent when it asks and saves each finished agent turn on its own; a test pins the whole text.
+
+### Checked
+- **0.7.7's published live check** (2026-11-11, [results](results/e2e-2026-11-11-v077-published.txt)): the plugin installed from GitHub at the tag and the 0.7.7 CLI, 3 of 3 runs, 12 Claude Code sessions on 2.1.322, all served by `claude-fable-5-2`.
 
 ## [0.7.7] - 2026-11-11
 
