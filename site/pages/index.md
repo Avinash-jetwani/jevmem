@@ -1,13 +1,21 @@
 ---
 path: /
-description: jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session.
+description: jevmem saves your project's decisions, rules and failed approaches from your chats to one file in your repo, JEVMEM.md, that Claude Code, Cursor and Codex read, and checks Claude's commands against those rules before they run.
 order: 1
 ---
 # What is jevmem?
 
-**Say it once.** jevmem saves the decisions, rules and failed approaches from your Claude Code chats to JEVMEM.md in your repo, and brings the relevant ones back next session. Before Claude runs a command or edits a file, it checks the call against your saved rules. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry. Since 0.7.4 it saves from Cursor chats the same way, as a Cursor plugin since 0.7.6, and it works with Codex and Claude Desktop over MCP.
+**Claude remembers you. jevmem makes your project's rules stick, across your agents and your teammates.** jevmem saves your project's decisions, rules and failed approaches from your chats to one file in your repo, JEVMEM.md, that Claude Code, Cursor and Codex read, and checks Claude's commands against those rules before they run. Your teammates get the same file through git. It works beside Claude Code's own auto memory and adds what that doesn't have: the guard, a shared file in git, and the other tools. It is open source (MIT), built on TypeSafe AI's Jev, in Anthropic's Claude plugin directory and on the MCP Registry, and it works with Claude Desktop over MCP.
 
 [Watch the film](https://github.com/user-attachments/assets/c8a7eced-c427-4ef6-85f2-124eb34ad291)
+
+## Three ways teams use it
+
+{{include README.md#three-ways-teams-use-it}}
+
+## Beside Claude Code's memory
+
+{{include README.md#beside-claude-codes-memory}}
 
 ## In numbers
 

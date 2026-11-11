@@ -1,6 +1,6 @@
 # jevmem plugin for Claude Code
 
-Automatic project memory for Claude Code. After each message, TypeSafe's Jev decides whether it is worth remembering and saves it as one line in `JEVMEM.md` in your repository. On each prompt, the relevant lines are added to Claude's context. It is opt-in per project and does nothing until you run `jevmem enable` there. Full documentation: https://github.com/Avinash-jetwani/jevmem
+Shared project rules and memory for Claude Code. jevmem keeps your project's decisions, rules and failed approaches as one line each in `JEVMEM.md` in your repository, shared with your team through git, and checks Claude's commands and edits against those rules before they run (the guard). After each message, TypeSafe's Jev decides whether it is worth remembering; on each prompt, the relevant lines are added to Claude's context. It works beside Claude Code's own auto memory. It is opt-in per project and does nothing until you run `jevmem enable` there. Full documentation: https://github.com/Avinash-jetwani/jevmem
 
 ## Where it works
 
