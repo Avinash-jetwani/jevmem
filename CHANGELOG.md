@@ -2,7 +2,7 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [0.7.7] - unreleased
+## [0.7.7] - 2026-11-11
 
 jevmem measured next to Claude Code's own auto memory, in 558 real sessions on three new projects; a saved line keeps its rule (the sentences that state it are kept whole up to 300 characters, not cut at 200); an instruction to the agent is not saved; and the guard leaves Claude Code's own memory folder alone.
 
