@@ -527,7 +527,7 @@ export async function main(argv: string[], ioArg: CliIo = defaultIo, opts: { std
         notes.push(...res.notes);
       }
       io.out(`\nTools: ${tools.join(", ")}${toolArg ? "" : " (detected; use --tool to choose)"}\n`);
-      if (tools.includes("claude") && !noHooks) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop (async)      ${r.stopCommand}\n  PreToolUse        ${r.guardCommand}  (matcher ${r.guardMatcher})\n  SessionStart      ${r.command}\n`);
+      if (tools.includes("claude") && !noHooks) io.out(`Claude Code hooks:\n  UserPromptSubmit  ${r.command}\n  Stop              ${r.stopCommand}\n  PreToolUse        ${r.guardCommand}  (matcher ${r.guardMatcher})\n  SessionStart      ${r.command}\n`);
       for (const n of notes) io.out(`\n${n}\n`);
       for (const w of r.warnings) io.out(`\n! ${w}\n`);
       // `jevmem init`'s hooks have no plugin setting, so the one fix alone.

@@ -157,8 +157,11 @@ export function registerClaudeHooks(root: string, command: string, stopCommand: 
   local.hooks ??= {};
   for (const [event, timeout] of Object.entries(HOOK_EVENTS)) {
     const cmd = event === "Stop" ? stopCommand : event === "PreToolUse" ? guardCommand : command;
-    // Stop is async (since v0.5.0): it only queues the turn, so Claude Code never waits for it.
-    const isAsync = event === "Stop";
+    // Stop through the POSIX launcher (`--detach`) is synchronous since 0.7.8: the launcher hands the turn to a CLI in
+    // its own process group and exits in milliseconds, and an async hook can be signalled by the session's end before
+    // its shell has ignored SIGTERM, which lost the turn (scripts/stop-survival.mjs). A Stop command that does its work
+    // in the hook's own process (Windows' plain node command, or a custom command) stays async (since v0.5.0).
+    const isAsync = event === "Stop" && !/(^|\s)--detach(\s|$)/.test(cmd);
     const matcher = event === "PreToolUse" ? GUARD_MATCHER : undefined;
     const list: any[] = (local.hooks[event] ??= []);
     let present = false;
@@ -174,6 +177,10 @@ export function registerClaudeHooks(root: string, command: string, stopCommand: 
         }
         if (isAsync && h.async !== true) {
           h.async = true;
+          updated = true;
+        }
+        if (!isAsync && event === "Stop" && "async" in h) {
+          delete h.async; // re-running init makes a 0.5.0 to 0.7.7 project's launcher Stop hook synchronous
           updated = true;
         }
         if (matcher !== undefined && g.matcher !== matcher && g.hooks.length === 1) {
@@ -252,7 +259,7 @@ export function init(opts: InitOptions): InitResult {
   ensureGitignore(root, opts.hooks !== false ? [".jevmem/", `.claude/${HOOK_SETTINGS_FILE}`] : [".jevmem/"], created, updated);
   if (opts.hooks !== false) {
     const r = registerClaudeHooks(root, command, stopCommand, guardCommand);
-    (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop (async), UserPromptSubmit, PreToolUse and SessionStart hooks${r === "updated" ? ", updated" : ""})`);
+    (r === "present" ? skipped : created).push(`.claude/${HOOK_SETTINGS_FILE} (Stop, UserPromptSubmit, PreToolUse and SessionStart hooks${r === "updated" ? ", updated" : ""})`);
     if (projectEnablesPlugin(root))
       warnings.push("The jevmem Claude Code plugin is also enabled in this project. Its hooks stand down while these init hooks exist, so nothing runs twice. To use only the plugin, run `jevmem init --remove-hooks`.");
   }

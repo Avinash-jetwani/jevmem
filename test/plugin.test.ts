@@ -72,7 +72,7 @@ describe("plugin files", () => {
     expect(m.mcpServers.jevmem.env.CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY).toBe("${user_config.typesafe_api_key}");
   });
 
-  it("hooks.json: Stop is async and detached, UserPromptSubmit and the PreToolUse guard synchronous, all through the launcher with --plugin", () => {
+  it("hooks.json: Stop is detached and synchronous (0.7.8: an async one could be signalled before its shell ignored SIGTERM), UserPromptSubmit and the PreToolUse guard synchronous, all through the launcher with --plugin", () => {
     const h = json("plugin/hooks/hooks.json").hooks;
     const stop = h.Stop[0].hooks[0];
     const ups = h.UserPromptSubmit[0].hooks[0];
@@ -80,7 +80,7 @@ describe("plugin files", () => {
     // the launcher runs only a CLI that has the guard.
     expect(h.PreToolUse).toEqual([{ matcher: "Bash|Edit|Write", hooks: [{ type: "command", command: '"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" --guard hook --plugin', timeout: 3 }] }]);
     expect(Object.keys(h).sort()).toEqual(["PreToolUse", "SessionStart", "Stop", "UserPromptSubmit"]);
-    expect(stop).toMatchObject({ type: "command", async: true, command: '"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" --detach hook --plugin' });
+    expect(stop).toEqual({ type: "command", command: '"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" --detach hook --plugin', timeout: 20 });
     expect(ups.async).toBeUndefined();
     expect(ups.command).toBe('"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" hook --plugin');
     // SessionStart (0.7.1) carries --start (0.7.2): the launcher's one-time setup message, without reading the input.

@@ -126,11 +126,14 @@ describe.skipIf(!release)(`the plugin's launcher with the jevmem ${TAG.slice(1)}
     };
   }
 
-  it("hooks.json: the Stop and UserPromptSubmit entries are the 0.5.7 ones; only PreToolUse, with --guard, is new", () => {
+  it("hooks.json: the Stop and UserPromptSubmit entries are the 0.5.7 ones (Stop without async since 0.7.8, the same command); only PreToolUse, with --guard, is new", () => {
     const [before, after] = [hooksOf(OLD_PLUGIN), hooksOf(NEW_PLUGIN)];
     expect(Object.keys(before).sort()).toEqual(["Stop", "UserPromptSubmit"]);
     expect(Object.keys(after).sort()).toEqual(["PreToolUse", "SessionStart", "Stop", "UserPromptSubmit"]); // PreToolUse (0.6.0) and SessionStart (0.7.1) are new
-    expect(after.Stop).toEqual(before.Stop);
+    // 0.7.8: the Stop entry is synchronous; its command, which the 0.5.7 CLI is run with, is unchanged.
+    const { async: wasAsync, ...beforeStop } = before.Stop[0].hooks[0];
+    expect(wasAsync).toBe(true);
+    expect(after.Stop).toEqual([{ ...before.Stop[0], hooks: [beforeStop] }]);
     expect(after.UserPromptSubmit).toEqual(before.UserPromptSubmit);
     expect(after.PreToolUse[0].hooks[0].command).toBe('"${CLAUDE_PLUGIN_ROOT}/hooks/jevmem-hook.sh" --guard hook --plugin');
   });

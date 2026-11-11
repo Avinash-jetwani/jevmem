@@ -198,13 +198,13 @@ describe("hook command registration", () => {
     expect(local.hooks.UserPromptSubmit[0].hooks[0].command).toBe('"/n/node" "/j/cli.js" hook');
     expect(registerClaudeHooks(root, '"/n/node" "/j/cli.js" hook')).toBe("present");
   });
-  it("registers Stop as an async hook through the detaching launcher, and UserPromptSubmit as a plain synchronous node command", () => {
+  it("registers Stop through the detaching launcher, synchronous since 0.7.8, and UserPromptSubmit as a plain synchronous node command", () => {
     const root = tmp();
     const r = init({ root, cliPath: path.resolve("dist/cli.js") });
     const local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
     const stop = local.hooks.Stop[0].hooks[0];
     const ups = local.hooks.UserPromptSubmit[0].hooks[0];
-    expect(stop.async).toBe(true);
+    expect(stop.async).toBeUndefined();
     expect(stop.command).toBe(r.stopCommand);
     expect(stop.command).toMatch(/^sh ".*[/\\]hooks[/\\]jevmem-hook\.sh" --node ".*" --detach hook$/);
     expect(ups.async).toBeUndefined();
@@ -246,7 +246,7 @@ describe("hook command registration", () => {
     expect(local.hooks).toEqual({ PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "echo mine" }] }] });
   });
 
-  it("re-running init on a v0.4 project makes its Stop hook async and switches it to the launcher", () => {
+  it("re-running init on a v0.4 project switches its Stop hook to the launcher, synchronous (0.7.8)", () => {
     const root = tmp();
     fs.mkdirSync(path.join(root, ".claude"));
     const old = `"${fs.realpathSync(process.execPath)}" "${fs.realpathSync(path.resolve("dist/cli.js"))}" hook`;
@@ -255,8 +255,30 @@ describe("hook command registration", () => {
     const local = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.local.json"), "utf8"));
     expect(local.hooks.Stop).toHaveLength(1);
     expect(local.hooks.Stop[0].hooks).toHaveLength(1);
-    expect(local.hooks.Stop[0].hooks[0]).toMatchObject({ command: r.stopCommand, async: true, timeout: 20 });
+    expect(local.hooks.Stop[0].hooks[0]).toEqual({ type: "command", command: r.stopCommand, timeout: 20 });
     expect(local.hooks.UserPromptSubmit[0].hooks).toEqual([{ type: "command", command: old, timeout: 5 }]);
+  });
+
+  it("re-running init on a 0.5.0 to 0.7.7 project makes its launcher Stop hook synchronous; a Stop command without the launcher stays async", () => {
+    const root = tmp();
+    fs.mkdirSync(path.join(root, ".claude"));
+    const r0 = init({ root, cliPath: path.resolve("dist/cli.js") });
+    const file = path.join(root, ".claude", "settings.local.json");
+    let local = JSON.parse(fs.readFileSync(file, "utf8"));
+    expect(r0.stopCommand).toContain("--detach");
+    expect(local.hooks.Stop[0].hooks[0].async).toBeUndefined();
+    local.hooks.Stop[0].hooks[0].async = true; // as 0.7.7's init wrote it
+    fs.writeFileSync(file, JSON.stringify(local));
+    expect(registerClaudeHooks(root, r0.command, r0.stopCommand, r0.guardCommand)).toBe("updated");
+    local = JSON.parse(fs.readFileSync(file, "utf8"));
+    expect(local.hooks.Stop[0].hooks[0]).toEqual({ type: "command", command: r0.stopCommand, timeout: 20 });
+    expect(registerClaudeHooks(root, r0.command, r0.stopCommand, r0.guardCommand)).toBe("present");
+    // Windows' plain node command does its work in the hook's own process: it stays async.
+    const root2 = tmp();
+    const plain = '"/n/node" "/opt/jevmem/dist/cli.js" hook';
+    expect(registerClaudeHooks(root2, plain, plain, plain)).toBe("added");
+    const l2 = JSON.parse(fs.readFileSync(path.join(root2, ".claude", "settings.local.json"), "utf8"));
+    expect(l2.hooks.Stop[0].hooks[0]).toEqual({ type: "command", command: plain, timeout: 20, async: true });
   });
 
   it("re-running init repairs a stale PATH-dependent command in settings.local.json in place", () => {
