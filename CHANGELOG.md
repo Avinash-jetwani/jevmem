@@ -2,7 +2,7 @@
 
 All notable changes to Jevmem are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [0.7.8] - 2026-11-11
+## [0.7.8] - 2026-11-12
 
 The `Stop` hook no longer loses a turn when a `claude -p` session ends, and the listings lead with what jevmem adds beside Claude Code's own memory: the guard, one `JEVMEM.md` shared through git, and Claude Code, Cursor and Codex reading the same file. Every measured number from 0.7.7 stands. Upgrade with `npm install -g jevmem@latest`, then re-run `jevmem init` in a project set up with `init` (the plugin updates itself).
 

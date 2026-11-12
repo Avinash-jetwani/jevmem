@@ -2,7 +2,7 @@
 
 # What's new
 
-**What's new in 0.7.8** (2026-11-11; [CHANGELOG](../CHANGELOG.md#078---2026-11-11)): no turn lost at the end of a `claude -p` session, and the listings lead with what jevmem adds.
+**What's new in 0.7.8** (2026-11-12; [CHANGELOG](../CHANGELOG.md#078---2026-11-12)): no turn lost at the end of a `claude -p` session, and the listings lead with what jevmem adds.
 
 - **The `Stop` hook no longer loses a turn when a `claude -p` session ends.** It was registered to run in the background, and Claude Code signals such a hook about 20 ms after starting it when a `-p` session ends; now and then that came before the hook could ignore the signal, and the turn was never saved (0.7.8's own release gate lost one). The hook is now synchronous; it still hands the turn on and returns in milliseconds, so Claude never waits for Jev. *Real `claude -p` sessions with jevmem's own launchers and a stand-in CLI: as shipped, 3 of 320 turns lost; with the fix, 0 of 320 (Claude Code 2.1.322, [results](../results/stop-survival-2026-11-11-plugin-async-run2.json)).* Re-run `jevmem init` in a project set up with it; the plugin updates itself.
 - **The README, the docs site and the listings say first what jevmem adds beside Claude Code's own memory**: the guard that checks Claude's commands and edits against your rules, one `JEVMEM.md` shared with your team through git, and Claude Code, Cursor and Codex reading the same file. The npm page, the MCP Registry entry, the Claude plugin's manifest and the Cursor plugin carry the new descriptions; the Cursor plugin's is the cursor.directory listing's, word for word. Every number below is 0.7.7's.
