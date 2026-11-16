@@ -334,7 +334,7 @@ jevmem guard test "<command>" | --edit <path>  Dry run of the PreToolUse guard o
 jevmem guard log [-n 20]                       The guard's recent asks and denials in this project, with the rule and score
 ```
 
-These are 0.7.7's commands: 0.5.10's, `jevmem guard` (0.6.0), `forget`, `trust` and `add --trust` (0.7.0), `always`, `add --always` and `import --from sessions` (0.7.1), `setup` (0.7.2), and `init --files` (0.7.6). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
+These are 0.7.8's commands: 0.5.10's, `jevmem guard` (0.6.0), `forget`, `trust` and `add --trust` (0.7.0), `always`, `add --always` and `import --from sessions` (0.7.1), `setup` (0.7.2), and `init --files` (0.7.6). Every command accepts `--help`. Set `JEVMEM_VERBOSE=1` for a one-line latency/cost summary after every hook run.
 
 </details>
 
