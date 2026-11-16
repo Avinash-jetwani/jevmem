@@ -1,6 +1,6 @@
 # Security and privacy
 
-This document says exactly what Jevmem sends where, what it stores, what it scrubs, and how to report a problem. It is written for 0.7.4 and dated 2026-10-16. If this document and the code disagree, the code is right and the disagreement is a bug worth reporting. The short version, with the third parties' privacy policies and how to delete your data, is [PRIVACY.md](PRIVACY.md).
+This document says exactly what Jevmem sends where, what it stores, what it scrubs, and how to report a problem. It covers jevmem 0.7.8 and was last updated on 2026-11-16. If this document and the code disagree, the code is right and the disagreement is a bug worth reporting. The short version, with the third parties' privacy policies and how to delete your data, is [PRIVACY.md](PRIVACY.md).
 
 ## What is sent to which API
 
