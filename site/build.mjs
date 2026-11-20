@@ -16,6 +16,7 @@
 // (site/partials/limits.md) and carries a "last updated" date from git, a Markdown copy, JSON-LD and link-preview
 // tags. Also written: llms.txt (the repository's, checked against the pages), llms-full.txt, sitemap.xml,
 // robots.txt, search.json, 404.html, and the fonts, which the site serves itself. No tracker, no hidden text.
+import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -49,6 +50,15 @@ const FONTS = [
   ["@fontsource-variable/newsreader", "files/newsreader-latin-wght-normal.woff2"],
   ["@fontsource-variable/newsreader", "files/newsreader-latin-wght-italic.woff2"],
 ];
+
+// Stylesheets and scripts are linked with a hash of their content (?v=…), so a browser that cached an older copy fetches
+// the new one as soon as a page changes, instead of showing new pages with old styles until its cache runs out.
+const asset = (name) =>
+  `${BASE}assets/${name}?v=${crypto.createHash("sha256").update(fs.readFileSync(path.join(ROOT, "site/assets", name))).digest("hex").slice(0, 10)}`;
+// Both layouts use the same text fonts; preloading them avoids a first paint in a fallback face.
+const PRELOAD = ["newsreader-latin-wght-normal.woff2", "jetbrains-mono-latin-wght-normal.woff2"]
+  .map((f) => `<link rel="preload" href="${BASE}assets/fonts/${f}" as="font" type="font/woff2" crossorigin>`)
+  .join("\n");
 
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8").replace(/\r\n/g, "\n");
 const exists = (f) => fs.existsSync(path.join(ROOT, f));
@@ -382,8 +392,8 @@ ${all.join("\n")}
 <p><a href="${REPO}">GitHub</a> · <a href="https://www.npmjs.com/package/jevmem">npm</a> · <a href="${BASE}llms.txt">llms.txt</a> · <a href="${BASE}llms-full.txt">llms-full.txt</a> · <a href="${BASE}index.md">This page as Markdown</a></p>
 <p>jevmem ${esc(version)}. Open source, MIT. Built on Jev by TypeSafe AI. This site sets no cookies and has no analytics.</p>
 </div></footer>
-<script src="${BASE}assets/site.js" defer></script>
-<script src="${BASE}assets/home.js" defer></script>`;
+<script src="${asset("site.js")}" defer></script>
+<script src="${asset("home.js")}" defer></script>`;
 }
 
 function layout({ page, pages, version, body }) {
@@ -419,10 +429,10 @@ ${home ? VERIFICATION.map((v) => `<meta name="${v.name}" content="${esc(v.conten
 <link rel="icon" type="image/svg+xml" href="${BASE}assets/favicon.svg">
 ${
   home
-    ? `<link rel="preload" href="${BASE}assets/fonts/newsreader-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="${BASE}assets/home.css">`
-    : `<link rel="preload" href="${BASE}assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="${BASE}assets/site.css">`
+    ? `${PRELOAD}
+<link rel="stylesheet" href="${asset("home.css")}">`
+    : `${PRELOAD}
+<link rel="stylesheet" href="${asset("site.css")}">`
 }
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="jevmem">
@@ -447,7 +457,7 @@ ${home ? homeBody(body, pages, version) : `<header class="site">
 <nav aria-label="Pages">${menu.join("")}</nav>
 <div class="tools">
 <form class="search" role="search"><input id="q" type="search" placeholder="Search" aria-label="Search this site" autocomplete="off"><div id="results" hidden></div></form>
-<button id="theme" type="button" aria-label="Switch between light and dark">◐</button>
+<button id="theme" type="button" aria-label="Switch between light and dark">light / dark</button>
 </div>
 </header>
 <main id="main">
@@ -462,7 +472,7 @@ ${all.join("\n")}
 <p><a href="${REPO}">GitHub</a> · <a href="https://www.npmjs.com/package/jevmem">npm</a> · <a href="${BASE}llms.txt">llms.txt</a> · <a href="${BASE}llms-full.txt">llms-full.txt</a> · <a href="${BASE}${page.mdPath}">This page as Markdown</a></p>
 <p>jevmem ${esc(version)}. Open source, MIT. Built on Jev by TypeSafe AI. This site sets no cookies and has no analytics.</p>
 </footer>
-<script src="${BASE}assets/site.js" defer></script>`}
+<script src="${asset("site.js")}" defer></script>`}
 </body>
 </html>
 `;
