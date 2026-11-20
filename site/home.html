@@ -1,0 +1,119 @@
+<header class="mast">
+<div class="wrap">
+<a class="brand" href="{{base}}"><img class="themed-light" src="{{base}}assets/lockup-light.svg" alt="jevmem" width="141" height="36"><img class="themed-dark" src="{{base}}assets/lockup-dark.svg" alt="jevmem" width="141" height="36"></a>
+<nav aria-label="Pages"><a href="{{base}}install/">Install</a><a href="{{base}}guard/">The guard</a><a href="{{base}}results/">Results</a><a href="{{base}}compare/">Compare</a><a href="{{base}}faq/">FAQ</a><a href="{{repo}}">GitHub</a></nav>
+<button id="theme" type="button" aria-label="Switch between light and dark">light / dark</button>
+</div>
+</header>
+<main id="main">
+<section class="hero" aria-labelledby="what-is-jevmem">
+<div class="wrap">
+<div>
+<p class="kicker">Open-source Claude Code plugin · MIT · v{{version}}</p>
+<h1 id="what-is-jevmem"><em>Claude remembers you.</em> jevmem makes your project's rules stick.</h1>
+<p class="dek">Project memory for Claude Code, Cursor and Codex. jevmem keeps your project's decisions, rules and failed approaches in one file in your repo, brings them back in later sessions, and checks Claude's commands against them before they run.</p>
+<nav class="links" aria-label="Quick links"><a class="go" href="#install">Install</a><a href="{{repo}}">Code</a><a href="{{base}}results/">Results</a><a href="{{repo}}/tree/main/results">Data</a><a href="{{film}}">Film</a></nav>
+<p class="meta">Last updated: <time datetime="{{date}}">{{date}}</time> · jevmem {{version}} · <a href="{{base}}install/">Install</a> · <a href="{{repo}}">Source on GitHub</a></p>
+</div>
+<figure class="term" id="term" aria-label="An example in a Claude Code session: one rule saved, brought back and checked">
+<div class="bar"><span>claude code · one rule, three weeks</span><span class="ctl" role="group" aria-label="Steps of the example"><button type="button" data-go="0" aria-pressed="true">1 save</button><button type="button" data-go="1" aria-pressed="false">2 recall</button><button type="button" data-go="2" aria-pressed="false">3 guard</button></span></div>
+<pre id="screen"><span class="d"># monday, in a chat</span>
+<span class="u">&gt; Don't hand-edit db/migrations/. Those files are generated.</span>
+  Got it. I'll generate migrations instead of editing them.
+
+<span class="d">  jevmem asks Jev if it's worth keeping, then writes one line:</span>
+<span class="o">  + JEVMEM.md</span>
+<span class="o">  - [constraint] Don't hand-edit db/migrations/: those files are generated.</span>
+
+<span class="d">$ git add JEVMEM.md &amp;&amp; git commit -m "Save project rules"</span>
+</pre>
+<figcaption>An example. Click a step to replay it.</figcaption>
+</figure>
+</div>
+</section>
+
+<div class="wrap">
+<section class="row" aria-labelledby="does-it-work">
+<h2 id="does-it-work">Does it work?</h2>
+<div>
+<p class="lead">With jevmem on, a change the project's rules forbid was left in the final code in 0 of 15 sessions.</p>
+<figure class="sessions" id="sessions" aria-label="Figure 1. Out of 15 sessions each, a forbidden change was left in the final code: no memory 9, the same rules in CLAUDE.md 2, Claude Code's auto memory 1, jevmem 0.">
+<div class="srow" data-n="9"><span class="who">No memory</span><span class="cells"></span><span class="num">9 / 15</span></div>
+<div class="srow" data-n="2"><span class="who">Same rules in CLAUDE.md</span><span class="cells"></span><span class="num">2 / 15</span></div>
+<div class="srow" data-n="1"><span class="who">Claude Code auto memory</span><span class="cells"></span><span class="num">1 / 15</span></div>
+<div class="srow us" data-n="0"><span class="who">jevmem</span><span class="cells"></span><span class="num">0 / 15</span></div>
+</figure>
+<div class="key"><span><i class="k1"></i>forbidden change left in the code</span><span><i class="k2"></i>kept out</span><span><i class="k3"></i>kept out, with jevmem</span><span>one square = one session</span><button class="replay" id="replay" type="button">replay</button></div>
+<p class="fine">Figure 1. From the 0.7.7 comparison next to Claude Code's auto memory: 558 real Claude Code sessions on three new projects, checked by hand. My own test set, run once; not an independent benchmark. <a href="{{base}}results/#next-to-claude-codes-auto-memory-077">Method and every row</a></p>
+</div>
+</section>
+
+<section class="row" aria-labelledby="what-it-adds">
+<h2 id="what-it-adds">What it adds to Claude Code</h2>
+<div class="three">
+<div><span class="n">1</span><h3>The guard: rules checked before Claude acts</h3><p>jevmem checks Claude's commands and file edits against your saved rules. If one may break a rule, Claude Code stops and asks you first.</p><pre class="snip">jevmem: this may break
+a saved rule:
+  "Don't hand-edit
+   db/migrations/"</pre><a class="more" href="{{base}}guard/">the guard →</a></div>
+<div><span class="n">2</span><h3>One JEVMEM.md, shared through git</h3><p>Your project's memory lives in JEVMEM.md in your repo. Teammates get the same rules when they pull.</p><pre class="snip">[decision]
+  We use pnpm, not npm.
+[dead-end]
+  In-memory cache broke
+  the build: keep Redis.</pre><a class="more" href="{{base}}claude-md-vs-jevmem/">CLAUDE.md or JEVMEM.md →</a></div>
+<div><span class="n">3</span><h3>Claude Code, Cursor and Codex</h3><p>The same file works across your AI coding agents, and in Claude Desktop over MCP. It runs beside Claude Code's auto memory.</p><pre class="snip">Claude Code   plugin
+Cursor        plugin
+Codex         MCP</pre><a class="more" href="{{base}}claude-code-memory/">Claude Code memory →</a></div>
+</div>
+</section>
+
+<section class="row" aria-labelledby="install">
+<h2 id="install">Install</h2>
+<div>
+<div class="inst"><pre class="code" id="cmds"><span class="p">$ </span>npm install -g jevmem
+<span class="p">$ </span>jevmem setup   <span class="c"># in your project's folder</span></pre><button class="copy" id="copy" type="button">COPY</button></div>
+<p class="fine">First add the plugin in the Claude app: Plugins → Discover → jevmem → Add. Needs Claude Code 2.1.273 or later and a TypeSafe API key. Upgrading to {{version}}: <code>npm install -g jevmem@latest</code>, then re-run <code>jevmem init</code> in a project set up with init. <a href="{{base}}install/">Every install path</a></p>
+</div>
+</section>
+
+<section class="row" aria-labelledby="works-with">
+<h2 id="works-with">Works with</h2>
+<div class="tw"><table>
+<caption>Table 1. What runs where. The guard runs in Claude Code; in the others, the agent reads the same file. <a href="{{base}}install/#works-with">Details</a></caption>
+<thead><tr><th scope="col">Tool</th><th scope="col">Saves</th><th scope="col">Brings back</th><th scope="col">Guard</th></tr></thead>
+<tbody>
+<tr><th scope="row"><a href="{{base}}claude-code-memory/">Claude Code</a></th><td>Every turn</td><td>Every prompt</td><td class="y">Yes</td></tr>
+<tr><th scope="row"><a href="{{base}}cursor/">Cursor</a></th><td>Every finished turn</td><td>When the agent asks</td><td>–</td></tr>
+<tr><th scope="row"><a href="{{base}}codex/">Codex</a></th><td>While <code>jevmem watch</code> runs</td><td>When the agent asks</td><td>–</td></tr>
+<tr><th scope="row"><a href="{{base}}claude-desktop/">Claude Desktop</a></th><td>When you ask</td><td>When you ask</td><td>–</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="row" aria-labelledby="the-limits-in-short">
+<h2 id="the-limits-in-short">The limits, in short</h2>
+<div>
+<ul class="lim">
+<li><b>Needs a TypeSafe API key.</b> Requests to Jev, which decides what to save, are billed to it. <a href="{{base}}install/">Install steps</a></li>
+<li><b>Message text goes to TypeSafe</b> to be scored, with common secrets scrubbed first. No telemetry. <a href="{{base}}privacy/">What leaves your machine</a></li>
+<li><b>The guard is a backstop,</b> not a sandbox, and runs in Claude Code. <a href="{{base}}guard/#limits">Its limits</a></li>
+<li><b>My own test sets,</b> each run once; not an independent benchmark. <a href="{{base}}results/">The method</a></li>
+</ul>
+<p class="fine">Every limit, with the numbers: <a href="{{base}}faq/#what-are-jevmems-limits">the FAQ</a>.</p>
+</div>
+</section>
+
+<section class="row" aria-labelledby="questions">
+<h2 id="questions">Questions people ask</h2>
+<ol class="refs">
+<li><a href="{{base}}claude-code-memory/">How do I make Claude Code remember project decisions across sessions?</a></li>
+<li><a href="{{base}}claude-md-vs-jevmem/">Should I use CLAUDE.md or JEVMEM.md?</a></li>
+<li><a href="{{base}}cursor-rules/">How do I keep the same rules across Cursor chats, Claude Code and my teammates?</a></li>
+<li><a href="{{base}}stop-rule-breaks/">How do I stop an AI coding agent from breaking my project's rules?</a></li>
+<li><a href="{{base}}guard/">Can Claude Code check commands against my project's rules before they run?</a></li>
+<li><a href="{{base}}compare/">How does jevmem compare with CLAUDE.md, Claude Code's auto memory and other memory tools?</a></li>
+<li><a href="{{base}}results/">Does jevmem work?</a></li>
+<li><a href="{{base}}whats-new/">What changed in each version of jevmem?</a></li>
+</ol>
+</section>
+</div>
+</main>

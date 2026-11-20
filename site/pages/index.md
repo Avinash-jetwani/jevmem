@@ -1,6 +1,6 @@
 ---
 path: /
-description: jevmem saves your project's decisions, rules and failed approaches from your chats to one file in your repo, JEVMEM.md, that Claude Code, Cursor and Codex read, and checks Claude's commands against those rules before they run.
+description: Claude Code memory for your project: jevmem saves decisions and rules to JEVMEM.md in git, brings them back in later sessions, and checks commands before they run.
 order: 1
 ---
 # What is jevmem?

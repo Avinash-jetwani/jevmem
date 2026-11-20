@@ -28,6 +28,13 @@ export const BASE = "/jevmem/";
 export const REPO = "https://github.com/Avinash-jetwani/jevmem";
 const RAW = "https://raw.githubusercontent.com/Avinash-jetwani/jevmem/main/";
 export const TAGLINE = "Shared project rules and memory for AI coding agents in Claude Code, Cursor and Codex.";
+// The home page's title in search results and link previews: what people search for (Claude Code memory, project
+// rules, Cursor, Codex), in the words the page uses.
+export const HOME_TITLE = "jevmem: Claude Code memory for your project's rules, shared with Cursor and Codex";
+// The home page is drawn from site/home.html (its own layout, site/assets/home.css and home.js); its Markdown copy,
+// search entries and llms-full.txt still come from site/pages/index.md, the long version of the same page.
+const HOME = "site/home.html";
+const FILM = "https://github.com/user-attachments/assets/c8a7eced-c427-4ef6-85f2-124eb34ad291";
 export const SHORT = "jevmem saves your project's decisions, rules and failed approaches from your chats to one file in your repo, JEVMEM.md, that Claude Code, Cursor and Codex read, and checks Claude's commands against those rules before they run.";
 // The search engines' ownership checks, for the home page's <head> only: each proves to that engine that the site's
 // owner asked for its reports (Google Search Console; Bing imports the site from Google). They are not trackers: a tag
@@ -39,6 +46,8 @@ const FONTS = [
   ["@fontsource-variable/inter", "files/inter-latin-wght-normal.woff2"],
   ["@fontsource-variable/inter", "files/inter-latin-wght-italic.woff2"],
   ["@fontsource-variable/jetbrains-mono", "files/jetbrains-mono-latin-wght-normal.woff2"],
+  ["@fontsource-variable/newsreader", "files/newsreader-latin-wght-normal.woff2"],
+  ["@fontsource-variable/newsreader", "files/newsreader-latin-wght-italic.woff2"],
 ];
 
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8").replace(/\r\n/g, "\n");
@@ -291,9 +300,24 @@ function renderHtml(md, headings) {
   );
 }
 
+/** The home page's body: site/home.html, then the footer every page has, in the home page's style. */
+function homeBody(body, pages, version) {
+  const all = pages.map((p) => `<li><a href="${BASE}${p.path.slice(1)}">${esc(p.title)}</a></li>`);
+  return `${body}
+<footer class="site"><div class="wrap">
+<nav aria-label="Every page"><ul>
+${all.join("\n")}
+</ul></nav>
+<p><a href="${REPO}">GitHub</a> · <a href="https://www.npmjs.com/package/jevmem">npm</a> · <a href="${BASE}llms.txt">llms.txt</a> · <a href="${BASE}llms-full.txt">llms-full.txt</a> · <a href="${BASE}index.md">This page as Markdown</a></p>
+<p>jevmem ${esc(version)}. Open source, MIT. Built on Jev by TypeSafe AI. This site sets no cookies and has no analytics.</p>
+</div></footer>
+<script src="${BASE}assets/site.js" defer></script>
+<script src="${BASE}assets/home.js" defer></script>`;
+}
+
 function layout({ page, pages, version, body }) {
   const home = page.path === "/";
-  const title = home ? `jevmem: ${TAGLINE}` : `${page.title} · jevmem`;
+  const title = home ? HOME_TITLE : `${page.title} · jevmem`;
   const cover = `${SITE}/${COVER.file}`;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -306,6 +330,9 @@ function layout({ page, pages, version, body }) {
     dateModified: page.date,
     url: `${SITE}/`,
     applicationCategory: "DeveloperApplication",
+    operatingSystem: "macOS, Linux, Windows",
+    keywords: "Claude Code memory, project rules, CLAUDE.md, JEVMEM.md, Cursor rules, Codex, MCP, AI coding agents",
+    sameAs: [REPO, "https://www.npmjs.com/package/jevmem"],
   };
   const menu = pages.filter((p) => p.nav).map((p) => `<a href="${BASE}${p.path.slice(1)}"${p === page ? ' aria-current="page"' : ""}>${esc(p.nav)}</a>`);
   const all = pages.map((p) => `<li><a href="${BASE}${p.path.slice(1)}">${esc(p.title)}</a></li>`);
@@ -319,11 +346,16 @@ function layout({ page, pages, version, body }) {
 ${home ? VERIFICATION.map((v) => `<meta name="${v.name}" content="${esc(v.content)}">\n`).join("") : ""}<link rel="canonical" href="${page.url}">
 <link rel="alternate" type="text/markdown" href="${page.mdUrl}" title="This page as Markdown">
 <link rel="icon" type="image/svg+xml" href="${BASE}assets/favicon.svg">
-<link rel="preload" href="${BASE}assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="${BASE}assets/site.css">
+${
+  home
+    ? `<link rel="preload" href="${BASE}assets/fonts/newsreader-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="${BASE}assets/home.css">`
+    : `<link rel="preload" href="${BASE}assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="${BASE}assets/site.css">`
+}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="jevmem">
-<meta property="og:title" content="${esc(home ? "jevmem" : page.title)}">
+<meta property="og:title" content="${esc(home ? HOME_TITLE : page.title)}">
 <meta property="og:description" content="${esc(page.description)}">
 <meta property="og:url" content="${page.url}">
 <meta property="og:image" content="${cover}">
@@ -331,7 +363,7 @@ ${home ? VERIFICATION.map((v) => `<meta name="${v.name}" content="${esc(v.conten
 <meta property="og:image:height" content="${COVER.height}">
 <meta property="og:image:alt" content="${esc(`jevmem. ${TAGLINE}`)}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${esc(home ? "jevmem" : page.title)}">
+<meta name="twitter:title" content="${esc(home ? HOME_TITLE : page.title)}">
 <meta name="twitter:description" content="${esc(page.description)}">
 <meta name="twitter:image" content="${cover}">
 <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, "\\u003c")}</script>
@@ -339,7 +371,7 @@ ${home ? VERIFICATION.map((v) => `<meta name="${v.name}" content="${esc(v.conten
 </head>
 <body>
 <a class="skip" href="#main">Skip to the page</a>
-<header class="site">
+${home ? homeBody(body, pages, version) : `<header class="site">
 <a class="brand" href="${BASE}"><img class="themed-light" src="${BASE}assets/lockup-light.svg" alt="jevmem" width="141" height="36"><img class="themed-dark" src="${BASE}assets/lockup-dark.svg" alt="jevmem" width="141" height="36"></a>
 <nav aria-label="Pages">${menu.join("")}</nav>
 <div class="tools">
@@ -359,7 +391,7 @@ ${all.join("\n")}
 <p><a href="${REPO}">GitHub</a> · <a href="https://www.npmjs.com/package/jevmem">npm</a> · <a href="${BASE}llms.txt">llms.txt</a> · <a href="${BASE}llms-full.txt">llms-full.txt</a> · <a href="${BASE}${page.mdPath}">This page as Markdown</a></p>
 <p>jevmem ${esc(version)}. Open source, MIT. Built on Jev by TypeSafe AI. This site sets no cookies and has no analytics.</p>
 </footer>
-<script src="${BASE}assets/site.js" defer></script>
+<script src="${BASE}assets/site.js" defer></script>`}
 </body>
 </html>
 `;
@@ -401,8 +433,14 @@ export function build({ out = path.join(ROOT, "_site") } = {}) {
     const metaHtml = `<p class="meta">Last updated: <time datetime="${page.date}">${page.date}</time> · jevmem ${esc(version)} · <a href="${BASE}install/">Install</a> · <a href="${REPO}">Source on GitHub</a></p>`;
     page.md = plainMarkdown(`# ${page.title}\n\n${lead}\n\n${metaMd}\n\n${rest}\n`);
     const [h1, ...others] = page.headings;
-    const body = [
-      page.path === "/" ? `<p class="tagline">${esc(TAGLINE)}</p>` : "",
+    const homeHtml = () =>
+      read(HOME)
+        .replaceAll("{{base}}", BASE)
+        .replaceAll("{{repo}}", REPO)
+        .replaceAll("{{film}}", FILM)
+        .replaceAll("{{version}}", esc(version))
+        .replaceAll("{{date}}", page.date);
+    const body = page.path === "/" ? homeHtml() : [
       `<h1 id="${h1.id}">${esc(h1.text)}</h1>`,
       `<div class="lead">${renderHtml(lead, [])}</div>`,
       metaHtml,
@@ -423,7 +461,8 @@ export function build({ out = path.join(ROOT, "_site") } = {}) {
         sections.push(section);
       } else section.t.push(t);
     });
-    for (const s of sections) search.push({ ...s, t: plainText(plainMarkdown(s.t.join("\n"))) });
+    // The home page's sections are in its Markdown copy, not in its HTML: its entries open the page itself.
+    for (const s of sections) search.push({ ...s, u: page.path === "/" ? "" : s.u, t: plainText(plainMarkdown(s.t.join("\n"))) });
   }
 
   // llms.txt is the repository's own file: every page's Markdown copy must be in it, and every link into the site must exist.
