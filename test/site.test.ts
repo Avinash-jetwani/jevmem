@@ -79,7 +79,8 @@ describe("the docs site", () => {
       for (const m of file(p).matchAll(/ (?:href|src|poster)="([^"]+)"/g)) {
         const url = m[1]!.replace(SITE + "/", BASE);
         if (!url.startsWith("/") && !url.startsWith("#")) continue;
-        const [to, frag] = url.split("#") as [string, string | undefined];
+        const [withQuery, frag] = url.split("#") as [string, string | undefined];
+        const to = withQuery.split("?")[0]!;
         const rel = to === "" ? p : to.slice(BASE.length) + (to.endsWith("/") ? "index.html" : "");
         if (!to.startsWith(BASE) && to !== "") broken.push(`${p}: ${url} (outside ${BASE})`);
         else if (!fs.existsSync(path.join(out, rel))) broken.push(`${p}: ${url} (no file)`);
