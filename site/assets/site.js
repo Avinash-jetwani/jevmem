@@ -18,6 +18,18 @@
     });
   }
 
+  // Charts: drawn complete; each grows its bars once, when it first comes into view.
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        e.target.classList.add("play");
+        io.unobserve(e.target);
+      }
+    });
+    document.querySelectorAll(".chart").forEach((c) => io.observe(c));
+  }
+
   // Search: every word of the query must be in a section; a word in a heading counts for more.
   const input = document.getElementById("q");
   const panel = document.getElementById("results");
