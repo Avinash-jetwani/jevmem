@@ -89,34 +89,65 @@ b.append(text(W / 2, top + ch + 46, "Change your mind, and the old line is cross
 write("how-it-works", W, H, "".join(b), "How jevmem works: you say it, Jev decides, jevmem writes one line to JEVMEM.md, and next session Claude gets the lines that matter.")
 
 # ------------------------------------------------------------------ 2. the guard
-cw, ch, gap, top = 300, 200, 40, 20
-W, H = 20 + 3 * cw + 2 * gap, 250
-xs = [10 + i * (cw + gap) for i in range(3)]
-b = []
-titles = ["Claude wants to run", "jevmem checks your rules", "Claude Code asks you"]
+# Drawn in the docs site's technical-note style (sharp rules, serif and mono, the site's colours), on a clear background
+# so it sits on the site and on GitHub in light and dark.
+SERIF = "Newsreader, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif"
+NOTE = {
+    "light": dict(fg="#141414", muted="#62646a", hair="#d6d5d0", hi="#e0692a", hiInk="#a8430b", fig="#f3f3f0", paper="#ffffff"),
+    "dark": dict(fg="#ecebe6", muted="#9a9ca1", hair="#3a3a3e", hi="#f08a4b", hiInk="#f08a4b", fig="#1d1d1f", paper="#121212"),
+}
+def nt(x, y, s, size, fill="fg", font=SERIF, weight=400, anchor="start", extra=""):
+    return f'<text x="{x}" y="{y}" font-family="{font}" font-size="{size}" font-weight="{weight}" fill="{{{fill}}}" text-anchor="{anchor}" {extra}>{esc(s)}</text>'
+def hline(x1, x2, y, fill="hair", w=1):
+    return f'<rect x="{x1}" y="{y}" width="{x2 - x1}" height="{w}" fill="{{{fill}}}"/>'
+cw, gap = 300, 50
+W, H = 3 * cw + 2 * gap, 292
+xs = [i * (cw + gap) for i in range(3)]
+b = [hline(0, W, 0, "fg", 2)]
+labels = ["THE CALL", "THE CHECK", "THE ASK"]
+heads = ["Claude wants to run", "jevmem checks your rules", "Claude Code asks you"]
 for i, x in enumerate(xs):
-    b.append(card(x, top, cw, ch))
-    b.append(step(x + 32, top + 36, i + 1))
-    b.append(text(x + 56, top + 42, titles[i], 19, 700))
+    b.append(nt(x, 34, f"0{i + 1}", 13, "hi", MONO, 700, extra='letter-spacing="1"'))
+    b.append(nt(x + 30, 34, labels[i], 13, "muted", MONO, extra='letter-spacing="1.5"'))
+    b.append(hline(x, x + cw, 46))
+    b.append(nt(x, 82, heads[i], 23))
     if i < 2:
-        b.append(arrow(x + cw + gap / 2 - 6, top + ch / 2))
+        cx = x + cw + gap / 2
+        b.append(f'<path d="M{cx - 5} 144 L{cx + 5} 154 L{cx - 5} 164" fill="none" stroke="{{hi}}" stroke-width="2.5" stroke-linejoin="miter"/>')
+# 1: the command, in the site's code style (tinted block, rule on the left)
 x = xs[0]
-b.append(f'<rect x="{x + 20}" y="{top + 76}" width="{cw - 40}" height="78" rx="10" fill="#15161a"/>')
-b.append(f'<text x="{x + 36}" y="{top + 108}" font-family="{MONO}" font-size="17" fill="#f6f5f1">git add -A &amp;&amp;</text>')
-b.append(f'<text x="{x + 36}" y="{top + 136}" font-family="{MONO}" font-size="17" fill="#f6f5f1">git commit -m "wip"</text>')
-b.append(text(x + 22, top + 182, "would commit .env", 15, 400, "muted"))
+b.append(f'<rect x="{x}" y="112" width="{cw}" height="84" fill="{{fig}}"/>')
+b.append(f'<rect x="{x}" y="112" width="3" height="84" fill="{{fg}}"/>')
+b.append(nt(x + 20, 146, "$ git add -A &&", 16, "fg", MONO))
+b.append(nt(x + 20, 174, '  git commit -m "wip"', 16, "fg", MONO))
+b.append(nt(x, 232, "This would also commit .env", 17, "muted", extra='font-style="italic"'))
+# 2: the saved rule it matches
 x = xs[1]
-b.append(text(x + 22, top + 96, "Your rule, from an old chat:", 15, 400, "muted"))
-b.append(text(x + 22, top + 128, "Never commit .env files.", 18, 700, "orange"))
-b.append(text(x + 22, top + 182, "Jev: this may break it", 15, 400, "muted"))
+b.append(nt(x, 126, "JEVMEM.md", 13, "muted", MONO, extra='letter-spacing="0.5"'))
+b.append(nt(x, 154, "[constraint]", 15, "muted", MONO))
+b.append(nt(x, 180, "Never commit .env files.", 16, "hiInk", MONO, 700))
+b.append(hline(x + 125, x + 164, 186, "hi", 2))
+b.append(nt(x, 232, "Jev: this call may break it", 17, "muted", extra='font-style="italic"'))
+# 3: the prompt, before the command runs
 x = xs[2]
-b.append(text(x + 22, top + 96, "before the command runs", 15, 400, "muted"))
-for k, (lab, dark) in enumerate((("Allow", False), ("Deny", True))):
-    bx = x + 22 + k * 112
-    b.append(f'<rect x="{bx}" y="{top + 116}" width="100" height="42" rx="9" fill="{{{"ink" if dark else "btn"}}}"/>')
-    b.append(text(bx + 50, top + 143, lab, 17, 600, "card" if dark else "btnInk", "middle"))
-b.append(text(x + 22, top + 186, "You decide.", 15, 400, "muted"))
-write("guard", W, H, "".join(b), "The guard: Claude wants to run a command, jevmem checks it against your saved rules, and Claude Code asks you first.")
+b.append(f'<rect x="{x + 0.5}" y="112.5" width="{cw - 1}" height="83" fill="none" stroke="{{fg}}" stroke-width="1"/>')
+b.append(nt(x + 16, 136, "jevmem: this may break a saved rule", 12.5, "hiInk", MONO))
+for k, (lab, on) in enumerate((("Allow", False), ("Deny", True))):
+    bx = x + 16 + k * 104
+    if on:
+        b.append(f'<rect x="{bx}" y="150" width="92" height="32" fill="{{fg}}"/>')
+    else:
+        b.append(f'<rect x="{bx + 0.5}" y="150.5" width="91" height="31" fill="none" stroke="{{muted}}" stroke-width="1"/>')
+    b.append(nt(bx + 46, 171, lab, 14, "paper" if on else "fg", MONO, 700 if on else 400, "middle"))
+b.append(nt(x, 232, "before it runs. You decide.", 17, "muted", extra='font-style="italic"'))
+b.append(hline(0, W, 256))
+b.append(nt(0, 282, "THE GUARD", 12, "fg", MONO, 700, extra='letter-spacing="1.5"'))
+b.append(nt(96, 282, "checks commands and file edits against your saved rules. A backstop, not a sandbox.", 12, "muted", MONO))
+for mode, t in NOTE.items():
+    sv = svg(W, H, "".join(b), "The guard: Claude wants to run a command, jevmem checks it against your saved rules, and Claude Code asks you first.")
+    for k2, v in t.items():
+        sv = sv.replace("{" + k2 + "}", v)
+    open(os.path.join(OUT, f"guard-{mode}.svg"), "w").write(sv)
 
 # ------------------------------------------------------------------ 3. results
 W = 980
