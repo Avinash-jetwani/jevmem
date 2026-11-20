@@ -256,7 +256,11 @@ const plainMarkdown = (text) =>
     .replace(/^<\/details>[ \t]*$/gm, "")
     .replace(/\n{3,}/g, "\n\n");
 const themedImages = (text) =>
-  text.replace(PICTURE, (_, dark, alt, light) => `<img class="themed-light" src="${light}" alt="${esc(alt)}" loading="lazy"><img class="themed-dark" src="${dark}" alt="${esc(alt)}" loading="lazy">`);
+  text.replace(PICTURE, (_, dark, alt, light) => {
+    const name = /\/img\/([\w-]+)-light\.svg$/.exec(light)?.[1];
+    if (name && CHARTS.has(name)) return chartHtml(name, alt);
+    return `<span class="pic"><img class="themed-light" src="${light}" alt="${esc(alt)}" loading="lazy"><img class="themed-dark" src="${dark}" alt="${esc(alt)}" loading="lazy"></span>`;
+  });
 const local = (html) => html.replaceAll(`"${SITE}/`, `"${BASE}`);
 const plainText = (md) =>
   md
@@ -298,6 +302,73 @@ function renderHtml(md, headings) {
         (_, url, text) => `<video controls preload="none" poster="${SITE}/${COVER.file}" src="${url}" aria-label="${esc(text)}"></video>\n<p class="meta"><a href="${url}">${text}</a></p>`,
       ),
   );
+}
+
+// ------------------------------------------------------------------ the other pages: sections and charts
+/**
+ * On the site, the README's three results charts (docs/img/results, beside-auto-memory, benchmark) are drawn as live
+ * HTML charts, read from the SVG's own text, so the site and the README cannot show different numbers. Each keeps the
+ * picture's alt text as its label. Any other picture stays an image.
+ */
+const CHARTS = new Set(["results", "beside-auto-memory", "benchmark"]);
+function svgTexts(name) {
+  const svg = read(`docs/img/${name}-light.svg`);
+  return [...svg.matchAll(/<text\b[^>]*>([^<]*)<\/text>/g)].map((m) =>
+    m[1].replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;|&#39;/g, "'"),
+  );
+}
+function chartHtml(name, alt) {
+  const texts = svgTexts(name);
+  const us = (label) => /^jevmem\b/.test(label);
+  if (name === "benchmark") {
+    // Header: title, then the two column names; then four cells a row: name, time, save/skip, cost.
+    const [title, ...rest] = texts;
+    const cols = rest.slice(0, 2);
+    const rows = [];
+    for (let i = 2; i + 3 < rest.length + 1; i += 4) rows.push(rest.slice(i, i + 4));
+    const max = Math.max(...rows.map((r) => parseFloat(r[1])));
+    const body = rows
+      .map(
+        ([who, time, acc, cost]) =>
+          `<div class="bar-row${us(who) ? " us" : ""}"><span class="who">${esc(who)}</span><span class="track"><span class="fill" style="--w:${((parseFloat(time) / max) * 100).toFixed(1)}%"></span></span><span class="val">${esc(time)}</span><span class="val extra">${esc(acc)}</span><span class="val extra">${esc(cost)}</span></div>`,
+      )
+      .join("");
+    return `<figure class="chart wide" role="img" aria-label="${esc(alt)}"><figcaption class="chart-title">${esc(title)} <span>median, shorter is better · ${esc(cols.join(" · "))} on the right</span></figcaption>${body}</figure>`;
+  }
+  // Groups: a title, a unit line (it has a "·"), then label and "N of M" pairs.
+  const groups = [];
+  for (let i = 0; i < texts.length; i++) {
+    if (texts[i + 1]?.includes("·") && !/^\d+ of \d+$/.test(texts[i])) {
+      groups.push({ title: texts[i], unit: texts[i + 1], rows: [] });
+      i++;
+    } else if (/^\d+ of \d+$/.test(texts[i + 1] ?? "")) {
+      groups.at(-1).rows.push([texts[i], texts[i + 1]]);
+      i++;
+    }
+  }
+  if (!groups.length || groups.some((g) => !g.rows.length)) throw new Error(`docs/img/${name}-light.svg: no chart rows found`);
+  return `<figure class="chart" role="img" aria-label="${esc(alt)}">${groups
+    .map(
+      (g) =>
+        `<div class="chart-group"><p class="chart-title">${esc(g.title)} <span>${esc(g.unit)}</span></p>${g.rows
+          .map(([who, v]) => {
+            const [n, m] = v.split(" of ").map(Number);
+            return `<div class="bar-row${us(who) ? " us" : ""}"><span class="who">${esc(who)}</span><span class="track"><span class="fill" style="--w:${((n / m) * 100).toFixed(1)}%"></span></span><span class="val">${esc(v)}</span></div>`;
+          })
+          .join("")}</div>`,
+    )
+    .join("")}</figure>`;
+}
+/** A page's body as the site shows it: the head (title, answer, date, any text before the first section), then each
+ * H2 and what follows it as one numbered section; a paragraph that opens with Method., Limits. or Measured. is a note. */
+function sectioned(headHtml, restHtml) {
+  const html = restHtml.replace(/<p><strong>(Method|Limits|Measured|Note)\.<\/strong>/g, '<p class="note"><strong>$1.</strong>');
+  const parts = html.split(/(?=<h2 id=")/);
+  const intro = parts[0].startsWith("<h2 ") ? "" : parts.shift();
+  const sections = parts.map(
+    (s, i) => `<section class="row"><div class="num" aria-hidden="true">${String(i + 1).padStart(2, "0")}</div><div class="body">${s}</div></section>`,
+  );
+  return `<header class="page-head">${headHtml}${intro ? `<div class="intro">${intro}</div>` : ""}</header>\n${sections.join("\n")}`;
 }
 
 /** The home page's body: site/home.html, then the footer every page has, in the home page's style. */
@@ -440,12 +511,10 @@ export function build({ out = path.join(ROOT, "_site") } = {}) {
         .replaceAll("{{film}}", FILM)
         .replaceAll("{{version}}", esc(version))
         .replaceAll("{{date}}", page.date);
-    const body = page.path === "/" ? homeHtml() : [
-      `<h1 id="${h1.id}">${esc(h1.text)}</h1>`,
-      `<div class="lead">${renderHtml(lead, [])}</div>`,
-      metaHtml,
-      renderHtml(rest, others),
-    ].join("\n");
+    const body =
+      page.path === "/"
+        ? homeHtml()
+        : sectioned([`<h1 id="${h1.id}">${esc(h1.text)}</h1>`, `<div class="lead">${renderHtml(lead, [])}</div>`, metaHtml].join("\n"), renderHtml(rest, others));
     write(page.mdPath, page.md);
     write(page.htmlPath, layout({ page, pages, version, body }));
 
